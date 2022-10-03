@@ -64,7 +64,7 @@ pub fn validate_number_of_executions(
     }
 }
 
-pub fn validate_asset_denom(
+pub fn validate_asset_denom_matches_pair_denom(
     pair: Pair,
     funds: Vec<Coin>,
     position_type: PositionType,

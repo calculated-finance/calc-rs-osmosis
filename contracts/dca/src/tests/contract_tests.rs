@@ -356,7 +356,7 @@ fn create_vault_with_time_trigger_and_valid_inputs_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -379,7 +379,7 @@ fn create_vault_with_time_trigger_and_valid_inputs_should_succeed() {
     assert_eq!(
         result.attributes,
         vec![
-            attr("method", "create_vault"),
+            attr("method", "create_vault_with_time_trigger"),
             attr("id", "1"),
             attr("owner", "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1"),
             attr("vault_id", "1")
@@ -423,7 +423,7 @@ fn create_vault_with_time_trigger_and_no_target_start_time_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: None,
     };
@@ -446,7 +446,7 @@ fn create_vault_with_time_trigger_and_no_target_start_time_should_succeed() {
     assert_eq!(
         result.attributes,
         vec![
-            attr("method", "create_vault"),
+            attr("method", "create_vault_with_time_trigger"),
             attr("id", "1"),
             attr("owner", "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1"),
             attr("vault_id", "1")
@@ -491,7 +491,7 @@ fn create_vault_with_time_trigger_and_no_funds_should_fail() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -547,7 +547,7 @@ fn create_vault_with_time_trigger_with_too_many_executions_should_fail() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(40),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -610,7 +610,7 @@ fn create_vault_with_time_trigger_and_too_few_triggers_should_fail() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(10),
-        total_triggers: 1,
+        total_executions: 1,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -672,7 +672,7 @@ fn create_vault_with_time_trigger_and_unwhitelisted_pair_address_should_fail() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(100),
-        total_triggers: 1,
+        total_executions: 1,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -730,7 +730,7 @@ fn create_vault_with_time_trigger_and_trigger_time_in_past_should_fail() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1562770365)),
     };
@@ -792,7 +792,7 @@ fn cancel_vault_by_address_and_id_with_valid_inputs_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -870,7 +870,7 @@ fn get_all_active_vaults_with_one_vault_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -955,7 +955,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
     };
@@ -1024,7 +1024,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
     };
@@ -1048,7 +1048,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
     };
@@ -1116,7 +1116,7 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_triggers: 4,
+        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };

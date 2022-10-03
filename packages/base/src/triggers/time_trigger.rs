@@ -26,8 +26,25 @@ impl TimeTrigger {
     }
 }
 
+impl From<TimeTrigger> for TriggerBuilder<TimeTrigger> {
+    fn from(time_trigger: TimeTrigger) -> Self {
+        let time_trigger_configuration: TimeTrigger = TimeTrigger {
+            time_interval: time_trigger.time_interval,
+            triggers_remaining: time_trigger.triggers_remaining,
+            target_time: time_trigger.target_time,
+        };
+        TriggerBuilder {
+            id: Uint128::zero(),
+            owner: Addr::unchecked(""),
+            variant: TriggerVariant::Time,
+            vault_id: Uint128::zero(),
+            configuration: time_trigger_configuration,
+        }
+    }
+}
+
 impl TriggerBuilder<TimeTrigger> {
-    pub fn new() -> TriggerBuilder<TimeTrigger> {
+    pub fn new_time_trigger() -> TriggerBuilder<TimeTrigger> {
         let time_trigger_configuration: TimeTrigger = TimeTrigger {
             time_interval: TimeInterval::Daily,
             triggers_remaining: 0,

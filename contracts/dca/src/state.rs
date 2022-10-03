@@ -67,12 +67,13 @@ pub const CANCELLED_VAULTS: Map<(Addr, u128), Vault<DCAConfiguration>> =
     Map::new("cancelled_vaults_v1");
 
 pub const TIME_TRIGGERS: Map<u128, Trigger<TimeTrigger>> = Map::new("time_triggers_v1");
+pub const TIME_TRIGGER_CONFIGURATIONS: Map<u128, TimeTrigger> =
+    Map::new("time_trigger_configurations_v1");
 
 pub const PRICE_TRIGGERS: Map<u128, Trigger<PriceTrigger>> = Map::new("price_triggers_v1");
-pub const PRICE_OR_HIGHER: Map<(Addr, String), Vec<u128>> =
-    Map::new("price_or_higher_v1");
-pub const PRICE_OR_LOWER: Map<(Addr, String), Vec<u128>> =
-    Map::new("price_or_lower_v1");
-
+pub const PRICE_EQUAL_OR_HIGHER: Map<(Addr, String), Vec<u128>> =
+    Map::new("price_equal_or_higher_v1");
+pub const PRICE_EQUAL_OR_LOWER: Map<(Addr, String), Vec<u128>> =
+    Map::new("price_equal_or_lower_v1");
 
 pub const EXECUTIONS: Map<u128, Vec<Execution<DCAExecutionInformation>>> = Map::new("execution_v1");
