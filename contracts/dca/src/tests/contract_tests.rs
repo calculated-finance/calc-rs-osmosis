@@ -692,7 +692,7 @@ fn create_vault_with_time_trigger_and_unwhitelisted_pair_address_should_fail() {
     )
     .unwrap_err();
 
-    assert_eq!(result.to_string(), "calc_base::pair::Pair not found")
+    assert_eq!(result.to_string(), "base::pair::Pair not found")
 }
 
 #[test]
@@ -1179,6 +1179,6 @@ fn get_all_executions_by_vault_id_for_non_existant_vault_should_fail() {
 
     assert_eq!(
         binary.to_string(),
-        "alloc::vec::Vec<calc_base::executions::execution::Execution<calc_base::executions::dca_execution::DCAExecutionInformation>> not found"
+        "alloc::vec::Vec<base::executions::execution::Execution<base::executions::dca_execution::DCAExecutionInformation>> not found"
     );
 }
