@@ -1,12 +1,3 @@
-use base::executions::dca_execution::DCAExecutionInformation;
-use base::executions::execution::{Execution, ExecutionBuilder};
-use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
-use base::helpers::time_helpers::{get_next_target_time, target_time_elapsed};
-use base::pair::Pair;
-use base::triggers::time_trigger::{TimeInterval, TimeTrigger};
-use base::triggers::trigger::{Trigger, TriggerBuilder, TriggerVariant};
-use base::vaults::dca_vault::{DCAConfiguration, PositionType};
-use base::vaults::vault::{Vault, VaultBuilder};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -16,6 +7,15 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use kujira::fin::{BookResponse, ExecuteMsg as FINExecuteMsg, QueryMsg as FINQueryMsg};
 
+use base::executions::dca_execution::DCAExecutionInformation;
+use base::executions::execution::{Execution, ExecutionBuilder};
+use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
+use base::helpers::time_helpers::{get_next_target_time, target_time_elapsed};
+use base::pair::Pair;
+use base::triggers::time_trigger::{TimeInterval, TimeTrigger};
+use base::triggers::trigger::{Trigger, TriggerBuilder, TriggerVariant};
+use base::vaults::dca_vault::{DCAConfiguration, PositionType};
+use base::vaults::vault::{Vault, VaultBuilder};
 use crate::error::ContractError;
 use crate::msg::{
     ExecuteMsg, ExecutionsResponse, InstantiateMsg, MigrateMsg, PairsResponse, QueryMsg,
