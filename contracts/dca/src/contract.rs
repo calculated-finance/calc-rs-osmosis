@@ -1,3 +1,4 @@
+use base::triggers::price_trigger::Direction;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -27,8 +28,8 @@ use crate::validation_helpers::{
 };
 
 use crate::state::{
-    Cache, Config, ACTIVE_VAULTS, CACHE, CANCELLED_VAULTS, CONFIG, EXECUTIONS, FIN_PRICE_TRIGGERS,
-    FIN_PRICE_TRIGGERS_BY_ORDER_ID, INACTIVE_VAULTS, PAIRS, TIME_TRIGGERS,
+    Cache, Config, ACTIVE_VAULTS, CACHE, CANCELLED_VAULTS, CONFIG, EXECUTIONS, PRICE_OR_HIGHER,
+    INACTIVE_VAULTS, PAIRS, TIME_TRIGGERS, PRICE_TRIGGERS, PRICE_OR_LOWER,
 };
 
 const CONTRACT_NAME: &str = "crates.io:calc-dca";
@@ -244,10 +245,54 @@ fn cancel_vault_by_address_and_id(
     match vault.trigger_variant {
         TriggerVariant::Time => TIME_TRIGGERS.remove(deps.storage, vault.trigger_id.into()),
         TriggerVariant::Price => {
-            let trigger = FIN_PRICE_TRIGGERS.load(deps.storage, vault.trigger_id.into())?;
-            FIN_PRICE_TRIGGERS.remove(deps.storage, trigger.id.into());
-            FIN_PRICE_TRIGGERS_BY_ORDER_ID
-                .remove(deps.storage, trigger.configuration.order_idx.into());
+            let price_trigger = PRICE_TRIGGERS.load(deps.storage, vault.trigger_id.u128())?;
+            match price_trigger.configuration.direction {
+                Direction::OrHigher => {
+                    PRICE_OR_HIGHER.update(
+                        deps.storage,
+                        (vault.configuration.pair.address.clone(), price_trigger.configuration.target_price.to_string()), 
+                        |existing_triggers| {
+                        match existing_triggers {
+                            Some(mut triggers) => {
+                                let index_to_remove = triggers
+                                    .iter()
+                                    .position(|&t| t == price_trigger.id.u128())
+                                    .unwrap();
+                                triggers.remove(index_to_remove);
+                                Ok(triggers)
+                            },
+                            None => {
+                                Err(
+                                    ContractError::CustomError { val: String::from("could not find existing triggers") }
+                                )
+                            }
+                        }
+                    })?;
+                },
+                Direction::OrLower => {
+                    PRICE_OR_LOWER.update(
+                        deps.storage,
+                        (vault.configuration.pair.address.clone(), price_trigger.configuration.target_price.to_string()), 
+                        |existing_triggers| {
+                        match existing_triggers {
+                            Some(mut triggers) => {
+                                let index_to_remove = triggers
+                                    .iter()
+                                    .position(|&t| t == price_trigger.id.u128())
+                                    .unwrap();
+                                triggers.remove(index_to_remove);
+                                Ok(triggers)
+                            },
+                            None => {
+                                Err(
+                                    ContractError::CustomError { val: String::from("could not find existing triggers") }
+                                )
+                            }
+                        }
+                    })?;
+                }
+            }
+            PRICE_TRIGGERS.remove(deps.storage, price_trigger.id.u128());
         }
     };
 

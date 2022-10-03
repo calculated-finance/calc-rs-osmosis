@@ -1,14 +1,16 @@
-use cosmwasm_std::{Decimal256, Uint128};
+use cosmwasm_std::{Decimal256};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct FINLimitOrderTrigger {
+pub struct PriceTrigger {
     pub target_price: Decimal256,
-    pub order_idx: Uint128,
+    pub direction: Direction
 }
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct FINPriceTrigger {
-    pub target_price: Decimal256,
-    pub order_idx: Uint128,
+#[serde(rename_all = "snake_case")]
+pub enum Direction {
+    OrHigher,
+    OrLower
 }
