@@ -5,21 +5,18 @@ use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Decimal256, Deps, DepsMut, Env,
-    MessageInfo, QuerierWrapper, Reply, Response, StdResult, SubMsg, Timestamp, Uint128, Uint256,
-    Uint64, WasmMsg,
+    MessageInfo, Reply, Response, StdResult, SubMsg, Timestamp, Uint128, Uint256, Uint64, WasmMsg,
 };
 use cw2::set_contract_version;
-use cw_storage_plus::Bound;
 use fin_helpers::limit_orders::{
     create_limit_order_sub_message, create_withdraw_limit_order_sub_message, get_fin_order_details,
-    get_fin_order_original_amount_and_filled_amount,
 };
 use kujira::fin::{BookResponse, ExecuteMsg as FINExecuteMsg, QueryMsg as FINQueryMsg};
 
 use crate::error::ContractError;
 use crate::msg::{
     ExecuteMsg, ExecutionsResponse, InstantiateMsg, MigrateMsg, PairsResponse, QueryMsg,
-    TriggerIdsResponse, TriggersResponse, VaultResponse, VaultsResponse,
+    TriggersResponse, VaultResponse, VaultsResponse,
 };
 use crate::validation_helpers::{
     validate_asset_denom_matches_pair_denom, validate_funds, validate_number_of_executions,
@@ -129,8 +126,8 @@ pub fn execute(
         ExecuteMsg::ExecuteTimeTriggerById { trigger_id } => {
             execute_time_trigger_by_id(deps, env, trigger_id)
         }
-        ExecuteMsg::ExecutePriceTriggerById { trigger_id } => {
-            execute_fin_limit_order_trigger_by_order_idx(deps, env, trigger_id)
+        ExecuteMsg::ExecuteFINLimitOrderTriggerByOrderIdx { order_idx } => {
+            execute_fin_limit_order_trigger_by_order_idx(deps, env, order_idx)
         }
         ExecuteMsg::CancelVaultByAddressAndId { address, vault_id } => {
             cancel_vault_by_address_and_id(deps, info, address, vault_id)
@@ -312,7 +309,7 @@ pub fn create_vault_with_fin_limit_order_trigger(
         .id(config.vault_count)
         .owner(info.sender.clone())
         .balance(info.funds[0].clone())
-        .pair_address(existing_pair.address)
+        .pair_address(existing_pair.address.clone())
         .pair_base_denom(existing_pair.base_denom)
         .pair_quote_denom(existing_pair.quote_denom)
         .swap_amount(swap_amount)
@@ -361,39 +358,14 @@ pub fn create_vault_with_fin_limit_order_trigger(
 
     EXECUTIONS.save(deps.storage, vault.id.into(), &Vec::new())?;
 
+    println!("here 3");
+
     Ok(Response::new()
         .add_attribute("method", "create_vault_with_fin_limit_order_trigger")
         .add_attribute("id", config.vault_count.to_string())
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id)
         .add_submessage(fin_limit_order_sub_msg))
-}
-
-// move this
-fn query_book(querier: QuerierWrapper, pair_address: Addr) -> BookResponse {
-    let book_query_message = FINQueryMsg::Book {
-        limit: Some(1),
-        offset: None,
-    };
-
-    querier
-        .query_wasm_smart(pair_address.clone(), &book_query_message)
-        .unwrap()
-}
-
-// move this
-fn get_current_price(querier: QuerierWrapper, pair_address: Addr) -> Decimal256 {
-    let book = query_book(querier, pair_address);
-
-    let add_together = book.base[0]
-        .quote_price
-        .checked_add(book.quote[0].quote_price)
-        .unwrap();
-
-    let divide_by_two = add_together
-        .checked_div(Decimal256::from_str("2").unwrap())
-        .unwrap();
-    divide_by_two
 }
 
 fn cancel_vault_by_address_and_id(
@@ -537,7 +509,7 @@ fn execute_time_trigger_by_id(
 
 fn execute_fin_limit_order_trigger_by_order_idx(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     order_idx: Uint128,
 ) -> Result<Response, ContractError> {
     let fin_limit_order_trigger_id =
@@ -553,8 +525,11 @@ fn execute_fin_limit_order_trigger_by_order_idx(
         ),
     )?;
 
-    let (quote_price, original_offer_amount, filled_amount) =
-        get_fin_order_details(deps.querier, vault.configuration.pair.address, order_idx);
+    let (quote_price, original_offer_amount, filled_amount) = get_fin_order_details(
+        deps.querier,
+        vault.configuration.pair.address.clone(),
+        order_idx,
+    );
 
     let expected_total_amount = original_offer_amount
         .checked_div(Uint256::from_str(&quote_price.to_string())?)
@@ -573,6 +548,7 @@ fn execute_fin_limit_order_trigger_by_order_idx(
     );
 
     let limit_order_cache = LimitOrderCache {
+        sent_amount: original_offer_amount,
         received_amount: filled_amount,
     };
     LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
@@ -602,24 +578,14 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
 
 pub fn after_submit_order(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
+    println!("here 4{:?}", reply);
+
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let fin_submit_order_response = reply.result.into_result().unwrap();
-
-            let coin_spent_event = find_first_event_by_type(
-                &fin_submit_order_response.events,
-                String::from("coin_spent"),
-            )
-            .unwrap();
-
-            let coin_spent_amount =
-                find_first_attribute_by_key(&coin_spent_event.attributes, String::from("amount"))
-                    .unwrap()
-                    .value
-                    .as_ref();
 
             let wasm_event =
                 find_first_event_by_type(&fin_submit_order_response.events, String::from("wasm"))
@@ -642,19 +608,17 @@ pub fn after_submit_order(
 
             let fin_limit_order_trigger = TriggerBuilder::from(fin_limit_order_configuration)
                 .id(config.trigger_count)
-                .owner(cache.owner)
+                .owner(cache.owner.clone())
                 .vault_id(cache.vault_id)
                 .order_idx(Uint128::from_str(order_idx).unwrap())
                 .build();
 
-            let updated_vault = ACTIVE_VAULTS.update(
+            ACTIVE_VAULTS.update(
                 deps.storage,
                 (cache.owner.clone(), cache.vault_id.into()),
                 |vault| -> Result<Vault<DCAConfiguration>, ContractError> {
                     match vault {
                         Some(mut existing_vault) => {
-                            existing_vault.balances[0].current.amount -=
-                                Uint128::from_str(coin_spent_amount).unwrap();
                             existing_vault.trigger_id = fin_limit_order_trigger.id;
                             existing_vault.trigger_variant = TriggerVariant::FINLimitOrder;
                             Ok(existing_vault)
@@ -723,15 +687,17 @@ pub fn after_withdraw_order(
             let time_trigger = TriggerBuilder::from(time_trigger_configuration)
                 .id(config.trigger_count)
                 .vault_id(vault.id)
-                .owner(vault.owner)
+                .owner(vault.owner.clone())
                 .build();
 
-            let updated_vault = ACTIVE_VAULTS.update(
+            ACTIVE_VAULTS.update(
                 deps.storage,
                 (vault.owner.clone(), vault.id.into()),
                 |vault| -> Result<Vault<DCAConfiguration>, ContractError> {
                     match vault {
                         Some(mut existing_vault) => {
+                            existing_vault.balances[0].current.amount -=
+                                Uint128::try_from(limit_order_cache.sent_amount).unwrap();
                             existing_vault.trigger_id = time_trigger.id;
                             existing_vault.trigger_variant = TriggerVariant::Time;
                             Ok(existing_vault)
@@ -750,12 +716,19 @@ pub fn after_withdraw_order(
 
             let sent = Coin {
                 denom: vault.get_swap_denom().clone(),
-                amount: vault.configuration.swap_amount,
+                amount: Uint128::try_from(limit_order_cache.sent_amount).unwrap(),
             };
 
             let received = Coin {
                 denom: vault.get_receive_denom().clone(),
-                amount: limit_order_cache.received_amount.try_into().unwrap(),
+                amount: Uint128::try_from(limit_order_cache.received_amount).unwrap(),
+            };
+
+            println!("{:?}", received);
+
+            let bank_message_to_vault_owner: BankMsg = BankMsg::Send {
+                to_address: vault.owner.to_string(),
+                amount: vec![received.clone()],
             };
 
             let executions: Vec<Execution<DCAExecutionInformation>> =
@@ -791,7 +764,8 @@ pub fn after_withdraw_order(
             CACHE.remove(deps.storage);
             Ok(Response::default()
                 .add_attribute("method", "after_withdraw_order")
-                .add_attribute("trigger_id", time_trigger.id))
+                .add_attribute("trigger_id", time_trigger.id)
+                .add_message(bank_message_to_vault_owner))
         }
         cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
             val: format!(
@@ -1047,9 +1021,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetAllExecutionsByVaultId { vault_id } => {
             to_binary(&get_all_executions_by_vault_id(deps, vault_id)?)
         }
-        QueryMsg::GetAllPriceTriggersByAddressAndPrice { address, price } => to_binary(
-            &get_all_price_triggers_by_address_and_price(deps, address, price)?,
-        ),
     }
 }
 
@@ -1079,56 +1050,6 @@ fn get_all_time_triggers(deps: Deps) -> StdResult<TriggersResponse<TimeConfigura
         .collect();
 
     Ok(TriggersResponse { triggers })
-}
-
-fn get_all_price_triggers_by_address_and_price(
-    deps: Deps,
-    address: String,
-    price: Decimal256,
-) -> StdResult<TriggerIdsResponse> {
-    let validated_address = deps.api.addr_validate(&address)?;
-
-    let higher_on_heap: StdResult<Vec<_>> = PRICE_EQUAL_OR_HIGHER
-        .prefix(validated_address.clone())
-        .range(
-            deps.storage,
-            Some(Bound::inclusive(price.to_string())),
-            None,
-            cosmwasm_std::Order::Ascending,
-        )
-        .collect();
-
-    let lower_on_heap: StdResult<Vec<_>> = PRICE_EQUAL_OR_LOWER
-        .prefix(validated_address)
-        .range(
-            deps.storage,
-            None,
-            Some(Bound::inclusive(price.to_string())),
-            cosmwasm_std::Order::Ascending,
-        )
-        .collect();
-
-    let higher: Vec<u128> = higher_on_heap
-        .unwrap()
-        .iter()
-        .map(|price_group| price_group.1.clone())
-        .flatten()
-        .collect();
-
-    let lower: Vec<u128> = lower_on_heap
-        .unwrap()
-        .iter()
-        .map(|price_group| price_group.1.clone())
-        .flatten()
-        .collect();
-
-    let trigger_ids = vec![lower, higher]
-        .into_iter()
-        .flatten()
-        .map(|id| Uint128::new(id))
-        .collect();
-
-    Ok(TriggerIdsResponse { trigger_ids })
 }
 
 fn get_active_vault_by_address_and_id(

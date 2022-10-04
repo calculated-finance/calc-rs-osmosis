@@ -8,8 +8,8 @@ use cosmwasm_std::{
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
 use kujira::denom::Denom;
 use kujira::fin::{
-    BookResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg, PoolResponse,
-    QueryMsg as FINQueryMsg,
+    BookResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg, OrderResponse,
+    PoolResponse, QueryMsg as FINQueryMsg,
 };
 use std::str::FromStr;
 
@@ -25,17 +25,14 @@ const DENOM_UKUJI: &str = "ukuji";
 const DENOM_UTEST: &str = "utest";
 
 trait AppHelpers {
-    fn add_liquidity(&mut self, address: Addr, coin: Coin);
+    fn add_liquidity(&mut self, address: Addr, coins: Vec<Coin>);
     fn elapse_time(&mut self, seconds: u64);
 }
 
 impl AppHelpers for App {
-    fn add_liquidity(&mut self, address: Addr, coin: Coin) {
+    fn add_liquidity(&mut self, address: Addr, coins: Vec<Coin>) {
         self.init_modules(|router, _, storage| {
-            router
-                .bank
-                .init_balance(storage, &address, vec![coin])
-                .unwrap();
+            router.bank.init_balance(storage, &address, coins).unwrap();
         });
     }
 
@@ -133,11 +130,15 @@ fn create_mock_fin_contract_success() -> Box<dyn Contract<Empty>> {
                         amount: vec![coin_to_send],
                     }))
                 }
+                FINExecuteMsg::SubmitOrder { price } => {
+                    Ok(Response::new().add_attribute("order_idx", "1"))
+                }
+                FINExecuteMsg::WithdrawOrders { order_idxs } => Ok(Response::default()),
                 _ => Ok(Response::default()),
             }
         },
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
+        |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
                 FINQueryMsg::Book {
                     limit: _,
@@ -147,6 +148,19 @@ fn create_mock_fin_contract_success() -> Box<dyn Contract<Empty>> {
                     Decimal256::from_str("10")?,
                     Decimal256::from_str("10")?,
                 ))?),
+                FINQueryMsg::Order { order_idx } => {
+                    let response = OrderResponse {
+                        created_at: env.block.time,
+                        owner: Addr::unchecked(USER),
+                        idx: Uint128::new(1),
+                        quote_price: Decimal256::from_str("1.0").unwrap(),
+                        original_offer_amount: Uint256::from_str("100").unwrap(),
+                        filled_amount: Uint256::from_str("100").unwrap(),
+                        offer_denom: Denom::from(DENOM_UKUJI),
+                        offer_amount: Uint256::from_str("1").unwrap(),
+                    };
+                    Ok(to_binary(&response)?)
+                }
                 _ => {
                     #[derive(Serialize)]
                     pub struct Mock;
@@ -155,15 +169,7 @@ fn create_mock_fin_contract_success() -> Box<dyn Contract<Empty>> {
             }
         },
     );
-    let res = contract.with_migrate(
-        |_deps: _, _env: _, _msg: MigrateMsg| -> StdResult<Response> { Ok(Response::default()) },
-    );
-
-    Box::new(
-        res.with_migrate(|_, _, msg: MigrateMsg| -> StdResult<Response> {
-            Ok(Response::default())
-        }),
-    )
+    Box::new(contract)
 }
 
 fn create_mock_fin_contract_success_higher_price() -> Box<dyn Contract<Empty>> {
@@ -302,25 +308,65 @@ fn create_vault_with_price_trigger_should_succeed() {
         .unwrap();
 
     app.add_liquidity(
+        Addr::unchecked(ADMIN),
+        vec![
+            Coin {
+                denom: String::from(DENOM_UTEST),
+                amount: Uint128::new(200),
+            },
+            Coin {
+                denom: String::from(DENOM_UKUJI),
+                amount: Uint128::new(200),
+            },
+        ],
+    );
+
+    app.add_liquidity(
         Addr::unchecked(USER),
-        Coin {
-            denom: String::from(DENOM_UTEST),
-            amount: Uint128::new(100),
-        },
+        vec![
+            Coin {
+                denom: String::from(DENOM_UTEST),
+                amount: Uint128::new(0),
+            },
+            Coin {
+                denom: String::from(DENOM_UKUJI),
+                amount: Uint128::new(200),
+            },
+        ],
+    );
+
+    app.add_liquidity(
+        calc_contract_address.clone(),
+        vec![
+            Coin {
+                denom: String::from(DENOM_UTEST),
+                amount: Uint128::new(200),
+            },
+            Coin {
+                denom: String::from(DENOM_UKUJI),
+                amount: Uint128::new(200),
+            },
+        ],
     );
 
     app.add_liquidity(
         fin_contract_address.clone(),
-        Coin {
-            denom: String::from(DENOM_UKUJI),
-            amount: Uint128::new(100),
-        },
+        vec![
+            Coin {
+                denom: String::from(DENOM_UTEST),
+                amount: Uint128::new(200),
+            },
+            Coin {
+                denom: String::from(DENOM_UKUJI),
+                amount: Uint128::new(200),
+            },
+        ],
     );
 
     let create_pair_execute_message = ExecuteMsg::CreatePair {
         address: fin_contract_address.to_string(),
-        base_denom: String::from(DENOM_UKUJI),
-        quote_denom: String::from(DENOM_UTEST),
+        base_denom: String::from(DENOM_UTEST),
+        quote_denom: String::from(DENOM_UKUJI),
     };
 
     let _ = app
@@ -333,1050 +379,1065 @@ fn create_vault_with_price_trigger_should_succeed() {
         .unwrap();
 
     let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
-        pair_address: fin_contract_address.to_string(),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(100),
-        total_executions: 1u16,
-        time_interval: TimeInterval::Hourly,
-        target_price: Decimal256::from_str("5.0").unwrap(),
-    };
-
-    let funds = vec![Coin {
-        denom: String::from(DENOM_UTEST),
-        amount: Uint128::new(100),
-    }];
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(USER),
-            calc_contract_address.clone(),
-            &create_vault_with_price_trigger,
-            &funds,
-        )
-        .unwrap();
-
-    let balance_user = app
-        .wrap()
-        .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
-        .unwrap();
-
-    let balance_fin = app
-        .wrap()
-        .query_balance(fin_contract_address.clone(), DENOM_UKUJI)
-        .unwrap();
-
-    let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
-
-    let get_all_active_vaults_response: VaultsResponse = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address.clone(),
-            &get_all_active_vaults_query_message,
-        )
-        .unwrap();
-
-    let get_all_price_triggers_by_address_and_price =
-        QueryMsg::GetAllPriceTriggersByAddressAndPrice {
-            address: fin_contract_address.to_string(),
-            price: Decimal256::from_str("6").unwrap(),
-        };
-
-    let get_all_price_triggers_by_address_and_price: TriggerIdsResponse = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address,
-            &get_all_price_triggers_by_address_and_price,
-        )
-        .unwrap();
-
-    assert_eq!(balance_user.amount, Uint128::new(0));
-
-    assert_eq!(balance_fin.amount, Uint128::new(100));
-
-    assert_eq!(get_all_active_vaults_response.vaults.len(), 1);
-
-    assert_eq!(
-        get_all_price_triggers_by_address_and_price
-            .trigger_ids
-            .len(),
-        1
-    );
-}
-
-#[test]
-fn execute_price_trigger_by_id_should_succeed() {
-    let mut app = mock_app();
-    let calc_code_id = app.store_code(create_calc_contract());
-    let calc_init_message = InstantiateMsg {
-        admin: String::from(ADMIN),
-    };
-    let calc_contract_address = app
-        .instantiate_contract(
-            calc_code_id,
-            Addr::unchecked(ADMIN),
-            &calc_init_message,
-            &[],
-            "calc-dca",
-            None,
-        )
-        .unwrap();
-
-    let fin_code_id = app.store_code(create_mock_fin_contract_success());
-    let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
-
-    let fin_init_message = FINInstantiateMsg {
-        decimal_delta: None,
-        denoms,
-        owner: Addr::unchecked(ADMIN),
-        price_precision: kujira::precision::Precision::DecimalPlaces(3),
-    };
-
-    let fin_contract_address = app
-        .instantiate_contract(
-            fin_code_id,
-            Addr::unchecked(ADMIN),
-            &fin_init_message,
-            &[],
-            "fin",
-            Some(String::from(ADMIN)),
-        )
-        .unwrap();
-
-    app.add_liquidity(
-        Addr::unchecked(USER),
-        Coin {
-            denom: String::from(DENOM_UTEST),
-            amount: Uint128::new(100),
-        },
-    );
-
-    app.add_liquidity(
-        fin_contract_address.clone(),
-        Coin {
-            denom: String::from(DENOM_UKUJI),
-            amount: Uint128::new(100),
-        },
-    );
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: fin_contract_address.to_string(),
-        base_denom: String::from(DENOM_UKUJI),
-        quote_denom: String::from(DENOM_UTEST),
-    };
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &create_pair_execute_message,
-            &[],
-        )
-        .unwrap();
-
-    let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
-        pair_address: fin_contract_address.to_string(),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(100),
-        total_executions: 1u16,
-        time_interval: TimeInterval::Hourly,
-        target_price: Decimal256::from_str("5.0").unwrap(),
-    };
-
-    let funds = vec![Coin {
-        denom: String::from(DENOM_UTEST),
-        amount: Uint128::new(100),
-    }];
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(USER),
-            calc_contract_address.clone(),
-            &create_vault_with_price_trigger,
-            &funds,
-        )
-        .unwrap();
-
-    let msg = MigrateMsg {
-        admin: String::from(ADMIN),
-    };
-
-    let fin_code_id_new_response = app.store_code(create_mock_fin_contract_success_higher_price());
-
-    let migrate = app
-        .migrate_contract(
-            Addr::unchecked(ADMIN),
-            fin_contract_address,
-            &msg,
-            fin_code_id_new_response,
-        )
-        .unwrap();
-
-    let execute_price_trigger_by_id = ExecuteMsg::ExecutePriceTriggerById {
-        trigger_id: Uint128::new(1),
-    };
-
-    let result = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address,
-            &execute_price_trigger_by_id,
-            &[],
-        )
-        .unwrap();
-
-    assert_eq!(
-        result.events[0].attributes[1].value,
-        "execute price trigger by id"
-    )
-
-    // let balance_user = app
-    //     .wrap()
-    //     .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
-    //     .unwrap();
-
-    // let balance_fin = app
-    //     .wrap()
-    //     .query_balance(fin_contract_address.clone(), DENOM_UKUJI)
-    //     .unwrap();
-
-    // let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
-
-    // let get_all_active_vaults_response: VaultsResponse = app
-    //     .wrap()
-    //     .query_wasm_smart(
-    //         calc_contract_address.clone(),
-    //         &get_all_active_vaults_query_message,
-    //     )
-    //     .unwrap();
-
-    // let get_all_price_triggers_by_address_and_price =
-    //     QueryMsg::GetAllPriceTriggersByAddressAndPrice {
-    //         address: fin_contract_address.to_string(),
-    //         price: Decimal256::from_str("6").unwrap(),
-    //     };
-
-    // let get_all_price_triggers_by_address_and_price: TriggerIdsResponse = app
-    //     .wrap()
-    //     .query_wasm_smart(
-    //         calc_contract_address,
-    //         &get_all_price_triggers_by_address_and_price,
-    //     )
-    //     .unwrap();
-
-    // assert_eq!(balance_user.amount, Uint128::new(0));
-
-    // assert_eq!(balance_fin.amount, Uint128::new(100));
-
-    // assert_eq!(get_all_active_vaults_response.vaults.len(), 1);
-
-    // assert_eq!(
-    //     get_all_price_triggers_by_address_and_price
-    //         .trigger_ids
-    //         .len(),
-    //     1
-    // );
-}
-
-#[test]
-fn execute_price_trigger_by_id_early_should_fail() {
-    let mut app = mock_app();
-    let calc_code_id = app.store_code(create_calc_contract());
-    let calc_init_message = InstantiateMsg {
-        admin: String::from(ADMIN),
-    };
-    let calc_contract_address = app
-        .instantiate_contract(
-            calc_code_id,
-            Addr::unchecked(ADMIN),
-            &calc_init_message,
-            &[],
-            "calc-dca",
-            None,
-        )
-        .unwrap();
-
-    let fin_code_id = app.store_code(create_mock_fin_contract_success());
-    let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
-
-    let fin_init_message = FINInstantiateMsg {
-        decimal_delta: None,
-        denoms,
-        owner: Addr::unchecked(ADMIN),
-        price_precision: kujira::precision::Precision::DecimalPlaces(3),
-    };
-
-    let fin_contract_address = app
-        .instantiate_contract(
-            fin_code_id,
-            Addr::unchecked(ADMIN),
-            &fin_init_message,
-            &[],
-            "fin",
-            None,
-        )
-        .unwrap();
-
-    app.add_liquidity(
-        Addr::unchecked(USER),
-        Coin {
-            denom: String::from(DENOM_UTEST),
-            amount: Uint128::new(100),
-        },
-    );
-
-    app.add_liquidity(
-        fin_contract_address.clone(),
-        Coin {
-            denom: String::from(DENOM_UKUJI),
-            amount: Uint128::new(100),
-        },
-    );
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: fin_contract_address.to_string(),
-        base_denom: String::from(DENOM_UKUJI),
-        quote_denom: String::from(DENOM_UTEST),
-    };
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &create_pair_execute_message,
-            &[],
-        )
-        .unwrap();
-
-    let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
-        pair_address: fin_contract_address.to_string(),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(100),
-        total_executions: 1u16,
-        time_interval: TimeInterval::Hourly,
-        target_price: Decimal256::from_str("5.0").unwrap(),
-    };
-
-    let funds = vec![Coin {
-        denom: String::from(DENOM_UTEST),
-        amount: Uint128::new(100),
-    }];
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(USER),
-            calc_contract_address.clone(),
-            &create_vault_with_price_trigger,
-            &funds,
-        )
-        .unwrap();
-
-    let execute_price_trigger_by_id = ExecuteMsg::ExecutePriceTriggerById {
-        trigger_id: Uint128::new(1),
-    };
-
-    let result = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address,
-            &execute_price_trigger_by_id,
-            &[],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        result.root_cause().to_string(),
-        "Error: vault price target has not been hit yet. current price: 10, trigger price: 5"
-    )
-
-    // let balance_user = app
-    //     .wrap()
-    //     .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
-    //     .unwrap();
-
-    // let balance_fin = app
-    //     .wrap()
-    //     .query_balance(fin_contract_address.clone(), DENOM_UKUJI)
-    //     .unwrap();
-
-    // let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
-
-    // let get_all_active_vaults_response: VaultsResponse = app
-    //     .wrap()
-    //     .query_wasm_smart(
-    //         calc_contract_address.clone(),
-    //         &get_all_active_vaults_query_message,
-    //     )
-    //     .unwrap();
-
-    // let get_all_price_triggers_by_address_and_price =
-    //     QueryMsg::GetAllPriceTriggersByAddressAndPrice {
-    //         address: fin_contract_address.to_string(),
-    //         price: Decimal256::from_str("6").unwrap(),
-    //     };
-
-    // let get_all_price_triggers_by_address_and_price: TriggerIdsResponse = app
-    //     .wrap()
-    //     .query_wasm_smart(
-    //         calc_contract_address,
-    //         &get_all_price_triggers_by_address_and_price,
-    //     )
-    //     .unwrap();
-
-    // assert_eq!(balance_user.amount, Uint128::new(0));
-
-    // assert_eq!(balance_fin.amount, Uint128::new(100));
-
-    // assert_eq!(get_all_active_vaults_response.vaults.len(), 1);
-
-    // assert_eq!(
-    //     get_all_price_triggers_by_address_and_price
-    //         .trigger_ids
-    //         .len(),
-    //     1
-    // );
-}
-
-#[test]
-fn execute_vault_by_address_and_id_should_succeed() {
-    let mut app = mock_app();
-    let calc_code_id = app.store_code(create_calc_contract());
-    let calc_init_message = InstantiateMsg {
-        admin: String::from(ADMIN),
-    };
-    let calc_contract_address = app
-        .instantiate_contract(
-            calc_code_id,
-            Addr::unchecked(ADMIN),
-            &calc_init_message,
-            &[],
-            "calc-dca",
-            None,
-        )
-        .unwrap();
-
-    let fin_code_id = app.store_code(create_mock_fin_contract_success());
-    let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
-
-    let fin_init_message = FINInstantiateMsg {
-        decimal_delta: None,
-        denoms,
-        owner: Addr::unchecked(ADMIN),
-        price_precision: kujira::precision::Precision::DecimalPlaces(3),
-    };
-
-    let fin_contract_address = app
-        .instantiate_contract(
-            fin_code_id,
-            Addr::unchecked(ADMIN),
-            &fin_init_message,
-            &[],
-            "fin",
-            None,
-        )
-        .unwrap();
-
-    app.add_liquidity(
-        Addr::unchecked(USER),
-        Coin {
-            denom: String::from(DENOM_UTEST),
-            amount: Uint128::new(100),
-        },
-    );
-
-    app.add_liquidity(
-        fin_contract_address.clone(),
-        Coin {
-            denom: String::from(DENOM_UKUJI),
-            amount: Uint128::new(100),
-        },
-    );
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: fin_contract_address.to_string(),
-        base_denom: String::from(DENOM_UKUJI),
-        quote_denom: String::from(DENOM_UTEST),
-    };
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &create_pair_execute_message,
-            &[],
-        )
-        .unwrap();
-
-    let create_vault_by_address_and_id_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: fin_contract_address.to_string(),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(100),
-        total_executions: 1u16,
-        time_interval: TimeInterval::Hourly,
-        target_start_time_utc_seconds: None,
-    };
-
-    let funds = vec![Coin {
-        denom: String::from(DENOM_UTEST),
-        amount: Uint128::new(100),
-    }];
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(USER),
-            calc_contract_address.clone(),
-            &create_vault_by_address_and_id_execute_message,
-            &funds,
-        )
-        .unwrap();
-
-    let execute_time_trigger_by_id_execute_message = ExecuteMsg::ExecuteTimeTriggerById {
-        trigger_id: Uint128::new(1),
-    };
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &execute_time_trigger_by_id_execute_message,
-            &[],
-        )
-        .unwrap();
-
-    let balance_user = app
-        .wrap()
-        .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
-        .unwrap();
-
-    let balance_fin = app
-        .wrap()
-        .query_balance(fin_contract_address, DENOM_UKUJI)
-        .unwrap();
-
-    let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
-
-    let get_all_active_vaults_response: VaultsResponse = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address.clone(),
-            &get_all_active_vaults_query_message,
-        )
-        .unwrap();
-
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
-        vault_id: Uint128::new(1),
-    };
-
-    let get_all_executions_by_vault_id_response: ExecutionsResponse = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address,
-            &get_all_executions_by_vault_id_query_message,
-        )
-        .unwrap();
-
-    assert_eq!(balance_user.amount, Uint128::new(100));
-
-    assert_eq!(balance_fin.amount, Uint128::new(0));
-
-    assert_eq!(get_all_active_vaults_response.vaults.len(), 0);
-
-    assert_eq!(get_all_executions_by_vault_id_response.executions.len(), 1);
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .vault_id,
-        Uint128::new(1)
-    );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_result,
-    //     ExecutionResult::Success
-    // );
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .block_height,
-        Uint64::new(app.block_info().height)
-    );
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .sequence_number,
-        1
-    );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().sent_amount,
-    //     Uint128::new(100)
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().sent_denom,
-    //     DENOM_UTEST
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().received_amount,
-    //     Uint128::new(100)
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().received_denom,
-    //     DENOM_UKUJI
-    // );
-}
-
-#[test]
-fn execute_vault_by_address_and_id_multiple_times_should_succeed() {
-    let mut app = mock_app();
-    let calc_code_id = app.store_code(create_calc_contract());
-    let calc_init_message = InstantiateMsg {
-        admin: String::from(ADMIN),
-    };
-    let calc_contract_address = app
-        .instantiate_contract(
-            calc_code_id,
-            Addr::unchecked(ADMIN),
-            &calc_init_message,
-            &[],
-            "calc-dca",
-            None,
-        )
-        .unwrap();
-
-    let fin_code_id = app.store_code(create_mock_fin_contract_success());
-    let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
-
-    let fin_init_message = FINInstantiateMsg {
-        decimal_delta: None,
-        denoms,
-        owner: Addr::unchecked(ADMIN),
-        price_precision: kujira::precision::Precision::DecimalPlaces(3),
-    };
-    let fin_contract_address = app
-        .instantiate_contract(
-            fin_code_id,
-            Addr::unchecked(ADMIN),
-            &fin_init_message,
-            &[],
-            "fin",
-            None,
-        )
-        .unwrap();
-
-    app.add_liquidity(
-        Addr::unchecked(USER),
-        Coin {
-            denom: String::from(DENOM_UTEST),
-            amount: Uint128::new(200),
-        },
-    );
-
-    app.add_liquidity(
-        fin_contract_address.clone(),
-        Coin {
-            denom: String::from(DENOM_UKUJI),
-            amount: Uint128::new(200),
-        },
-    );
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: fin_contract_address.to_string(),
-        base_denom: String::from(DENOM_UKUJI),
-        quote_denom: String::from(DENOM_UTEST),
-    };
-
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &create_pair_execute_message,
-            &[],
-        )
-        .unwrap();
-
-    let create_vault_by_address_and_id_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
         pair_address: fin_contract_address.to_string(),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(100),
         total_executions: 2u16,
         time_interval: TimeInterval::Hourly,
-        target_start_time_utc_seconds: None,
+        target_price: Decimal256::from_str("1.0").unwrap(),
     };
 
     let funds = vec![Coin {
-        denom: String::from(DENOM_UTEST),
+        denom: String::from(DENOM_UKUJI),
         amount: Uint128::new(200),
     }];
 
-    let _ = app
+    let result = app
         .execute_contract(
             Addr::unchecked(USER),
             calc_contract_address.clone(),
-            &create_vault_by_address_and_id_execute_message,
+            &create_vault_with_price_trigger,
             &funds,
         )
         .unwrap();
 
-    let first_execute_time_trigger_by_id_execute_message = ExecuteMsg::ExecuteTimeTriggerById {
-        trigger_id: Uint128::new(1),
-    };
+    assert_eq!(
+        result.events[1].attributes[1].value,
+        "create_vault_with_fin_limit_order_trigger"
+    );
 
-    let _ = app
+    assert_eq!(result.events[1].attributes[2].value, "1");
+
+    assert_eq!(result.events[1].attributes[3].value, "user");
+
+    assert_eq!(result.events[1].attributes[4].value, "1");
+
+    assert_eq!(result.events[5].attributes[1].value, "after_submit_order");
+
+    assert_eq!(result.events[5].attributes[2].key, "trigger_id");
+
+    assert_eq!(result.events[5].attributes[2].value, "1");
+
+    let execute_fin_limit_order_trigger_by_order_idx =
+        ExecuteMsg::ExecuteFINLimitOrderTriggerByOrderIdx {
+            order_idx: Uint128::new(1),
+        };
+
+    let res = app
         .execute_contract(
             Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &first_execute_time_trigger_by_id_execute_message,
+            calc_contract_address,
+            &execute_fin_limit_order_trigger_by_order_idx,
             &[],
         )
         .unwrap();
 
-    let first_execution_block_info = app.block_info();
+    assert_eq!(
+        res.events[1].attributes[1].value,
+        "execute_fin_limit_order_trigger_by_order_idx"
+    );
 
-    app.elapse_time(3600u64);
+    assert_eq!(res.events[4].attributes[1].value, "after_withdraw_order");
 
-    let second_execute_time_trigger_by_id_execute_message = ExecuteMsg::ExecuteTimeTriggerById {
-        trigger_id: Uint128::new(1),
-    };
+    assert_eq!(res.events[4].attributes[2].key, "trigger_id");
 
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &second_execute_time_trigger_by_id_execute_message,
-            &[],
-        )
-        .unwrap();
-
+    assert_eq!(res.events[4].attributes[2].value, "2");
     let balance_user = app
         .wrap()
-        .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
+        .query_balance(Addr::unchecked(USER), DENOM_UTEST)
         .unwrap();
 
-    let balance_fin = app
-        .wrap()
-        .query_balance(fin_contract_address, DENOM_UKUJI)
-        .unwrap();
+    // let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
 
-    let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
+    // let get_all_active_vaults_response: VaultsResponse = app
+    //     .wrap()
+    //     .query_wasm_smart(
+    //         calc_contract_address.clone(),
+    //         &get_all_active_vaults_query_message,
+    //     )
+    //     .unwrap();
 
-    let get_all_active_vaults_response: VaultsResponse = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address.clone(),
-            &get_all_active_vaults_query_message,
-        )
-        .unwrap();
+    assert_eq!(balance_user.amount, Uint128::new(100));
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
-        vault_id: Uint128::new(1),
-    };
+    // assert_eq!(balance_fin.amount, Uint128::new(100));
 
-    let get_all_executions_by_vault_id_response: ExecutionsResponse = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address,
-            &get_all_executions_by_vault_id_query_message,
-        )
-        .unwrap();
-
-    assert_eq!(balance_user.amount, Uint128::new(200));
-
-    assert_eq!(balance_fin.amount, Uint128::new(0));
-
-    assert_eq!(get_all_active_vaults_response.vaults.len(), 0);
-
-    assert_eq!(get_all_executions_by_vault_id_response.executions.len(), 2);
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .vault_id,
-        Uint128::new(1)
-    );
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[1]
-            .clone()
-            .vault_id,
-        Uint128::new(1)
-    );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_result,
-    //     ExecutionResult::Success
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[1].clone().execution_result,
-    //     ExecutionResult::Success
-    // );
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .block_height,
-        Uint64::new(first_execution_block_info.height)
-    );
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[1]
-            .clone()
-            .block_height,
-        Uint64::new(app.block_info().height)
-    );
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .sequence_number,
-        1
-    );
-
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[1]
-            .clone()
-            .sequence_number,
-        2
-    );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().sent_amount,
-    //     Uint128::new(100)
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[1].clone().execution_information.unwrap().sent_amount,
-    //     Uint128::new(100)
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().sent_denom,
-    //     DENOM_UTEST
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[1].clone().execution_information.unwrap().sent_denom,
-    //     DENOM_UTEST
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().received_amount,
-    //     Uint128::new(100)
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[1].clone().execution_information.unwrap().received_amount,
-    //     Uint128::new(100)
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().received_denom,
-    //     DENOM_UKUJI
-    // );
-
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[1].clone().execution_information.unwrap().received_denom,
-    //     DENOM_UKUJI
-    // );
+    // assert_eq!(get_all_active_vaults_response.vaults.len(), 1);
 }
 
-#[test]
-fn execute_vault_by_address_and_id_exceed_slippage_should_skip_execution() {
-    let mut app = mock_app();
-    let calc_code_id = app.store_code(create_calc_contract());
-    let calc_init_message = InstantiateMsg {
-        admin: String::from(ADMIN),
-    };
-    let calc_contract_address = app
-        .instantiate_contract(
-            calc_code_id,
-            Addr::unchecked(ADMIN),
-            &calc_init_message,
-            &[],
-            "calc-dca",
-            None,
-        )
-        .unwrap();
+// #[test]
+// fn execute_price_trigger_by_id_should_succeed() {
+//     let mut app = mock_app();
+//     let calc_code_id = app.store_code(create_calc_contract());
+//     let calc_init_message = InstantiateMsg {
+//         admin: String::from(ADMIN),
+//     };
+//     let calc_contract_address = app
+//         .instantiate_contract(
+//             calc_code_id,
+//             Addr::unchecked(ADMIN),
+//             &calc_init_message,
+//             &[],
+//             "calc-dca",
+//             None,
+//         )
+//         .unwrap();
 
-    let fin_code_id = app.store_code(create_mock_fin_contract_fail_slippage_tolerance());
-    let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
+//     let fin_code_id = app.store_code(create_mock_fin_contract_success());
+//     let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
 
-    let fin_init_message = FINInstantiateMsg {
-        decimal_delta: None,
-        denoms,
-        owner: Addr::unchecked(ADMIN),
-        price_precision: kujira::precision::Precision::DecimalPlaces(3),
-    };
-    let fin_contract_address = app
-        .instantiate_contract(
-            fin_code_id,
-            Addr::unchecked(ADMIN),
-            &fin_init_message,
-            &[],
-            "fin",
-            None,
-        )
-        .unwrap();
+//     let fin_init_message = FINInstantiateMsg {
+//         decimal_delta: None,
+//         denoms,
+//         owner: Addr::unchecked(ADMIN),
+//         price_precision: kujira::precision::Precision::DecimalPlaces(3),
+//     };
 
-    app.add_liquidity(
-        Addr::unchecked(USER),
-        Coin {
-            denom: String::from(DENOM_UTEST),
-            amount: Uint128::new(100),
-        },
-    );
+//     let fin_contract_address = app
+//         .instantiate_contract(
+//             fin_code_id,
+//             Addr::unchecked(ADMIN),
+//             &fin_init_message,
+//             &[],
+//             "fin",
+//             Some(String::from(ADMIN)),
+//         )
+//         .unwrap();
 
-    app.add_liquidity(
-        fin_contract_address.clone(),
-        Coin {
-            denom: String::from(DENOM_UKUJI),
-            amount: Uint128::new(100),
-        },
-    );
+//     app.add_liquidity(
+//         Addr::unchecked(USER),
+//         Coin {
+//             denom: String::from(DENOM_UTEST),
+//             amount: Uint128::new(100),
+//         },
+//     );
 
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: fin_contract_address.to_string(),
-        base_denom: String::from(DENOM_UKUJI),
-        quote_denom: String::from(DENOM_UTEST),
-    };
+//     app.add_liquidity(
+//         fin_contract_address.clone(),
+//         Coin {
+//             denom: String::from(DENOM_UKUJI),
+//             amount: Uint128::new(100),
+//         },
+//     );
 
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &create_pair_execute_message,
-            &[],
-        )
-        .unwrap();
+//     let create_pair_execute_message = ExecuteMsg::CreatePair {
+//         address: fin_contract_address.to_string(),
+//         base_denom: String::from(DENOM_UKUJI),
+//         quote_denom: String::from(DENOM_UTEST),
+//     };
 
-    let slippage = "0.5";
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &create_pair_execute_message,
+//             &[],
+//         )
+//         .unwrap();
 
-    let create_vault_by_address_and_id_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: fin_contract_address.to_string(),
-        position_type: PositionType::Enter,
-        slippage_tolerance: Some(Decimal256::from_str(&slippage).unwrap()),
-        swap_amount: Uint128::new(100),
-        total_executions: 1u16,
-        time_interval: TimeInterval::Hourly,
-        target_start_time_utc_seconds: None,
-    };
+//     let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
+//         pair_address: fin_contract_address.to_string(),
+//         position_type: PositionType::Enter,
+//         slippage_tolerance: None,
+//         swap_amount: Uint128::new(100),
+//         total_executions: 1u16,
+//         time_interval: TimeInterval::Hourly,
+//         target_price: Decimal256::from_str("5.0").unwrap(),
+//     };
 
-    let funds = vec![Coin {
-        denom: String::from(DENOM_UTEST),
-        amount: Uint128::new(100),
-    }];
+//     let funds = vec![Coin {
+//         denom: String::from(DENOM_UTEST),
+//         amount: Uint128::new(100),
+//     }];
 
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(USER),
-            calc_contract_address.clone(),
-            &create_vault_by_address_and_id_execute_message,
-            &funds,
-        )
-        .unwrap();
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(USER),
+//             calc_contract_address.clone(),
+//             &create_vault_with_price_trigger,
+//             &funds,
+//         )
+//         .unwrap();
 
-    let execute_vault_by_address_and_id_execute_message = ExecuteMsg::ExecuteTimeTriggerById {
-        trigger_id: Uint128::new(1),
-    };
+//     let msg = MigrateMsg {
+//         admin: String::from(ADMIN),
+//     };
 
-    let _ = app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            calc_contract_address.clone(),
-            &execute_vault_by_address_and_id_execute_message,
-            &[],
-        )
-        .unwrap();
+//     let fin_code_id_new_response = app.store_code(create_mock_fin_contract_success_higher_price());
 
-    let balance_user = app
-        .wrap()
-        .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
-        .unwrap();
+//     let migrate = app
+//         .migrate_contract(
+//             Addr::unchecked(ADMIN),
+//             fin_contract_address,
+//             &msg,
+//             fin_code_id_new_response,
+//         )
+//         .unwrap();
 
-    let balance_fin = app
-        .wrap()
-        .query_balance(fin_contract_address, DENOM_UKUJI)
-        .unwrap();
+//     let execute_price_trigger_by_id = ExecuteMsg::ExecutePriceTriggerById {
+//         trigger_id: Uint128::new(1),
+//     };
 
-    let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
+//     let result = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address,
+//             &execute_price_trigger_by_id,
+//             &[],
+//         )
+//         .unwrap();
 
-    let get_all_active_vaults_response: VaultsResponse = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address.clone(),
-            &get_all_active_vaults_query_message,
-        )
-        .unwrap();
+//     assert_eq!(
+//         result.events[0].attributes[1].value,
+//         "execute price trigger by id"
+//     )
 
-    let get_all_time_triggers_query_message = QueryMsg::GetAllTimeTriggers {};
+//     // let balance_user = app
+//     //     .wrap()
+//     //     .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
+//     //     .unwrap();
 
-    let get_all_time_triggers_response: TriggersResponse<TimeConfiguration> = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address.clone(),
-            &get_all_time_triggers_query_message,
-        )
-        .unwrap();
+//     // let balance_fin = app
+//     //     .wrap()
+//     //     .query_balance(fin_contract_address.clone(), DENOM_UKUJI)
+//     //     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
-        vault_id: Uint128::new(1),
-    };
+//     // let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
 
-    let get_all_executions_by_vault_id_response: ExecutionsResponse = app
-        .wrap()
-        .query_wasm_smart(
-            calc_contract_address,
-            &get_all_executions_by_vault_id_query_message,
-        )
-        .unwrap();
+//     // let get_all_active_vaults_response: VaultsResponse = app
+//     //     .wrap()
+//     //     .query_wasm_smart(
+//     //         calc_contract_address.clone(),
+//     //         &get_all_active_vaults_query_message,
+//     //     )
+//     //     .unwrap();
 
-    assert_eq!(balance_user.amount, Uint128::new(0));
+//     // let get_all_price_triggers_by_address_and_price =
+//     //     QueryMsg::GetAllPriceTriggersByAddressAndPrice {
+//     //         address: fin_contract_address.to_string(),
+//     //         price: Decimal256::from_str("6").unwrap(),
+//     //     };
 
-    assert_eq!(balance_fin.amount, Uint128::new(100));
+//     // let get_all_price_triggers_by_address_and_price: TriggerIdsResponse = app
+//     //     .wrap()
+//     //     .query_wasm_smart(
+//     //         calc_contract_address,
+//     //         &get_all_price_triggers_by_address_and_price,
+//     //     )
+//     //     .unwrap();
 
-    assert_eq!(
-        get_all_time_triggers_response.triggers[0]
-            .configuration
-            .triggers_remaining,
-        1
-    );
+//     // assert_eq!(balance_user.amount, Uint128::new(0));
 
-    assert_eq!(get_all_active_vaults_response.vaults.len(), 1);
+//     // assert_eq!(balance_fin.amount, Uint128::new(100));
 
-    assert_eq!(get_all_executions_by_vault_id_response.executions.len(), 1);
+//     // assert_eq!(get_all_active_vaults_response.vaults.len(), 1);
 
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .vault_id,
-        Uint128::new(1)
-    );
+//     // assert_eq!(
+//     //     get_all_price_triggers_by_address_and_price
+//     //         .trigger_ids
+//     //         .len(),
+//     //     1
+//     // );
+// }
 
-    // assert_eq!(
-    //     get_all_executions_by_vault_id_response.executions[0].clone().execution_result,
-    //     ExecutionResult::SlippageToleranceExceeded
-    // );
+// #[test]
+// fn execute_price_trigger_by_id_early_should_fail() {
+//     let mut app = mock_app();
+//     let calc_code_id = app.store_code(create_calc_contract());
+//     let calc_init_message = InstantiateMsg {
+//         admin: String::from(ADMIN),
+//     };
+//     let calc_contract_address = app
+//         .instantiate_contract(
+//             calc_code_id,
+//             Addr::unchecked(ADMIN),
+//             &calc_init_message,
+//             &[],
+//             "calc-dca",
+//             None,
+//         )
+//         .unwrap();
 
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .block_height,
-        Uint64::new(app.block_info().height)
-    );
+//     let fin_code_id = app.store_code(create_mock_fin_contract_success());
+//     let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
 
-    assert_eq!(
-        get_all_executions_by_vault_id_response.executions[0]
-            .clone()
-            .sequence_number,
-        1
-    );
-}
+//     let fin_init_message = FINInstantiateMsg {
+//         decimal_delta: None,
+//         denoms,
+//         owner: Addr::unchecked(ADMIN),
+//         price_precision: kujira::precision::Precision::DecimalPlaces(3),
+//     };
+
+//     let fin_contract_address = app
+//         .instantiate_contract(
+//             fin_code_id,
+//             Addr::unchecked(ADMIN),
+//             &fin_init_message,
+//             &[],
+//             "fin",
+//             None,
+//         )
+//         .unwrap();
+
+//     app.add_liquidity(
+//         Addr::unchecked(USER),
+//         Coin {
+//             denom: String::from(DENOM_UTEST),
+//             amount: Uint128::new(100),
+//         },
+//     );
+
+//     app.add_liquidity(
+//         fin_contract_address.clone(),
+//         Coin {
+//             denom: String::from(DENOM_UKUJI),
+//             amount: Uint128::new(100),
+//         },
+//     );
+
+//     let create_pair_execute_message = ExecuteMsg::CreatePair {
+//         address: fin_contract_address.to_string(),
+//         base_denom: String::from(DENOM_UKUJI),
+//         quote_denom: String::from(DENOM_UTEST),
+//     };
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &create_pair_execute_message,
+//             &[],
+//         )
+//         .unwrap();
+
+//     let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
+//         pair_address: fin_contract_address.to_string(),
+//         position_type: PositionType::Enter,
+//         slippage_tolerance: None,
+//         swap_amount: Uint128::new(100),
+//         total_executions: 1u16,
+//         time_interval: TimeInterval::Hourly,
+//         target_price: Decimal256::from_str("5.0").unwrap(),
+//     };
+
+//     let funds = vec![Coin {
+//         denom: String::from(DENOM_UTEST),
+//         amount: Uint128::new(100),
+//     }];
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(USER),
+//             calc_contract_address.clone(),
+//             &create_vault_with_price_trigger,
+//             &funds,
+//         )
+//         .unwrap();
+
+//     let execute_price_trigger_by_id = ExecuteMsg::ExecutePriceTriggerById {
+//         trigger_id: Uint128::new(1),
+//     };
+
+//     let result = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address,
+//             &execute_price_trigger_by_id,
+//             &[],
+//         )
+//         .unwrap_err();
+
+//     assert_eq!(
+//         result.root_cause().to_string(),
+//         "Error: vault price target has not been hit yet. current price: 10, trigger price: 5"
+//     )
+
+//     // let balance_user = app
+//     //     .wrap()
+//     //     .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
+//     //     .unwrap();
+
+//     // let balance_fin = app
+//     //     .wrap()
+//     //     .query_balance(fin_contract_address.clone(), DENOM_UKUJI)
+//     //     .unwrap();
+
+//     // let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
+
+//     // let get_all_active_vaults_response: VaultsResponse = app
+//     //     .wrap()
+//     //     .query_wasm_smart(
+//     //         calc_contract_address.clone(),
+//     //         &get_all_active_vaults_query_message,
+//     //     )
+//     //     .unwrap();
+
+//     // let get_all_price_triggers_by_address_and_price =
+//     //     QueryMsg::GetAllPriceTriggersByAddressAndPrice {
+//     //         address: fin_contract_address.to_string(),
+//     //         price: Decimal256::from_str("6").unwrap(),
+//     //     };
+
+//     // let get_all_price_triggers_by_address_and_price: TriggerIdsResponse = app
+//     //     .wrap()
+//     //     .query_wasm_smart(
+//     //         calc_contract_address,
+//     //         &get_all_price_triggers_by_address_and_price,
+//     //     )
+//     //     .unwrap();
+
+//     // assert_eq!(balance_user.amount, Uint128::new(0));
+
+//     // assert_eq!(balance_fin.amount, Uint128::new(100));
+
+//     // assert_eq!(get_all_active_vaults_response.vaults.len(), 1);
+
+//     // assert_eq!(
+//     //     get_all_price_triggers_by_address_and_price
+//     //         .trigger_ids
+//     //         .len(),
+//     //     1
+//     // );
+// }
+
+// #[test]
+// fn execute_vault_by_address_and_id_should_succeed() {
+//     let mut app = mock_app();
+//     let calc_code_id = app.store_code(create_calc_contract());
+//     let calc_init_message = InstantiateMsg {
+//         admin: String::from(ADMIN),
+//     };
+//     let calc_contract_address = app
+//         .instantiate_contract(
+//             calc_code_id,
+//             Addr::unchecked(ADMIN),
+//             &calc_init_message,
+//             &[],
+//             "calc-dca",
+//             None,
+//         )
+//         .unwrap();
+
+//     let fin_code_id = app.store_code(create_mock_fin_contract_success());
+//     let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
+
+//     let fin_init_message = FINInstantiateMsg {
+//         decimal_delta: None,
+//         denoms,
+//         owner: Addr::unchecked(ADMIN),
+//         price_precision: kujira::precision::Precision::DecimalPlaces(3),
+//     };
+
+//     let fin_contract_address = app
+//         .instantiate_contract(
+//             fin_code_id,
+//             Addr::unchecked(ADMIN),
+//             &fin_init_message,
+//             &[],
+//             "fin",
+//             None,
+//         )
+//         .unwrap();
+
+//     app.add_liquidity(
+//         Addr::unchecked(USER),
+//         Coin {
+//             denom: String::from(DENOM_UTEST),
+//             amount: Uint128::new(100),
+//         },
+//     );
+
+//     app.add_liquidity(
+//         fin_contract_address.clone(),
+//         Coin {
+//             denom: String::from(DENOM_UKUJI),
+//             amount: Uint128::new(100),
+//         },
+//     );
+
+//     let create_pair_execute_message = ExecuteMsg::CreatePair {
+//         address: fin_contract_address.to_string(),
+//         base_denom: String::from(DENOM_UKUJI),
+//         quote_denom: String::from(DENOM_UTEST),
+//     };
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &create_pair_execute_message,
+//             &[],
+//         )
+//         .unwrap();
+
+//     let create_vault_by_address_and_id_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
+//         pair_address: fin_contract_address.to_string(),
+//         position_type: PositionType::Enter,
+//         slippage_tolerance: None,
+//         swap_amount: Uint128::new(100),
+//         total_executions: 1u16,
+//         time_interval: TimeInterval::Hourly,
+//         target_start_time_utc_seconds: None,
+//     };
+
+//     let funds = vec![Coin {
+//         denom: String::from(DENOM_UTEST),
+//         amount: Uint128::new(100),
+//     }];
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(USER),
+//             calc_contract_address.clone(),
+//             &create_vault_by_address_and_id_execute_message,
+//             &funds,
+//         )
+//         .unwrap();
+
+//     let execute_time_trigger_by_id_execute_message = ExecuteMsg::ExecuteTimeTriggerById {
+//         trigger_id: Uint128::new(1),
+//     };
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &execute_time_trigger_by_id_execute_message,
+//             &[],
+//         )
+//         .unwrap();
+
+//     let balance_user = app
+//         .wrap()
+//         .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
+//         .unwrap();
+
+//     let balance_fin = app
+//         .wrap()
+//         .query_balance(fin_contract_address, DENOM_UKUJI)
+//         .unwrap();
+
+//     let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
+
+//     let get_all_active_vaults_response: VaultsResponse = app
+//         .wrap()
+//         .query_wasm_smart(
+//             calc_contract_address.clone(),
+//             &get_all_active_vaults_query_message,
+//         )
+//         .unwrap();
+
+//     let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
+//         vault_id: Uint128::new(1),
+//     };
+
+//     let get_all_executions_by_vault_id_response: ExecutionsResponse = app
+//         .wrap()
+//         .query_wasm_smart(
+//             calc_contract_address,
+//             &get_all_executions_by_vault_id_query_message,
+//         )
+//         .unwrap();
+
+//     assert_eq!(balance_user.amount, Uint128::new(100));
+
+//     assert_eq!(balance_fin.amount, Uint128::new(0));
+
+//     assert_eq!(get_all_active_vaults_response.vaults.len(), 0);
+
+//     assert_eq!(get_all_executions_by_vault_id_response.executions.len(), 1);
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .vault_id,
+//         Uint128::new(1)
+//     );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_result,
+//     //     ExecutionResult::Success
+//     // );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .block_height,
+//         Uint64::new(app.block_info().height)
+//     );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .sequence_number,
+//         1
+//     );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().sent_amount,
+//     //     Uint128::new(100)
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().sent_denom,
+//     //     DENOM_UTEST
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().received_amount,
+//     //     Uint128::new(100)
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().received_denom,
+//     //     DENOM_UKUJI
+//     // );
+// }
+
+// #[test]
+// fn execute_vault_by_address_and_id_multiple_times_should_succeed() {
+//     let mut app = mock_app();
+//     let calc_code_id = app.store_code(create_calc_contract());
+//     let calc_init_message = InstantiateMsg {
+//         admin: String::from(ADMIN),
+//     };
+//     let calc_contract_address = app
+//         .instantiate_contract(
+//             calc_code_id,
+//             Addr::unchecked(ADMIN),
+//             &calc_init_message,
+//             &[],
+//             "calc-dca",
+//             None,
+//         )
+//         .unwrap();
+
+//     let fin_code_id = app.store_code(create_mock_fin_contract_success());
+//     let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
+
+//     let fin_init_message = FINInstantiateMsg {
+//         decimal_delta: None,
+//         denoms,
+//         owner: Addr::unchecked(ADMIN),
+//         price_precision: kujira::precision::Precision::DecimalPlaces(3),
+//     };
+//     let fin_contract_address = app
+//         .instantiate_contract(
+//             fin_code_id,
+//             Addr::unchecked(ADMIN),
+//             &fin_init_message,
+//             &[],
+//             "fin",
+//             None,
+//         )
+//         .unwrap();
+
+//     app.add_liquidity(
+//         Addr::unchecked(USER),
+//         Coin {
+//             denom: String::from(DENOM_UTEST),
+//             amount: Uint128::new(200),
+//         },
+//     );
+
+//     app.add_liquidity(
+//         fin_contract_address.clone(),
+//         Coin {
+//             denom: String::from(DENOM_UKUJI),
+//             amount: Uint128::new(200),
+//         },
+//     );
+
+//     let create_pair_execute_message = ExecuteMsg::CreatePair {
+//         address: fin_contract_address.to_string(),
+//         base_denom: String::from(DENOM_UKUJI),
+//         quote_denom: String::from(DENOM_UTEST),
+//     };
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &create_pair_execute_message,
+//             &[],
+//         )
+//         .unwrap();
+
+//     let create_vault_by_address_and_id_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
+//         pair_address: fin_contract_address.to_string(),
+//         position_type: PositionType::Enter,
+//         slippage_tolerance: None,
+//         swap_amount: Uint128::new(100),
+//         total_executions: 2u16,
+//         time_interval: TimeInterval::Hourly,
+//         target_start_time_utc_seconds: None,
+//     };
+
+//     let funds = vec![Coin {
+//         denom: String::from(DENOM_UTEST),
+//         amount: Uint128::new(200),
+//     }];
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(USER),
+//             calc_contract_address.clone(),
+//             &create_vault_by_address_and_id_execute_message,
+//             &funds,
+//         )
+//         .unwrap();
+
+//     let first_execute_time_trigger_by_id_execute_message = ExecuteMsg::ExecuteTimeTriggerById {
+//         trigger_id: Uint128::new(1),
+//     };
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &first_execute_time_trigger_by_id_execute_message,
+//             &[],
+//         )
+//         .unwrap();
+
+//     let first_execution_block_info = app.block_info();
+
+//     app.elapse_time(3600u64);
+
+//     let second_execute_time_trigger_by_id_execute_message = ExecuteMsg::ExecuteTimeTriggerById {
+//         trigger_id: Uint128::new(1),
+//     };
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &second_execute_time_trigger_by_id_execute_message,
+//             &[],
+//         )
+//         .unwrap();
+
+//     let balance_user = app
+//         .wrap()
+//         .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
+//         .unwrap();
+
+//     let balance_fin = app
+//         .wrap()
+//         .query_balance(fin_contract_address, DENOM_UKUJI)
+//         .unwrap();
+
+//     let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
+
+//     let get_all_active_vaults_response: VaultsResponse = app
+//         .wrap()
+//         .query_wasm_smart(
+//             calc_contract_address.clone(),
+//             &get_all_active_vaults_query_message,
+//         )
+//         .unwrap();
+
+//     let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
+//         vault_id: Uint128::new(1),
+//     };
+
+//     let get_all_executions_by_vault_id_response: ExecutionsResponse = app
+//         .wrap()
+//         .query_wasm_smart(
+//             calc_contract_address,
+//             &get_all_executions_by_vault_id_query_message,
+//         )
+//         .unwrap();
+
+//     assert_eq!(balance_user.amount, Uint128::new(200));
+
+//     assert_eq!(balance_fin.amount, Uint128::new(0));
+
+//     assert_eq!(get_all_active_vaults_response.vaults.len(), 0);
+
+//     assert_eq!(get_all_executions_by_vault_id_response.executions.len(), 2);
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .vault_id,
+//         Uint128::new(1)
+//     );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[1]
+//             .clone()
+//             .vault_id,
+//         Uint128::new(1)
+//     );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_result,
+//     //     ExecutionResult::Success
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[1].clone().execution_result,
+//     //     ExecutionResult::Success
+//     // );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .block_height,
+//         Uint64::new(first_execution_block_info.height)
+//     );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[1]
+//             .clone()
+//             .block_height,
+//         Uint64::new(app.block_info().height)
+//     );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .sequence_number,
+//         1
+//     );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[1]
+//             .clone()
+//             .sequence_number,
+//         2
+//     );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().sent_amount,
+//     //     Uint128::new(100)
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[1].clone().execution_information.unwrap().sent_amount,
+//     //     Uint128::new(100)
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().sent_denom,
+//     //     DENOM_UTEST
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[1].clone().execution_information.unwrap().sent_denom,
+//     //     DENOM_UTEST
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().received_amount,
+//     //     Uint128::new(100)
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[1].clone().execution_information.unwrap().received_amount,
+//     //     Uint128::new(100)
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_information.unwrap().received_denom,
+//     //     DENOM_UKUJI
+//     // );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[1].clone().execution_information.unwrap().received_denom,
+//     //     DENOM_UKUJI
+//     // );
+// }
+
+// #[test]
+// fn execute_vault_by_address_and_id_exceed_slippage_should_skip_execution() {
+//     let mut app = mock_app();
+//     let calc_code_id = app.store_code(create_calc_contract());
+//     let calc_init_message = InstantiateMsg {
+//         admin: String::from(ADMIN),
+//     };
+//     let calc_contract_address = app
+//         .instantiate_contract(
+//             calc_code_id,
+//             Addr::unchecked(ADMIN),
+//             &calc_init_message,
+//             &[],
+//             "calc-dca",
+//             None,
+//         )
+//         .unwrap();
+
+//     let fin_code_id = app.store_code(create_mock_fin_contract_fail_slippage_tolerance());
+//     let denoms: [Denom; 2] = [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)];
+
+//     let fin_init_message = FINInstantiateMsg {
+//         decimal_delta: None,
+//         denoms,
+//         owner: Addr::unchecked(ADMIN),
+//         price_precision: kujira::precision::Precision::DecimalPlaces(3),
+//     };
+//     let fin_contract_address = app
+//         .instantiate_contract(
+//             fin_code_id,
+//             Addr::unchecked(ADMIN),
+//             &fin_init_message,
+//             &[],
+//             "fin",
+//             None,
+//         )
+//         .unwrap();
+
+//     app.add_liquidity(
+//         Addr::unchecked(USER),
+//         Coin {
+//             denom: String::from(DENOM_UTEST),
+//             amount: Uint128::new(100),
+//         },
+//     );
+
+//     app.add_liquidity(
+//         fin_contract_address.clone(),
+//         Coin {
+//             denom: String::from(DENOM_UKUJI),
+//             amount: Uint128::new(100),
+//         },
+//     );
+
+//     let create_pair_execute_message = ExecuteMsg::CreatePair {
+//         address: fin_contract_address.to_string(),
+//         base_denom: String::from(DENOM_UKUJI),
+//         quote_denom: String::from(DENOM_UTEST),
+//     };
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &create_pair_execute_message,
+//             &[],
+//         )
+//         .unwrap();
+
+//     let slippage = "0.5";
+
+//     let create_vault_by_address_and_id_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
+//         pair_address: fin_contract_address.to_string(),
+//         position_type: PositionType::Enter,
+//         slippage_tolerance: Some(Decimal256::from_str(&slippage).unwrap()),
+//         swap_amount: Uint128::new(100),
+//         total_executions: 1u16,
+//         time_interval: TimeInterval::Hourly,
+//         target_start_time_utc_seconds: None,
+//     };
+
+//     let funds = vec![Coin {
+//         denom: String::from(DENOM_UTEST),
+//         amount: Uint128::new(100),
+//     }];
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(USER),
+//             calc_contract_address.clone(),
+//             &create_vault_by_address_and_id_execute_message,
+//             &funds,
+//         )
+//         .unwrap();
+
+//     let execute_vault_by_address_and_id_execute_message = ExecuteMsg::ExecuteTimeTriggerById {
+//         trigger_id: Uint128::new(1),
+//     };
+
+//     let _ = app
+//         .execute_contract(
+//             Addr::unchecked(ADMIN),
+//             calc_contract_address.clone(),
+//             &execute_vault_by_address_and_id_execute_message,
+//             &[],
+//         )
+//         .unwrap();
+
+//     let balance_user = app
+//         .wrap()
+//         .query_balance(Addr::unchecked(USER), DENOM_UKUJI)
+//         .unwrap();
+
+//     let balance_fin = app
+//         .wrap()
+//         .query_balance(fin_contract_address, DENOM_UKUJI)
+//         .unwrap();
+
+//     let get_all_active_vaults_query_message = QueryMsg::GetAllActiveVaults {};
+
+//     let get_all_active_vaults_response: VaultsResponse = app
+//         .wrap()
+//         .query_wasm_smart(
+//             calc_contract_address.clone(),
+//             &get_all_active_vaults_query_message,
+//         )
+//         .unwrap();
+
+//     let get_all_time_triggers_query_message = QueryMsg::GetAllTimeTriggers {};
+
+//     let get_all_time_triggers_response: TriggersResponse<TimeConfiguration> = app
+//         .wrap()
+//         .query_wasm_smart(
+//             calc_contract_address.clone(),
+//             &get_all_time_triggers_query_message,
+//         )
+//         .unwrap();
+
+//     let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
+//         vault_id: Uint128::new(1),
+//     };
+
+//     let get_all_executions_by_vault_id_response: ExecutionsResponse = app
+//         .wrap()
+//         .query_wasm_smart(
+//             calc_contract_address,
+//             &get_all_executions_by_vault_id_query_message,
+//         )
+//         .unwrap();
+
+//     assert_eq!(balance_user.amount, Uint128::new(0));
+
+//     assert_eq!(balance_fin.amount, Uint128::new(100));
+
+//     assert_eq!(
+//         get_all_time_triggers_response.triggers[0]
+//             .configuration
+//             .triggers_remaining,
+//         1
+//     );
+
+//     assert_eq!(get_all_active_vaults_response.vaults.len(), 1);
+
+//     assert_eq!(get_all_executions_by_vault_id_response.executions.len(), 1);
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .vault_id,
+//         Uint128::new(1)
+//     );
+
+//     // assert_eq!(
+//     //     get_all_executions_by_vault_id_response.executions[0].clone().execution_result,
+//     //     ExecutionResult::SlippageToleranceExceeded
+//     // );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .block_height,
+//         Uint64::new(app.block_info().height)
+//     );
+
+//     assert_eq!(
+//         get_all_executions_by_vault_id_response.executions[0]
+//             .clone()
+//             .sequence_number,
+//         1
+//     );
+// }

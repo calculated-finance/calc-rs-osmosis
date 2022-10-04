@@ -30,6 +30,7 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct LimitOrderCache {
+    pub sent_amount: Uint256,
     pub received_amount: Uint256,
 }
 

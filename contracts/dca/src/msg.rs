@@ -56,8 +56,8 @@ pub enum ExecuteMsg {
     ExecuteTimeTriggerById {
         trigger_id: Uint128,
     },
-    ExecutePriceTriggerById {
-        trigger_id: Uint128,
+    ExecuteFINLimitOrderTriggerByOrderIdx {
+        order_idx: Uint128,
     },
 }
 
@@ -66,7 +66,6 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     GetAllPairs {},
     GetAllTimeTriggers {},
-    GetAllPriceTriggersByAddressAndPrice { address: String, price: Decimal256 },
     GetAllActiveVaults {},
     GetActiveVaultByAddressAndId { address: String, vault_id: Uint128 },
     GetAllActiveVaultsByAddress { address: String },

@@ -17,12 +17,16 @@ pub fn create_limit_order_sub_message(
         funds: vec![coin_to_send_with_message],
     };
 
+    println!("here 1");
+
     let sub_message = SubMsg {
         id: reply_id,
         msg: CosmosMsg::Wasm(execute_message),
         gas_limit: None,
         reply_on: cosmwasm_std::ReplyOn::Always,
     };
+
+    println!("here 2");
 
     sub_message
 }
