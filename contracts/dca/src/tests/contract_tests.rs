@@ -1,4 +1,4 @@
-use base::triggers::time_trigger::TimeInterval;
+use base::triggers::time_configuration::TimeInterval;
 use base::vaults::dca_vault::PositionType;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{attr, from_binary, Coin, Uint128, Uint64};

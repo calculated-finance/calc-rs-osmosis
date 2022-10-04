@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use base::executions::dca_execution::DCAExecutionInformation;
 use base::executions::execution::Execution;
 use base::pair::Pair;
-use base::triggers::price_trigger::PriceTrigger;
-use base::triggers::time_trigger::TimeTrigger;
+use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
+use base::triggers::time_configuration::TimeConfiguration;
 use base::triggers::trigger::Trigger;
 use base::vaults::dca_vault::DCAConfiguration;
 use base::vaults::vault::Vault;
@@ -66,14 +66,15 @@ pub const INACTIVE_VAULTS: Map<(Addr, u128), Vault<DCAConfiguration>> =
 pub const CANCELLED_VAULTS: Map<(Addr, u128), Vault<DCAConfiguration>> =
     Map::new("cancelled_vaults_v1");
 
-pub const TIME_TRIGGERS: Map<u128, Trigger<TimeTrigger>> = Map::new("time_triggers_v1");
-pub const TIME_TRIGGER_CONFIGURATIONS: Map<u128, TimeTrigger> =
-    Map::new("time_trigger_configurations_v1");
+pub const TIME_TRIGGERS: Map<u128, Trigger<TimeConfiguration>> = Map::new("time_triggers_v1");
+pub const TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, TimeConfiguration> =
+    Map::new("time_trigger_configurations_by_vault_id_v1");
 
-pub const PRICE_TRIGGERS: Map<u128, Trigger<PriceTrigger>> = Map::new("price_triggers_v1");
-pub const PRICE_EQUAL_OR_HIGHER: Map<(Addr, String), Vec<u128>> =
-    Map::new("price_equal_or_higher_v1");
-pub const PRICE_EQUAL_OR_LOWER: Map<(Addr, String), Vec<u128>> =
-    Map::new("price_equal_or_lower_v1");
+pub const FIN_LIMIT_ORDER_TRIGGERS: Map<u128, Trigger<FINLimitOrderConfiguration>> =
+    Map::new("fin_limit_order_triggers_v1");
+pub const FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX: Map<u128, u128> =
+    Map::new("fin_limit_order_trigger_ids_by_order_idx_v1");
+pub const FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, FINLimitOrderConfiguration> =
+    Map::new("fin_limit_order_configurations_by_vault_id_v1");
 
 pub const EXECUTIONS: Map<u128, Vec<Execution<DCAExecutionInformation>>> = Map::new("execution_v1");

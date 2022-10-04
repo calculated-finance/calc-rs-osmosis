@@ -1,5 +1,5 @@
 [workspace]
-members = ["packages/base", "contracts/dca"]
+members = ["packages/*", "contracts/*"]
 
 [profile.release]
 opt-level = 3

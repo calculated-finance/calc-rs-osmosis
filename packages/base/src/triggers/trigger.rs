@@ -23,5 +23,5 @@ pub struct TriggerBuilder<T> {
 #[serde(rename_all = "snake_case")]
 pub enum TriggerVariant {
     Time,
-    Price,
+    FINLimitOrder,
 }

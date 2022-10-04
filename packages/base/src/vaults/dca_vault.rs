@@ -59,7 +59,7 @@ impl VaultBuilder<DCAConfiguration> {
             balances: vec![balance],
             configuration,
             trigger_id: Uint128::zero(),
-            trigger_variant: TriggerVariant::Price,
+            trigger_variant: TriggerVariant::FINLimitOrder,
         }
     }
 

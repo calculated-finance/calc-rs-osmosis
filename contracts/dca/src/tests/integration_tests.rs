@@ -1,4 +1,4 @@
-use base::triggers::time_trigger::{TimeInterval, TimeTrigger};
+use base::triggers::time_configuration::{TimeConfiguration, TimeInterval};
 use base::vaults::dca_vault::PositionType;
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
@@ -15,8 +15,8 @@ use std::str::FromStr;
 
 use crate::contract::reply;
 use crate::msg::{
-    ExecuteMsg, ExecutionsResponse, InstantiateMsg, QueryMsg, TriggerIdsResponse, TriggersResponse,
-    VaultsResponse, MigrateMsg,
+    ExecuteMsg, ExecutionsResponse, InstantiateMsg, MigrateMsg, QueryMsg, TriggerIdsResponse,
+    TriggersResponse, VaultsResponse,
 };
 
 const USER: &str = "user";
@@ -153,19 +153,17 @@ fn create_mock_fin_contract_success() -> Box<dyn Contract<Empty>> {
                     Ok(to_binary(&Mock)?)
                 }
             }
-        }
+        },
     );
-    let res = contract.with_migrate(|_deps: _, _env: _, _msg: MigrateMsg| -> StdResult<Response>{
-        Ok(
-            Response::default()
-        )
-    });
-    
-    Box::new(res.with_migrate(|_, _, msg: MigrateMsg| -> StdResult<Response> {
-        Ok(
-            Response::default()
-        )
-    }))
+    let res = contract.with_migrate(
+        |_deps: _, _env: _, _msg: MigrateMsg| -> StdResult<Response> { Ok(Response::default()) },
+    );
+
+    Box::new(
+        res.with_migrate(|_, _, msg: MigrateMsg| -> StdResult<Response> {
+            Ok(Response::default())
+        }),
+    )
 }
 
 fn create_mock_fin_contract_success_higher_price() -> Box<dyn Contract<Empty>> {
@@ -334,7 +332,7 @@ fn create_vault_with_price_trigger_should_succeed() {
         )
         .unwrap();
 
-    let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithPriceTrigger {
+    let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
         pair_address: fin_contract_address.to_string(),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
@@ -476,7 +474,7 @@ fn execute_price_trigger_by_id_should_succeed() {
         )
         .unwrap();
 
-    let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithPriceTrigger {
+    let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
         pair_address: fin_contract_address.to_string(),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
@@ -501,19 +499,31 @@ fn execute_price_trigger_by_id_should_succeed() {
         .unwrap();
 
     let msg = MigrateMsg {
-        admin: String::from(ADMIN)
+        admin: String::from(ADMIN),
     };
 
     let fin_code_id_new_response = app.store_code(create_mock_fin_contract_success_higher_price());
 
     let migrate = app
-        .migrate_contract(Addr::unchecked(ADMIN), fin_contract_address, &msg, fin_code_id_new_response)
+        .migrate_contract(
+            Addr::unchecked(ADMIN),
+            fin_contract_address,
+            &msg,
+            fin_code_id_new_response,
+        )
         .unwrap();
 
-    let execute_price_trigger_by_id = ExecuteMsg::ExecutePriceTriggerById { trigger_id: Uint128::new(1) };
+    let execute_price_trigger_by_id = ExecuteMsg::ExecutePriceTriggerById {
+        trigger_id: Uint128::new(1),
+    };
 
     let result = app
-        .execute_contract(Addr::unchecked(ADMIN), calc_contract_address, &execute_price_trigger_by_id, &[])
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            calc_contract_address,
+            &execute_price_trigger_by_id,
+            &[],
+        )
         .unwrap();
 
     assert_eq!(
@@ -639,7 +649,7 @@ fn execute_price_trigger_by_id_early_should_fail() {
         )
         .unwrap();
 
-    let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithPriceTrigger {
+    let create_vault_with_price_trigger = ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
         pair_address: fin_contract_address.to_string(),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
@@ -663,10 +673,17 @@ fn execute_price_trigger_by_id_early_should_fail() {
         )
         .unwrap();
 
-    let execute_price_trigger_by_id = ExecuteMsg::ExecutePriceTriggerById { trigger_id: Uint128::new(1) };
+    let execute_price_trigger_by_id = ExecuteMsg::ExecutePriceTriggerById {
+        trigger_id: Uint128::new(1),
+    };
 
     let result = app
-        .execute_contract(Addr::unchecked(ADMIN), calc_contract_address, &execute_price_trigger_by_id, &[])
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            calc_contract_address,
+            &execute_price_trigger_by_id,
+            &[],
+        )
         .unwrap_err();
 
     assert_eq!(
@@ -1302,7 +1319,7 @@ fn execute_vault_by_address_and_id_exceed_slippage_should_skip_execution() {
 
     let get_all_time_triggers_query_message = QueryMsg::GetAllTimeTriggers {};
 
-    let get_all_time_triggers_response: TriggersResponse<TimeTrigger> = app
+    let get_all_time_triggers_response: TriggersResponse<TimeConfiguration> = app
         .wrap()
         .query_wasm_smart(
             calc_contract_address.clone(),

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use base::executions::dca_execution::DCAExecutionInformation;
 use base::executions::execution::Execution;
 use base::pair::Pair;
-use base::triggers::time_trigger::TimeInterval;
+use base::triggers::time_configuration::TimeInterval;
 use base::triggers::trigger::Trigger;
 use base::vaults::dca_vault::{DCAConfiguration, PositionType};
 use base::vaults::vault::Vault;
@@ -40,7 +40,7 @@ pub enum ExecuteMsg {
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
     },
-    CreateVaultWithPriceTrigger {
+    CreateVaultWithFINLimitOrderTrigger {
         pair_address: String,
         position_type: PositionType,
         slippage_tolerance: Option<Decimal256>,
