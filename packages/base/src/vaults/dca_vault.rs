@@ -25,6 +25,15 @@ impl Vault<DCAConfiguration> {
         denom
     }
 
+    pub fn get_receive_denom(&self) -> &String {
+        let denom = if self.configuration.position_type == PositionType::Enter {
+            &self.configuration.pair.base_denom
+        } else {
+            &self.configuration.pair.quote_denom
+        };
+        denom
+    }
+
     pub fn get_current_balance(&self) -> &Coin {
         &self.balances[0].current
     }

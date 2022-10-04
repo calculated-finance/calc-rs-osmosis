@@ -5,12 +5,15 @@ use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Decimal256, Deps, DepsMut, Env,
-    MessageInfo, QuerierWrapper, Reply, Response, StdResult, SubMsg, Timestamp, Uint128, Uint64,
-    WasmMsg,
+    MessageInfo, QuerierWrapper, Reply, Response, StdResult, SubMsg, Timestamp, Uint128, Uint256,
+    Uint64, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_storage_plus::Bound;
-use fin_helpers::limit_orders::create_limit_order_sub_msg;
+use fin_helpers::limit_orders::{
+    create_limit_order_sub_message, create_withdraw_limit_order_sub_message, get_fin_order_details,
+    get_fin_order_original_amount_and_filled_amount,
+};
 use kujira::fin::{BookResponse, ExecuteMsg as FINExecuteMsg, QueryMsg as FINQueryMsg};
 
 use crate::error::ContractError;
@@ -33,9 +36,10 @@ use base::vaults::dca_vault::{DCAConfiguration, PositionType};
 use base::vaults::vault::{Vault, VaultBuilder};
 
 use crate::state::{
-    Cache, Config, ACTIVE_VAULTS, CACHE, CANCELLED_VAULTS, CONFIG, EXECUTIONS,
-    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID, FIN_LIMIT_ORDER_TRIGGERS, INACTIVE_VAULTS, PAIRS,
-    TIME_TRIGGERS, TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID, FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX,
+    Cache, Config, LimitOrderCache, ACTIVE_VAULTS, CACHE, CANCELLED_VAULTS, CONFIG, EXECUTIONS,
+    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID, FIN_LIMIT_ORDER_TRIGGERS,
+    FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX, INACTIVE_VAULTS, LIMIT_ORDER_CACHE, PAIRS,
+    TIME_TRIGGERS, TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID,
 };
 
 const CONTRACT_NAME: &str = "crates.io:calc-dca";
@@ -43,6 +47,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const SWAP_REPLY_ID: u64 = 1;
 const SUBMIT_ORDER_REPLY_ID: u64 = 2;
+const WITHDRAW_ORDER_REPLY_ID: u64 = 3;
 
 #[entry_point]
 pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -125,7 +130,7 @@ pub fn execute(
             execute_time_trigger_by_id(deps, env, trigger_id)
         }
         ExecuteMsg::ExecutePriceTriggerById { trigger_id } => {
-            execute_price_trigger_by_id(deps, env, trigger_id)
+            execute_fin_limit_order_trigger_by_order_idx(deps, env, trigger_id)
         }
         ExecuteMsg::CancelVaultByAddressAndId { address, vault_id } => {
             cancel_vault_by_address_and_id(deps, info, address, vault_id)
@@ -290,10 +295,11 @@ pub fn create_vault_with_fin_limit_order_trigger(
         Ok(config)
     })?;
 
+    // the execution of a limit order will count as one execution so total executions for time trigger should be decreased by 1
     let time_trigger_configuration = TimeConfiguration {
         target_time: env.block.time,
         time_interval,
-        triggers_remaining: total_executions,
+        triggers_remaining: total_executions - 1,
     };
 
     let fin_limit_order_configuration = FINLimitOrderConfiguration {
@@ -323,7 +329,7 @@ pub fn create_vault_with_fin_limit_order_trigger(
         },
     };
 
-    let fin_limit_order_sub_msg = create_limit_order_sub_msg(
+    let fin_limit_order_sub_msg = create_limit_order_sub_message(
         existing_pair.address,
         target_price,
         coin_to_send_with_message,
@@ -411,7 +417,10 @@ fn cancel_vault_by_address_and_id(
             // updating vault balance to make sure refund amount is correct
 
             FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, fin_limit_order_trigger.id.u128());
-            FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX.remove(deps.storage, fin_limit_order_trigger.configuration.order_idx.u128());
+            FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX.remove(
+                deps.storage,
+                fin_limit_order_trigger.configuration.order_idx.u128(),
+            );
             TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.remove(deps.storage, vault.id.u128());
         }
     };
@@ -526,93 +535,57 @@ fn execute_time_trigger_by_id(
         .add_submessage(sub_message))
 }
 
-fn execute_price_trigger_by_id(
+fn execute_fin_limit_order_trigger_by_order_idx(
     deps: DepsMut,
     env: Env,
-    trigger_id: Uint128,
+    order_idx: Uint128,
 ) -> Result<Response, ContractError> {
-    let trigger = FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, trigger_id.into())?;
+    let fin_limit_order_trigger_id =
+        FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX.load(deps.storage, order_idx.u128())?;
+    let fin_limit_order_trigger =
+        FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, fin_limit_order_trigger_id.into())?;
 
     let vault = ACTIVE_VAULTS.load(
         deps.storage,
-        (trigger.owner.clone(), trigger.vault_id.into()),
+        (
+            fin_limit_order_trigger.owner.clone(),
+            fin_limit_order_trigger.vault_id.into(),
+        ),
     )?;
 
-    // move this into validation method
-    let current_price = get_current_price(deps.querier, vault.configuration.pair.address.clone());
+    let (quote_price, original_offer_amount, filled_amount) =
+        get_fin_order_details(deps.querier, vault.configuration.pair.address, order_idx);
 
-    match trigger.configuration.order_idx {
-        ComparisonType::EqualOrHigher => {
-            if current_price < trigger.configuration.target_price {
-                return Err(ContractError::CustomError {
-                    val: format!("vault price target has not been hit yet. current price: {}, trigger price: {}", current_price, trigger.configuration.target_price),
-                });
-            } else {
-                // fix this
-                PRICE_EQUAL_OR_HIGHER.remove(
-                    deps.storage,
-                    (
-                        vault.configuration.pair.address.clone(),
-                        trigger.configuration.target_price.to_string(),
-                    ),
-                );
-            }
-        }
-        ComparisonType::EqualOrLower => {
-            if current_price > trigger.configuration.target_price {
-                return Err(ContractError::CustomError {
-                    val: format!("vault price target has not been hit yet. current price: {}, trigger price: {}", current_price, trigger.configuration.target_price),
-                });
-            } else {
-                PRICE_EQUAL_OR_LOWER.remove(
-                    deps.storage,
-                    (
-                        vault.configuration.pair.address.clone(),
-                        trigger.configuration.target_price.to_string(),
-                    ),
-                );
-            }
-        }
+    let expected_total_amount = original_offer_amount
+        .checked_div(Uint256::from_str(&quote_price.to_string())?)
+        .unwrap();
+
+    if expected_total_amount != filled_amount {
+        return Err(ContractError::CustomError {
+            val: String::from("fin limit order has not been completely filled"),
+        });
     }
 
-    let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
-        config.trigger_count = config.trigger_count.checked_add(Uint128::new(1))?;
-        Ok(config)
-    })?;
+    let fin_withdraw_sub_message = create_withdraw_limit_order_sub_message(
+        vault.configuration.pair.address,
+        order_idx,
+        WITHDRAW_ORDER_REPLY_ID,
+    );
 
-    let time_trigger_configuration =
-        TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.load(deps.storage, trigger.id.u128())?;
+    let limit_order_cache = LimitOrderCache {
+        received_amount: filled_amount,
+    };
+    LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
 
-    let time_trigger = TriggerBuilder::from(time_trigger_configuration)
-        .id(config.trigger_count)
-        .owner(vault.owner.clone())
-        .vault_id(vault.id.clone())
-        .target_time(env.block.time)
-        .build();
+    let cache: Cache = Cache {
+        vault_id: vault.id,
+        owner: vault.owner,
+    };
+    CACHE.save(deps.storage, &cache)?;
 
-    ACTIVE_VAULTS.update(
-        deps.storage,
-        (vault.owner.clone(), vault.id.u128()),
-        |existing_vault| match existing_vault {
-            Some(mut vault) => {
-                vault.trigger_id = time_trigger.id;
-                vault.trigger_variant = time_trigger.variant.clone();
-                Ok(vault)
-            }
-            None => Err(ContractError::CustomError {
-                val: format!(
-                    "could not find vault for address: {} with id: {}",
-                    vault.owner, vault.id
-                ),
-            }),
-        },
-    )?;
-
-    TIME_TRIGGERS.save(deps.storage, trigger.id.u128(), &time_trigger)?;
-
-    FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, trigger.id.u128());
-
-    Ok(Response::new().add_attribute("method", "execute_price_trigger_by_id"))
+    Ok(Response::new()
+        .add_attribute("method", "execute_fin_limit_order_trigger_by_order_idx")
+        .add_submessage(fin_withdraw_sub_message))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -620,6 +593,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
     match reply.id {
         SWAP_REPLY_ID => after_swap(deps, env, reply),
         SUBMIT_ORDER_REPLY_ID => after_submit_order(deps, env, reply),
+        WITHDRAW_ORDER_REPLY_ID => after_withdraw_order(deps, env, reply),
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),
         }),
@@ -679,7 +653,8 @@ pub fn after_submit_order(
                 |vault| -> Result<Vault<DCAConfiguration>, ContractError> {
                     match vault {
                         Some(mut existing_vault) => {
-                            existing_vault.balances[0].current.amount -= Uint128::from_str(coin_spent_amount).unwrap();
+                            existing_vault.balances[0].current.amount -=
+                                Uint128::from_str(coin_spent_amount).unwrap();
                             existing_vault.trigger_id = fin_limit_order_trigger.id;
                             existing_vault.trigger_variant = TriggerVariant::FINLimitOrder;
                             Ok(existing_vault)
@@ -694,22 +669,135 @@ pub fn after_submit_order(
                 },
             )?;
 
-            FIN_LIMIT_ORDER_TRIGGERS.save(deps.storage, fin_limit_order_trigger.id.u128(), &fin_limit_order_trigger)?;
+            FIN_LIMIT_ORDER_TRIGGERS.save(
+                deps.storage,
+                fin_limit_order_trigger.id.u128(),
+                &fin_limit_order_trigger,
+            )?;
 
-            FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX.save(deps.storage, fin_limit_order_trigger.configuration.order_idx.u128(), &fin_limit_order_trigger.id.u128())?;
+            FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX.save(
+                deps.storage,
+                fin_limit_order_trigger.configuration.order_idx.u128(),
+                &fin_limit_order_trigger.id.u128(),
+            )?;
 
             FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID.remove(deps.storage, cache.vault_id.u128());
 
             CACHE.remove(deps.storage);
 
-            Ok(
-                Response::default()
+            Ok(Response::default()
                 .add_attribute("method", "after_submit_order")
-                .add_attribute("trigger_id", fin_limit_order_trigger.id)
-            )
+                .add_attribute("trigger_id", fin_limit_order_trigger.id))
         }
         cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
             val: format!("failed to create vault with fin limit order trigger: {}", e),
+        }),
+    }
+}
+
+pub fn after_withdraw_order(
+    deps: DepsMut,
+    env: Env,
+    reply: Reply,
+) -> Result<Response, ContractError> {
+    let cache = CACHE.load(deps.storage)?;
+    let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
+    let vault = ACTIVE_VAULTS.load(deps.storage, (cache.owner.clone(), cache.vault_id.into()))?;
+    match reply.result {
+        cosmwasm_std::SubMsgResult::Ok(_) => {
+            let fin_limit_order_trigger =
+                FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, vault.trigger_id.into())?;
+            FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX.remove(
+                deps.storage,
+                fin_limit_order_trigger.configuration.order_idx.u128(),
+            );
+            FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, fin_limit_order_trigger.id.u128());
+
+            let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
+                config.trigger_count = config.vault_count.checked_add(Uint128::new(1))?;
+                Ok(config)
+            })?;
+
+            let time_trigger_configuration =
+                TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.load(deps.storage, vault.id.into())?;
+            let time_trigger = TriggerBuilder::from(time_trigger_configuration)
+                .id(config.trigger_count)
+                .vault_id(vault.id)
+                .owner(vault.owner)
+                .build();
+
+            let updated_vault = ACTIVE_VAULTS.update(
+                deps.storage,
+                (vault.owner.clone(), vault.id.into()),
+                |vault| -> Result<Vault<DCAConfiguration>, ContractError> {
+                    match vault {
+                        Some(mut existing_vault) => {
+                            existing_vault.trigger_id = time_trigger.id;
+                            existing_vault.trigger_variant = TriggerVariant::Time;
+                            Ok(existing_vault)
+                        }
+                        None => Err(ContractError::CustomError {
+                            val: format!(
+                                "could not find vault for address: {} with id: {}",
+                                cache.owner, cache.vault_id
+                            ),
+                        }),
+                    }
+                },
+            )?;
+
+            TIME_TRIGGERS.save(deps.storage, time_trigger.id.u128(), &time_trigger)?;
+
+            let sent = Coin {
+                denom: vault.get_swap_denom().clone(),
+                amount: vault.configuration.swap_amount,
+            };
+
+            let received = Coin {
+                denom: vault.get_receive_denom().clone(),
+                amount: limit_order_cache.received_amount.try_into().unwrap(),
+            };
+
+            let executions: Vec<Execution<DCAExecutionInformation>> =
+                EXECUTIONS.load(deps.storage, vault.id.into())?;
+
+            let number_of_previous_executions: u16 = executions.len().try_into().unwrap();
+
+            let execution = ExecutionBuilder::new()
+                .vault_id(vault.id)
+                .sequence_id(number_of_previous_executions + 1)
+                .block_height(env.block.height)
+                .success_fin_limit_order_trigger(sent, received)
+                .build();
+            EXECUTIONS.update(deps.storage, vault.id.into(), |existing_executions: Option<Vec<Execution<DCAExecutionInformation>>>| -> Result<Vec<Execution<DCAExecutionInformation>>, ContractError> {
+                match existing_executions {
+                    Some(mut executions) => {
+                        executions.push(execution);
+                        Ok(executions)
+                    },
+                    None => {
+                        Err(
+                            ContractError::CustomError {
+                                val: format!(
+                                    "could not find execution history for vault with id: {}", 
+                                    cache.vault_id
+                                )
+                            }
+                        )
+                    }
+                }
+            })?;
+            LIMIT_ORDER_CACHE.remove(deps.storage);
+            CACHE.remove(deps.storage);
+            Ok(Response::default()
+                .add_attribute("method", "after_withdraw_order")
+                .add_attribute("trigger_id", time_trigger.id))
+        }
+        cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
+            val: format!(
+                "failed to withdraw fin limit order for vault id: {} - {}",
+                vault.id, e
+            ),
         }),
     }
 }
@@ -846,7 +934,7 @@ pub fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Con
                 .vault_id(vault.id)
                 .sequence_id(number_of_previous_executions + 1)
                 .block_height(env.block.height)
-                .success(coin_sent_with_swap.clone(), coin_received_from_swap.clone())
+                .success_time_trigger(coin_sent_with_swap.clone(), coin_received_from_swap.clone())
                 .build();
 
             EXECUTIONS.update(deps.storage, vault.id.into(), |existing_executions: Option<Vec<Execution<DCAExecutionInformation>>>| -> Result<Vec<Execution<DCAExecutionInformation>>, ContractError> {

@@ -14,7 +14,8 @@ pub struct DCAExecutionInformation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DCAExecutionResult {
-    Success,
+    SuccessTimeTrigger,
+    SuccessFINLimitOrderTrigger,
     SlippageToleranceExceeded,
 }
 
@@ -25,7 +26,7 @@ impl ExecutionBuilder<DCAExecutionInformation> {
             sequence_number: 0,
             block_height: Uint64::zero(),
             execution_information: Some(DCAExecutionInformation {
-                result: DCAExecutionResult::Success,
+                result: DCAExecutionResult::SuccessTimeTrigger,
                 sent: Some(Coin {
                     denom: "".to_string(),
                     amount: Uint128::zero(),
@@ -56,13 +57,26 @@ impl ExecutionBuilder<DCAExecutionInformation> {
         self
     }
 
-    pub fn success(
+    pub fn success_time_trigger(
         mut self,
         sent: Coin,
         received: Coin,
     ) -> ExecutionBuilder<DCAExecutionInformation> {
         self.execution_information = Some(DCAExecutionInformation {
-            result: DCAExecutionResult::Success,
+            result: DCAExecutionResult::SuccessTimeTrigger,
+            sent: Some(sent),
+            received: Some(received),
+        });
+        self
+    }
+
+    pub fn success_fin_limit_order_trigger(
+        mut self,
+        sent: Coin,
+        received: Coin,
+    ) -> ExecutionBuilder<DCAExecutionInformation> {
+        self.execution_information = Some(DCAExecutionInformation {
+            result: DCAExecutionResult::SuccessFINLimitOrderTrigger,
             sent: Some(sent),
             received: Some(received),
         });

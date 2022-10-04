@@ -69,12 +69,18 @@ impl TriggerBuilder<TimeConfiguration> {
         self
     }
 
-    pub fn time_interval(mut self, time_interval: TimeInterval) -> TriggerBuilder<TimeConfiguration> {
+    pub fn time_interval(
+        mut self,
+        time_interval: TimeInterval,
+    ) -> TriggerBuilder<TimeConfiguration> {
         self.configuration.time_interval = time_interval;
         self
     }
 
-    pub fn triggers_remaining(mut self, triggers_remaining: u16) -> TriggerBuilder<TimeConfiguration> {
+    pub fn triggers_remaining(
+        mut self,
+        triggers_remaining: u16,
+    ) -> TriggerBuilder<TimeConfiguration> {
         self.configuration.triggers_remaining = triggers_remaining;
         self
     }

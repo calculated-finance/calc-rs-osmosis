@@ -1,4 +1,4 @@
-use cosmwasm_std::Addr;
+use cosmwasm_std::{Addr, Uint256};
 use cosmwasm_std::{Api, Uint128};
 use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
@@ -26,6 +26,11 @@ pub struct Config {
     pub admin: Addr,
     pub vault_count: Uint128,
     pub trigger_count: Uint128,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct LimitOrderCache {
+    pub received_amount: Uint256,
 }
 
 impl Config {
@@ -57,6 +62,8 @@ impl From<MigrateMsg> for Config {
 pub const CONFIG: Item<Config> = Item::new("config_v1");
 
 pub const CACHE: Item<Cache> = Item::new("cache_v1");
+
+pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cache_v1");
 
 pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v1");
 
