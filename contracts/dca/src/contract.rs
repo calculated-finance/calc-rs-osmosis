@@ -301,7 +301,7 @@ pub fn create_vault_with_fin_limit_order_trigger(
         target_price,
     };
 
-    // update trigger upon fin reply
+    // trigger information is updated upon successful limit order creation
     let vault: Vault<DCAConfiguration> = VaultBuilder::new()
         .id(config.vault_count)
         .owner(info.sender.clone())
@@ -335,12 +335,14 @@ pub fn create_vault_with_fin_limit_order_trigger(
         owner: vault.owner.clone(),
     };
 
+    // removed when trigger change over occurs
     TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.save(
         deps.storage,
         vault.id.u128(),
         &time_trigger_configuration,
     )?;
 
+    // removed with successful limit order creation
     FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID.save(
         deps.storage,
         vault.id.u128(),
@@ -402,55 +404,15 @@ fn cancel_vault_by_address_and_id(
     match vault.trigger_variant {
         TriggerVariant::Time => TIME_TRIGGERS.remove(deps.storage, vault.trigger_id.into()),
         TriggerVariant::FINLimitOrder => {
-            let price_trigger =
+            let fin_limit_order_trigger =
                 FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, vault.trigger_id.u128())?;
-            match price_trigger.configuration.order_idx {
-                ComparisonType::EqualOrHigher => {
-                    PRICE_EQUAL_OR_HIGHER.update(
-                        deps.storage,
-                        (
-                            vault.configuration.pair.address.clone(),
-                            price_trigger.configuration.target_price.to_string(),
-                        ),
-                        |existing_triggers| match existing_triggers {
-                            Some(mut triggers) => {
-                                let index_to_remove = triggers
-                                    .iter()
-                                    .position(|&t| t == price_trigger.id.u128())
-                                    .unwrap();
-                                triggers.remove(index_to_remove);
-                                Ok(triggers)
-                            }
-                            None => Err(ContractError::CustomError {
-                                val: String::from("could not find existing triggers"),
-                            }),
-                        },
-                    )?;
-                }
-                ComparisonType::EqualOrLower => {
-                    PRICE_EQUAL_OR_LOWER.update(
-                        deps.storage,
-                        (
-                            vault.configuration.pair.address.clone(),
-                            price_trigger.configuration.target_price.to_string(),
-                        ),
-                        |existing_triggers| match existing_triggers {
-                            Some(mut triggers) => {
-                                let index_to_remove = triggers
-                                    .iter()
-                                    .position(|&t| t == price_trigger.id.u128())
-                                    .unwrap();
-                                triggers.remove(index_to_remove);
-                                Ok(triggers)
-                            }
-                            None => Err(ContractError::CustomError {
-                                val: String::from("could not find existing triggers"),
-                            }),
-                        },
-                    )?;
-                }
-            }
-            FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, price_trigger.id.u128());
+
+            // cancel and claim pending limit order
+            // updating vault balance to make sure refund amount is correct
+
+            FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, fin_limit_order_trigger.id.u128());
+            FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX.remove(deps.storage, fin_limit_order_trigger.configuration.order_idx.u128());
+            TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.remove(deps.storage, vault.id.u128());
         }
     };
 
