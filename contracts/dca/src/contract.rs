@@ -334,11 +334,6 @@ pub fn create_vault_with_fin_limit_order_trigger(
         SUBMIT_ORDER_REPLY_ID,
     );
 
-    let cache: Cache = Cache {
-        vault_id: vault.id,
-        owner: vault.owner.clone(),
-    };
-
     // removed when trigger change over occurs
     TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.save(
         deps.storage,
@@ -353,11 +348,15 @@ pub fn create_vault_with_fin_limit_order_trigger(
         &fin_limit_order_configuration,
     )?;
 
-    CACHE.save(deps.storage, &cache)?;
-
     ACTIVE_VAULTS.save(deps.storage, (info.sender, vault.id.u128()), &vault)?;
 
     EXECUTIONS.save(deps.storage, vault.id.into(), &Vec::new())?;
+
+    let cache: Cache = Cache {
+        vault_id: vault.id,
+        owner: vault.owner.clone(),
+    };
+    CACHE.save(deps.storage, &cache)?;
 
     Ok(Response::new()
         .add_attribute("method", "create_vault_with_fin_limit_order_trigger")
@@ -531,6 +530,13 @@ fn execute_fin_limit_order_trigger_by_order_idx(
         order_idx,
     );
 
+    let limit_order_cache = LimitOrderCache {
+        sent_amount: original_offer_amount,
+        received_amount: filled_amount,
+    };
+
+    LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
+
     if offer_amount != Uint256::zero() {
         return Err(ContractError::CustomError {
             val: String::from("fin limit order has not been completely filled"),
@@ -542,13 +548,6 @@ fn execute_fin_limit_order_trigger_by_order_idx(
         order_idx,
         WITHDRAW_ORDER_REPLY_ID,
     );
-
-    let limit_order_cache = LimitOrderCache {
-        sent_amount: original_offer_amount,
-        received_amount: filled_amount,
-    };
-
-    LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
 
     let cache: Cache = Cache {
         vault_id: vault.id,
@@ -593,13 +592,13 @@ pub fn after_submit_order(
                     .as_ref();
 
             let cache = CACHE.load(deps.storage)?;
+            let fin_limit_order_configuration = FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID
+                .load(deps.storage, cache.vault_id.u128())?;
+
             let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
                 config.trigger_count = config.trigger_count.checked_add(Uint128::new(1))?;
                 Ok(config)
             })?;
-
-            let fin_limit_order_configuration = FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID
-                .load(deps.storage, cache.vault_id.u128())?;
 
             let fin_limit_order_trigger = TriggerBuilder::from(fin_limit_order_configuration)
                 .id(config.trigger_count)
@@ -673,26 +672,27 @@ pub fn after_withdraw_order(
             FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, fin_limit_order_trigger.id.u128());
 
             let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
-                config.trigger_count = config.vault_count.checked_add(Uint128::new(1))?;
+                config.trigger_count = config.trigger_count.checked_add(Uint128::new(1))?;
                 Ok(config)
             })?;
 
             let time_trigger_configuration =
                 TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.load(deps.storage, vault.id.into())?;
+            
             let time_trigger = TriggerBuilder::from(time_trigger_configuration)
                 .id(config.trigger_count)
                 .vault_id(vault.id)
                 .owner(vault.owner.clone())
                 .build();
 
-            ACTIVE_VAULTS.update(
+            let updated_vault = ACTIVE_VAULTS.update(
                 deps.storage,
                 (vault.owner.clone(), vault.id.into()),
                 |vault| -> Result<Vault<DCAConfiguration>, ContractError> {
                     match vault {
                         Some(mut existing_vault) => {
                             existing_vault.balances[0].current.amount -=
-                                Uint128::try_from(limit_order_cache.sent_amount).unwrap();
+                            amount_256_to_128(limit_order_cache.sent_amount);
                             existing_vault.trigger_id = time_trigger.id;
                             existing_vault.trigger_variant = TriggerVariant::Time;
                             Ok(existing_vault)
@@ -707,7 +707,17 @@ pub fn after_withdraw_order(
                 },
             )?;
 
-            TIME_TRIGGERS.save(deps.storage, time_trigger.id.u128(), &time_trigger)?;
+            if time_trigger.configuration.triggers_remaining == 0{
+                INACTIVE_VAULTS.save(
+                    deps.storage,
+                    (vault.owner.clone(), vault.id.into()),
+                    &updated_vault,
+                )?;
+                ACTIVE_VAULTS.remove(deps.storage, (vault.owner.clone(), vault.id.into()));
+            }
+            else {
+                TIME_TRIGGERS.save(deps.storage, time_trigger.id.u128(), &time_trigger)?;
+            }
 
             let coin_sent_with_limit_order = Coin {
                 denom: vault.get_swap_denom().clone(),
