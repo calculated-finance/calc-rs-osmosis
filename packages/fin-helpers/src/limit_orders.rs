@@ -17,16 +17,12 @@ pub fn create_limit_order_sub_message(
         funds: vec![coin_to_send_with_message],
     };
 
-    println!("here 1");
-
     let sub_message = SubMsg {
         id: reply_id,
         msg: CosmosMsg::Wasm(execute_message),
         gas_limit: None,
         reply_on: cosmwasm_std::ReplyOn::Always,
     };
-
-    println!("here 2");
 
     sub_message
 }
@@ -60,14 +56,18 @@ pub fn get_fin_order_details(
     querier: QuerierWrapper,
     pair_address: Addr,
     order_idx: Uint128,
-) -> (Decimal256, Uint256, Uint256) {
+) -> (Uint256, Uint256, Uint256) {
     let fin_order_query_msg = FINQueryMsg::Order { order_idx };
     let order_response: OrderResponse = querier
         .query_wasm_smart(pair_address, &fin_order_query_msg)
         .unwrap();
     (
-        order_response.quote_price,
+        order_response.offer_amount,
         order_response.original_offer_amount,
         order_response.filled_amount,
     )
+}
+
+pub fn amount_256_to_128(amount: Uint256) -> Uint128 {
+    Uint128::try_from(amount).unwrap()
 }

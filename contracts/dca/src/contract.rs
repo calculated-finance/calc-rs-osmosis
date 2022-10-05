@@ -2,14 +2,15 @@ use std::str::FromStr;
 
 use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Decimal256, Deps, DepsMut, Env,
-    MessageInfo, Reply, Response, StdResult, SubMsg, Timestamp, Uint128, Uint256, Uint64, WasmMsg,
+    entry_point, to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Decimal256, Deps,
+    DepsMut, Env, MessageInfo, Reply, Response, StdResult, SubMsg, Timestamp, Uint128, Uint256,
+    Uint64, WasmMsg,
 };
 use cw2::set_contract_version;
 use fin_helpers::limit_orders::{
-    create_limit_order_sub_message, create_withdraw_limit_order_sub_message, get_fin_order_details,
+    amount_256_to_128, create_limit_order_sub_message, create_withdraw_limit_order_sub_message,
+    get_fin_order_details,
 };
 use kujira::fin::{BookResponse, ExecuteMsg as FINExecuteMsg, QueryMsg as FINQueryMsg};
 
@@ -358,8 +359,6 @@ pub fn create_vault_with_fin_limit_order_trigger(
 
     EXECUTIONS.save(deps.storage, vault.id.into(), &Vec::new())?;
 
-    println!("here 3");
-
     Ok(Response::new()
         .add_attribute("method", "create_vault_with_fin_limit_order_trigger")
         .add_attribute("id", config.vault_count.to_string())
@@ -525,17 +524,14 @@ fn execute_fin_limit_order_trigger_by_order_idx(
         ),
     )?;
 
-    let (quote_price, original_offer_amount, filled_amount) = get_fin_order_details(
+    // look at offer_amount on FIN
+    let (offer_amount, original_offer_amount, filled_amount) = get_fin_order_details(
         deps.querier,
         vault.configuration.pair.address.clone(),
         order_idx,
     );
 
-    let expected_total_amount = original_offer_amount
-        .checked_div(Uint256::from_str(&quote_price.to_string())?)
-        .unwrap();
-
-    if expected_total_amount != filled_amount {
+    if offer_amount != Uint256::zero() {
         return Err(ContractError::CustomError {
             val: String::from("fin limit order has not been completely filled"),
         });
@@ -551,6 +547,7 @@ fn execute_fin_limit_order_trigger_by_order_idx(
         sent_amount: original_offer_amount,
         received_amount: filled_amount,
     };
+
     LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
 
     let cache: Cache = Cache {
@@ -581,8 +578,6 @@ pub fn after_submit_order(
     _env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
-    println!("here 4{:?}", reply);
-
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let fin_submit_order_response = reply.result.into_result().unwrap();
@@ -714,21 +709,19 @@ pub fn after_withdraw_order(
 
             TIME_TRIGGERS.save(deps.storage, time_trigger.id.u128(), &time_trigger)?;
 
-            let sent = Coin {
+            let coin_sent_with_limit_order = Coin {
                 denom: vault.get_swap_denom().clone(),
-                amount: Uint128::try_from(limit_order_cache.sent_amount).unwrap(),
+                amount: amount_256_to_128(limit_order_cache.sent_amount),
             };
 
-            let received = Coin {
+            let coin_received_from_limit_order = Coin {
                 denom: vault.get_receive_denom().clone(),
-                amount: Uint128::try_from(limit_order_cache.received_amount).unwrap(),
+                amount: amount_256_to_128(limit_order_cache.received_amount),
             };
-
-            println!("{:?}", received);
 
             let bank_message_to_vault_owner: BankMsg = BankMsg::Send {
                 to_address: vault.owner.to_string(),
-                amount: vec![received.clone()],
+                amount: vec![coin_received_from_limit_order.clone()],
             };
 
             let executions: Vec<Execution<DCAExecutionInformation>> =
@@ -740,7 +733,10 @@ pub fn after_withdraw_order(
                 .vault_id(vault.id)
                 .sequence_id(number_of_previous_executions + 1)
                 .block_height(env.block.height)
-                .success_fin_limit_order_trigger(sent, received)
+                .success_fin_limit_order_trigger(
+                    coin_sent_with_limit_order,
+                    coin_received_from_limit_order,
+                )
                 .build();
             EXECUTIONS.update(deps.storage, vault.id.into(), |existing_executions: Option<Vec<Execution<DCAExecutionInformation>>>| -> Result<Vec<Execution<DCAExecutionInformation>>, ContractError> {
                 match existing_executions {

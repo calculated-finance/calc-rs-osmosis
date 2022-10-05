@@ -157,7 +157,7 @@ fn create_mock_fin_contract_success() -> Box<dyn Contract<Empty>> {
                         original_offer_amount: Uint256::from_str("100").unwrap(),
                         filled_amount: Uint256::from_str("100").unwrap(),
                         offer_denom: Denom::from(DENOM_UKUJI),
-                        offer_amount: Uint256::from_str("1").unwrap(),
+                        offer_amount: Uint256::zero(),
                     };
                     Ok(to_binary(&response)?)
                 }
