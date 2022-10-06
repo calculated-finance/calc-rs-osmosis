@@ -28,10 +28,10 @@
     - remove the fin limit order configuration from storage as it is now contained in the trigger
     - remove the cache as the create vault flow has now finished
 #### Trigger Execution
-1. Off-chain execution
+1. Trigger execution - off chain (p.1)
     - off-chain components query all orders under the contract address and find limit orders that have been fullfilled (fin limit order triggers)
     - the order idx of a fullfilled limit order can be used to execute a fin limit order trigger
-2. On-chain execution (pt.1)
+2. Trigger execution - on chain (pt.2)
     - load fin limit order trigger by id using the given order idx
     - load fin limit order trigger by trigger id retrieved in previous step
     - load vault using the fin limit order trigger owner and vault id fields
@@ -40,7 +40,7 @@
     - create fin withdraw message using the given order idx and vault pair address
     - save vault id and owner in cache (to be used for finding the vault by id and owner in the fin withdraw order reply handler)
     - send fin withdraw order sub message
-3. On-chain execution (pt.2)
+3. Trigger execution - on chain (pt.3)
     - reply handler to continue on after withdraw order sub message has replied
     - load cache
     - load limit order cache
@@ -62,3 +62,48 @@
     - remove limit order cache as the execute trigger flow has now ended
     - remove cache as the execute trigger flow has now ended
     - send bank message
+#### Cancellation
+1. Cancellation (pt.1)
+    - load vault using owner address and vault id
+    - match on the vaults trigger variant (in this case we match for the FINLimitOrder variant)
+    - delete the future time trigger configuration (the trigger that would have been assigned to the vault after the price trigger executed)
+    - load the fin limit order trigger using the trigger id given from the vault
+    - query the existing limit order using the fin limit order trigger's order idx (allows us to determine the status of the order and what needs to be refunded - this needs to be done before retract order as we can't query this info once the order has been retracted)
+    - save fin limit order details to the fin limit order cache (so this info can be referenced in replies)
+    - create a retract order sub message using the fin limit order triggers order ix (after the order is retracted we can see how much we get back, and if any partially filled order needs to be withdrawn)
+    - same vault owner and id to the cache (so we can reference the vault in the replies)
+    - send fin retract order sub message
+2. Cancellation (pt.2)
+    - load the cache
+    - load the vault using the info we stored in the cache
+    - load the fin limit order cache
+    - load the fin limit order trigger
+    - parse the fin retract order result to find the amount of token that was retracted
+    - compare the amount of token that was retracted to the origial offer amount (fin limit order cache) - if the they are not equal we need to withdraw the partially filled order
+2. Cancellation (pt.2.1 withdrawing partially filled orders)
+    - send retracted amount of coin back to vault owner (some fraction of the vaults total value *[0% - 100%)* )
+    - create a fin withdraw limit order message using the fin limit order triggers order idx
+    - send fin withdraw limit order message
+2. Cancellation (pt.2.2 no partially filled order to retract)
+    - get the remaining balance of the vault
+    - create a new bank message with the vaults remaining balanced calculated previously
+    - save the vault with the empty balance to cancelled vaults using the vaults owner and vault id
+    - remove the vault from active vaults using the vaults owner and vault id
+    - remove the fin limit order trigger using the trigger id
+    - remove the fin limit order trigger id using the order idx
+    - remove fin limit order cache
+    - remove cache
+3. Cancellation (pt.3)
+    - load the cache
+    - load the vault using the info from the cache
+    - load the fin limit order cache
+    - load the fin limit order trigger using the vaults trigger id
+    - get the received denom from the limit order and filled amount to be sent to the user (the filled amount was stored in the fin limit order cache at pt.1 of this flow)
+    - set the vaults balance to zero as we sent the owner a combination of initial assets, and assets received from the swap
+    - remove the fin limit order trigger by trigger id
+    - remove the fin limit order trigger ids using the fin limit order triggers order idx
+    - remove the active vault using the vault owner and vault id
+    - save the vault to cancelled vaults using the vault owner and vault id
+    - remove the limit order cache
+    - remove the cache
+    - send bank message to user

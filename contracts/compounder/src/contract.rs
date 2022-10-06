@@ -19,9 +19,7 @@ pub fn instantiate(
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    Ok(
-        Response::default()
-    )
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -31,9 +29,7 @@ pub fn execute(
     _info: MessageInfo,
     _msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    Ok(
-        Response::default()
-    )
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
