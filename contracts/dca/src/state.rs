@@ -1,11 +1,11 @@
-use cosmwasm_std::Addr;
+use base::events::dca_event::DCAEventInfo;
+use base::events::event::Event;
+use cosmwasm_std::{Addr, Timestamp};
 use cosmwasm_std::{Api, Uint128};
 use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use base::executions::dca_execution::DCAExecutionInformation;
-use base::executions::execution::Execution;
 use base::pair::Pair;
 use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
 use base::triggers::time_configuration::TimeConfiguration;
@@ -82,4 +82,4 @@ pub const FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX: Map<u128, u128> =
 pub const FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, FINLimitOrderConfiguration> =
     Map::new("fin_limit_order_configurations_by_vault_id_v1");
 
-pub const EXECUTIONS: Map<u128, Vec<Execution<DCAExecutionInformation>>> = Map::new("execution_v1");
+pub const EVENTS: Map<u128, Vec<Event<DCAEventInfo>>> = Map::new("events_v1");

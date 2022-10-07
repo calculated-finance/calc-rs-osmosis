@@ -5,7 +5,7 @@ use cosmwasm_std::{attr, from_binary, Coin, Uint128, Uint64};
 
 use crate::contract::{execute, instantiate, query};
 use crate::msg::{
-    ExecuteMsg, ExecutionsResponse, InstantiateMsg, PairsResponse, QueryMsg, VaultResponse,
+    EventsResponse, ExecuteMsg, InstantiateMsg, PairsResponse, QueryMsg, VaultResponse,
     VaultsResponse,
 };
 
@@ -1136,7 +1136,7 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
     )
     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
+    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllEventsByVaultId {
         vault_id: Uint128::new(1),
     };
     let binary = query(
@@ -1145,9 +1145,9 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
         get_all_executions_by_vault_id_query_message,
     )
     .unwrap();
-    let result: ExecutionsResponse = from_binary(&binary).unwrap();
+    let result: EventsResponse = from_binary(&binary).unwrap();
 
-    assert_eq!(result.executions.len(), 0);
+    assert_eq!(result.events.len(), 0);
 }
 
 #[test]
@@ -1167,7 +1167,7 @@ fn get_all_executions_by_vault_id_for_non_existant_vault_should_fail() {
     )
     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
+    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllEventsByVaultId {
         vault_id: Uint128::new(1),
     };
     let binary = query(

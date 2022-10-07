@@ -7,12 +7,12 @@ use base::pair::Pair;
 use base::vaults::dca_vault::PositionType;
 
 pub fn validate_funds(funds: Vec<Coin>) -> Result<(), ContractError> {
-    if !funds.is_empty() {
-        Ok(())
-    } else {
+    if funds.is_empty() || funds.len() > 1 {
         Err(ContractError::CustomError {
-            val: String::from("no funds were sent"),
+            val: format!("received {} denoms but required exactly 1", funds.len()),
         })
+    } else {
+        Ok(())
     }
 }
 
@@ -51,6 +51,19 @@ pub fn validate_swap_amount(
                 swap_amount, starting_balance.amount
             ),
         })
+    } else {
+        Ok(())
+    }
+}
+
+pub fn validate_number_of_funds(funds: Vec<Coin>) -> Result<(), ContractError> {
+    if funds.len() > 1 {
+        return Err(ContractError::CustomError {
+            val: format!(
+                "received {} different types of assets, but needed 1",
+                funds.len().clone()
+            ),
+        });
     } else {
         Ok(())
     }

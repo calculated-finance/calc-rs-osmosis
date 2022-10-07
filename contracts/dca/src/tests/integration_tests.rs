@@ -15,7 +15,7 @@ use std::str::FromStr;
 
 use crate::contract::reply;
 use crate::msg::{
-    ExecuteMsg, ExecutionsResponse, InstantiateMsg, MigrateMsg, QueryMsg, TriggerIdsResponse,
+    EventsResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, TriggerIdsResponse,
     TriggersResponse, VaultsResponse,
 };
 
