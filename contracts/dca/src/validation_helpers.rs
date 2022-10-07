@@ -40,27 +40,19 @@ pub fn validate_sender_is_admin_or_vault_owner(
     }
 }
 
-pub fn validate_number_of_executions(
-    starting_balance: Coin,
+pub fn validate_swap_amount(
     swap_amount: Uint128,
-    number_of_executions: u16,
+    starting_balance: Coin,
 ) -> Result<(), ContractError> {
-    let number_of_primary_swaps = starting_balance.amount / swap_amount;
-    let number_of_remaining_swaps = if starting_balance.amount % swap_amount != Uint128::zero() {
-        Uint128::new(1)
-    } else {
-        Uint128::zero()
-    }; // if there is any asset remaining, we need to do one more swap
-
-    if number_of_primary_swaps + number_of_remaining_swaps == Uint128::from(number_of_executions) {
-        Ok(())
-    } else {
+    if starting_balance.amount < swap_amount {
         Err(ContractError::CustomError {
             val: format!(
-                "invalid number of executions: {}, swap amount: {}, starting balance: {}",
-                number_of_executions, swap_amount, starting_balance.amount
+                "swap amount of {} is less than the starting balance {}",
+                swap_amount, starting_balance.amount
             ),
         })
+    } else {
+        Ok(())
     }
 }
 

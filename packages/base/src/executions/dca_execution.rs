@@ -17,6 +17,8 @@ pub enum DCAExecutionResult {
     SuccessTimeTrigger,
     SuccessFINLimitOrderTrigger,
     SlippageToleranceExceeded,
+    InsufficientFunds,
+    Error,
 }
 
 impl ExecutionBuilder<DCAExecutionInformation> {
@@ -86,6 +88,24 @@ impl ExecutionBuilder<DCAExecutionInformation> {
     pub fn fail_slippage(mut self) -> ExecutionBuilder<DCAExecutionInformation> {
         self.execution_information = Some(DCAExecutionInformation {
             result: DCAExecutionResult::SlippageToleranceExceeded,
+            sent: None,
+            received: None,
+        });
+        self
+    }
+
+    pub fn fail_insufficient_funds(mut self) -> ExecutionBuilder<DCAExecutionInformation> {
+        self.execution_information = Some(DCAExecutionInformation {
+            result: DCAExecutionResult::InsufficientFunds,
+            sent: None,
+            received: None,
+        });
+        self
+    }
+
+    pub fn error(mut self) -> ExecutionBuilder<DCAExecutionInformation> {
+        self.execution_information = Some(DCAExecutionInformation {
+            result: DCAExecutionResult::Error,
             sent: None,
             received: None,
         });

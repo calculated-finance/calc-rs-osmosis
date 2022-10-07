@@ -1,4 +1,4 @@
-use cosmwasm_std::{Decimal256, Uint128, Uint64};
+use cosmwasm_std::{Decimal, Uint128, Uint64};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +7,7 @@ use base::executions::execution::Execution;
 use base::pair::Pair;
 use base::triggers::time_configuration::TimeInterval;
 use base::triggers::trigger::Trigger;
-use base::vaults::dca_vault::{DCAConfiguration, PositionType};
+use base::vaults::dca_vault::{DCAConfiguration, DCAStatus, PositionType};
 use base::vaults::vault::Vault;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -34,20 +34,18 @@ pub enum ExecuteMsg {
     CreateVaultWithTimeTrigger {
         pair_address: String,
         position_type: PositionType,
-        slippage_tolerance: Option<Decimal256>,
+        slippage_tolerance: Option<Decimal>,
         swap_amount: Uint128,
-        total_executions: u16,
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
     },
     CreateVaultWithFINLimitOrderTrigger {
         pair_address: String,
         position_type: PositionType,
-        slippage_tolerance: Option<Decimal256>,
+        slippage_tolerance: Option<Decimal>,
         swap_amount: Uint128,
-        total_executions: u16,
         time_interval: TimeInterval,
-        target_price: Decimal256,
+        target_price: Decimal,
     },
     CancelVaultByAddressAndId {
         address: String,
@@ -66,11 +64,9 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     GetAllPairs {},
     GetAllTimeTriggers {},
-    GetAllActiveVaults {},
-    GetActiveVaultByAddressAndId { address: String, vault_id: Uint128 },
-    GetAllActiveVaultsByAddress { address: String },
-    GetInactiveVaultByAddressAndId { address: String, vault_id: Uint128 },
-    GetAllInactiveVaultsByAddress { address: String },
+    GetAllVaults {},
+    GetVaultByAddressAndId { address: String, vault_id: Uint128 },
+    GetAllVaultsByAddress { address: String },
     GetAllExecutionsByVaultId { vault_id: Uint128 },
 }
 
@@ -94,13 +90,13 @@ pub struct TriggerIdsResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct VaultResponse {
-    pub vault: Vault<DCAConfiguration>,
+    pub vault: Vault<DCAConfiguration, DCAStatus>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct VaultsResponse {
-    pub vaults: Vec<Vault<DCAConfiguration>>,
+    pub vaults: Vec<Vault<DCAConfiguration, DCAStatus>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
