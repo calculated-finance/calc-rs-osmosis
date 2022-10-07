@@ -445,11 +445,11 @@ fn execute_time_trigger_by_id(
 
     // COMMENTED OUT FOR TESTING
     // move this into validation method
-    // if !target_time_elapsed(env.block.time, trigger.configuration.target_time) {
-    //     return Err(ContractError::CustomError {
-    //         val: String::from("vault execution time has not yet elapsed"),
-    //     });
-    // }
+    if !target_time_elapsed(env.block.time, trigger.configuration.target_time) {
+        return Err(ContractError::CustomError {
+            val: String::from("vault execution time has not yet elapsed"),
+        });
+    }
 
     // change the status of the vault so frontend knows
     if vault.low_funds() {
