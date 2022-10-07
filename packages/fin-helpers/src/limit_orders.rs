@@ -1,11 +1,9 @@
-use cosmwasm_std::{
-    to_binary, Addr, Coin, CosmosMsg, Decimal256, QuerierWrapper, SubMsg, Uint128, Uint256, WasmMsg,
-};
-use kujira::fin::{ExecuteMsg as FINExecuteMsg, OrderResponse, QueryMsg as FINQueryMsg};
+use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, Decimal, SubMsg, Uint128, WasmMsg};
+use kujira::fin::ExecuteMsg as FINExecuteMsg;
 
-pub fn create_limit_order_sub_message(
+pub fn create_limit_order_sub_msg(
     pair_address: Addr,
-    price: Decimal256,
+    price: Decimal,
     coin_to_send_with_message: Coin,
     reply_id: u64,
 ) -> SubMsg {
@@ -27,7 +25,7 @@ pub fn create_limit_order_sub_message(
     sub_message
 }
 
-pub fn create_withdraw_limit_order_sub_message(
+pub fn create_withdraw_limit_order_sub_msg(
     pair_address: Addr,
     order_idx: Uint128,
     reply_id: u64,
@@ -52,7 +50,7 @@ pub fn create_withdraw_limit_order_sub_message(
     sub_message
 }
 
-pub fn create_retract_order_sub_message(
+pub fn create_retract_order_sub_msg(
     pair_address: Addr,
     order_idx: Uint128,
     reply_id: u64,
@@ -76,24 +74,4 @@ pub fn create_retract_order_sub_message(
     };
 
     sub_message
-}
-
-pub fn get_fin_order_details(
-    querier: QuerierWrapper,
-    pair_address: Addr,
-    order_idx: Uint128,
-) -> (Uint256, Uint256, Uint256) {
-    let fin_order_query_msg = FINQueryMsg::Order { order_idx };
-    let order_response: OrderResponse = querier
-        .query_wasm_smart(pair_address, &fin_order_query_msg)
-        .unwrap();
-    (
-        order_response.offer_amount,
-        order_response.original_offer_amount,
-        order_response.filled_amount,
-    )
-}
-
-pub fn amount_256_to_128(amount: Uint256) -> Uint128 {
-    Uint128::try_from(amount).unwrap()
 }

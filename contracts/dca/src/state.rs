@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, Uint256};
+use cosmwasm_std::Addr;
 use cosmwasm_std::{Api, Uint128};
 use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
@@ -10,7 +10,7 @@ use base::pair::Pair;
 use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
 use base::triggers::time_configuration::TimeConfiguration;
 use base::triggers::trigger::Trigger;
-use base::vaults::dca_vault::DCAConfiguration;
+use base::vaults::dca_vault::{DCAConfiguration, DCAStatus};
 use base::vaults::vault::Vault;
 
 use crate::msg::{InstantiateMsg, MigrateMsg};
@@ -30,9 +30,9 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct LimitOrderCache {
-    pub offer_amount: Uint256,
-    pub original_offer_amount: Uint256,
-    pub filled: Uint256,
+    pub offer_amount: Uint128,
+    pub original_offer_amount: Uint128,
+    pub filled: Uint128,
 }
 
 impl Config {
@@ -69,11 +69,7 @@ pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cach
 
 pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v1");
 
-pub const ACTIVE_VAULTS: Map<(Addr, u128), Vault<DCAConfiguration>> = Map::new("active_vaults_v1");
-pub const INACTIVE_VAULTS: Map<(Addr, u128), Vault<DCAConfiguration>> =
-    Map::new("inactive_vaults_v1");
-pub const CANCELLED_VAULTS: Map<(Addr, u128), Vault<DCAConfiguration>> =
-    Map::new("cancelled_vaults_v1");
+pub const VAULTS: Map<(Addr, u128), Vault<DCAConfiguration, DCAStatus>> = Map::new("vaults_v1");
 
 pub const TIME_TRIGGERS: Map<u128, Trigger<TimeConfiguration>> = Map::new("time_triggers_v1");
 pub const TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, TimeConfiguration> =

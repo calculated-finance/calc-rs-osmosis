@@ -7,7 +7,6 @@ use super::trigger::{Trigger, TriggerBuilder, TriggerVariant};
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TimeConfiguration {
     pub time_interval: TimeInterval,
-    pub triggers_remaining: u16,
     pub target_time: Timestamp,
 }
 
@@ -18,12 +17,6 @@ pub enum TimeInterval {
     Daily,
     Weekly,
     Monthly,
-}
-
-impl TimeConfiguration {
-    pub fn is_final_trigger(&self) -> bool {
-        self.triggers_remaining == 1
-    }
 }
 
 impl From<TimeConfiguration> for TriggerBuilder<TimeConfiguration> {
@@ -42,7 +35,6 @@ impl TriggerBuilder<TimeConfiguration> {
     pub fn new_time_trigger() -> TriggerBuilder<TimeConfiguration> {
         let time_trigger_configuration: TimeConfiguration = TimeConfiguration {
             time_interval: TimeInterval::Daily,
-            triggers_remaining: 0,
             target_time: Timestamp::default(),
         };
         TriggerBuilder {
@@ -74,14 +66,6 @@ impl TriggerBuilder<TimeConfiguration> {
         time_interval: TimeInterval,
     ) -> TriggerBuilder<TimeConfiguration> {
         self.configuration.time_interval = time_interval;
-        self
-    }
-
-    pub fn triggers_remaining(
-        mut self,
-        triggers_remaining: u16,
-    ) -> TriggerBuilder<TimeConfiguration> {
-        self.configuration.triggers_remaining = triggers_remaining;
         self
     }
 
