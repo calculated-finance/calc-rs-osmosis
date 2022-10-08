@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, Decimal, Uint128};
+use cosmwasm_std::{Addr, Decimal256, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +6,7 @@ use super::trigger::{Trigger, TriggerBuilder, TriggerVariant};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct FINLimitOrderConfiguration {
-    pub target_price: Decimal,
+    pub target_price: Decimal256,
     pub order_idx: Uint128,
 }
 
@@ -26,7 +26,7 @@ impl TriggerBuilder<FINLimitOrderConfiguration> {
     pub fn new_price_trigger() -> TriggerBuilder<FINLimitOrderConfiguration> {
         let fin_limit_order_configuration: FINLimitOrderConfiguration =
             FINLimitOrderConfiguration {
-                target_price: Decimal::zero(),
+                target_price: Decimal256::zero(),
                 order_idx: Uint128::zero(),
             };
         TriggerBuilder {
@@ -55,7 +55,7 @@ impl TriggerBuilder<FINLimitOrderConfiguration> {
 
     pub fn target_price(
         mut self,
-        target_price: Decimal,
+        target_price: Decimal256,
     ) -> TriggerBuilder<FINLimitOrderConfiguration> {
         self.configuration.target_price = target_price;
         self

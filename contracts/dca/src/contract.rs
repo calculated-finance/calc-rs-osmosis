@@ -9,30 +9,6 @@
 // keep track of vault creation time so inactive vaults can be automatically cleaned up infuture
 // could look at indexing triggers just by vault id
 
-use base::executions::dca_execution::DCAExecutionInformation;
-use base::executions::execution::{Execution, ExecutionBuilder};
-use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
-use base::helpers::time_helpers::{get_next_target_time, target_time_elapsed};
-use base::pair::Pair;
-use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
-use base::triggers::time_configuration::{TimeConfiguration, TimeInterval};
-use base::triggers::trigger::{Trigger, TriggerBuilder, TriggerVariant};
-use base::vaults::dca_vault::{DCAConfiguration, DCAStatus, PositionType};
-use base::vaults::vault::{Vault, VaultBuilder};
-use cosmwasm_std::Decimal;
-#[cfg(not(feature = "library"))]
-use cosmwasm_std::{
-    entry_point, to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Decimal256, Deps,
-    DepsMut, Env, MessageInfo, Reply, Response, StdResult, Timestamp, Uint128, Uint256, Uint64,
-};
-use cw2::set_contract_version;
-use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
-use fin_helpers::limit_orders::{
-    create_limit_order_sub_msg, create_retract_order_sub_msg, create_withdraw_limit_order_sub_msg,
-};
-use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
-use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
-
 use crate::error::ContractError;
 use crate::msg::{
     ExecuteMsg, ExecutionsResponse, InstantiateMsg, MigrateMsg, PairsResponse, QueryMsg,
@@ -48,6 +24,29 @@ use crate::validation_helpers::{
     validate_asset_denom_matches_pair_denom, validate_funds, validate_sender_is_admin,
     validate_sender_is_admin_or_vault_owner, validate_swap_amount, validate_target_start_time,
 };
+use base::executions::dca_execution::DCAExecutionInformation;
+use base::executions::execution::{Execution, ExecutionBuilder};
+use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
+use base::helpers::time_helpers::{get_next_target_time, target_time_elapsed};
+use base::pair::Pair;
+use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
+use base::triggers::time_configuration::{TimeConfiguration, TimeInterval};
+use base::triggers::trigger::{Trigger, TriggerBuilder, TriggerVariant};
+use base::vaults::dca_vault::{DCAConfiguration, DCAStatus, PositionType};
+use base::vaults::vault::{Vault, VaultBuilder};
+use cosmwasm_std::Decimal256;
+#[cfg(not(feature = "library"))]
+use cosmwasm_std::{
+    entry_point, to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
+    MessageInfo, Reply, Response, StdResult, Timestamp, Uint128, Uint64,
+};
+use cw2::set_contract_version;
+use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
+use fin_helpers::limit_orders::{
+    create_limit_order_sub_msg, create_retract_order_sub_msg, create_withdraw_limit_order_sub_msg,
+};
+use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
+use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
 
 const CONTRACT_NAME: &str = "crates.io:calc-dca";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -203,7 +202,7 @@ fn create_vault_with_time_trigger(
     info: MessageInfo,
     pair_address: String,
     position_type: PositionType,
-    slippage_tolerance: Option<Decimal>,
+    slippage_tolerance: Option<Decimal256>,
     swap_amount: Uint128,
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
@@ -235,7 +234,7 @@ fn create_vault_with_time_trigger(
         Ok(config)
     })?;
 
-    let trigger = TriggerBuilder::new_time_trigger()
+    let trigger = TriggerBuilder::new()
         .id(config.trigger_count)
         .owner(info.sender.clone())
         .vault_id(config.vault_count)
@@ -276,10 +275,10 @@ fn create_vault_with_fin_limit_order_trigger(
     info: MessageInfo,
     pair_address: String,
     position_type: PositionType,
-    slippage_tolerance: Option<Decimal>,
+    slippage_tolerance: Option<Decimal256>,
     swap_amount: Uint128,
     time_interval: TimeInterval,
-    target_price: Decimal,
+    target_price: Decimal256,
 ) -> Result<Response, ContractError> {
     validate_funds(info.funds.clone())?;
 
@@ -760,7 +759,7 @@ fn after_execute_trigger_withdraw_order(
                         Err(
                             ContractError::CustomError {
                                 val: format!(
-                                    "could not find execution history for vault with id: {}", 
+                                    "could not find execution history for vault with id: {}",
                                     cache.vault_id
                                 )
                             }
@@ -960,7 +959,7 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
                         Err(
                             ContractError::CustomError {
                                 val: format!(
-                                    "could not find execution history for vault with id: {}", 
+                                    "could not find execution history for vault with id: {}",
                                     cache.vault_id
                                 )
                             }
@@ -1070,7 +1069,8 @@ fn after_retract_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Respons
             if amount_retracted != limit_order_cache.original_offer_amount {
                 let retracted_balance = Coin {
                     denom: vault.get_swap_denom().clone(),
-                    amount: amount_retracted,
+                    amount: vault.balances[0].amount
+                        - (vault.configuration.swap_amount - amount_retracted),
                 };
 
                 let retracted_amount_bank_msg = BankMsg::Send {

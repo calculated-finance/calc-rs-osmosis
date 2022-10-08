@@ -62,7 +62,7 @@ mod tests {
 
         assert_eq!(
             result.to_string(),
-            "Error: could not find event with type: wasm-trade"
+            "Custom Error val: \"could not find event with type: wasm-trade\""
         );
     }
 
@@ -73,7 +73,7 @@ mod tests {
 
         assert_eq!(
             result.to_string(),
-            "Error: could not find event with type: wasm-trade"
+            "Custom Error val: \"could not find event with type: wasm-trade\""
         );
     }
 
@@ -109,7 +109,7 @@ mod tests {
 
         assert_eq!(
             result.to_string(),
-            "Error: could not find attribute with key: test-one"
+            "Custom Error val: \"could not find attribute with key: test-one\""
         );
     }
 
@@ -121,7 +121,7 @@ mod tests {
 
         assert_eq!(
             result.to_string(),
-            "Error: could not find attribute with key: test-one"
+            "Custom Error val: \"could not find attribute with key: test-one\""
         );
     }
 }
