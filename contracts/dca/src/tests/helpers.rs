@@ -18,7 +18,12 @@ pub fn assert_address_balances(app: &MockApp, address_balances: &[(&Addr, &str, 
 
 pub fn assert_response_events(actual_events: &[Event], expected_events: &[Event]) {
     expected_events.iter().for_each(|expected_event| {
-        assert!(actual_events.contains(expected_event));
+        assert!(
+            actual_events.contains(expected_event),
+            "Expected actual_events: \n\n{:?}\n\nto contain event:\n\n{:?}\n\n but it wasn't found",
+            actual_events,
+            expected_event
+        );
     });
 }
 
