@@ -1,6 +1,6 @@
 use cosmwasm_std::Addr;
 use cosmwasm_std::{Api, Uint128};
-use cw_storage_plus::{Item, Map};
+use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -75,10 +75,36 @@ pub const TIME_TRIGGERS: Map<u128, Trigger<TimeConfiguration>> = Map::new("time_
 pub const TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, TimeConfiguration> =
     Map::new("time_trigger_configurations_by_vault_id_v1");
 
-pub const FIN_LIMIT_ORDER_TRIGGERS: Map<u128, Trigger<FINLimitOrderConfiguration>> =
-    Map::new("fin_limit_order_triggers_v1");
-pub const FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX: Map<u128, u128> =
-    Map::new("fin_limit_order_trigger_ids_by_order_idx_v1");
+pub struct LimitOrderTriggerIndexes<'a> {
+    pub order_idx: UniqueIndex<'a, u128, Trigger<FINLimitOrderConfiguration>, u128>,
+    pub vault_id: UniqueIndex<'a, u128, Trigger<FINLimitOrderConfiguration>, u128>,
+}
+
+impl<'a> IndexList<Trigger<FINLimitOrderConfiguration>> for LimitOrderTriggerIndexes<'a> {
+    fn get_indexes(
+        &'_ self,
+    ) -> Box<dyn Iterator<Item = &'_ dyn Index<Trigger<FINLimitOrderConfiguration>>> + '_> {
+        let v: Vec<&dyn Index<Trigger<FINLimitOrderConfiguration>>> =
+            vec![&self.order_idx, &self.vault_id];
+        Box::new(v.into_iter())
+    }
+}
+
+pub fn fin_limit_order_triggers<'a>(
+) -> IndexedMap<'a, u128, Trigger<FINLimitOrderConfiguration>, LimitOrderTriggerIndexes<'a>> {
+    let indexes = LimitOrderTriggerIndexes {
+        order_idx: UniqueIndex::new(
+            |d| u128::from(d.configuration.order_idx),
+            "fin_limit_order_triggers_order_idx",
+        ),
+        vault_id: UniqueIndex::new(
+            |d| u128::from(d.vault_id),
+            "fin_limit_order_triggers_vault_id",
+        ),
+    };
+    IndexedMap::new("limit_order_triggers", indexes)
+}
+
 pub const FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, FINLimitOrderConfiguration> =
     Map::new("fin_limit_order_configurations_by_vault_id_v1");
 
