@@ -501,7 +501,7 @@ fn deposit(
                     Err(
                         ContractError::CustomError {
                             val: format!(
-                                "could not find event history for vault with id: {}", 
+                                "could not find event history for vault with id: {}",
                                 vault.id
                             )
                         }
@@ -835,7 +835,7 @@ fn after_execute_trigger_withdraw_order(
                         Err(
                             ContractError::CustomError {
                                 val: format!(
-                                    "could not find event history for vault with id: {}", 
+                                    "could not find event history for vault with id: {}",
                                     cache.vault_id
                                 )
                             }
@@ -1032,7 +1032,7 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
                         Err(
                             ContractError::CustomError {
                                 val: format!(
-                                    "could not find event history for vault with id: {}", 
+                                    "could not find event history for vault with id: {}",
                                     cache.vault_id
                                 )
                             }

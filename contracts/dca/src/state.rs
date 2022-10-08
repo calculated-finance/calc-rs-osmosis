@@ -1,4 +1,3 @@
-use base::events::dca_event::DCAEventInfo;
 use base::events::event::Event;
 use cosmwasm_std::Addr;
 use cosmwasm_std::Uint128;
@@ -74,5 +73,3 @@ pub const TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, TimeConfiguration> 
 
 pub const FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, FINLimitOrderConfiguration> =
     Map::new("fin_limit_order_configurations_by_vault_id_v1");
-
-pub const EVENTS: Map<u128, Vec<Event<DCAEventInfo>>> = Map::new("events_v1");
