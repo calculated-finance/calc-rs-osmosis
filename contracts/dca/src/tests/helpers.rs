@@ -2,8 +2,8 @@ use super::mocks::MockApp;
 use crate::msg::{QueryMsg, VaultResponse};
 use cosmwasm_std::{Addr, Event, Uint128};
 
-pub fn assert_address_balances(app: &MockApp, values: &[(&Addr, &str, Uint128)]) {
-    values
+pub fn assert_address_balances(app: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {
+    address_balances
         .iter()
         .for_each(|(address, denom, expected_balance)| {
             assert_eq!(
@@ -42,6 +42,7 @@ pub fn assert_vault_balance(
         .unwrap();
 
     let vault = &vault_response.vault;
+
     assert_eq!(
         vault.balances[0].amount, balance,
         "Vault balance mismatch for vault_id: {}, owner: {}",

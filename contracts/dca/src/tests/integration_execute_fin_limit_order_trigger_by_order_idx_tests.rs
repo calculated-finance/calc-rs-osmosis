@@ -74,7 +74,6 @@ fn should_succeed() {
         Uint128::new(90),
     );
 
-    // assert time trigger is created correctly
     let get_all_time_triggers_response: TriggersResponse<TimeConfiguration> = mock
         .app
         .wrap()
@@ -144,15 +143,4 @@ fn when_order_partially_filled_should_fail() {
         Uint128::new(1),
         Uint128::new(100),
     );
-
-    // let get_all_time_triggers_response: TriggersResponse<TimeConfiguration> = mock
-    //     .app
-    //     .wrap()
-    //     .query_wasm_smart(
-    //         &mock.dca_contract_address.clone(),
-    //         &QueryMsg::GetAllTimeTriggers {},
-    //     )
-    //     .unwrap();
-
-    // assert_eq!(get_all_time_triggers_response.triggers.len(), 0);
 }

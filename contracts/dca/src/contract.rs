@@ -673,12 +673,10 @@ fn after_execute_trigger_withdraw_order(
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let fin_limit_order_trigger =
                 FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, vault.trigger_id.into())?;
-
             FIN_LIMIT_ORDER_TRIGGER_IDS_BY_ORDER_IDX.remove(
                 deps.storage,
                 fin_limit_order_trigger.configuration.order_idx.u128(),
             );
-
             FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, fin_limit_order_trigger.id.u128());
 
             let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
@@ -751,7 +749,6 @@ fn after_execute_trigger_withdraw_order(
                     coin_received_from_limit_order,
                 )
                 .build();
-
             EXECUTIONS.update(deps.storage, vault.id.into(), |existing_executions: Option<Vec<Execution<DCAExecutionInformation>>>| -> Result<Vec<Execution<DCAExecutionInformation>>, ContractError> {
                 match existing_executions {
                     Some(mut executions) => {
@@ -770,7 +767,6 @@ fn after_execute_trigger_withdraw_order(
                     }
                 }
             })?;
-
             LIMIT_ORDER_CACHE.remove(deps.storage);
             CACHE.remove(deps.storage);
             Ok(Response::new()
