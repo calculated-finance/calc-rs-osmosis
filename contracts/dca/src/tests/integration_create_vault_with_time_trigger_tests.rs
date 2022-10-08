@@ -5,7 +5,7 @@ use crate::tests::helpers::{
 use crate::tests::mocks::{fin_contract_default, MockApp, DENOM_UKUJI, DENOM_UTEST, USER};
 use base::triggers::time_configuration::{TimeConfiguration, TimeInterval};
 use base::vaults::dca_vault::PositionType;
-use cosmwasm_std::{Addr, Coin, Event, Uint128, Uint64};
+use cosmwasm_std::{Addr, Coin, Event, Timestamp, Uint128, Uint64};
 use cw_multi_test::Executor;
 
 #[test]
@@ -93,6 +93,8 @@ fn should_succeed() {
     assert_eq!(get_all_time_triggers_response.triggers.len(), 1);
 
     let trigger = &get_all_time_triggers_response.triggers[0];
-
-    assert_eq!(trigger.configuration.target_time, target_start_time);
+    assert_eq!(
+        trigger.configuration.target_time,
+        Timestamp::from_seconds(target_start_time.seconds())
+    );
 }

@@ -36,13 +36,13 @@ pub fn query_order_details(
     let fin_order_query_msg = FINQueryMsg::Order { order_idx };
 
     #[derive(Deserialize)]
-    struct CalcOrderResponse {
+    struct OrderResponse {
         pub offer_amount: Uint128,
         pub filled_amount: Uint128,
         pub original_offer_amount: Uint128,
     }
 
-    let order_response: CalcOrderResponse = querier
+    let order_response: OrderResponse = querier
         .query_wasm_smart(pair_address, &fin_order_query_msg)
         .unwrap();
 
