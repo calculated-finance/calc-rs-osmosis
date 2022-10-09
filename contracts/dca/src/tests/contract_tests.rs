@@ -14,7 +14,7 @@ pub const VALID_ADDRESS_ONE: &str = "kujira16q6jpx7ns0ugwghqay73uxd5aq30du3uqgxf
 pub const VALID_ADDRESS_TWO: &str = "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv";
 pub const VALID_ADDRESS_THREE: &str = "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1";
 
-// puill out common setup (instantiate and create pair)
+// pull out common setup (instantiate and create pair)
 
 #[test]
 fn instantiation_with_valid_admin_address_should_succeed() {
@@ -356,7 +356,6 @@ fn create_vault_with_time_trigger_and_valid_inputs_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -423,7 +422,6 @@ fn create_vault_with_time_trigger_and_no_target_start_time_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: None,
     };
@@ -491,7 +489,6 @@ fn create_vault_with_time_trigger_and_no_funds_should_fail() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -508,132 +505,7 @@ fn create_vault_with_time_trigger_and_no_funds_should_fail() {
     )
     .unwrap_err();
 
-    assert_eq!(result.to_string(), "Error: no funds were sent")
-}
-
-#[test]
-fn create_vault_with_time_trigger_with_too_many_executions_should_fail() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
-        base_denom: String::from("base"),
-        quote_denom: String::from("quote"),
-    };
-    let _create_pair_execute_message_result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        create_pair_execute_message,
-    )
-    .unwrap();
-
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: String::from(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(40),
-        total_executions: 4,
-        time_interval: TimeInterval::Daily,
-        target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
-    };
-
-    let coin = Coin {
-        denom: String::from("quote"),
-        amount: Uint128::new(100),
-    };
-
-    let info_with_funds = mock_info(VALID_ADDRESS_THREE, &vec![coin]);
-
-    let result = execute(
-        deps.as_mut(),
-        env,
-        info_with_funds,
-        create_vault_execute_message,
-    )
-    .unwrap_err();
-
-    assert_eq!(
-        result.to_string(),
-        "Error: invalid number of executions: 4, swap amount: 40, starting balance: 100"
-    )
-}
-
-#[test]
-fn create_vault_with_time_trigger_and_too_few_triggers_should_fail() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
-        base_denom: String::from("base"),
-        quote_denom: String::from("quote"),
-    };
-
-    let _create_pair_execute_message_result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        create_pair_execute_message,
-    )
-    .unwrap();
-
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: String::from(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(10),
-        total_executions: 1,
-        time_interval: TimeInterval::Daily,
-        target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
-    };
-
-    let coin = Coin {
-        denom: String::from("quote"),
-        amount: Uint128::new(100),
-    };
-
-    let info_with_funds = mock_info(VALID_ADDRESS_THREE, &vec![coin]);
-
-    let result = execute(
-        deps.as_mut(),
-        env,
-        info_with_funds,
-        create_vault_execute_message,
-    )
-    .unwrap_err();
-
-    assert_eq!(
-        result.to_string(),
-        "Error: invalid number of executions: 1, swap amount: 10, starting balance: 100"
-    )
+    assert_eq!(result.to_string(), "Error: received 0 denoms but required exactly 1")
 }
 
 #[test]
@@ -672,7 +544,6 @@ fn create_vault_with_time_trigger_and_unwhitelisted_pair_address_should_fail() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(100),
-        total_executions: 1,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -730,7 +601,6 @@ fn create_vault_with_time_trigger_and_trigger_time_in_past_should_fail() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1562770365)),
     };
@@ -792,7 +662,6 @@ fn cancel_vault_by_address_and_id_with_valid_inputs_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -870,7 +739,6 @@ fn get_all_active_vaults_with_one_vault_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -955,7 +823,6 @@ fn get_active_vault_by_address_and_id_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
     };
@@ -1024,7 +891,6 @@ fn get_all_active_vaults_by_address_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
     };
@@ -1048,7 +914,6 @@ fn get_all_active_vaults_by_address_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
     };
@@ -1116,7 +981,6 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
-        total_executions: 4,
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
     };
@@ -1151,7 +1015,7 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
 }
 
 #[test]
-fn get_all_executions_by_vault_id_for_non_existant_vault_should_fail() {
+fn get_all_events_by_vault_id_for_non_existant_vault_should_fail() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -1179,6 +1043,6 @@ fn get_all_executions_by_vault_id_for_non_existant_vault_should_fail() {
 
     assert_eq!(
         binary.to_string(),
-        "alloc::vec::Vec<base::executions::execution::Execution<base::executions::dca_execution::DCAExecutionInformation>> not found"
+        "alloc::vec::Vec<base::events::event::Event<base::events::dca_event::DCAEventInfo>> not found"
     );
 }

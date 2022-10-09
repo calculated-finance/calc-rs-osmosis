@@ -1,14 +1,3 @@
-// vaults balances do not actually go to zero after the last swap
-// create vaults that can be deposited into
-// vaults that can be topped up
-// vaults that can be cancelled
-// keep track of balance and swap amount
-// always try and swap
-// if the swap fails update vault status
-// if the vault amount is less than the swap amount then change vault status
-// keep track of vault creation time so inactive vaults can be automatically cleaned up infuture
-// could look at indexing triggers just by vault id
-
 use base::events::dca_event::DCAEventInfo;
 use base::events::event::{Event, EventBuilder};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
@@ -19,7 +8,6 @@ use base::triggers::time_configuration::{TimeConfiguration, TimeInterval};
 use base::triggers::trigger::{Trigger, TriggerBuilder, TriggerVariant};
 use base::vaults::dca_vault::{DCAConfiguration, DCAStatus, PositionType};
 use base::vaults::vault::{Vault, VaultBuilder};
-use cosmwasm_std::Decimal;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
@@ -45,9 +33,11 @@ use crate::state::{
     TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID, VAULTS,
 };
 use crate::validation_helpers::{
-    validate_asset_denom_matches_pair_denom, validate_funds, validate_sender_is_admin,
-    validate_sender_is_admin_or_vault_owner, validate_swap_amount, validate_target_start_time,
+    assert_denom_matches_pair_denom, assert_exactly_one_asset, assert_sender_is_admin,
+    assert_sender_is_admin_or_vault_owner, assert_swap_amount_is_less_than_or_equal_to_balance, assert_target_start_time_is_in_future,
 };
+
+use cosmwasm_std::Decimal256;
 
 const CONTRACT_NAME: &str = "crates.io:calc-dca";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -155,7 +145,7 @@ fn create_pair(
     base_denom: String,
     quote_denom: String,
 ) -> Result<Response, ContractError> {
-    validate_sender_is_admin(deps.as_ref(), info.sender)?;
+    assert_sender_is_admin(deps.as_ref(), info.sender)?;
 
     let validated_pair_address: Addr = deps.api.addr_validate(&address)?;
 
@@ -187,7 +177,7 @@ fn delete_pair(
     info: MessageInfo,
     address: String,
 ) -> Result<Response, ContractError> {
-    validate_sender_is_admin(deps.as_ref(), info.sender)?;
+    assert_sender_is_admin(deps.as_ref(), info.sender)?;
 
     let validated_pair_address: Addr = deps.api.addr_validate(&address)?;
 
@@ -204,12 +194,12 @@ fn create_vault_with_time_trigger(
     info: MessageInfo,
     pair_address: String,
     position_type: PositionType,
-    slippage_tolerance: Option<Decimal>,
+    slippage_tolerance: Option<Decimal256>,
     swap_amount: Uint128,
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
 ) -> Result<Response, ContractError> {
-    validate_funds(info.funds.clone())?;
+    assert_exactly_one_asset(info.funds.clone())?;
 
     // if no target start time is given execute immediately
     let target_start_time: Timestamp = match target_start_time_utc_seconds {
@@ -217,18 +207,18 @@ fn create_vault_with_time_trigger(
         None => env.block.time,
     };
 
-    validate_target_start_time(env.block.time, target_start_time)?;
+    assert_target_start_time_is_in_future(env.block.time, target_start_time)?;
 
     let validated_pair_address = deps.api.addr_validate(&pair_address)?;
     let existing_pair = PAIRS.load(deps.storage, validated_pair_address)?;
 
-    validate_asset_denom_matches_pair_denom(
+    assert_denom_matches_pair_denom(
         existing_pair.clone(),
         info.funds.clone(),
         position_type.clone(),
     )?;
 
-    validate_swap_amount(swap_amount, info.funds[0].clone())?;
+    assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
 
     let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
         config.vault_count = config.vault_count.checked_add(Uint128::new(1))?;
@@ -236,7 +226,7 @@ fn create_vault_with_time_trigger(
         Ok(config)
     })?;
 
-    let trigger = TriggerBuilder::new_time_trigger()
+    let trigger = TriggerBuilder::new()
         .id(config.trigger_count)
         .owner(info.sender.clone())
         .vault_id(config.vault_count)
@@ -277,23 +267,23 @@ fn create_vault_with_fin_limit_order_trigger(
     info: MessageInfo,
     pair_address: String,
     position_type: PositionType,
-    slippage_tolerance: Option<Decimal>,
+    slippage_tolerance: Option<Decimal256>,
     swap_amount: Uint128,
     time_interval: TimeInterval,
-    target_price: Decimal,
+    target_price: Decimal256,
 ) -> Result<Response, ContractError> {
-    validate_funds(info.funds.clone())?;
+    assert_exactly_one_asset(info.funds.clone())?;
 
     let validated_pair_address = deps.api.addr_validate(&pair_address)?;
     let existing_pair = PAIRS.load(deps.storage, validated_pair_address)?;
 
-    validate_asset_denom_matches_pair_denom(
+    assert_denom_matches_pair_denom(
         existing_pair.clone(),
         info.funds.clone(),
         position_type.clone(),
     )?;
 
-    validate_swap_amount(swap_amount, info.funds[0].clone())?;
+    assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
 
     let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
         config.vault_count = config.vault_count.checked_add(Uint128::new(1))?;
@@ -373,7 +363,7 @@ fn cancel_vault_by_address_and_id(
     let validated_address = deps.api.addr_validate(&address)?;
     let vault: Vault<DCAConfiguration, DCAStatus> =
         VAULTS.load(deps.storage, (validated_address.clone(), vault_id.into()))?;
-    validate_sender_is_admin_or_vault_owner(deps.as_ref(), vault.owner.clone(), info.sender)?;
+    assert_sender_is_admin_or_vault_owner(deps.as_ref(), vault.owner.clone(), info.sender)?;
 
     match vault.trigger_variant {
         TriggerVariant::Time => {
@@ -438,12 +428,12 @@ fn deposit(
     info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    validate_funds(info.funds.clone())?;
+    assert_exactly_one_asset(info.funds.clone())?;
     let vault = VAULTS.load(deps.storage, (info.sender.clone(), vault_id.into()))?;
     if info.sender != vault.owner {
         return Err(ContractError::Unauthorized {});
     }
-    validate_asset_denom_matches_pair_denom(
+    assert_denom_matches_pair_denom(
         vault.configuration.pair.clone(),
         info.funds.clone(),
         vault.configuration.position_type.clone(),
@@ -1139,7 +1129,8 @@ fn after_retract_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Respons
             if amount_retracted != limit_order_cache.original_offer_amount {
                 let retracted_balance = Coin {
                     denom: vault.get_swap_denom().clone(),
-                    amount: amount_retracted,
+                    amount: vault.balances[0].amount
+                        - (vault.configuration.swap_amount - amount_retracted),
                 };
 
                 let retracted_amount_bank_msg = BankMsg::Send {

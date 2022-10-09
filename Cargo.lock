@@ -250,7 +250,7 @@ dependencies = [
  "cosmwasm-std",
  "cosmwasm-storage",
  "cw-storage-plus",
- "cw-utils 0.15.1",
+ "cw-utils",
  "derivative",
  "itertools",
  "prost",
@@ -268,18 +268,6 @@ dependencies = [
  "cosmwasm-std",
  "schemars",
  "serde",
-]
-
-[[package]]
-name = "cw-utils"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dbaecb78c8e8abfd6b4258c7f4fbeb5c49a5e45ee4d910d3240ee8e1d714e1b"
-dependencies = [
- "cosmwasm-std",
- "schemars",
- "serde",
- "thiserror",
 ]
 
 [[package]]
@@ -311,18 +299,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cw20"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cb782b8f110819a4eb5dbbcfed25ffba49ec16bbe32b4ad8da50a5ce68fec05"
-dependencies = [
- "cosmwasm-std",
- "cw-utils 0.13.4",
- "schemars",
- "serde",
-]
-
-[[package]]
 name = "dca"
 version = "0.1.0"
 dependencies = [
@@ -334,7 +310,7 @@ dependencies = [
  "cw-storage-plus",
  "cw2",
  "fin-helpers",
- "kujira 0.7.16",
+ "kujira",
  "schemars",
  "serde",
  "thiserror",
@@ -460,7 +436,7 @@ dependencies = [
  "cw-multi-test",
  "cw-storage-plus",
  "cw2",
- "kujira 0.4.0",
+ "kujira",
  "schemars",
  "serde",
  "thiserror",
@@ -555,18 +531,6 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "sha2 0.10.6",
-]
-
-[[package]]
-name = "kujira"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e65e85e210ce00fef446d10d4823e1817a7efcd2d7b51cc0513d32bc02bf6be"
-dependencies = [
- "cosmwasm-std",
- "cw20",
- "schemars",
- "serde",
 ]
 
 [[package]]

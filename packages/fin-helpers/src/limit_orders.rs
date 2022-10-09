@@ -1,9 +1,9 @@
-use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, Decimal, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, Decimal256, SubMsg, Uint128, WasmMsg};
 use kujira::fin::ExecuteMsg as FINExecuteMsg;
 
 pub fn create_limit_order_sub_msg(
     pair_address: Addr,
-    price: Decimal,
+    price: Decimal256,
     coin_to_send_with_message: Coin,
     reply_id: u64,
 ) -> SubMsg {

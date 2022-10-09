@@ -32,7 +32,7 @@ impl From<TimeConfiguration> for TriggerBuilder<TimeConfiguration> {
 }
 
 impl TriggerBuilder<TimeConfiguration> {
-    pub fn new_time_trigger() -> TriggerBuilder<TimeConfiguration> {
+    pub fn new() -> TriggerBuilder<TimeConfiguration> {
         let time_trigger_configuration: TimeConfiguration = TimeConfiguration {
             time_interval: TimeInterval::Daily,
             target_time: Timestamp::default(),

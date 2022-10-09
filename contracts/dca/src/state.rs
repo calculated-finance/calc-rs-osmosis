@@ -1,6 +1,6 @@
 use base::events::dca_event::DCAEventInfo;
 use base::events::event::Event;
-use cosmwasm_std::{Addr, Timestamp};
+use cosmwasm_std::Addr;
 use cosmwasm_std::{Api, Uint128};
 use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;

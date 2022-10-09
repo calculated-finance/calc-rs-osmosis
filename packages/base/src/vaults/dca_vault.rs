@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal256, Timestamp, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,7 @@ pub struct DCAConfiguration {
     pub pair: Pair,
     pub swap_amount: Uint128,
     pub position_type: PositionType,
-    pub slippage_tolerance: Option<Decimal>,
+    pub slippage_tolerance: Option<Decimal256>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -143,7 +143,7 @@ impl VaultBuilder<DCAConfiguration, DCAStatus> {
 
     pub fn slippage_tolerance(
         mut self,
-        slippage_tolerance: Option<Decimal>,
+        slippage_tolerance: Option<Decimal256>,
     ) -> VaultBuilder<DCAConfiguration, DCAStatus> {
         self.configuration.slippage_tolerance = slippage_tolerance;
         self

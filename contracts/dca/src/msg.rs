@@ -1,13 +1,14 @@
 use base::events::dca_event::DCAEventInfo;
 use base::events::event::Event;
+use cosmwasm_std::{Decimal256, Uint128, Uint64};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
 use base::pair::Pair;
 use base::triggers::time_configuration::TimeInterval;
 use base::triggers::trigger::Trigger;
 use base::vaults::dca_vault::{DCAConfiguration, DCAStatus, PositionType};
 use base::vaults::vault::Vault;
-use cosmwasm_std::{Decimal, Uint128, Uint64};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
@@ -33,7 +34,7 @@ pub enum ExecuteMsg {
     CreateVaultWithTimeTrigger {
         pair_address: String,
         position_type: PositionType,
-        slippage_tolerance: Option<Decimal>,
+        slippage_tolerance: Option<Decimal256>,
         swap_amount: Uint128,
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
@@ -41,10 +42,10 @@ pub enum ExecuteMsg {
     CreateVaultWithFINLimitOrderTrigger {
         pair_address: String,
         position_type: PositionType,
-        slippage_tolerance: Option<Decimal>,
+        slippage_tolerance: Option<Decimal256>,
         swap_amount: Uint128,
         time_interval: TimeInterval,
-        target_price: Decimal,
+        target_price: Decimal256,
     },
     Deposit {
         vault_id: Uint128,
