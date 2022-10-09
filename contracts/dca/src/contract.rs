@@ -34,7 +34,8 @@ use crate::state::{
 };
 use crate::validation_helpers::{
     assert_denom_matches_pair_denom, assert_exactly_one_asset, assert_sender_is_admin,
-    assert_sender_is_admin_or_vault_owner, assert_swap_amount_is_less_than_or_equal_to_balance, assert_target_start_time_is_in_future,
+    assert_sender_is_admin_or_vault_owner, assert_swap_amount_is_less_than_or_equal_to_balance,
+    assert_target_start_time_is_in_future,
 };
 
 use cosmwasm_std::Decimal256;

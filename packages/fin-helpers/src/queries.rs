@@ -1,6 +1,7 @@
 use cosmwasm_std::{Addr, Decimal256, QuerierWrapper, Uint128};
-use kujira::fin::{BookResponse, QueryMsg as FINQueryMsg};
-use serde::Deserialize;
+use kujira::fin::QueryMsg as FINQueryMsg;
+
+use crate::msg::{FINBookResponse, FINOrderResponseWithoutDenom};
 
 pub fn query_base_price(querier: QuerierWrapper, pair_address: Addr) -> Decimal256 {
     let book_query_msg = FINQueryMsg::Book {
@@ -8,7 +9,7 @@ pub fn query_base_price(querier: QuerierWrapper, pair_address: Addr) -> Decimal2
         offset: None,
     };
 
-    let book_response: BookResponse = querier
+    let book_response: FINBookResponse = querier
         .query_wasm_smart(pair_address, &book_query_msg)
         .unwrap();
 
@@ -21,7 +22,7 @@ pub fn query_quote_price(querier: QuerierWrapper, pair_address: Addr) -> Decimal
         offset: None,
     };
 
-    let book_response: BookResponse = querier
+    let book_response: FINBookResponse = querier
         .query_wasm_smart(pair_address, &book_query_msg)
         .unwrap();
 
@@ -35,14 +36,7 @@ pub fn query_order_details(
 ) -> (Uint128, Uint128, Uint128) {
     let fin_order_query_msg = FINQueryMsg::Order { order_idx };
 
-    #[derive(Deserialize)]
-    struct OrderResponse {
-        pub offer_amount: Uint128,
-        pub filled_amount: Uint128,
-        pub original_offer_amount: Uint128,
-    }
-
-    let order_response: OrderResponse = querier
+    let order_response: FINOrderResponseWithoutDenom = querier
         .query_wasm_smart(pair_address, &fin_order_query_msg)
         .unwrap();
 

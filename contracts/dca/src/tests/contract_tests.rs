@@ -505,7 +505,10 @@ fn create_vault_with_time_trigger_and_no_funds_should_fail() {
     )
     .unwrap_err();
 
-    assert_eq!(result.to_string(), "Error: received 0 denoms but required exactly 1")
+    assert_eq!(
+        result.to_string(),
+        "Error: received 0 denoms but required exactly 1"
+    )
 }
 
 #[test]
