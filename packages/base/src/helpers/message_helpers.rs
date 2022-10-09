@@ -1,33 +1,47 @@
 use cosmwasm_std::{Attribute, Event};
+use std::collections::HashMap;
 
-use crate::error::ContractError;
+use crate::ContractError;
 
-pub fn find_value_for_key_in_wasm_event_with_method<'a>(
+pub fn get_flat_map_for_event_type(
+    events: &[Event],
+    event_type: &str,
+) -> Result<HashMap<String, String>, ContractError> {
+    let events_with_type = events.iter().filter(|event| event.ty == event_type);
+    events_with_type
+        .into_iter()
+        .flat_map(|event| event.attributes.iter())
+        .try_fold(HashMap::new(), |mut map, attribute| {
+            map.insert(attribute.key.clone(), attribute.value.clone());
+            Ok::<_, ContractError>(map)
+        })
+}
+
+pub fn find_value_for_key_in_event_with_method<'a>(
     events: &'a [Event],
     method: &str,
     key: &str,
-) -> &'a String {
-    &events
-        .iter()
-        .find(|event| {
-            event
-                .attributes
-                .iter()
-                .any(|attribute| attribute.key.eq("method") && attribute.value.eq(method))
-        })
-        .unwrap()
-        .attributes
-        .iter()
-        .find(|attribute| attribute.key.eq(key))
-        .unwrap()
-        .value
-}
+) -> Result<String, ContractError> {
+    let event_with_method = events.iter().find(|event| {
+        event
+            .attributes
+            .iter()
+            .any(|attribute| attribute.key.eq("method") && attribute.value.eq(method))
+    });
 
-pub fn find_attribute_in_event<'a>(
-    attributes: &'a [Attribute],
-    key: &str,
-) -> Option<&'a Attribute> {
-    attributes.iter().find(|attribute| attribute.key.eq(&key))
+    match event_with_method {
+        Some(event) => event
+            .attributes
+            .iter()
+            .find(|attribute| attribute.key.eq(key))
+            .map(|value| value.clone().value)
+            .ok_or(ContractError::CustomError {
+                val: format!("could not find attribute with key: {}", &key),
+            }),
+        None => Err(ContractError::CustomError {
+            val: format!("could not find event with method: {}", &method),
+        }),
+    }
 }
 
 pub fn find_first_event_by_type<'a>(

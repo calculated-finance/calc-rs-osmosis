@@ -61,7 +61,11 @@ impl Vault<DCAConfiguration, DCAStatus> {
 }
 
 impl VaultBuilder<DCAConfiguration, DCAStatus> {
-    pub fn new() -> VaultBuilder<DCAConfiguration, DCAStatus> {
+    pub fn new(
+        id: Uint128,
+        owner: Addr,
+        created_at: Timestamp,
+    ) -> VaultBuilder<DCAConfiguration, DCAStatus> {
         let balance: Coin = Coin {
             denom: "".to_string(),
             amount: Uint128::zero(),
@@ -78,33 +82,15 @@ impl VaultBuilder<DCAConfiguration, DCAStatus> {
             slippage_tolerance: None,
         };
         VaultBuilder {
-            id: Uint128::zero(),
-            owner: Addr::unchecked(""),
-            created_at: Timestamp::from_seconds(0u64),
+            id,
+            owner,
+            created_at,
             balances: vec![balance],
             configuration,
             status: DCAStatus::Active,
             trigger_id: Uint128::zero(),
             trigger_variant: TriggerVariant::FINLimitOrder,
         }
-    }
-
-    pub fn id(mut self, id: Uint128) -> VaultBuilder<DCAConfiguration, DCAStatus> {
-        self.id = id;
-        self
-    }
-
-    pub fn owner(mut self, owner: Addr) -> VaultBuilder<DCAConfiguration, DCAStatus> {
-        self.owner = owner;
-        self
-    }
-
-    pub fn created_at(
-        mut self,
-        created_at: Timestamp,
-    ) -> VaultBuilder<DCAConfiguration, DCAStatus> {
-        self.created_at = created_at;
-        self
     }
 
     pub fn balance(mut self, balance: Coin) -> VaultBuilder<DCAConfiguration, DCAStatus> {

@@ -1,6 +1,6 @@
 use crate::contract::reply;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
-use base::helpers::message_helpers::find_value_for_key_in_wasm_event_with_method;
+use base::helpers::message_helpers::find_value_for_key_in_event_with_method;
 use base::triggers::time_configuration::TimeInterval;
 use base::vaults::dca_vault::PositionType;
 use cosmwasm_schema::serde::Serialize;
@@ -171,6 +171,50 @@ impl MockApp {
         self
     }
 
+    pub fn with_price_trigger_vault(
+        mut self,
+        owner: &Addr,
+        balance: Coin,
+        swap_amount: Uint128,
+        time_interval: TimeInterval,
+        label: &str,
+    ) -> Self {
+        let create_vault_with_price_trigger_message =
+            ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
+                pair_address: self.fin_contract_address.to_string(),
+                position_type: PositionType::Enter,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval,
+                target_price: Decimal256::from_str("1.0").unwrap(),
+            };
+
+        let response = self
+            .app
+            .execute_contract(
+                owner.clone(),
+                self.dca_contract_address.clone(),
+                &create_vault_with_price_trigger_message,
+                &vec![balance],
+            )
+            .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(
+                &find_value_for_key_in_event_with_method(
+                    &response.events,
+                    "create_vault_with_fin_limit_order_trigger",
+                    "vault_id",
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        );
+
+        self
+    }
+
     pub fn with_vault_with_fin_limit_price_trigger(mut self, owner: &Addr, label: &str) -> MockApp {
         let create_vault_with_price_trigger_message =
             ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
@@ -199,11 +243,14 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            Uint128::from_str(find_value_for_key_in_wasm_event_with_method(
-                &response.events,
-                "create_vault_with_fin_limit_order_trigger",
-                "vault_id",
-            ))
+            Uint128::from_str(
+                &find_value_for_key_in_event_with_method(
+                    &response.events,
+                    "create_vault_with_fin_limit_order_trigger",
+                    "vault_id",
+                )
+                .unwrap(),
+            )
             .unwrap(),
         );
 
@@ -242,11 +289,14 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            Uint128::from_str(find_value_for_key_in_wasm_event_with_method(
-                &response.events,
-                "create_vault_with_fin_limit_order_trigger",
-                "vault_id",
-            ))
+            Uint128::from_str(
+                &find_value_for_key_in_event_with_method(
+                    &response.events,
+                    "create_vault_with_fin_limit_order_trigger",
+                    "vault_id",
+                )
+                .unwrap(),
+            )
             .unwrap(),
         );
 
@@ -306,11 +356,14 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            Uint128::from_str(find_value_for_key_in_wasm_event_with_method(
-                &response.events,
-                "create_vault_with_time_trigger",
-                "vault_id",
-            ))
+            Uint128::from_str(
+                &find_value_for_key_in_event_with_method(
+                    &response.events,
+                    "create_vault_with_time_trigger",
+                    "vault_id",
+                )
+                .unwrap(),
+            )
             .unwrap(),
         );
 

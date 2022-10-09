@@ -3,7 +3,7 @@ use crate::tests::helpers::{
     assert_address_balances, assert_response_events, assert_vault_balance,
 };
 use crate::tests::mocks::{fin_contract_default, MockApp, DENOM_UKUJI, DENOM_UTEST, USER};
-use base::helpers::message_helpers::find_value_for_key_in_wasm_event_with_method;
+use base::helpers::message_helpers::find_value_for_key_in_event_with_method;
 use base::triggers::time_configuration::TimeInterval;
 use base::vaults::dca_vault::PositionType;
 use cosmwasm_std::{Addr, Coin, Decimal256, Event, Uint128};
@@ -150,17 +150,19 @@ fn create_second_for_user_should_succeed() {
         ],
     );
 
-    let vault_id = find_value_for_key_in_wasm_event_with_method(
+    let vault_id = find_value_for_key_in_event_with_method(
         &create_vault_response.events,
         "create_vault_with_fin_limit_order_trigger",
         "vault_id",
-    );
+    )
+    .unwrap();
 
-    let trigger_id = find_value_for_key_in_wasm_event_with_method(
+    let trigger_id = find_value_for_key_in_event_with_method(
         &create_vault_response.events,
         "after_submit_order",
         "trigger_id",
-    );
+    )
+    .unwrap();
 
     assert_response_events(
         &create_vault_response.events,

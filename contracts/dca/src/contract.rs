@@ -252,19 +252,18 @@ fn create_vault_with_time_trigger(
         .target_time(target_start_time)
         .build();
 
-    let vault: Vault<DCAConfiguration, DCAStatus> = VaultBuilder::new()
-        .id(config.vault_count)
-        .owner(info.sender.clone())
-        .balance(info.funds[0].clone())
-        .pair_address(existing_pair.address)
-        .pair_base_denom(existing_pair.base_denom)
-        .pair_quote_denom(existing_pair.quote_denom)
-        .swap_amount(swap_amount)
-        .slippage_tolerance(slippage_tolerance)
-        .position_type(position_type)
-        .trigger_id(trigger.id)
-        .trigger_variant(trigger.variant.clone())
-        .build();
+    let vault: Vault<DCAConfiguration, DCAStatus> =
+        VaultBuilder::new(config.vault_count, info.sender.clone(), env.block.time)
+            .balance(info.funds[0].clone())
+            .pair_address(existing_pair.address)
+            .pair_base_denom(existing_pair.base_denom)
+            .pair_quote_denom(existing_pair.quote_denom)
+            .swap_amount(swap_amount)
+            .slippage_tolerance(slippage_tolerance)
+            .position_type(position_type)
+            .trigger_id(trigger.id)
+            .trigger_variant(trigger.variant.clone())
+            .build();
 
     TIME_TRIGGERS.save(deps.storage, trigger.id.u128(), &trigger)?;
 
@@ -309,17 +308,16 @@ fn create_vault_with_fin_limit_order_trigger(
     })?;
 
     // trigger information is updated upon successful limit order creation
-    let vault: Vault<DCAConfiguration, DCAStatus> = VaultBuilder::new()
-        .id(config.vault_count)
-        .owner(info.sender.clone())
-        .balance(info.funds[0].clone())
-        .pair_address(existing_pair.address.clone())
-        .pair_base_denom(existing_pair.base_denom)
-        .pair_quote_denom(existing_pair.quote_denom)
-        .swap_amount(swap_amount)
-        .slippage_tolerance(slippage_tolerance)
-        .position_type(position_type)
-        .build();
+    let vault: Vault<DCAConfiguration, DCAStatus> =
+        VaultBuilder::new(config.vault_count, info.sender.clone(), env.block.time)
+            .balance(info.funds[0].clone())
+            .pair_address(existing_pair.address.clone())
+            .pair_base_denom(existing_pair.base_denom)
+            .pair_quote_denom(existing_pair.quote_denom)
+            .swap_amount(swap_amount)
+            .slippage_tolerance(slippage_tolerance)
+            .position_type(position_type)
+            .build();
 
     let coin_to_send = vault.get_swap_amount();
 
@@ -594,9 +592,7 @@ fn execute_fin_limit_order_trigger_by_order_idx(
     _env: Env,
     order_idx: Uint128,
 ) -> Result<Response, ContractError> {
-    let fin_limit_order_trigger = FIN_LIMIT_ORDER_TRIGGERS
-        .load(deps.storage, order_idx.into())
-        .unwrap();
+    let fin_limit_order_trigger = FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, order_idx.u128())?;
 
     let vault = VAULTS.load(
         deps.storage,
@@ -664,18 +660,20 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
 fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
+            println!("resply {:?}", reply);
+
             let fin_submit_order_response = reply.result.into_result().unwrap();
 
-            println!("order response is {:?}!", fin_submit_order_response);
+            let x =
+                &get_flat_map_for_event_type(&fin_submit_order_response.events, "wasm").unwrap();
 
-            let wasm_event =
-                find_first_event_by_type(&fin_submit_order_response.events, "wasm").unwrap();
+            println!("{:?}", x);
 
-            let order_idx = find_first_attribute_by_key(&wasm_event.attributes, "order_idx")
-                .unwrap()
-                .value
-                .parse::<Uint128>()
-                .unwrap();
+            let order_idx = Uint128::from_str(
+                &get_flat_map_for_event_type(&fin_submit_order_response.events, "wasm").unwrap()
+                    ["order_idx"],
+            )
+            .unwrap();
 
             let cache = CACHE.load(deps.storage)?;
             let fin_limit_order_configuration = FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID
@@ -711,6 +709,8 @@ fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response
                     }
                 },
             )?;
+
+            println!("savign fin limit ordr {:?}", fin_limit_order_trigger);
 
             FIN_LIMIT_ORDER_TRIGGERS.save(
                 deps.storage,
