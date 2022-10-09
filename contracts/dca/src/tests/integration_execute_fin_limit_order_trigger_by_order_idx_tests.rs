@@ -1,4 +1,4 @@
-use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse};
+use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
 use crate::tests::helpers::{
     assert_address_balances, assert_response_events, assert_vault_balance,
 };
@@ -15,7 +15,7 @@ fn should_succeed() {
     let user_address = Addr::unchecked(USER);
     let mut mock = MockApp::new(fin_contract_default())
         .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_fin_limit_price_trigger(&user_address);
+        .with_vault_with_fin_limit_price_trigger(&user_address, "fin");
 
     assert_address_balances(
         &mock,
@@ -29,13 +29,25 @@ fn should_succeed() {
         ],
     );
 
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &&QueryMsg::GetVault {
+                address: user_address.to_string(),
+                vault_id: mock.vault_ids["fin"],
+            },
+        )
+        .unwrap();
+
     let response = mock
         .app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteFINLimitOrderTriggerByOrderIdx {
-                order_idx: Uint128::new(1),
+                order_idx: vault_response.vault.trigger_id,
             },
             &[],
         )
@@ -79,7 +91,7 @@ fn should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetAllTimeTriggers {},
+            &QueryMsg::GetTimeTriggers {},
         )
         .unwrap();
 
@@ -93,7 +105,7 @@ fn when_order_partially_filled_should_fail() {
     let user_address = Addr::unchecked(USER);
     let mut mock = MockApp::new(fin_contract_partially_filled_order())
         .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_fin_limit_price_trigger(&user_address);
+        .with_vault_with_fin_limit_price_trigger(&user_address, "fin");
 
     assert_address_balances(
         &mock,
@@ -107,13 +119,25 @@ fn when_order_partially_filled_should_fail() {
         ],
     );
 
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &&QueryMsg::GetVault {
+                address: user_address.to_string(),
+                vault_id: mock.vault_ids["fin"],
+            },
+        )
+        .unwrap();
+
     let response = mock
         .app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteFINLimitOrderTriggerByOrderIdx {
-                order_idx: Uint128::new(1),
+                order_idx: vault_response.vault.trigger_id,
             },
             &[],
         )

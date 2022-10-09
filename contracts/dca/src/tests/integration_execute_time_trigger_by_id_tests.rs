@@ -14,7 +14,7 @@ fn after_target_time_should_succeed() {
     let user_address = Addr::unchecked(USER);
     let mut mock = MockApp::new(fin_contract_default())
         .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_time_trigger(&user_address);
+        .with_vault_with_time_trigger(&user_address, "time");
 
     assert_address_balances(
         &mock,
@@ -85,7 +85,7 @@ fn before_target_time_limit_should_fail() {
     let user_address = Addr::unchecked(USER);
     let mut mock = MockApp::new(fin_contract_default())
         .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_time_trigger(&user_address);
+        .with_vault_with_time_trigger(&user_address, "time");
 
     assert_address_balances(
         &mock,
@@ -142,7 +142,7 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
     let user_address = Addr::unchecked(USER);
     let mut mock = MockApp::new(fin_contract_fail_slippage_tolerance())
         .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_time_trigger(&user_address);
+        .with_vault_with_time_trigger(&user_address, "time");
 
     assert_address_balances(
         &mock,

@@ -1,7 +1,6 @@
-use base::events::event::Event;
 use cosmwasm_std::Addr;
 use cosmwasm_std::Uint128;
-use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
+use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -70,6 +69,9 @@ pub const TIME_TRIGGERS: Map<u128, Trigger<TimeConfiguration>> = Map::new("time_
 
 pub const TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, TimeConfiguration> =
     Map::new("time_trigger_configurations_by_vault_id_v1");
+
+pub const FIN_LIMIT_ORDER_TRIGGERS: Map<u128, Trigger<FINLimitOrderConfiguration>> =
+    Map::new("fin_limit_order_triggers_v1");
 
 pub const FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, FINLimitOrderConfiguration> =
     Map::new("fin_limit_order_configurations_by_vault_id_v1");

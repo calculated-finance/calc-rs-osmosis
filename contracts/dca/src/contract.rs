@@ -335,10 +335,7 @@ fn create_vault_with_fin_limit_order_trigger(
         time_interval,
     };
 
-    let fin_limit_order_configuration = FINLimitOrderConfiguration {
-        order_idx: Uint128::zero(),
-        target_price,
-    };
+    let fin_limit_order_configuration = FINLimitOrderConfiguration { target_price };
 
     // removed when trigger change over occurs
     TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.save(
@@ -366,7 +363,6 @@ fn create_vault_with_fin_limit_order_trigger(
 
     Ok(Response::new()
         .add_attribute("method", "create_vault_with_fin_limit_order_trigger")
-        .add_attribute("id", config.vault_count.to_string())
         .add_attribute("owner", vault.owner)
         .add_attribute("vault_id", vault.id.to_string())
         .add_submessage(fin_limit_order_sub_msg))
@@ -405,12 +401,12 @@ fn cancel_vault_by_address_and_id(
             TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.remove(deps.storage, vault.id.u128());
 
             let fin_limit_order_trigger =
-                fin_limit_order_triggers().load(deps.storage, vault.trigger_id.u128())?;
+                FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, vault.trigger_id.u128())?;
 
             let (offer_amount, original_offer_amount, filled) = query_order_details(
                 deps.querier,
                 vault.configuration.pair.address.clone(),
-                fin_limit_order_trigger.configuration.order_idx,
+                fin_limit_order_trigger.id,
             );
 
             let limit_order_cache = LimitOrderCache {
@@ -423,7 +419,7 @@ fn cancel_vault_by_address_and_id(
 
             let fin_retract_order_sub_msg = create_retract_order_sub_msg(
                 vault.configuration.pair.address,
-                fin_limit_order_trigger.configuration.order_idx,
+                fin_limit_order_trigger.id,
                 RETRACT_ORDER_REPLY_ID,
             );
 
@@ -598,10 +594,8 @@ fn execute_fin_limit_order_trigger_by_order_idx(
     _env: Env,
     order_idx: Uint128,
 ) -> Result<Response, ContractError> {
-    let (_, fin_limit_order_trigger) = fin_limit_order_triggers()
-        .idx
-        .order_idx
-        .item(deps.storage, order_idx.into())?
+    let fin_limit_order_trigger = FIN_LIMIT_ORDER_TRIGGERS
+        .load(deps.storage, order_idx.into())
         .unwrap();
 
     let vault = VAULTS.load(
@@ -672,31 +666,30 @@ fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let fin_submit_order_response = reply.result.into_result().unwrap();
 
-            let wasm_event =
-                find_first_event_by_type(&fin_submit_order_response.events, String::from("wasm"))
-                    .unwrap();
+            println!("order response is {:?}!", fin_submit_order_response);
 
-            let order_idx =
-                find_first_attribute_by_key(&wasm_event.attributes, String::from("order_idx"))
-                    .unwrap()
-                    .value
-                    .parse::<Uint128>()
-                    .unwrap();
+            let wasm_event =
+                find_first_event_by_type(&fin_submit_order_response.events, "wasm").unwrap();
+
+            let order_idx = find_first_attribute_by_key(&wasm_event.attributes, "order_idx")
+                .unwrap()
+                .value
+                .parse::<Uint128>()
+                .unwrap();
 
             let cache = CACHE.load(deps.storage)?;
             let fin_limit_order_configuration = FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID
                 .load(deps.storage, cache.vault_id.u128())?;
 
-            let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
+            CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
                 config.trigger_count = config.trigger_count.checked_add(Uint128::new(1))?;
                 Ok(config)
             })?;
 
             let fin_limit_order_trigger = TriggerBuilder::from(fin_limit_order_configuration)
-                .id(config.trigger_count)
+                .id(order_idx)
                 .owner(cache.owner.clone())
                 .vault_id(cache.vault_id)
-                .order_idx(order_idx)
                 .build();
 
             VAULTS.update(
@@ -719,7 +712,7 @@ fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response
                 },
             )?;
 
-            fin_limit_order_triggers().save(
+            FIN_LIMIT_ORDER_TRIGGERS.save(
                 deps.storage,
                 fin_limit_order_trigger.id.u128(),
                 &fin_limit_order_trigger,
@@ -749,12 +742,10 @@ fn after_execute_trigger_withdraw_order(
     let vault = VAULTS.load(deps.storage, (cache.owner.clone(), cache.vault_id.into()))?;
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
-            let fin_limit_order_triggers = fin_limit_order_triggers();
-
             let fin_limit_order_trigger =
-                fin_limit_order_triggers.load(deps.storage, vault.trigger_id.into())?;
+                FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, vault.trigger_id.into())?;
 
-            fin_limit_order_triggers.remove(deps.storage, fin_limit_order_trigger.id.u128())?;
+            FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, fin_limit_order_trigger.id.u128());
 
             let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
                 config.trigger_count = config.trigger_count.checked_add(Uint128::new(1))?;
@@ -870,10 +861,8 @@ fn after_cancel_trigger_withdraw_order(
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
 
-            let fin_limit_order_triggers = fin_limit_order_triggers();
-
             let fin_limit_order_trigger =
-                fin_limit_order_triggers.load(deps.storage, vault.trigger_id.into())?;
+                FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, vault.trigger_id.into())?;
 
             // send assets from partially filled order to owner
             let filled_amount = Coin {
@@ -886,7 +875,7 @@ fn after_cancel_trigger_withdraw_order(
                 amount: vec![filled_amount.clone()],
             };
 
-            fin_limit_order_triggers.remove(deps.storage, fin_limit_order_trigger.id.u128())?;
+            FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, fin_limit_order_trigger.id.u128());
 
             VAULTS.remove(deps.storage, (vault.owner.clone(), vault.id.into()));
 
@@ -922,26 +911,21 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
             let fin_swap_response = reply.result.into_result().unwrap();
 
             let wasm_trade_event =
-                find_first_event_by_type(&fin_swap_response.events, String::from("wasm-trade"))
+                find_first_event_by_type(&fin_swap_response.events, "wasm-trade").unwrap();
+
+            let base_amount =
+                find_first_attribute_by_key(&wasm_trade_event.attributes, "base_amount")
+                    .unwrap()
+                    .value
+                    .parse::<u128>()
                     .unwrap();
 
-            let base_amount = find_first_attribute_by_key(
-                &wasm_trade_event.attributes,
-                String::from("base_amount"),
-            )
-            .unwrap()
-            .value
-            .parse::<u128>()
-            .unwrap();
-
-            let quote_amount = find_first_attribute_by_key(
-                &wasm_trade_event.attributes,
-                String::from("quote_amount"),
-            )
-            .unwrap()
-            .value
-            .parse::<u128>()
-            .unwrap();
+            let quote_amount =
+                find_first_attribute_by_key(&wasm_trade_event.attributes, "quote_amount")
+                    .unwrap()
+                    .value
+                    .parse::<u128>()
+                    .unwrap();
 
             let (coin_sent, coin_received) = match vault.configuration.position_type {
                 PositionType::Enter => {
@@ -1118,20 +1102,17 @@ fn after_retract_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Respons
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
 
-            let fin_limit_order_triggers = fin_limit_order_triggers();
-
             let fin_limit_order_trigger =
-                fin_limit_order_triggers.load(deps.storage, vault.trigger_id.u128())?;
+                FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, vault.trigger_id.u128())?;
 
             let fin_retract_order_response = reply.result.into_result().unwrap();
 
             let wasm_trade_event =
-                find_first_event_by_type(&fin_retract_order_response.events, String::from("wasm"))
-                    .unwrap();
+                find_first_event_by_type(&fin_retract_order_response.events, "wasm").unwrap();
 
             // if this parse method works look to refactor
             let amount_retracted =
-                find_first_attribute_by_key(&wasm_trade_event.attributes, String::from("amount"))
+                find_first_attribute_by_key(&wasm_trade_event.attributes, "amount")
                     .unwrap()
                     .value
                     .parse::<Uint128>()
@@ -1152,7 +1133,7 @@ fn after_retract_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Respons
 
                 let fin_withdraw_sub_msg = create_withdraw_limit_order_sub_msg(
                     vault.configuration.pair.address,
-                    fin_limit_order_trigger.configuration.order_idx,
+                    fin_limit_order_trigger.id,
                     CANCEL_TRIGGER_WITHDRAW_ORDER_REPLY_ID,
                 );
 
@@ -1171,7 +1152,7 @@ fn after_retract_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Respons
 
                 VAULTS.remove(deps.storage, (vault.owner.clone(), vault.id.into()));
 
-                fin_limit_order_triggers.remove(deps.storage, fin_limit_order_trigger.id.u128())?;
+                FIN_LIMIT_ORDER_TRIGGERS.remove(deps.storage, fin_limit_order_trigger.id.u128());
 
                 LIMIT_ORDER_CACHE.remove(deps.storage);
                 CACHE.remove(deps.storage);
@@ -1194,13 +1175,13 @@ fn after_retract_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Respons
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::GetAllPairs {} => to_binary(&get_all_pairs(deps)?),
-        QueryMsg::GetAllTimeTriggers {} => to_binary(&get_all_time_triggers(deps)?),
-        QueryMsg::GetAllVaults {} => to_binary(&get_all_vaults(deps)?),
-        QueryMsg::GetAllVaultsByAddress { address } => {
-            to_binary(&get_all_vaults_by_address(deps, address)?)
+        QueryMsg::GetPairs {} => to_binary(&get_pairs(deps)?),
+        QueryMsg::GetTimeTriggers {} => to_binary(&get_time_triggers(deps)?),
+        QueryMsg::GetVaults {} => to_binary(&get_vaults(deps)?),
+        QueryMsg::GetVaultsByAddress { address } => {
+            to_binary(&get_vaults_by_address(deps, address)?)
         }
-        QueryMsg::GetVaultByAddressAndId { address, vault_id } => {
+        QueryMsg::GetVault { address, vault_id } => {
             to_binary(&get_vault_by_address_and_id(deps, address, vault_id)?)
         }
         QueryMsg::GetAllEventsByVaultId { vault_id } => {
@@ -1209,7 +1190,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn get_all_pairs(deps: Deps) -> StdResult<PairsResponse> {
+fn get_pairs(deps: Deps) -> StdResult<PairsResponse> {
     let all_pairs_on_heap: StdResult<Vec<_>> = PAIRS
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .collect();
@@ -1223,7 +1204,7 @@ fn get_all_pairs(deps: Deps) -> StdResult<PairsResponse> {
     Ok(PairsResponse { pairs })
 }
 
-fn get_all_time_triggers(deps: Deps) -> StdResult<TriggersResponse<TimeConfiguration>> {
+fn get_time_triggers(deps: Deps) -> StdResult<TriggersResponse<TimeConfiguration>> {
     let all_time_triggers_on_heap: StdResult<Vec<_>> = TIME_TRIGGERS
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .collect();
@@ -1237,7 +1218,7 @@ fn get_all_time_triggers(deps: Deps) -> StdResult<TriggersResponse<TimeConfigura
     Ok(TriggersResponse { triggers })
 }
 
-fn get_all_vaults(deps: Deps) -> StdResult<VaultsResponse> {
+fn get_vaults(deps: Deps) -> StdResult<VaultsResponse> {
     let all_active_vaults_on_heap: StdResult<Vec<_>> = VAULTS
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .collect();
@@ -1251,7 +1232,7 @@ fn get_all_vaults(deps: Deps) -> StdResult<VaultsResponse> {
     Ok(VaultsResponse { vaults })
 }
 
-fn get_all_vaults_by_address(deps: Deps, address: String) -> StdResult<VaultsResponse> {
+fn get_vaults_by_address(deps: Deps, address: String) -> StdResult<VaultsResponse> {
     let validated_address = deps.api.addr_validate(&address)?;
 
     let vaults_on_heap: StdResult<Vec<_>> = VAULTS

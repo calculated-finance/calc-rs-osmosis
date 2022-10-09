@@ -2,22 +2,50 @@ use cosmwasm_std::{Attribute, Event};
 
 use crate::error::ContractError;
 
-pub fn find_first_event_by_type(
-    events: &Vec<Event>,
-    target_type: String,
-) -> Result<&Event, ContractError> {
+pub fn find_value_for_key_in_wasm_event_with_method<'a>(
+    events: &'a [Event],
+    method: &str,
+    key: &str,
+) -> &'a String {
+    &events
+        .iter()
+        .find(|event| {
+            event
+                .attributes
+                .iter()
+                .any(|attribute| attribute.key.eq("method") && attribute.value.eq(method))
+        })
+        .unwrap()
+        .attributes
+        .iter()
+        .find(|attribute| attribute.key.eq(key))
+        .unwrap()
+        .value
+}
+
+pub fn find_attribute_in_event<'a>(
+    attributes: &'a [Attribute],
+    key: &str,
+) -> Option<&'a Attribute> {
+    attributes.iter().find(|attribute| attribute.key.eq(&key))
+}
+
+pub fn find_first_event_by_type<'a>(
+    events: &'a Vec<Event>,
+    target_type: &str,
+) -> Result<&'a Event, ContractError> {
     return events
         .iter()
         .find(|event| event.ty == target_type)
         .ok_or_else(|| ContractError::CustomError {
-            val: format!("could not find event with type: {}", target_type),
+            val: format!("could not find event with type: {}", &target_type),
         });
 }
 
-pub fn find_first_attribute_by_key(
-    attributes: &Vec<Attribute>,
-    target_key: String,
-) -> Result<&Attribute, ContractError> {
+pub fn find_first_attribute_by_key<'a>(
+    attributes: &'a Vec<Attribute>,
+    target_key: &str,
+) -> Result<&'a Attribute, ContractError> {
     return attributes
         .iter()
         .find(|attribute| attribute.key == target_key)
@@ -35,7 +63,7 @@ mod tests {
         let mock_event = Event::new("mock-event");
         let mock_wasm_trade_event = Event::new("wasm-trade");
         let events = vec![mock_event, mock_wasm_trade_event];
-        let result = find_first_event_by_type(&events, String::from("wasm-trade")).unwrap();
+        let result = find_first_event_by_type(&events, "wasm-trade").unwrap();
 
         assert_eq!(result.ty, "wasm-trade");
     }
@@ -47,7 +75,7 @@ mod tests {
         let mock_wasm_trade_event_two = Event::new("wasm-trade").add_attribute("index", "2");
 
         let events = vec![mock_wasm_trade_event_one, mock_wasm_trade_event_two];
-        let result = find_first_event_by_type(&events, String::from("wasm-trade")).unwrap();
+        let result = find_first_event_by_type(&events, "wasm-trade").unwrap();
 
         assert_eq!(result.ty, "wasm-trade");
 
@@ -57,8 +85,7 @@ mod tests {
     #[test]
     fn find_first_event_by_type_given_no_matching_events_should_fail() {
         let mock_wasm_trade_event = vec![Event::new("not-wasm-trade")];
-        let result = find_first_event_by_type(&mock_wasm_trade_event, String::from("wasm-trade"))
-            .unwrap_err();
+        let result = find_first_event_by_type(&mock_wasm_trade_event, "wasm-trade").unwrap_err();
 
         assert_eq!(
             result.to_string(),
@@ -69,7 +96,7 @@ mod tests {
     #[test]
     fn find_first_event_by_type_given_no_events_should_fail() {
         let empty: Vec<Event> = Vec::new();
-        let result = find_first_event_by_type(&empty, String::from("wasm-trade")).unwrap_err();
+        let result = find_first_event_by_type(&empty, "wasm-trade").unwrap_err();
 
         assert_eq!(
             result.to_string(),
@@ -82,7 +109,7 @@ mod tests {
         let mock_attribute_one = Attribute::new("test-one", "value");
         let mock_attribute_two = Attribute::new("test-two", "value");
         let attributes = vec![mock_attribute_one, mock_attribute_two];
-        let result = find_first_attribute_by_key(&attributes, String::from("test-one")).unwrap();
+        let result = find_first_attribute_by_key(&attributes, "test-one").unwrap();
 
         assert_eq!(result.key, "test-one");
     }
@@ -93,7 +120,7 @@ mod tests {
         let mock_attribute_one = Attribute::new("test", "1");
         let mock_attribute_two = Attribute::new("test", "2");
         let attributes = vec![mock_attribute_one, mock_attribute_two];
-        let result = find_first_attribute_by_key(&attributes, String::from("test")).unwrap();
+        let result = find_first_attribute_by_key(&attributes, "test").unwrap();
 
         assert_eq!(result.key, "test");
 
@@ -104,8 +131,7 @@ mod tests {
     fn find_first_attribute_by_key_given_no_matching_attributes_should_fail() {
         let mock_attribute_one = Attribute::new("mock", "value");
         let attributes = vec![mock_attribute_one];
-        let result =
-            find_first_attribute_by_key(&attributes, String::from("test-one")).unwrap_err();
+        let result = find_first_attribute_by_key(&attributes, "test-one").unwrap_err();
 
         assert_eq!(
             result.to_string(),
@@ -116,8 +142,7 @@ mod tests {
     #[test]
     fn find_first_attribute_by_key_given_no_attributes_should_fail() {
         let attributes: Vec<Attribute> = Vec::new();
-        let result =
-            find_first_attribute_by_key(&attributes, String::from("test-one")).unwrap_err();
+        let result = find_first_attribute_by_key(&attributes, "test-one").unwrap_err();
 
         assert_eq!(
             result.to_string(),

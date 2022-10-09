@@ -86,7 +86,7 @@ fn should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetAllTimeTriggers {},
+            &QueryMsg::GetTimeTriggers {},
         )
         .unwrap();
 

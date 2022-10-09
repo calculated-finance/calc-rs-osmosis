@@ -284,7 +284,7 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
     )
     .unwrap();
 
-    let get_all_pairs_query_message = QueryMsg::GetAllPairs {};
+    let get_all_pairs_query_message = QueryMsg::GetPairs {};
     let binary = query(deps.as_ref(), env, get_all_pairs_query_message).unwrap();
     let response: PairsResponse = from_binary(&binary).unwrap();
     assert_eq!(response.pairs.len(), 1);
@@ -313,7 +313,7 @@ fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
     )
     .unwrap();
 
-    let get_all_pairs_query_message = QueryMsg::GetAllPairs {};
+    let get_all_pairs_query_message = QueryMsg::GetPairs {};
     let binary = query(deps.as_ref(), env, get_all_pairs_query_message).unwrap();
     let response: PairsResponse = from_binary(&binary).unwrap();
     assert_eq!(response.pairs.len(), 0);
@@ -760,7 +760,7 @@ fn get_all_active_vaults_with_one_vault_should_succeed() {
     )
     .unwrap();
 
-    let get_all_active_vaults_query_message = QueryMsg::GetAllVaults {};
+    let get_all_active_vaults_query_message = QueryMsg::GetVaults {};
     let binary = query(deps.as_ref(), env, get_all_active_vaults_query_message).unwrap();
     let result: VaultsResponse = from_binary(&binary).unwrap();
 
@@ -784,7 +784,7 @@ fn get_all_active_vaults_with_no_vaults_should_succeed() {
     )
     .unwrap();
 
-    let get_all_active_vaults_query_message = QueryMsg::GetAllVaults {};
+    let get_all_active_vaults_query_message = QueryMsg::GetVaults {};
     let binary = query(deps.as_ref(), env, get_all_active_vaults_query_message).unwrap();
     let result: VaultsResponse = from_binary(&binary).unwrap();
 
@@ -844,7 +844,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     )
     .unwrap();
 
-    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVaultByAddressAndId {
+    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVault {
         address: String::from(VALID_ADDRESS_THREE),
         vault_id: Uint128::new(1),
     };
@@ -935,7 +935,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
     )
     .unwrap();
 
-    let get_all_active_vaults_by_address_query_message = QueryMsg::GetAllVaultsByAddress {
+    let get_all_active_vaults_by_address_query_message = QueryMsg::GetVaultsByAddress {
         address: String::from(VALID_ADDRESS_THREE),
     };
     let binary = query(

@@ -1,5 +1,6 @@
 use crate::contract::reply;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
+use base::helpers::message_helpers::find_value_for_key_in_wasm_event_with_method;
 use base::triggers::time_configuration::TimeInterval;
 use base::vaults::dca_vault::PositionType;
 use cosmwasm_schema::serde::Serialize;
@@ -13,6 +14,8 @@ use kujira::fin::{
     BookResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg, OrderResponse,
     PoolResponse, QueryMsg as FINQueryMsg,
 };
+use rand::Rng;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 pub const USER: &str = "user";
@@ -24,6 +27,7 @@ pub struct MockApp {
     pub app: App,
     pub dca_contract_address: Addr,
     pub fin_contract_address: Addr,
+    pub vault_ids: HashMap<String, Uint128>,
 }
 
 impl MockApp {
@@ -131,6 +135,7 @@ impl MockApp {
             app,
             dca_contract_address,
             fin_contract_address,
+            vault_ids: HashMap::new(),
         }
     }
 
@@ -166,7 +171,7 @@ impl MockApp {
         self
     }
 
-    pub fn with_vault_with_fin_limit_price_trigger(mut self, owner: &Addr) -> MockApp {
+    pub fn with_vault_with_fin_limit_price_trigger(mut self, owner: &Addr, label: &str) -> MockApp {
         let create_vault_with_price_trigger_message =
             ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
                 pair_address: self.fin_contract_address.to_string(),
@@ -182,7 +187,8 @@ impl MockApp {
             amount: Uint128::new(100),
         }];
 
-        self.app
+        let response = self
+            .app
             .execute_contract(
                 owner.clone(),
                 self.dca_contract_address.clone(),
@@ -191,12 +197,23 @@ impl MockApp {
             )
             .unwrap();
 
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(find_value_for_key_in_wasm_event_with_method(
+                &response.events,
+                "create_vault_with_fin_limit_order_trigger",
+                "vault_id",
+            ))
+            .unwrap(),
+        );
+
         self
     }
 
     pub fn with_vault_with_partially_filled_fin_limit_price_trigger(
         mut self,
         owner: &Addr,
+        label: &str,
     ) -> MockApp {
         let create_vault_with_price_trigger_message =
             ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
@@ -213,7 +230,8 @@ impl MockApp {
             amount: Uint128::new(100),
         }];
 
-        self.app
+        let response = self
+            .app
             .execute_contract(
                 owner.clone(),
                 self.dca_contract_address.clone(),
@@ -221,6 +239,16 @@ impl MockApp {
                 &funds,
             )
             .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(find_value_for_key_in_wasm_event_with_method(
+                &response.events,
+                "create_vault_with_fin_limit_order_trigger",
+                "vault_id",
+            ))
+            .unwrap(),
+        );
 
         // send 5 ukuji from fin to admin wallet to mock partially filled outgoing
         self.app
@@ -249,7 +277,7 @@ impl MockApp {
         self
     }
 
-    pub fn with_vault_with_time_trigger(mut self, owner: &Addr) -> MockApp {
+    pub fn with_vault_with_time_trigger(mut self, owner: &Addr, label: &str) -> MockApp {
         let create_vault_with_price_trigger_message = ExecuteMsg::CreateVaultWithTimeTrigger {
             pair_address: self.fin_contract_address.to_string(),
             position_type: PositionType::Enter,
@@ -266,7 +294,8 @@ impl MockApp {
             amount: Uint128::new(100),
         }];
 
-        self.app
+        let response = self
+            .app
             .execute_contract(
                 owner.clone(),
                 self.dca_contract_address.clone(),
@@ -274,6 +303,16 @@ impl MockApp {
                 &funds,
             )
             .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(find_value_for_key_in_wasm_event_with_method(
+                &response.events,
+                "create_vault_with_time_trigger",
+                "vault_id",
+            ))
+            .unwrap(),
+        );
 
         self
     }
@@ -326,7 +365,10 @@ fn default_swap_handler(info: MessageInfo) -> StdResult<Response> {
 }
 
 fn default_submit_order_handler() -> StdResult<Response> {
-    Ok(Response::new().add_attribute("order_idx", "1"))
+    Ok(Response::new().add_attribute(
+        "order_idx",
+        rand::thread_rng().gen_range(0..100).to_string(),
+    ))
 }
 
 fn default_withdraw_orders_handler(
@@ -450,6 +492,12 @@ fn partially_filled_order_response(env: Env) -> StdResult<Binary> {
     Ok(to_binary(&response)?)
 }
 
+fn default_query_response() -> StdResult<Binary> {
+    #[derive(Serialize)]
+    pub struct Mock;
+    Ok(to_binary(&Mock)?)
+}
+
 pub fn fin_contract_default() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
@@ -479,11 +527,7 @@ pub fn fin_contract_default() -> Box<dyn Contract<Empty>> {
                     offset: _,
                 } => default_book_response(),
                 FINQueryMsg::Order { order_idx: _ } => default_order_response(env),
-                _ => {
-                    #[derive(Serialize)]
-                    pub struct Mock;
-                    Ok(to_binary(&Mock)?)
-                }
+                _ => default_query_response(),
             }
         },
     );
@@ -508,11 +552,7 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
-                _ => {
-                    #[derive(Serialize)]
-                    pub struct Mock;
-                    Ok(to_binary(&Mock)?)
-                }
+                _ => default_query_response(),
             }
         },
     );
@@ -538,11 +578,7 @@ pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
         |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
                 FINQueryMsg::Order { order_idx: _ } => partially_filled_order_response(env),
-                _ => {
-                    #[derive(Serialize)]
-                    pub struct Mock;
-                    Ok(to_binary(&Mock)?)
-                }
+                _ => default_query_response(),
             }
         },
     );

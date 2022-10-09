@@ -7,7 +7,6 @@ use super::trigger::{Trigger, TriggerBuilder, TriggerVariant};
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct FINLimitOrderConfiguration {
     pub target_price: Decimal256,
-    pub order_idx: Uint128,
 }
 
 impl From<FINLimitOrderConfiguration> for TriggerBuilder<FINLimitOrderConfiguration> {
@@ -27,7 +26,6 @@ impl TriggerBuilder<FINLimitOrderConfiguration> {
         let fin_limit_order_configuration: FINLimitOrderConfiguration =
             FINLimitOrderConfiguration {
                 target_price: Decimal256::zero(),
-                order_idx: Uint128::zero(),
             };
         TriggerBuilder {
             id: Uint128::zero(),
@@ -58,11 +56,6 @@ impl TriggerBuilder<FINLimitOrderConfiguration> {
         target_price: Decimal256,
     ) -> TriggerBuilder<FINLimitOrderConfiguration> {
         self.configuration.target_price = target_price;
-        self
-    }
-
-    pub fn order_idx(mut self, order_idx: Uint128) -> TriggerBuilder<FINLimitOrderConfiguration> {
-        self.configuration.order_idx = order_idx;
         self
     }
 
