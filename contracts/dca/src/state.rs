@@ -50,7 +50,7 @@ pub fn fin_limit_order_triggers<'a>(
 ) -> IndexedMap<'a, u128, Trigger<FINLimitOrderConfiguration>, FINLimitOrderTriggerIndexes<'a>> {
     let indexes = FINLimitOrderTriggerIndexes {
         order_idx: UniqueIndex::new(
-            |d| u128::from(d.configuration.order_idx),
+            |d| d.configuration.order_idx.u128(),
             "fin_limit_order_triggers_order_idx_v1",
         ),
     };
