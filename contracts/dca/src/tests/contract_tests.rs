@@ -5,7 +5,7 @@ use cosmwasm_std::{attr, from_binary, Coin, Uint128, Uint64};
 
 use crate::contract::{execute, instantiate, query};
 use crate::msg::{
-    ExecuteMsg, ExecutionsResponse, InstantiateMsg, PairsResponse, QueryMsg, VaultResponse,
+    EventsResponse, ExecuteMsg, InstantiateMsg, PairsResponse, QueryMsg, VaultResponse,
     VaultsResponse,
 };
 
@@ -505,7 +505,10 @@ fn create_vault_with_time_trigger_and_no_funds_should_fail() {
     )
     .unwrap_err();
 
-    assert_eq!(result.to_string(), "Error: no funds were sent")
+    assert_eq!(
+        result.to_string(),
+        "Error: received 0 denoms but required exactly 1"
+    )
 }
 
 #[test]
@@ -1000,7 +1003,7 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
     )
     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
+    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllEventsByVaultId {
         vault_id: Uint128::new(1),
     };
     let binary = query(
@@ -1009,13 +1012,13 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
         get_all_executions_by_vault_id_query_message,
     )
     .unwrap();
-    let result: ExecutionsResponse = from_binary(&binary).unwrap();
+    let result: EventsResponse = from_binary(&binary).unwrap();
 
-    assert_eq!(result.executions.len(), 0);
+    assert_eq!(result.events.len(), 0);
 }
 
 #[test]
-fn get_all_executions_by_vault_id_for_non_existant_vault_should_fail() {
+fn get_all_events_by_vault_id_for_non_existant_vault_should_fail() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -1031,7 +1034,7 @@ fn get_all_executions_by_vault_id_for_non_existant_vault_should_fail() {
     )
     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllExecutionsByVaultId {
+    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllEventsByVaultId {
         vault_id: Uint128::new(1),
     };
     let binary = query(
@@ -1043,6 +1046,6 @@ fn get_all_executions_by_vault_id_for_non_existant_vault_should_fail() {
 
     assert_eq!(
         binary.to_string(),
-        "alloc::vec::Vec<base::executions::execution::Execution<base::executions::dca_execution::DCAExecutionInformation>> not found"
+        "alloc::vec::Vec<base::events::event::Event<base::events::dca_event::DCAEventInfo>> not found"
     );
 }

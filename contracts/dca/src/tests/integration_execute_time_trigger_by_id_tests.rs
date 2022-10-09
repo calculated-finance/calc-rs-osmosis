@@ -113,7 +113,7 @@ fn before_target_time_limit_should_fail() {
 
     assert_eq!(
         response.root_cause().to_string(),
-        "Error: vault execution time has not yet elapsed"
+        "Error: trigger execution time has not yet elapsed"
     );
 
     assert_address_balances(

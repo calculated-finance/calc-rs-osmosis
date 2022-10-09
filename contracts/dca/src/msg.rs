@@ -1,9 +1,9 @@
+use base::events::dca_event::DCAEventInfo;
+use base::events::event::Event;
 use cosmwasm_std::{Decimal256, Uint128, Uint64};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use base::executions::dca_execution::DCAExecutionInformation;
-use base::executions::execution::Execution;
 use base::pair::Pair;
 use base::triggers::time_configuration::TimeInterval;
 use base::triggers::trigger::Trigger;
@@ -47,6 +47,9 @@ pub enum ExecuteMsg {
         time_interval: TimeInterval,
         target_price: Decimal256,
     },
+    Deposit {
+        vault_id: Uint128,
+    },
     CancelVaultByAddressAndId {
         address: String,
         vault_id: Uint128,
@@ -67,7 +70,7 @@ pub enum QueryMsg {
     GetAllVaults {},
     GetVaultByAddressAndId { address: String, vault_id: Uint128 },
     GetAllVaultsByAddress { address: String },
-    GetAllExecutionsByVaultId { vault_id: Uint128 },
+    GetAllEventsByVaultId { vault_id: Uint128 },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -101,6 +104,6 @@ pub struct VaultsResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct ExecutionsResponse {
-    pub executions: Vec<Execution<DCAExecutionInformation>>,
+pub struct EventsResponse {
+    pub events: Vec<Event<DCAEventInfo>>,
 }

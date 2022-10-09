@@ -1,30 +1,5 @@
-// vaults balances do not actually go to zero after the last swap
-// create vaults that can be deposited into
-// vaults that can be topped up
-// vaults that can be cancelled
-// keep track of balance and swap amount
-// always try and swap
-// if the swap fails update vault status
-// if the vault amount is less than the swap amount then change vault status
-// keep track of vault creation time so inactive vaults can be automatically cleaned up infuture
-// could look at indexing triggers just by vault id
-
-use crate::error::ContractError;
-use crate::msg::{
-    ExecuteMsg, ExecutionsResponse, InstantiateMsg, MigrateMsg, PairsResponse, QueryMsg,
-    TriggersResponse, VaultResponse, VaultsResponse,
-};
-use crate::state::{
-    fin_limit_order_triggers, Cache, Config, LimitOrderCache, CACHE, CONFIG, EXECUTIONS,
-    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID, LIMIT_ORDER_CACHE, PAIRS, TIME_TRIGGERS,
-    TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID, VAULTS,
-};
-use crate::validation_helpers::{
-    validate_asset_denom_matches_pair_denom, validate_funds, validate_sender_is_admin,
-    validate_sender_is_admin_or_vault_owner, validate_swap_amount, validate_target_start_time,
-};
-use base::executions::dca_execution::DCAExecutionInformation;
-use base::executions::execution::{Execution, ExecutionBuilder};
+use base::events::dca_event::DCAEventInfo;
+use base::events::event::{Event, EventBuilder};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
 use base::helpers::time_helpers::{get_next_target_time, target_time_elapsed};
 use base::pair::Pair;
@@ -33,7 +8,6 @@ use base::triggers::time_configuration::{TimeConfiguration, TimeInterval};
 use base::triggers::trigger::{Trigger, TriggerBuilder, TriggerVariant};
 use base::vaults::dca_vault::{DCAConfiguration, DCAStatus, PositionType};
 use base::vaults::vault::{Vault, VaultBuilder};
-use cosmwasm_std::Decimal256;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env,
@@ -47,6 +21,24 @@ use fin_helpers::limit_orders::{
 use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
 use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
 
+use crate::error::ContractError;
+use crate::msg::{
+    EventsResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, PairsResponse, QueryMsg,
+    TriggersResponse, VaultResponse, VaultsResponse,
+};
+use crate::state::{
+    fin_limit_order_triggers, Cache, Config, LimitOrderCache, CACHE, CONFIG, EVENTS,
+    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID, LIMIT_ORDER_CACHE, PAIRS, TIME_TRIGGERS,
+    TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID, VAULTS,
+};
+use crate::validation_helpers::{
+    assert_denom_matches_pair_denom, assert_exactly_one_asset, assert_sender_is_admin,
+    assert_sender_is_admin_or_vault_owner, assert_swap_amount_is_less_than_or_equal_to_balance,
+    assert_target_start_time_is_in_future,
+};
+
+use cosmwasm_std::Decimal256;
+
 const CONTRACT_NAME: &str = "crates.io:calc-dca";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -57,10 +49,25 @@ const RETRACT_ORDER_REPLY_ID: u64 = 4;
 const CANCEL_TRIGGER_WITHDRAW_ORDER_REPLY_ID: u64 = 5;
 
 #[entry_point]
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
-    let config: Config = _msg.into();
-    config.validate(_deps.api)?;
-    CONFIG.save(_deps.storage, &config)?;
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
+
+    VAULTS.clear(deps.storage);
+    TIME_TRIGGERS.clear(deps.storage);
+    TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.clear(deps.storage);
+    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID.clear(deps.storage);
+    fin_limit_order_triggers().clear(deps.storage);
+    EVENTS.clear(deps.storage);
+    CONFIG.remove(deps.storage);
+    CACHE.remove(deps.storage);
+    LIMIT_ORDER_CACHE.remove(deps.storage);
+
+    let config = Config {
+        admin: deps.api.addr_validate(&msg.admin)?,
+        vault_count: Uint128::zero(),
+        trigger_count: Uint128::zero(),
+    };
+
+    CONFIG.save(deps.storage, &config)?;
     Ok(Response::default())
 }
 
@@ -71,8 +78,11 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let config = Config::from(msg.clone());
-    config.validate(deps.api)?;
+    let config = Config {
+        admin: deps.api.addr_validate(&msg.admin)?,
+        vault_count: Uint128::zero(),
+        trigger_count: Uint128::zero(),
+    };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     CONFIG.save(deps.storage, &config)?;
@@ -132,15 +142,16 @@ pub fn execute(
             time_interval,
             target_price,
         ),
+        ExecuteMsg::CancelVaultByAddressAndId { address, vault_id } => {
+            cancel_vault_by_address_and_id(deps, info, address, vault_id)
+        }
         ExecuteMsg::ExecuteTimeTriggerById { trigger_id } => {
             execute_time_trigger_by_id(deps, env, trigger_id)
         }
         ExecuteMsg::ExecuteFINLimitOrderTriggerByOrderIdx { order_idx } => {
             execute_fin_limit_order_trigger_by_order_idx(deps, env, order_idx)
         }
-        ExecuteMsg::CancelVaultByAddressAndId { address, vault_id } => {
-            cancel_vault_by_address_and_id(deps, info, address, vault_id)
-        }
+        ExecuteMsg::Deposit { vault_id } => deposit(deps, env, info, vault_id),
     }
 }
 
@@ -152,7 +163,7 @@ fn create_pair(
     base_denom: String,
     quote_denom: String,
 ) -> Result<Response, ContractError> {
-    validate_sender_is_admin(deps.as_ref(), info.sender)?;
+    assert_sender_is_admin(deps.as_ref(), info.sender)?;
 
     let validated_pair_address: Addr = deps.api.addr_validate(&address)?;
 
@@ -184,7 +195,7 @@ fn delete_pair(
     info: MessageInfo,
     address: String,
 ) -> Result<Response, ContractError> {
-    validate_sender_is_admin(deps.as_ref(), info.sender)?;
+    assert_sender_is_admin(deps.as_ref(), info.sender)?;
 
     let validated_pair_address: Addr = deps.api.addr_validate(&address)?;
 
@@ -206,7 +217,7 @@ fn create_vault_with_time_trigger(
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
 ) -> Result<Response, ContractError> {
-    validate_funds(info.funds.clone())?;
+    assert_exactly_one_asset(info.funds.clone())?;
 
     // if no target start time is given execute immediately
     let target_start_time: Timestamp = match target_start_time_utc_seconds {
@@ -214,18 +225,18 @@ fn create_vault_with_time_trigger(
         None => env.block.time,
     };
 
-    validate_target_start_time(env.block.time, target_start_time)?;
+    assert_target_start_time_is_in_future(env.block.time, target_start_time)?;
 
     let validated_pair_address = deps.api.addr_validate(&pair_address)?;
     let existing_pair = PAIRS.load(deps.storage, validated_pair_address)?;
 
-    validate_asset_denom_matches_pair_denom(
+    assert_denom_matches_pair_denom(
         existing_pair.clone(),
         info.funds.clone(),
         position_type.clone(),
     )?;
 
-    validate_swap_amount(swap_amount, info.funds[0].clone())?;
+    assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
 
     let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
         config.vault_count = config.vault_count.checked_add(Uint128::new(1))?;
@@ -259,7 +270,7 @@ fn create_vault_with_time_trigger(
 
     VAULTS.save(deps.storage, (info.sender, vault.id.u128()), &vault)?;
 
-    EXECUTIONS.save(deps.storage, vault.id.into(), &Vec::new())?;
+    EVENTS.save(deps.storage, vault.id.into(), &Vec::new())?;
 
     Ok(Response::new()
         .add_attribute("method", "create_vault_with_time_trigger")
@@ -279,18 +290,18 @@ fn create_vault_with_fin_limit_order_trigger(
     time_interval: TimeInterval,
     target_price: Decimal256,
 ) -> Result<Response, ContractError> {
-    validate_funds(info.funds.clone())?;
+    assert_exactly_one_asset(info.funds.clone())?;
 
     let validated_pair_address = deps.api.addr_validate(&pair_address)?;
     let existing_pair = PAIRS.load(deps.storage, validated_pair_address)?;
 
-    validate_asset_denom_matches_pair_denom(
+    assert_denom_matches_pair_denom(
         existing_pair.clone(),
         info.funds.clone(),
         position_type.clone(),
     )?;
 
-    validate_swap_amount(swap_amount, info.funds[0].clone())?;
+    assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
 
     let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
         config.vault_count = config.vault_count.checked_add(Uint128::new(1))?;
@@ -345,7 +356,7 @@ fn create_vault_with_fin_limit_order_trigger(
 
     VAULTS.save(deps.storage, (info.sender, vault.id.u128()), &vault)?;
 
-    EXECUTIONS.save(deps.storage, vault.id.into(), &Vec::new())?;
+    EVENTS.save(deps.storage, vault.id.into(), &Vec::new())?;
 
     let cache: Cache = Cache {
         vault_id: vault.id.clone(),
@@ -370,7 +381,7 @@ fn cancel_vault_by_address_and_id(
     let validated_address = deps.api.addr_validate(&address)?;
     let vault: Vault<DCAConfiguration, DCAStatus> =
         VAULTS.load(deps.storage, (validated_address.clone(), vault_id.into()))?;
-    validate_sender_is_admin_or_vault_owner(deps.as_ref(), vault.owner.clone(), info.sender)?;
+    assert_sender_is_admin_or_vault_owner(deps.as_ref(), vault.owner.clone(), info.sender)?;
 
     match vault.trigger_variant {
         TriggerVariant::Time => {
@@ -429,6 +440,79 @@ fn cancel_vault_by_address_and_id(
     }
 }
 
+fn deposit(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    vault_id: Uint128,
+) -> Result<Response, ContractError> {
+    assert_exactly_one_asset(info.funds.clone())?;
+    let vault = VAULTS.load(deps.storage, (info.sender.clone(), vault_id.into()))?;
+    if info.sender != vault.owner {
+        return Err(ContractError::Unauthorized {});
+    }
+    assert_denom_matches_pair_denom(
+        vault.configuration.pair.clone(),
+        info.funds.clone(),
+        vault.configuration.position_type.clone(),
+    )?;
+
+    VAULTS.update(
+        deps.storage,
+        (vault.owner.clone(), vault.id.into()),
+        |existing_vault| -> Result<Vault<DCAConfiguration, DCAStatus>, ContractError> {
+            match existing_vault {
+                Some(mut existing_vault) => {
+                    existing_vault.balances[0].amount += info.funds[0].amount;
+                    if !existing_vault.low_funds() {
+                        existing_vault.status = DCAStatus::Active
+                    }
+                    Ok(existing_vault)
+                }
+                None => Err(ContractError::CustomError {
+                    val: format!(
+                        "could not find vault for address: {} with id: {}",
+                        vault.owner.clone(),
+                        vault.id
+                    ),
+                }),
+            }
+        },
+    )?;
+
+    let events: Vec<Event<DCAEventInfo>> = EVENTS.load(deps.storage, vault.id.into())?;
+
+    let number_of_previous_events: u16 = events.len().try_into().unwrap();
+
+    let event = EventBuilder::new()
+        .vault_id(vault.id)
+        .sequence_id(number_of_previous_events + 1)
+        .block_height(env.block.height)
+        .success_deposit(info.funds[0].clone())
+        .build();
+
+    EVENTS.update(deps.storage, vault.id.into(), |existing_events: Option<Vec<Event<DCAEventInfo>>>| -> Result<Vec<Event<DCAEventInfo>>, ContractError> {
+            match existing_events {
+                Some(mut events) => {
+                    events.push(event);
+                    Ok(events)
+                },
+                None => {
+                    Err(
+                        ContractError::CustomError {
+                            val: format!(
+                                "could not find event history for vault with id: {}", 
+                                vault.id
+                            )
+                        }
+                    )
+                }
+            }
+        })?;
+
+    Ok(Response::new().add_attribute("method", "deposit"))
+}
+
 fn execute_time_trigger_by_id(
     deps: DepsMut,
     env: Env,
@@ -445,7 +529,7 @@ fn execute_time_trigger_by_id(
     // move this into validation method
     if !target_time_elapsed(env.block.time, trigger.configuration.target_time) {
         return Err(ContractError::CustomError {
-            val: String::from("vault execution time has not yet elapsed"),
+            val: String::from("trigger execution time has not yet elapsed"),
         });
     }
 
@@ -728,31 +812,30 @@ fn after_execute_trigger_withdraw_order(
                 amount: vec![coin_received_from_limit_order.clone()],
             };
 
-            let executions: Vec<Execution<DCAExecutionInformation>> =
-                EXECUTIONS.load(deps.storage, vault.id.into())?;
+            let events: Vec<Event<DCAEventInfo>> = EVENTS.load(deps.storage, vault.id.into())?;
 
-            let number_of_previous_executions: u16 = executions.len().try_into().unwrap();
+            let number_of_previous_events: u16 = events.len().try_into().unwrap();
 
-            let execution = ExecutionBuilder::new()
+            let event = EventBuilder::new()
                 .vault_id(vault.id)
-                .sequence_id(number_of_previous_executions + 1)
+                .sequence_id(number_of_previous_events + 1)
                 .block_height(env.block.height)
                 .success_fin_limit_order_trigger(
                     coin_sent_with_limit_order,
                     coin_received_from_limit_order,
                 )
                 .build();
-            EXECUTIONS.update(deps.storage, vault.id.into(), |existing_executions: Option<Vec<Execution<DCAExecutionInformation>>>| -> Result<Vec<Execution<DCAExecutionInformation>>, ContractError> {
-                match existing_executions {
-                    Some(mut executions) => {
-                        executions.push(execution);
-                        Ok(executions)
+            EVENTS.update(deps.storage, vault.id.into(), |existing_events: Option<Vec<Event<DCAEventInfo>>>| -> Result<Vec<Event<DCAEventInfo>>, ContractError> {
+                match existing_events {
+                    Some(mut events) => {
+                        events.push(event);
+                        Ok(events)
                     },
                     None => {
                         Err(
                             ContractError::CustomError {
                                 val: format!(
-                                    "could not find execution history for vault with id: {}",
+                                    "could not find event history for vault with id: {}", 
                                     cache.vault_id
                                 )
                             }
@@ -828,9 +911,8 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
     let vault = VAULTS.load(deps.storage, (cache.owner.clone(), cache.vault_id.into()))?;
     let trigger: Trigger<TimeConfiguration> =
         TIME_TRIGGERS.load(deps.storage, vault.trigger_id.into())?;
-    let executions: Vec<Execution<DCAExecutionInformation>> =
-        EXECUTIONS.load(deps.storage, vault.id.into())?;
-    let number_of_previous_executions: u16 = executions.len().try_into().unwrap();
+    let events: Vec<Event<DCAEventInfo>> = EVENTS.load(deps.storage, vault.id.into())?;
+    let number_of_previous_events: u16 = events.len().try_into().unwrap();
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
@@ -933,24 +1015,24 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
                 }
             })?;
 
-            let execution = ExecutionBuilder::new()
+            let event = EventBuilder::new()
                 .vault_id(vault.id)
-                .sequence_id(number_of_previous_executions + 1)
+                .sequence_id(number_of_previous_events + 1)
                 .block_height(env.block.height)
                 .success_time_trigger(coin_sent.clone(), coin_received.clone())
                 .build();
 
-            EXECUTIONS.update(deps.storage, vault.id.into(), |existing_executions: Option<Vec<Execution<DCAExecutionInformation>>>| -> Result<Vec<Execution<DCAExecutionInformation>>, ContractError> {
-                match existing_executions {
-                    Some(mut executions) => {
-                        executions.push(execution);
-                        Ok(executions)
+            EVENTS.update(deps.storage, vault.id.into(), |existing_events: Option<Vec<Event<DCAEventInfo>>>| -> Result<Vec<Event<DCAEventInfo>>, ContractError> {
+                match existing_events {
+                    Some(mut events) => {
+                        events.push(event);
+                        Ok(events)
                     },
                     None => {
                         Err(
                             ContractError::CustomError {
                                 val: format!(
-                                    "could not find execution history for vault with id: {}",
+                                    "could not find event history for vault with id: {}", 
                                     cache.vault_id
                                 )
                             }
@@ -962,38 +1044,35 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
             attributes.push(Attribute::new("status", "success"));
         }
         cosmwasm_std::SubMsgResult::Err(e) => {
-            let mut execution = ExecutionBuilder::new()
+            let mut event = EventBuilder::new()
                 .vault_id(vault.id)
-                .sequence_id(number_of_previous_executions + 1)
+                .sequence_id(number_of_previous_events + 1)
                 .block_height(env.block.height);
 
             if e.contains(ERROR_SWAP_SLIPPAGE) {
-                execution = execution.fail_slippage();
+                event = event.fail_slippage();
             } else if e.contains(ERROR_SWAP_INSUFFICIENT_FUNDS) {
-                execution = execution.fail_insufficient_funds();
+                event = event.fail_insufficient_funds();
             } else {
-                execution = execution.error();
+                event = event.error();
             }
 
             attributes.push(Attribute::new(
                 "status",
-                format!(
-                    "{:?}",
-                    execution.execution_information.clone().unwrap().result
-                ),
+                format!("{:?}", event.event_info.clone().unwrap().result),
             ));
 
-            EXECUTIONS.update(deps.storage, vault.id.into(), |existing_executions: Option<Vec<Execution<DCAExecutionInformation>>>| -> Result<Vec<Execution<DCAExecutionInformation>>, ContractError> {
-                match existing_executions {
-                    Some(mut executions) => {
-                        executions.push(execution.build());
-                        Ok(executions)
+            EVENTS.update(deps.storage, vault.id.into(), |existing_events: Option<Vec<Event<DCAEventInfo>>>| -> Result<Vec<Event<DCAEventInfo>>, ContractError> {
+                match existing_events {
+                    Some(mut events) => {
+                        events.push(event.build());
+                        Ok(events)
                     },
                     None => {
                         Err(
                             ContractError::CustomError {
                                 val: format!(
-                                    "could not find execution history for vault with id: {}",
+                                    "could not find event history for vault with id: {}",
                                     cache.vault_id
                                 )
                             }
@@ -1124,8 +1203,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetVaultByAddressAndId { address, vault_id } => {
             to_binary(&get_vault_by_address_and_id(deps, address, vault_id)?)
         }
-        QueryMsg::GetAllExecutionsByVaultId { vault_id } => {
-            to_binary(&get_all_executions_by_vault_id(deps, vault_id)?)
+        QueryMsg::GetAllEventsByVaultId { vault_id } => {
+            to_binary(&get_all_events_by_vault_id(deps, vault_id)?)
         }
     }
 }
@@ -1199,11 +1278,11 @@ fn get_vault_by_address_and_id(
     Ok(VaultResponse { vault })
 }
 
-fn get_all_executions_by_vault_id(deps: Deps, vault_id: Uint128) -> StdResult<ExecutionsResponse> {
-    let all_executions_on_heap: Vec<Execution<DCAExecutionInformation>> =
-        EXECUTIONS.load(deps.storage, vault_id.into())?;
+fn get_all_events_by_vault_id(deps: Deps, vault_id: Uint128) -> StdResult<EventsResponse> {
+    let all_events_on_heap: Vec<Event<DCAEventInfo>> =
+        EVENTS.load(deps.storage, vault_id.into())?;
 
-    Ok(ExecutionsResponse {
-        executions: all_executions_on_heap,
+    Ok(EventsResponse {
+        events: all_events_on_heap,
     })
 }
