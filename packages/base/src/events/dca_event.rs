@@ -2,18 +2,19 @@ use cosmwasm_std::{Coin, Uint128, Uint64};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::execution::{Execution, ExecutionBuilder};
+use super::event::{Event, EventBuilder};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct DCAExecutionInformation {
-    pub result: DCAExecutionResult,
+pub struct DCAEventInfo {
+    pub result: DCAEventResult,
     pub sent: Option<Coin>,
     pub received: Option<Coin>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub enum DCAExecutionResult {
+pub enum DCAEventResult {
+    SuccessDeposit,
     SuccessTimeTrigger,
     SuccessFINLimitOrderTrigger,
     SlippageToleranceExceeded,
@@ -21,14 +22,14 @@ pub enum DCAExecutionResult {
     Error,
 }
 
-impl ExecutionBuilder<DCAExecutionInformation> {
-    pub fn new() -> ExecutionBuilder<DCAExecutionInformation> {
-        ExecutionBuilder {
+impl EventBuilder<DCAEventInfo> {
+    pub fn new() -> EventBuilder<DCAEventInfo> {
+        EventBuilder {
             vault_id: Uint128::zero(),
             sequence_number: 0,
             block_height: Uint64::zero(),
-            execution_information: Some(DCAExecutionInformation {
-                result: DCAExecutionResult::SuccessTimeTrigger,
+            event_info: Some(DCAEventInfo {
+                result: DCAEventResult::SuccessTimeTrigger,
                 sent: Some(Coin {
                     denom: "".to_string(),
                     amount: Uint128::zero(),
@@ -41,7 +42,7 @@ impl ExecutionBuilder<DCAExecutionInformation> {
         }
     }
 
-    pub fn vault_id(mut self, vault_id: Uint128) -> ExecutionBuilder<DCAExecutionInformation> {
+    pub fn vault_id(mut self, vault_id: Uint128) -> EventBuilder<DCAEventInfo> {
         self.vault_id = vault_id;
         self
     }
@@ -49,13 +50,22 @@ impl ExecutionBuilder<DCAExecutionInformation> {
     pub fn sequence_id(
         mut self,
         sequence_number: u16,
-    ) -> ExecutionBuilder<DCAExecutionInformation> {
+    ) -> EventBuilder<DCAEventInfo> {
         self.sequence_number = sequence_number;
         self
     }
 
-    pub fn block_height(mut self, block_height: u64) -> ExecutionBuilder<DCAExecutionInformation> {
+    pub fn block_height(mut self, block_height: u64) -> EventBuilder<DCAEventInfo> {
         self.block_height = Uint64::new(block_height);
+        self
+    }
+
+    pub fn success_deposit(mut self, sent: Coin) -> EventBuilder<DCAEventInfo> {
+        self.event_info = Some(DCAEventInfo {
+            result: DCAEventResult::SuccessDeposit,
+            sent: Some(sent),
+            received: None,
+        });
         self
     }
 
@@ -63,9 +73,9 @@ impl ExecutionBuilder<DCAExecutionInformation> {
         mut self,
         sent: Coin,
         received: Coin,
-    ) -> ExecutionBuilder<DCAExecutionInformation> {
-        self.execution_information = Some(DCAExecutionInformation {
-            result: DCAExecutionResult::SuccessTimeTrigger,
+    ) -> EventBuilder<DCAEventInfo> {
+        self.event_info = Some(DCAEventInfo {
+            result: DCAEventResult::SuccessTimeTrigger,
             sent: Some(sent),
             received: Some(received),
         });
@@ -76,48 +86,48 @@ impl ExecutionBuilder<DCAExecutionInformation> {
         mut self,
         sent: Coin,
         received: Coin,
-    ) -> ExecutionBuilder<DCAExecutionInformation> {
-        self.execution_information = Some(DCAExecutionInformation {
-            result: DCAExecutionResult::SuccessFINLimitOrderTrigger,
+    ) -> EventBuilder<DCAEventInfo> {
+        self.event_info = Some(DCAEventInfo {
+            result: DCAEventResult::SuccessFINLimitOrderTrigger,
             sent: Some(sent),
             received: Some(received),
         });
         self
     }
 
-    pub fn fail_slippage(mut self) -> ExecutionBuilder<DCAExecutionInformation> {
-        self.execution_information = Some(DCAExecutionInformation {
-            result: DCAExecutionResult::SlippageToleranceExceeded,
+    pub fn fail_slippage(mut self) -> EventBuilder<DCAEventInfo> {
+        self.event_info = Some(DCAEventInfo {
+            result: DCAEventResult::SlippageToleranceExceeded,
             sent: None,
             received: None,
         });
         self
     }
 
-    pub fn fail_insufficient_funds(mut self) -> ExecutionBuilder<DCAExecutionInformation> {
-        self.execution_information = Some(DCAExecutionInformation {
-            result: DCAExecutionResult::InsufficientFunds,
+    pub fn fail_insufficient_funds(mut self) -> EventBuilder<DCAEventInfo> {
+        self.event_info = Some(DCAEventInfo {
+            result: DCAEventResult::InsufficientFunds,
             sent: None,
             received: None,
         });
         self
     }
 
-    pub fn error(mut self) -> ExecutionBuilder<DCAExecutionInformation> {
-        self.execution_information = Some(DCAExecutionInformation {
-            result: DCAExecutionResult::Error,
+    pub fn error(mut self) -> EventBuilder<DCAEventInfo> {
+        self.event_info = Some(DCAEventInfo {
+            result: DCAEventResult::Error,
             sent: None,
             received: None,
         });
         self
     }
 
-    pub fn build(self) -> Execution<DCAExecutionInformation> {
-        Execution {
+    pub fn build(self) -> Event<DCAEventInfo> {
+        Event {
             vault_id: self.vault_id,
             sequence_number: self.sequence_number,
             block_height: self.block_height,
-            execution_information: self.execution_information,
+            event_info: self.event_info,
         }
     }
 }
