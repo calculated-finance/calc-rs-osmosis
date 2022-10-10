@@ -1,12 +1,13 @@
-use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
+use crate::msg::{EventsResponse, ExecuteMsg, QueryMsg};
 use crate::tests::helpers::{
     assert_address_balances, assert_response_events, assert_vault_balance,
 };
 use crate::tests::mocks::{fin_contract_default, MockApp, DENOM_UKUJI, DENOM_UTEST, USER};
+use base::events::event::{EventBuilder, EventData};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::time_configuration::TimeInterval;
 use base::vaults::dca_vault::PositionType;
-use cosmwasm_std::{Addr, Coin, Decimal256, Event, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal256, Uint128};
 use cw_multi_test::Executor;
 use std::str::FromStr;
 
@@ -31,8 +32,7 @@ fn should_succeed() {
         ],
     );
 
-    let create_vault_response = mock
-        .app
+    mock.app
         .execute_contract(
             Addr::unchecked(USER),
             mock.dca_contract_address.clone(),
@@ -63,38 +63,30 @@ fn should_succeed() {
         ],
     );
 
-    let vault_response: VaultResponse = mock
+    let vault_id = Uint128::new(1);
+
+    let events_response: EventsResponse = mock
         .app
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &QueryMsg::GetVaultByAddressAndId {
+            &QueryMsg::GetEventsByAddressAndResourceId {
                 address: user_address.to_string(),
-                vault_id: Uint128::new(1),
+                resource_id: vault_id,
             },
         )
         .unwrap();
 
     assert_response_events(
-        &create_vault_response.events,
-        &[
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "create_vault_with_fin_limit_order_trigger")
-                .add_attribute("owner", USER)
-                .add_attribute("vault_id", vault_response.vault.id.to_string()),
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "after_submit_order")
-                .add_attribute("trigger_id", vault_response.vault.trigger_id.to_string()),
-        ],
+        &events_response.events,
+        &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCreated).build(1)],
     );
 
     assert_vault_balance(
         &mock,
         &mock.dca_contract_address,
         &user_address,
-        Uint128::new(1),
+        vault_id,
         Uint128::new(100),
     );
 }
@@ -150,24 +142,26 @@ fn twice_for_user_should_succeed() {
         ],
     );
 
-    let wasm_data = get_flat_map_for_event_type(&create_vault_response.events, "wasm").unwrap();
+    let vault_id = Uint128::from_str(
+        &get_flat_map_for_event_type(&create_vault_response.events, "wasm").unwrap()["vault_id"],
+    )
+    .unwrap();
 
-    let vault_id = &wasm_data["vault_id"];
-    let trigger_id = &wasm_data["trigger_id"];
+    let events_response: EventsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetEventsByAddressAndResourceId {
+                address: user_address.to_string(),
+                resource_id: vault_id,
+            },
+        )
+        .unwrap();
 
     assert_response_events(
-        &create_vault_response.events,
-        &[
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "create_vault_with_fin_limit_order_trigger")
-                .add_attribute("owner", USER)
-                .add_attribute("vault_id", vault_id),
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "after_submit_order")
-                .add_attribute("trigger_id", trigger_id),
-        ],
+        &events_response.events,
+        &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCreated).build(2)],
     );
 
     assert_vault_balance(

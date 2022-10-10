@@ -150,9 +150,9 @@ pub fn execute(
             execute_time_trigger_by_id(deps, env, trigger_id)
         }
         ExecuteMsg::ExecuteFINLimitOrderTriggerByOrderIdx { order_idx } => {
-            execute_fin_limit_order_trigger_by_order_idx(deps, env, order_idx)
+            execute_fin_limit_order_trigger_by_order_idx(deps, order_idx)
         }
-        ExecuteMsg::Deposit { vault_id } => deposit(deps, env, info, vault_id),
+        ExecuteMsg::Deposit { vault_id } => deposit(deps, info, vault_id),
     }
 }
 
@@ -272,12 +272,7 @@ fn create_vault_with_time_trigger(
 
     save_event(
         deps.storage,
-        EventBuilder::new(
-            vault.owner.clone(),
-            vault.id,
-            env.block.height.into(),
-            EventData::VaultCreated,
-        ),
+        EventBuilder::new(vault.owner.clone(), vault.id, EventData::VaultCreated),
     )?;
 
     Ok(Response::new()
@@ -362,12 +357,7 @@ fn create_vault_with_fin_limit_order_trigger(
 
     save_event(
         deps.storage,
-        EventBuilder::new(
-            vault.owner.clone(),
-            vault.id,
-            env.block.height.into(),
-            EventData::VaultCreated,
-        ),
+        EventBuilder::new(vault.owner.clone(), vault.id, EventData::VaultCreated),
     )?;
 
     let cache: Cache = Cache {
@@ -405,6 +395,11 @@ fn cancel_vault_by_address_and_id(
             };
 
             VAULTS.remove(deps.storage, (vault.owner.clone(), vault.id.into()));
+
+            save_event(
+                deps.storage,
+                EventBuilder::new(vault.owner.clone(), vault.id, EventData::VaultCancelled),
+            )?;
 
             Ok(Response::new()
                 .add_attribute("method", "cancel_vault_by_address_and_id")
@@ -451,12 +446,7 @@ fn cancel_vault_by_address_and_id(
     }
 }
 
-fn deposit(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    vault_id: Uint128,
-) -> Result<Response, ContractError> {
+fn deposit(deps: DepsMut, info: MessageInfo, vault_id: Uint128) -> Result<Response, ContractError> {
     assert_exactly_one_asset(info.funds.clone())?;
     let vault = VAULTS.load(deps.storage, (info.sender.clone(), vault_id.into()))?;
     if info.sender != vault.owner {
@@ -496,7 +486,6 @@ fn deposit(
         EventBuilder::new(
             vault.owner,
             vault.id,
-            env.block.height.into(),
             EventData::FundsDepositedToVault {
                 amount: info.funds[0].clone(),
             },
@@ -553,7 +542,6 @@ fn execute_time_trigger_by_id(
             EventBuilder::new(
                 vault.owner.clone(),
                 vault.id,
-                env.block.height.into(),
                 EventData::VaultExecutionSkipped {
                     reason: ExecutionSkippedReason::InsufficientFunds,
                 },
@@ -598,7 +586,6 @@ fn execute_time_trigger_by_id(
         EventBuilder::new(
             vault.owner.clone(),
             vault.id,
-            env.block.height.into(),
             EventData::VaultExecutionTriggered {
                 trigger_id: trigger.id,
             },
@@ -612,7 +599,6 @@ fn execute_time_trigger_by_id(
 
 fn execute_fin_limit_order_trigger_by_order_idx(
     deps: DepsMut,
-    env: Env,
     order_idx: Uint128,
 ) -> Result<Response, ContractError> {
     let trigger = FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, order_idx.u128())?;
@@ -659,7 +645,6 @@ fn execute_fin_limit_order_trigger_by_order_idx(
         EventBuilder::new(
             vault.owner.clone(),
             vault.id,
-            env.block.height.into(),
             EventData::VaultExecutionTriggered {
                 trigger_id: trigger.id,
             },
@@ -677,7 +662,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
         SWAP_REPLY_ID => after_swap(deps, env, reply),
         SUBMIT_ORDER_REPLY_ID => after_submit_order(deps, env, reply),
         EXECUTE_TRIGGER_WITHDRAW_ORDER_REPLY_ID => {
-            after_execute_trigger_withdraw_order(deps, env, reply)
+            after_execute_trigger_withdraw_order(deps, reply)
         }
         RETRACT_ORDER_REPLY_ID => after_retract_order(deps, env, reply),
         CANCEL_TRIGGER_WITHDRAW_ORDER_REPLY_ID => {
@@ -757,7 +742,6 @@ fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response
 
 fn after_execute_trigger_withdraw_order(
     deps: DepsMut,
-    env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
@@ -826,7 +810,6 @@ fn after_execute_trigger_withdraw_order(
                 EventBuilder::new(
                     vault.owner.clone(),
                     vault.id,
-                    env.block.height.into(),
                     EventData::VaultExecutionCompleted {
                         sent: Coin {
                             denom: vault.get_swap_denom().clone(),
@@ -1005,7 +988,6 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
                 EventBuilder::new(
                     vault.owner.clone(),
                     vault.id,
-                    env.block.height.into(),
                     EventData::VaultExecutionCompleted {
                         sent: coin_sent.clone(),
                         received: coin_received.clone(),
@@ -1021,7 +1003,6 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
                 EventBuilder::new(
                     vault.owner.clone(),
                     vault.id,
-                    env.block.height.into(),
                     EventData::VaultExecutionSkipped {
                         reason: if e.contains(ERROR_SWAP_SLIPPAGE) {
                             ExecutionSkippedReason::SlippageToleranceExceeded
@@ -1088,6 +1069,11 @@ fn after_retract_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Respons
                     .value
                     .parse::<Uint128>()
                     .unwrap();
+
+            save_event(
+                deps.storage,
+                EventBuilder::new(vault.owner.clone(), vault.id, EventData::VaultCancelled),
+            )?;
 
             // if the entire amount isnt retracted, order was partially filled need to send the partially filled assets to user
             if amount_retracted != limit_order_cache.original_offer_amount {

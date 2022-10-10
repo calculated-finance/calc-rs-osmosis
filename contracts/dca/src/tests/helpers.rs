@@ -1,6 +1,7 @@
 use super::mocks::MockApp;
 use crate::msg::{QueryMsg, VaultResponse};
-use cosmwasm_std::{Addr, Event, Uint128};
+use base::events::event::Event;
+use cosmwasm_std::{Addr, Uint128};
 
 pub fn assert_address_balances(app: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {
     address_balances

@@ -1,11 +1,12 @@
-use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse};
+use crate::msg::{EventsResponse, ExecuteMsg, QueryMsg, TriggersResponse};
 use crate::tests::helpers::{
     assert_address_balances, assert_response_events, assert_vault_balance,
 };
 use crate::tests::mocks::{fin_contract_default, MockApp, DENOM_UKUJI, DENOM_UTEST, USER};
+use base::events::event::{EventBuilder, EventData};
 use base::triggers::time_configuration::{TimeConfiguration, TimeInterval};
 use base::vaults::dca_vault::PositionType;
-use cosmwasm_std::{Addr, Coin, Event, Timestamp, Uint128, Uint64};
+use cosmwasm_std::{Addr, Coin, Timestamp, Uint128, Uint64};
 use cw_multi_test::Executor;
 
 #[test]
@@ -31,8 +32,7 @@ fn should_succeed() {
 
     let target_start_time = mock.app.block_info().time.plus_seconds(2);
 
-    let response = mock
-        .app
+    mock.app
         .execute_contract(
             Addr::unchecked(USER),
             mock.dca_contract_address.clone(),
@@ -63,14 +63,23 @@ fn should_succeed() {
         ],
     );
 
+    let vault_id = Uint128::new(1);
+
+    let events_response: EventsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetEventsByAddressAndResourceId {
+                address: user_address.to_string(),
+                resource_id: vault_id,
+            },
+        )
+        .unwrap();
+
     assert_response_events(
-        &response.events,
-        &[Event::new("wasm")
-            .add_attribute("_contract_addr", &mock.dca_contract_address)
-            .add_attribute("method", "create_vault_with_time_trigger")
-            .add_attribute("id", "1")
-            .add_attribute("owner", USER)
-            .add_attribute("vault_id", "1")],
+        &events_response.events,
+        &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCreated).build(1)],
     );
 
     assert_vault_balance(

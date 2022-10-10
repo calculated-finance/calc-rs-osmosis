@@ -1,8 +1,7 @@
+use crate::triggers::trigger::TriggerVariant;
 use cosmwasm_std::{Addr, Coin, Timestamp, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use crate::triggers::trigger::TriggerVariant;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Vault<T, S> {

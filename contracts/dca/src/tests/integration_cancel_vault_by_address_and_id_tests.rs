@@ -1,10 +1,11 @@
-use crate::msg::{ExecuteMsg, QueryMsg, VaultsResponse};
+use crate::msg::{EventsResponse, ExecuteMsg, QueryMsg, VaultsResponse};
 use crate::tests::helpers::{assert_address_balances, assert_response_events};
 use crate::tests::mocks::{
     fin_contract_default, fin_contract_partially_filled_order, MockApp, ADMIN, DENOM_UKUJI,
     DENOM_UTEST, USER,
 };
-use cosmwasm_std::{Addr, Event, Uint128};
+use base::events::event::{EventBuilder, EventData};
+use cosmwasm_std::{Addr, Uint128};
 use cw_multi_test::Executor;
 
 #[test]
@@ -26,8 +27,7 @@ fn when_vault_has_unfulfilled_price_trigger_should_succeed() {
         ],
     );
 
-    let cancel_vault_by_address_and_id_response = mock
-        .app
+    mock.app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
@@ -51,20 +51,23 @@ fn when_vault_has_unfulfilled_price_trigger_should_succeed() {
         ],
     );
 
+    let vault_id = Uint128::new(1);
+
+    let events_response: EventsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetEventsByAddressAndResourceId {
+                address: user_address.to_string(),
+                resource_id: vault_id,
+            },
+        )
+        .unwrap();
+
     assert_response_events(
-        &cancel_vault_by_address_and_id_response.events,
-        &[
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "cancel_vault_by_address_and_id"),
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.fin_contract_address)
-                .add_attribute("amount", "10"),
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "after_retract_order")
-                .add_attribute("withdraw_required", "false"),
-        ],
+        &events_response.events,
+        &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock
@@ -95,14 +98,15 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
         ],
     );
 
-    let cancel_vault_by_address_and_id_response = mock
-        .app
+    let vault_id = mock.vault_ids.get("fin").unwrap().vault_id;
+
+    mock.app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
+                vault_id,
             },
             &[],
         )
@@ -120,20 +124,21 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
         ],
     );
 
+    let events_response: EventsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetEventsByAddressAndResourceId {
+                address: user_address.to_string(),
+                resource_id: vault_id,
+            },
+        )
+        .unwrap();
+
     assert_response_events(
-        &cancel_vault_by_address_and_id_response.events,
-        &[
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "cancel_vault_by_address_and_id"),
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.fin_contract_address)
-                .add_attribute("amount", "5"),
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "after_retract_order")
-                .add_attribute("withdraw_required", "true"),
-        ],
+        &events_response.events,
+        &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock
@@ -164,14 +169,15 @@ fn when_vault_has_time_trigger_should_succeed() {
         ],
     );
 
-    let cancel_vault_by_address_and_id_response = mock
-        .app
+    let vault_id = mock.vault_ids.get("fin").unwrap().vault_id;
+
+    mock.app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
+                vault_id,
             },
             &[],
         )
@@ -189,19 +195,21 @@ fn when_vault_has_time_trigger_should_succeed() {
         ],
     );
 
+    let events_response: EventsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetEventsByAddressAndResourceId {
+                address: user_address.to_string(),
+                resource_id: vault_id,
+            },
+        )
+        .unwrap();
+
     assert_response_events(
-        &cancel_vault_by_address_and_id_response.events,
-        &[
-            Event::new("wasm")
-                .add_attribute("_contract_addr", &mock.dca_contract_address)
-                .add_attribute("method", "cancel_vault_by_address_and_id")
-                .add_attribute("owner", USER)
-                .add_attribute("vault_id", "1"),
-            Event::new("transfer")
-                .add_attribute("recipient", USER)
-                .add_attribute("sender", &mock.dca_contract_address)
-                .add_attribute("amount", "100ukuji"),
-        ],
+        &events_response.events,
+        &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock

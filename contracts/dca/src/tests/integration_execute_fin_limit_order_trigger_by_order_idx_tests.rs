@@ -1,4 +1,4 @@
-use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
+use crate::msg::{EventsResponse, ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
 use crate::tests::helpers::{
     assert_address_balances, assert_response_events, assert_vault_balance,
 };
@@ -6,8 +6,9 @@ use crate::tests::mocks::{
     fin_contract_default, fin_contract_partially_filled_order, MockApp, ADMIN, DENOM_UKUJI,
     DENOM_UTEST, USER,
 };
+use base::events::event::{EventBuilder, EventData};
 use base::triggers::time_configuration::{TimeConfiguration, TimeInterval};
-use cosmwasm_std::{Addr, Coin, Event, Uint128};
+use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
 #[test]
@@ -29,6 +30,8 @@ fn should_succeed() {
         ],
     );
 
+    let vault_id = mock.vault_ids.get("fin").unwrap().vault_id;
+
     let vault_response: VaultResponse = mock
         .app
         .wrap()
@@ -36,13 +39,12 @@ fn should_succeed() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
+                vault_id,
             },
         )
         .unwrap();
 
-    let response = mock
-        .app
+    mock.app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
@@ -65,16 +67,38 @@ fn should_succeed() {
         ],
     );
 
+    let events_response: EventsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetEventsByAddressAndResourceId {
+                address: user_address.to_string(),
+                resource_id: vault_id,
+            },
+        )
+        .unwrap();
+
     assert_response_events(
-        &response.events,
+        &events_response.events,
         &[
-            Event::new("wasm")
-                .add_attribute("_contract_addr", mock.dca_contract_address.to_string())
-                .add_attribute("method", "execute_fin_limit_order_trigger_by_order_idx"),
-            Event::new("wasm")
-                .add_attribute("_contract_addr", mock.dca_contract_address.to_string())
-                .add_attribute("method", "after_withdraw_order")
-                .add_attribute("trigger_id", "2"),
+            EventBuilder::new(
+                user_address.clone(),
+                vault_id,
+                EventData::VaultExecutionTriggered {
+                    trigger_id: vault_response.vault.trigger_id,
+                },
+            )
+            .build(2),
+            EventBuilder::new(
+                user_address.clone(),
+                vault_id,
+                EventData::VaultExecutionCompleted {
+                    sent: Coin::new(10, DENOM_UKUJI),
+                    received: Coin::new(10, DENOM_UTEST),
+                },
+            )
+            .build(3),
         ],
     );
 
