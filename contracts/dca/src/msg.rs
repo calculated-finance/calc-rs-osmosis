@@ -1,4 +1,3 @@
-use base::events::dca_event::DCAEventInfo;
 use base::events::event::Event;
 use cosmwasm_std::{Decimal256, Uint128, Uint64};
 use schemars::JsonSchema;
@@ -65,12 +64,20 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    GetAllPairs {},
-    GetAllTimeTriggers {},
-    GetAllVaults {},
-    GetVaultByAddressAndId { address: String, vault_id: Uint128 },
-    GetAllVaultsByAddress { address: String },
-    GetAllEventsByVaultId { vault_id: Uint128 },
+    GetPairs {},
+    GetTimeTriggers {},
+    GetVaults {},
+    GetVaultByAddressAndId {
+        address: String,
+        vault_id: Uint128,
+    },
+    GetVaultsByAddress {
+        address: String,
+    },
+    GetEventsByAddressAndResourceId {
+        address: String,
+        resource_id: Uint128,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -105,5 +112,5 @@ pub struct VaultsResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct EventsResponse {
-    pub events: Vec<Event<DCAEventInfo>>,
+    pub events: Vec<Event>,
 }

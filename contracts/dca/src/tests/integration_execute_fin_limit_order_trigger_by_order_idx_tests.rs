@@ -34,9 +34,9 @@ fn should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
+            &&QueryMsg::GetVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids["fin"],
+                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
             },
         )
         .unwrap();
@@ -124,9 +124,9 @@ fn when_order_partially_filled_should_fail() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
+            &&QueryMsg::GetVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids["fin"],
+                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
             },
         )
         .unwrap();
@@ -202,9 +202,9 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
+            &&QueryMsg::GetVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids["fin"],
+                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
             },
         )
         .unwrap();
@@ -225,9 +225,9 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
+            &&QueryMsg::GetVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids["fin"],
+                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
             },
         )
         .unwrap();

@@ -39,7 +39,7 @@ pub fn assert_vault_balance(
         .wrap()
         .query_wasm_smart(
             contract_address,
-            &QueryMsg::GetVault {
+            &QueryMsg::GetVaultByAddressAndId {
                 address: owner.to_string(),
                 vault_id,
             },

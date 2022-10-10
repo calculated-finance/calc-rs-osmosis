@@ -33,7 +33,7 @@ fn when_vault_has_unfulfilled_price_trigger_should_succeed() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids["fin"],
+                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
             },
             &[],
         )
@@ -102,7 +102,7 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids["fin"],
+                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
             },
             &[],
         )
@@ -171,7 +171,7 @@ fn when_vault_has_time_trigger_should_succeed() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids["fin"],
+                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
             },
             &[],
         )

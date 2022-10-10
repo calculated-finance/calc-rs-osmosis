@@ -1,6 +1,7 @@
-use base::events::dca_event::DCAEventInfo;
-use base::events::event::{Event, EventBuilder};
-use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
+use base::events::event::{Event, EventBuilder, EventData, ExecutionSkippedReason};
+use base::helpers::message_helpers::{
+    find_first_attribute_by_key, find_first_event_by_type, get_flat_map_for_event_type,
+};
 use base::helpers::time_helpers::{get_next_target_time, target_time_elapsed};
 use base::pair::Pair;
 use base::triggers::fin_limit_order_configuration::FINLimitOrderConfiguration;
@@ -20,6 +21,7 @@ use fin_helpers::limit_orders::{
 };
 use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
 use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
+use std::str::FromStr;
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -27,9 +29,9 @@ use crate::msg::{
     TriggersResponse, VaultResponse, VaultsResponse,
 };
 use crate::state::{
-    fin_limit_order_triggers, Cache, Config, LimitOrderCache, CACHE, CONFIG, EVENTS,
-    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID, LIMIT_ORDER_CACHE, PAIRS, TIME_TRIGGERS,
-    TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID, VAULTS,
+    event_store, save_event, Cache, Config, LimitOrderCache, CACHE, CONFIG,
+    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID, FIN_LIMIT_ORDER_TRIGGERS, LIMIT_ORDER_CACHE, PAIRS,
+    TIME_TRIGGERS, TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID, VAULTS,
 };
 use crate::validation_helpers::{
     assert_denom_matches_pair_denom, assert_exactly_one_asset, assert_sender_is_admin,
@@ -37,7 +39,7 @@ use crate::validation_helpers::{
     assert_target_start_time_is_in_future,
 };
 
-use cosmwasm_std::Decimal256;
+use cosmwasm_std::{Decimal256, Order};
 
 const CONTRACT_NAME: &str = "crates.io:calc-dca";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -50,13 +52,12 @@ const CANCEL_TRIGGER_WITHDRAW_ORDER_REPLY_ID: u64 = 5;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
-
     VAULTS.clear(deps.storage);
     TIME_TRIGGERS.clear(deps.storage);
     TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.clear(deps.storage);
     FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID.clear(deps.storage);
-    fin_limit_order_triggers().clear(deps.storage);
-    EVENTS.clear(deps.storage);
+    FIN_LIMIT_ORDER_TRIGGERS.clear(deps.storage);
+    event_store().clear(deps.storage);
     CONFIG.remove(deps.storage);
     CACHE.remove(deps.storage);
     LIMIT_ORDER_CACHE.remove(deps.storage);
@@ -269,7 +270,15 @@ fn create_vault_with_time_trigger(
 
     VAULTS.save(deps.storage, (info.sender, vault.id.u128()), &vault)?;
 
-    EVENTS.save(deps.storage, vault.id.into(), &Vec::new())?;
+    save_event(
+        deps.storage,
+        EventBuilder::new(
+            vault.owner.clone(),
+            vault.id,
+            env.block.height.into(),
+            EventData::VaultCreated,
+        ),
+    )?;
 
     Ok(Response::new()
         .add_attribute("method", "create_vault_with_time_trigger")
@@ -351,7 +360,15 @@ fn create_vault_with_fin_limit_order_trigger(
 
     VAULTS.save(deps.storage, (info.sender, vault.id.u128()), &vault)?;
 
-    EVENTS.save(deps.storage, vault.id.into(), &Vec::new())?;
+    save_event(
+        deps.storage,
+        EventBuilder::new(
+            vault.owner.clone(),
+            vault.id,
+            env.block.height.into(),
+            EventData::VaultCreated,
+        ),
+    )?;
 
     let cache: Cache = Cache {
         vault_id: vault.id.clone(),
@@ -474,35 +491,17 @@ fn deposit(
         },
     )?;
 
-    let events: Vec<Event<DCAEventInfo>> = EVENTS.load(deps.storage, vault.id.into())?;
-
-    let number_of_previous_events: u16 = events.len().try_into().unwrap();
-
-    let event = EventBuilder::new()
-        .vault_id(vault.id)
-        .sequence_id(number_of_previous_events + 1)
-        .block_height(env.block.height)
-        .success_deposit(info.funds[0].clone())
-        .build();
-
-    EVENTS.update(deps.storage, vault.id.into(), |existing_events: Option<Vec<Event<DCAEventInfo>>>| -> Result<Vec<Event<DCAEventInfo>>, ContractError> {
-            match existing_events {
-                Some(mut events) => {
-                    events.push(event);
-                    Ok(events)
-                },
-                None => {
-                    Err(
-                        ContractError::CustomError {
-                            val: format!(
-                                "could not find event history for vault with id: {}",
-                                vault.id
-                            )
-                        }
-                    )
-                }
-            }
-        })?;
+    save_event(
+        deps.storage,
+        EventBuilder::new(
+            vault.owner,
+            vault.id,
+            env.block.height.into(),
+            EventData::FundsDeposited {
+                amount: info.funds[0].clone(),
+            },
+        ),
+    )?;
 
     Ok(Response::new().add_attribute("method", "deposit"))
 }
@@ -645,7 +644,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
         SWAP_REPLY_ID => after_swap(deps, env, reply),
         SUBMIT_ORDER_REPLY_ID => after_submit_order(deps, env, reply),
         EXECUTE_TRIGGER_WITHDRAW_ORDER_REPLY_ID => {
-            after_execute_trigger_withdraw_order(deps, env, reply)
+            after_execute_trigger_withdraw_order(deps, reply)
         }
         RETRACT_ORDER_REPLY_ID => after_retract_order(deps, env, reply),
         CANCEL_TRIGGER_WITHDRAW_ORDER_REPLY_ID => {
@@ -660,14 +659,10 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
 fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
-            println!("resply {:?}", reply);
-
             let fin_submit_order_response = reply.result.into_result().unwrap();
 
             let x =
                 &get_flat_map_for_event_type(&fin_submit_order_response.events, "wasm").unwrap();
-
-            println!("{:?}", x);
 
             let order_idx = Uint128::from_str(
                 &get_flat_map_for_event_type(&fin_submit_order_response.events, "wasm").unwrap()
@@ -710,8 +705,6 @@ fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response
                 },
             )?;
 
-            println!("savign fin limit ordr {:?}", fin_limit_order_trigger);
-
             FIN_LIMIT_ORDER_TRIGGERS.save(
                 deps.storage,
                 fin_limit_order_trigger.id.u128(),
@@ -734,7 +727,6 @@ fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response
 
 fn after_execute_trigger_withdraw_order(
     deps: DepsMut,
-    env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
@@ -788,11 +780,6 @@ fn after_execute_trigger_withdraw_order(
                 },
             )?;
 
-            let coin_sent_with_limit_order = Coin {
-                denom: vault.get_swap_denom().clone(),
-                amount: limit_order_cache.original_offer_amount,
-            };
-
             let coin_received_from_limit_order = Coin {
                 denom: vault.get_receive_denom().clone(),
                 amount: limit_order_cache.filled,
@@ -803,37 +790,6 @@ fn after_execute_trigger_withdraw_order(
                 amount: vec![coin_received_from_limit_order.clone()],
             };
 
-            let events: Vec<Event<DCAEventInfo>> = EVENTS.load(deps.storage, vault.id.into())?;
-
-            let number_of_previous_events: u16 = events.len().try_into().unwrap();
-
-            let event = EventBuilder::new()
-                .vault_id(vault.id)
-                .sequence_id(number_of_previous_events + 1)
-                .block_height(env.block.height)
-                .success_fin_limit_order_trigger(
-                    coin_sent_with_limit_order,
-                    coin_received_from_limit_order,
-                )
-                .build();
-            EVENTS.update(deps.storage, vault.id.into(), |existing_events: Option<Vec<Event<DCAEventInfo>>>| -> Result<Vec<Event<DCAEventInfo>>, ContractError> {
-                match existing_events {
-                    Some(mut events) => {
-                        events.push(event);
-                        Ok(events)
-                    },
-                    None => {
-                        Err(
-                            ContractError::CustomError {
-                                val: format!(
-                                    "could not find event history for vault with id: {}",
-                                    cache.vault_id
-                                )
-                            }
-                        )
-                    }
-                }
-            })?;
             LIMIT_ORDER_CACHE.remove(deps.storage);
             CACHE.remove(deps.storage);
             Ok(Response::new()
@@ -900,8 +856,6 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
     let vault = VAULTS.load(deps.storage, (cache.owner.clone(), cache.vault_id.into()))?;
     let trigger: Trigger<TimeConfiguration> =
         TIME_TRIGGERS.load(deps.storage, vault.trigger_id.into())?;
-    let events: Vec<Event<DCAEventInfo>> = EVENTS.load(deps.storage, vault.id.into())?;
-    let number_of_previous_events: u16 = events.len().try_into().unwrap();
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
@@ -999,71 +953,41 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
                 }
             })?;
 
-            let event = EventBuilder::new()
-                .vault_id(vault.id)
-                .sequence_id(number_of_previous_events + 1)
-                .block_height(env.block.height)
-                .success_time_trigger(coin_sent.clone(), coin_received.clone())
-                .build();
-
-            EVENTS.update(deps.storage, vault.id.into(), |existing_events: Option<Vec<Event<DCAEventInfo>>>| -> Result<Vec<Event<DCAEventInfo>>, ContractError> {
-                match existing_events {
-                    Some(mut events) => {
-                        events.push(event);
-                        Ok(events)
+            save_event(
+                deps.storage,
+                EventBuilder::new(
+                    vault.owner.clone(),
+                    vault.id,
+                    env.block.height.into(),
+                    EventData::ExecutionCompleted {
+                        sent: coin_sent.clone(),
+                        received: coin_received.clone(),
                     },
-                    None => {
-                        Err(
-                            ContractError::CustomError {
-                                val: format!(
-                                    "could not find event history for vault with id: {}",
-                                    cache.vault_id
-                                )
-                            }
-                        )
-                    }
-                }
-            })?;
+                ),
+            )?;
 
             attributes.push(Attribute::new("status", "success"));
         }
         cosmwasm_std::SubMsgResult::Err(e) => {
-            let mut event = EventBuilder::new()
-                .vault_id(vault.id)
-                .sequence_id(number_of_previous_events + 1)
-                .block_height(env.block.height);
-
-            if e.contains(ERROR_SWAP_SLIPPAGE) {
-                event = event.fail_slippage();
-            } else if e.contains(ERROR_SWAP_INSUFFICIENT_FUNDS) {
-                event = event.fail_insufficient_funds();
-            } else {
-                event = event.error();
-            }
-
-            attributes.push(Attribute::new(
-                "status",
-                format!("{:?}", event.event_info.clone().unwrap().result),
-            ));
-
-            EVENTS.update(deps.storage, vault.id.into(), |existing_events: Option<Vec<Event<DCAEventInfo>>>| -> Result<Vec<Event<DCAEventInfo>>, ContractError> {
-                match existing_events {
-                    Some(mut events) => {
-                        events.push(event.build());
-                        Ok(events)
+            save_event(
+                deps.storage,
+                EventBuilder::new(
+                    vault.owner.clone(),
+                    vault.id,
+                    env.block.height.into(),
+                    EventData::ExecutionSkipped {
+                        reason: if e.contains(ERROR_SWAP_SLIPPAGE) {
+                            ExecutionSkippedReason::SlippageToleranceExceeded
+                        } else if e.contains(ERROR_SWAP_INSUFFICIENT_FUNDS) {
+                            ExecutionSkippedReason::InsufficientFunds
+                        } else {
+                            ExecutionSkippedReason::UnknownFailure
+                        },
                     },
-                    None => {
-                        Err(
-                            ContractError::CustomError {
-                                val: format!(
-                                    "could not find event history for vault with id: {}",
-                                    cache.vault_id
-                                )
-                            }
-                        )
-                    }
-                }
-            })?;
+                ),
+            )?;
+
+            attributes.push(Attribute::new("status", "skipped"));
 
             let next_trigger_time = get_next_target_time(
                 env.block.time,
@@ -1181,12 +1105,17 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetVaultsByAddress { address } => {
             to_binary(&get_vaults_by_address(deps, address)?)
         }
-        QueryMsg::GetVault { address, vault_id } => {
+        QueryMsg::GetVaultByAddressAndId { address, vault_id } => {
             to_binary(&get_vault_by_address_and_id(deps, address, vault_id)?)
         }
-        QueryMsg::GetAllEventsByVaultId { vault_id } => {
-            to_binary(&get_all_events_by_vault_id(deps, vault_id)?)
-        }
+        QueryMsg::GetEventsByAddressAndResourceId {
+            address,
+            resource_id,
+        } => to_binary(&get_events_by_address_and_resource_id(
+            deps,
+            address,
+            resource_id,
+        )?),
     }
 }
 
@@ -1259,11 +1188,20 @@ fn get_vault_by_address_and_id(
     Ok(VaultResponse { vault })
 }
 
-fn get_all_events_by_vault_id(deps: Deps, vault_id: Uint128) -> StdResult<EventsResponse> {
-    let all_events_on_heap: Vec<Event<DCAEventInfo>> =
-        EVENTS.load(deps.storage, vault_id.into())?;
+fn get_events_by_address_and_resource_id(
+    deps: Deps,
+    address: String,
+    resource_id: Uint128,
+) -> StdResult<EventsResponse> {
+    let validated_address = deps.api.addr_validate(&address)?;
 
-    Ok(EventsResponse {
-        events: all_events_on_heap,
-    })
+    let events = event_store()
+        .idx
+        .address_resource_id_id_idx
+        .sub_prefix((validated_address, resource_id.u128()))
+        .range(deps.storage, None, None, Order::Descending)
+        .map(|result| result.unwrap().1)
+        .collect::<Vec<Event>>();
+
+    Ok(EventsResponse { events })
 }

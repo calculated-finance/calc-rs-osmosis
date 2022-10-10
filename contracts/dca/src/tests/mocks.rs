@@ -1,8 +1,9 @@
 use crate::contract::reply;
-use crate::msg::{ExecuteMsg, InstantiateMsg};
-use base::helpers::message_helpers::find_value_for_key_in_event_with_method;
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
+use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::time_configuration::TimeInterval;
-use base::vaults::dca_vault::PositionType;
+use base::vaults::dca_vault::{DCAConfiguration, DCAStatus, PositionType};
+use base::vaults::vault::Vault;
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal256, Empty, Env, Event, MessageInfo, Response,
@@ -23,11 +24,16 @@ pub const ADMIN: &str = "admin";
 pub const DENOM_UKUJI: &str = "ukuji";
 pub const DENOM_UTEST: &str = "utest";
 
+pub struct VaultId {
+    pub address: Addr,
+    pub vault_id: Uint128,
+}
+
 pub struct MockApp {
     pub app: App,
     pub dca_contract_address: Addr,
     pub fin_contract_address: Addr,
-    pub vault_ids: HashMap<String, Uint128>,
+    pub vault_ids: HashMap<String, VaultId>,
 }
 
 impl MockApp {
@@ -201,15 +207,13 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            Uint128::from_str(
-                &find_value_for_key_in_event_with_method(
-                    &response.events,
-                    "create_vault_with_fin_limit_order_trigger",
-                    "vault_id",
+            VaultId {
+                address: owner.clone(),
+                vault_id: Uint128::from_str(
+                    &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
                 )
                 .unwrap(),
-            )
-            .unwrap(),
+            },
         );
 
         self
@@ -243,15 +247,13 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            Uint128::from_str(
-                &find_value_for_key_in_event_with_method(
-                    &response.events,
-                    "create_vault_with_fin_limit_order_trigger",
-                    "vault_id",
+            VaultId {
+                address: owner.clone(),
+                vault_id: Uint128::from_str(
+                    &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
                 )
                 .unwrap(),
-            )
-            .unwrap(),
+            },
         );
 
         self
@@ -289,15 +291,13 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            Uint128::from_str(
-                &find_value_for_key_in_event_with_method(
-                    &response.events,
-                    "create_vault_with_fin_limit_order_trigger",
-                    "vault_id",
+            VaultId {
+                address: owner.clone(),
+                vault_id: Uint128::from_str(
+                    &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
                 )
                 .unwrap(),
-            )
-            .unwrap(),
+            },
         );
 
         // send 5 ukuji from fin to admin wallet to mock partially filled outgoing
@@ -356,15 +356,13 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            Uint128::from_str(
-                &find_value_for_key_in_event_with_method(
-                    &response.events,
-                    "create_vault_with_time_trigger",
-                    "vault_id",
+            VaultId {
+                address: owner.clone(),
+                vault_id: Uint128::from_str(
+                    &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
                 )
                 .unwrap(),
-            )
-            .unwrap(),
+            },
         );
 
         self
@@ -376,6 +374,23 @@ impl MockApp {
             let seconds_per_block = 5u64;
             block_info.height += seconds / seconds_per_block;
         });
+    }
+
+    pub fn get_vault_by_label(&self, label: &str) -> Vault<DCAConfiguration, DCAStatus> {
+        let vault_id = self.vault_ids.get(label).unwrap();
+        let vault_response: VaultResponse = self
+            .app
+            .wrap()
+            .query_wasm_smart(
+                self.dca_contract_address.clone(),
+                &QueryMsg::GetVaultByAddressAndId {
+                    address: vault_id.address.to_string(),
+                    vault_id: vault_id.vault_id,
+                },
+            )
+            .unwrap();
+
+        vault_response.vault
     }
 
     pub fn get_balance(&self, address: &Addr, denom: &str) -> Uint128 {

@@ -3,7 +3,7 @@ use crate::tests::helpers::{
     assert_address_balances, assert_response_events, assert_vault_balance,
 };
 use crate::tests::mocks::{fin_contract_default, MockApp, DENOM_UKUJI, DENOM_UTEST, USER};
-use base::helpers::message_helpers::find_value_for_key_in_event_with_method;
+use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::time_configuration::TimeInterval;
 use base::vaults::dca_vault::PositionType;
 use cosmwasm_std::{Addr, Coin, Decimal256, Event, Uint128};
@@ -68,7 +68,7 @@ fn should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &QueryMsg::GetVault {
+            &QueryMsg::GetVaultByAddressAndId {
                 address: user_address.to_string(),
                 vault_id: Uint128::new(1),
             },
@@ -100,7 +100,7 @@ fn should_succeed() {
 }
 
 #[test]
-fn create_second_for_user_should_succeed() {
+fn twice_for_user_should_succeed() {
     let user_address = Addr::unchecked(USER);
     let mut mock = MockApp::new(fin_contract_default())
         .with_funds_for(&user_address, Uint128::new(200), DENOM_UKUJI)
@@ -150,19 +150,10 @@ fn create_second_for_user_should_succeed() {
         ],
     );
 
-    let vault_id = find_value_for_key_in_event_with_method(
-        &create_vault_response.events,
-        "create_vault_with_fin_limit_order_trigger",
-        "vault_id",
-    )
-    .unwrap();
+    let wasm_data = get_flat_map_for_event_type(&create_vault_response.events, "wasm").unwrap();
 
-    let trigger_id = find_value_for_key_in_event_with_method(
-        &create_vault_response.events,
-        "after_submit_order",
-        "trigger_id",
-    )
-    .unwrap();
+    let vault_id = &wasm_data["vault_id"];
+    let trigger_id = &wasm_data["trigger_id"];
 
     assert_response_events(
         &create_vault_response.events,

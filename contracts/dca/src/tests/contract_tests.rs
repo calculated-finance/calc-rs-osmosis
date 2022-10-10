@@ -844,7 +844,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     )
     .unwrap();
 
-    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVault {
+    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVaultByAddressAndId {
         address: String::from(VALID_ADDRESS_THREE),
         vault_id: Uint128::new(1),
     };
@@ -1003,8 +1003,9 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
     )
     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllEventsByVaultId {
-        vault_id: Uint128::new(1),
+    let get_all_executions_by_vault_id_query_message = QueryMsg::GetEventsByAddressAndResourceId {
+        address: VALID_ADDRESS_ONE.to_string(),
+        resource_id: Uint128::new(1),
     };
     let binary = query(
         deps.as_ref(),
@@ -1018,7 +1019,7 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
 }
 
 #[test]
-fn get_all_events_by_vault_id_for_non_existant_vault_should_fail() {
+fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -1034,18 +1035,20 @@ fn get_all_events_by_vault_id_for_non_existant_vault_should_fail() {
     )
     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetAllEventsByVaultId {
-        vault_id: Uint128::new(1),
+    let get_all_executions_by_vault_id_query_message = QueryMsg::GetEventsByAddressAndResourceId {
+        address: VALID_ADDRESS_ONE.to_string(),
+        resource_id: Uint128::new(1),
     };
-    let binary = query(
-        deps.as_ref(),
-        env,
-        get_all_executions_by_vault_id_query_message,
-    )
-    .unwrap_err();
 
-    assert_eq!(
-        binary.to_string(),
-        "alloc::vec::Vec<base::events::event::Event<base::events::dca_event::DCAEventInfo>> not found"
-    );
+    let response: EventsResponse = from_binary(
+        &query(
+            deps.as_ref(),
+            env,
+            get_all_executions_by_vault_id_query_message,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(response.events, vec![]);
 }

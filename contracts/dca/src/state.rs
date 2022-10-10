@@ -1,5 +1,13 @@
+use base::events::event::Event;
+use base::events::event::EventBuilder;
 use cosmwasm_std::Addr;
+use cosmwasm_std::StdResult;
+use cosmwasm_std::Storage;
 use cosmwasm_std::Uint128;
+use cw_storage_plus::Index;
+use cw_storage_plus::IndexList;
+use cw_storage_plus::IndexedMap;
+use cw_storage_plus::MultiIndex;
 use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -31,30 +39,6 @@ pub struct LimitOrderCache {
     pub filled: Uint128,
 }
 
-pub struct FINLimitOrderTriggerIndexes<'a> {
-    pub order_idx: UniqueIndex<'a, u128, Trigger<FINLimitOrderConfiguration>, u128>,
-}
-
-impl<'a> IndexList<Trigger<FINLimitOrderConfiguration>> for FINLimitOrderTriggerIndexes<'a> {
-    fn get_indexes(
-        &'_ self,
-    ) -> Box<dyn Iterator<Item = &'_ dyn Index<Trigger<FINLimitOrderConfiguration>>> + '_> {
-        let v: Vec<&dyn Index<Trigger<FINLimitOrderConfiguration>>> = vec![&self.order_idx];
-        Box::new(v.into_iter())
-    }
-}
-
-pub fn fin_limit_order_triggers<'a>(
-) -> IndexedMap<'a, u128, Trigger<FINLimitOrderConfiguration>, FINLimitOrderTriggerIndexes<'a>> {
-    let indexes = FINLimitOrderTriggerIndexes {
-        order_idx: UniqueIndex::new(
-            |d| d.configuration.order_idx.u128(),
-            "fin_limit_order_triggers_order_idx_v1",
-        ),
-    };
-    IndexedMap::new("fin_limit_order_triggers_v1", indexes)
-}
-
 pub const CONFIG: Item<Config> = Item::new("config_v1");
 
 pub const CACHE: Item<Cache> = Item::new("cache_v1");
@@ -75,3 +59,39 @@ pub const FIN_LIMIT_ORDER_TRIGGERS: Map<u128, Trigger<FINLimitOrderConfiguration
 
 pub const FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID: Map<u128, FINLimitOrderConfiguration> =
     Map::new("fin_limit_order_configurations_by_vault_id_v1");
+
+pub struct EventIndexes<'a> {
+    pub address_resource_id_id_idx: MultiIndex<'a, (Addr, u128, u64), Event, u64>,
+}
+
+impl<'a> IndexList<Event> for EventIndexes<'a> {
+    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<Event>> + '_> {
+        let v: Vec<&dyn Index<Event>> = vec![&self.address_resource_id_id_idx];
+        Box::new(v.into_iter())
+    }
+}
+
+pub fn event_store<'a>() -> IndexedMap<'a, u64, Event, EventIndexes<'a>> {
+    let indexes = EventIndexes {
+        address_resource_id_id_idx: MultiIndex::new(
+            |_, e| (e.address.clone(), e.resource_id.u128(), e.id),
+            "events_v1",
+            "events_v1__address_resource_id_id_idx",
+        ),
+    };
+    IndexedMap::new("events_v1", indexes)
+}
+
+const EVENT_COUNTER: Item<u64> = Item::new("events_v1_counter");
+
+fn fetch_and_increment_counter(store: &mut dyn Storage, counter: Item<u64>) -> StdResult<u64> {
+    let id = counter.may_load(store)?.unwrap_or_default() + 1;
+    counter.save(store, &id)?;
+    Ok(id)
+}
+
+pub fn save_event(store: &mut dyn Storage, event_builder: EventBuilder) -> StdResult<u64> {
+    let event = event_builder.build(fetch_and_increment_counter(store, EVENT_COUNTER)?.into());
+    event_store().save(store, event.id, &event.clone())?;
+    Ok(event.id)
+}

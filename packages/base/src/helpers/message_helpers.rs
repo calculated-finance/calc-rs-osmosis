@@ -17,33 +17,6 @@ pub fn get_flat_map_for_event_type(
         })
 }
 
-pub fn find_value_for_key_in_event_with_method<'a>(
-    events: &'a [Event],
-    method: &str,
-    key: &str,
-) -> Result<String, ContractError> {
-    let event_with_method = events.iter().find(|event| {
-        event
-            .attributes
-            .iter()
-            .any(|attribute| attribute.key.eq("method") && attribute.value.eq(method))
-    });
-
-    match event_with_method {
-        Some(event) => event
-            .attributes
-            .iter()
-            .find(|attribute| attribute.key.eq(key))
-            .map(|value| value.clone().value)
-            .ok_or(ContractError::CustomError {
-                val: format!("could not find attribute with key: {}", &key),
-            }),
-        None => Err(ContractError::CustomError {
-            val: format!("could not find event with method: {}", &method),
-        }),
-    }
-}
-
 pub fn find_first_event_by_type<'a>(
     events: &'a Vec<Event>,
     target_type: &str,
