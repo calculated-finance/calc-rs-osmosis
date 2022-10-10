@@ -12,10 +12,10 @@ pub enum ExecutionSkippedReason {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub enum EventData {
     VaultCreated,
-    FundsDeposited { amount: Coin },
-    ExecutionTriggered { trigger_id: Uint128 },
-    ExecutionCompleted { sent: Coin, received: Coin },
-    ExecutionSkipped { reason: ExecutionSkippedReason },
+    FundsDepositedToVault { amount: Coin },
+    VaultExecutionTriggered { trigger_id: Uint128 },
+    VaultExecutionCompleted { sent: Coin, received: Coin },
+    VaultExecutionSkipped { reason: ExecutionSkippedReason },
     VaultCancelled,
 }
 

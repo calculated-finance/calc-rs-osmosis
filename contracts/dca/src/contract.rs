@@ -497,7 +497,7 @@ fn deposit(
             vault.owner,
             vault.id,
             env.block.height.into(),
-            EventData::FundsDeposited {
+            EventData::FundsDepositedToVault {
                 amount: info.funds[0].clone(),
             },
         ),
@@ -547,6 +547,18 @@ fn execute_time_trigger_by_id(
                 }
             },
         )?;
+
+        save_event(
+            deps.storage,
+            EventBuilder::new(
+                vault.owner.clone(),
+                vault.id,
+                env.block.height.into(),
+                EventData::VaultExecutionSkipped {
+                    reason: ExecutionSkippedReason::InsufficientFunds,
+                },
+            ),
+        )?;
     }
 
     let fin_swap_msg = match vault.configuration.slippage_tolerance {
@@ -577,9 +589,21 @@ fn execute_time_trigger_by_id(
 
     let cache: Cache = Cache {
         vault_id: vault.id,
-        owner: vault.owner,
+        owner: vault.owner.clone(),
     };
     CACHE.save(deps.storage, &cache)?;
+
+    save_event(
+        deps.storage,
+        EventBuilder::new(
+            vault.owner.clone(),
+            vault.id,
+            env.block.height.into(),
+            EventData::VaultExecutionTriggered {
+                trigger_id: trigger.id,
+            },
+        ),
+    )?;
 
     Ok(Response::new()
         .add_attribute("method", "execute_time_trigger_by_id")
@@ -588,17 +612,14 @@ fn execute_time_trigger_by_id(
 
 fn execute_fin_limit_order_trigger_by_order_idx(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     order_idx: Uint128,
 ) -> Result<Response, ContractError> {
-    let fin_limit_order_trigger = FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, order_idx.u128())?;
+    let trigger = FIN_LIMIT_ORDER_TRIGGERS.load(deps.storage, order_idx.u128())?;
 
     let vault = VAULTS.load(
         deps.storage,
-        (
-            fin_limit_order_trigger.owner.clone(),
-            fin_limit_order_trigger.vault_id.into(),
-        ),
+        (trigger.owner.clone(), trigger.vault_id.into()),
     )?;
 
     let (offer_amount, original_offer_amount, filled) = query_order_details(
@@ -629,9 +650,21 @@ fn execute_fin_limit_order_trigger_by_order_idx(
 
     let cache: Cache = Cache {
         vault_id: vault.id,
-        owner: vault.owner,
+        owner: vault.owner.clone(),
     };
     CACHE.save(deps.storage, &cache)?;
+
+    save_event(
+        deps.storage,
+        EventBuilder::new(
+            vault.owner.clone(),
+            vault.id,
+            env.block.height.into(),
+            EventData::VaultExecutionTriggered {
+                trigger_id: trigger.id,
+            },
+        ),
+    )?;
 
     Ok(Response::new()
         .add_attribute("method", "execute_fin_limit_order_trigger_by_order_idx")
@@ -644,7 +677,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
         SWAP_REPLY_ID => after_swap(deps, env, reply),
         SUBMIT_ORDER_REPLY_ID => after_submit_order(deps, env, reply),
         EXECUTE_TRIGGER_WITHDRAW_ORDER_REPLY_ID => {
-            after_execute_trigger_withdraw_order(deps, reply)
+            after_execute_trigger_withdraw_order(deps, env, reply)
         }
         RETRACT_ORDER_REPLY_ID => after_retract_order(deps, env, reply),
         CANCEL_TRIGGER_WITHDRAW_ORDER_REPLY_ID => {
@@ -660,9 +693,6 @@ fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let fin_submit_order_response = reply.result.into_result().unwrap();
-
-            let x =
-                &get_flat_map_for_event_type(&fin_submit_order_response.events, "wasm").unwrap();
 
             let order_idx = Uint128::from_str(
                 &get_flat_map_for_event_type(&fin_submit_order_response.events, "wasm").unwrap()
@@ -727,6 +757,7 @@ fn after_submit_order(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response
 
 fn after_execute_trigger_withdraw_order(
     deps: DepsMut,
+    env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
@@ -789,6 +820,22 @@ fn after_execute_trigger_withdraw_order(
                 to_address: vault.owner.to_string(),
                 amount: vec![coin_received_from_limit_order.clone()],
             };
+
+            save_event(
+                deps.storage,
+                EventBuilder::new(
+                    vault.owner.clone(),
+                    vault.id,
+                    env.block.height.into(),
+                    EventData::VaultExecutionCompleted {
+                        sent: Coin {
+                            denom: vault.get_swap_denom().clone(),
+                            amount: limit_order_cache.original_offer_amount,
+                        },
+                        received: coin_received_from_limit_order,
+                    },
+                ),
+            )?;
 
             LIMIT_ORDER_CACHE.remove(deps.storage);
             CACHE.remove(deps.storage);
@@ -959,7 +1006,7 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
                     vault.owner.clone(),
                     vault.id,
                     env.block.height.into(),
-                    EventData::ExecutionCompleted {
+                    EventData::VaultExecutionCompleted {
                         sent: coin_sent.clone(),
                         received: coin_received.clone(),
                     },
@@ -975,7 +1022,7 @@ fn after_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contrac
                     vault.owner.clone(),
                     vault.id,
                     env.block.height.into(),
-                    EventData::ExecutionSkipped {
+                    EventData::VaultExecutionSkipped {
                         reason: if e.contains(ERROR_SWAP_SLIPPAGE) {
                             ExecutionSkippedReason::SlippageToleranceExceeded
                         } else if e.contains(ERROR_SWAP_INSUFFICIENT_FUNDS) {
