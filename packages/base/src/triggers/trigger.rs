@@ -31,10 +31,3 @@ pub struct Trigger {
     pub vault_id: Uint128,
     pub configuration: TriggerConfiguration,
 }
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum TriggerVariant {
-    Time,
-    FINLimitOrder,
-}
