@@ -244,13 +244,7 @@ fn with_price_trigger_should_publish_vault_created_event() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(
-            user_address.clone(),
-            vault_id,
-            mock.app.block_info(),
-            EventData::VaultCreated,
-        )
-        .build(1)],
+        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::VaultCreated).build(1)],
     );
 }
 
@@ -314,13 +308,7 @@ fn with_price_trigger_twice_for_user_should_succeed() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(
-            user_address.clone(),
-            vault_id,
-            mock.app.block_info(),
-            EventData::VaultCreated,
-        )
-        .build(2)],
+        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::VaultCreated).build(2)],
     );
 
     assert_vault_balance(
@@ -548,13 +536,7 @@ fn with_time_trigger_should_publish_vault_created_event() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(
-            user_address.clone(),
-            vault_id,
-            mock.app.block_info(),
-            EventData::VaultCreated,
-        )
-        .build(1)],
+        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::VaultCreated).build(1)],
     );
 }
 

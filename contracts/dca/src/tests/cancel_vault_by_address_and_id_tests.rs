@@ -56,13 +56,7 @@ fn when_vault_has_unfulfilled_price_trigger_should_succeed() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(
-            user_address.clone(),
-            vault_id,
-            mock.app.block_info(),
-            EventData::VaultCancelled,
-        )
-        .build(2)],
+        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock
@@ -127,13 +121,7 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(
-            user_address.clone(),
-            vault_id,
-            mock.app.block_info(),
-            EventData::VaultCancelled,
-        )
-        .build(2)],
+        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock
@@ -198,13 +186,7 @@ fn when_vault_has_time_trigger_should_succeed() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(
-            user_address.clone(),
-            vault_id,
-            mock.app.block_info(),
-            EventData::VaultCancelled,
-        )
-        .build(2)],
+        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock

@@ -128,12 +128,7 @@ fn create_vault_with_time_trigger(
 
     save_event(
         deps.storage,
-        EventBuilder::new(
-            vault.owner.clone(),
-            vault.id,
-            env.block,
-            EventData::VaultCreated,
-        ),
+        EventBuilder::new(vault.id, env.block, EventData::VaultCreated),
     )?;
 
     Ok(Response::new()
@@ -220,12 +215,7 @@ fn create_vault_with_fin_limit_order_trigger(
 
     save_event(
         deps.storage,
-        EventBuilder::new(
-            vault.owner.clone(),
-            vault.id,
-            env.block,
-            EventData::VaultCreated,
-        ),
+        EventBuilder::new(vault.id, env.block, EventData::VaultCreated),
     )?;
 
     CACHE.save(

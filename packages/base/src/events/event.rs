@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, BlockInfo, Coin, Timestamp, Uint128};
+use cosmwasm_std::{BlockInfo, Coin, Timestamp, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,6 @@ pub enum EventData {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Event {
     pub id: u64,
-    pub address: Addr,
     pub resource_id: Uint128,
     pub timestamp: Timestamp,
     pub block_height: u64,
@@ -30,7 +29,6 @@ pub struct Event {
 }
 
 pub struct EventBuilder {
-    address: Addr,
     resource_id: Uint128,
     timestamp: Timestamp,
     block_height: u64,
@@ -38,14 +36,8 @@ pub struct EventBuilder {
 }
 
 impl EventBuilder {
-    pub fn new(
-        address: Addr,
-        resource_id: Uint128,
-        block: BlockInfo,
-        data: EventData,
-    ) -> EventBuilder {
+    pub fn new(resource_id: Uint128, block: BlockInfo, data: EventData) -> EventBuilder {
         EventBuilder {
-            address,
             resource_id,
             timestamp: block.time,
             block_height: block.height,
@@ -56,7 +48,6 @@ impl EventBuilder {
     pub fn build(self, id: u64) -> Event {
         Event {
             id,
-            address: self.address,
             resource_id: self.resource_id,
             timestamp: self.timestamp,
             block_height: self.block_height,

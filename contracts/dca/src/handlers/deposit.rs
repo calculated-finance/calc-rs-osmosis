@@ -59,7 +59,6 @@ pub fn deposit(
             save_event(
                 deps.storage,
                 EventBuilder::new(
-                    vault.owner,
                     vault.id,
                     env.block,
                     EventData::FundsDepositedToVault {

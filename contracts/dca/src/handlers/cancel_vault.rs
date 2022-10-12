@@ -58,12 +58,7 @@ fn cancel_vault_with_time_trigger(
 
     save_event(
         deps.storage,
-        EventBuilder::new(
-            vault.owner.clone(),
-            vault.id,
-            env.block,
-            EventData::VaultCancelled,
-        ),
+        EventBuilder::new(vault.id, env.block, EventData::VaultCancelled),
     )?;
 
     let balance = vault.get_current_balance().clone();

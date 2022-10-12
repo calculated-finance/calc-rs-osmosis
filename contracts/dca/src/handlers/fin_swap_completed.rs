@@ -131,7 +131,6 @@ pub fn fin_swap_completed(
                 save_event(
                     deps.storage,
                     EventBuilder::new(
-                        vault.owner.clone(),
                         vault.id,
                         env.block,
                         EventData::VaultExecutionCompleted {
@@ -148,7 +147,6 @@ pub fn fin_swap_completed(
             save_event(
                 deps.storage,
                 EventBuilder::new(
-                    vault.owner.clone(),
                     vault.id,
                     env.block.to_owned(),
                     EventData::VaultExecutionSkipped {

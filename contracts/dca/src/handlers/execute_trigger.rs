@@ -27,7 +27,6 @@ pub fn execute_trigger(
     save_event(
         deps.storage,
         EventBuilder::new(
-            vault.owner.clone(),
             vault.id,
             env.block.to_owned(),
             EventData::VaultExecutionTriggered {
@@ -108,7 +107,6 @@ fn execute_dca_vault_time_trigger(
         save_event(
             deps.storage,
             EventBuilder::new(
-                vault.owner.clone(),
                 vault.id,
                 env.block,
                 EventData::VaultExecutionSkipped {

@@ -85,7 +85,6 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             save_event(
                 deps.storage,
                 EventBuilder::new(
-                    vault.owner.clone(),
                     vault.id,
                     env.block,
                     EventData::VaultExecutionCompleted {

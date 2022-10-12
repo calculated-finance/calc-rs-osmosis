@@ -47,12 +47,7 @@ pub fn fin_limit_order_retracted(
 
                     save_event(
                         deps.storage,
-                        EventBuilder::new(
-                            vault.owner.clone(),
-                            vault.id,
-                            env.block,
-                            EventData::VaultCancelled,
-                        ),
+                        EventBuilder::new(vault.id, env.block, EventData::VaultCancelled),
                     )?;
 
                     // if the entire amount isnt retracted, order was partially filled need to send the partially filled assets to user
