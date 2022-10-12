@@ -1,9 +1,7 @@
-use std::convert::TryInto;
-
+use crate::triggers::trigger::TimeInterval;
 use chrono::{DateTime, Datelike, Duration, TimeZone, Utc};
 use cosmwasm_std::Timestamp;
-
-use crate::triggers::time_configuration::TimeInterval;
+use std::convert::TryInto;
 
 pub fn target_time_elapsed(current_time: Timestamp, target_execution_time: Timestamp) -> bool {
     if current_time.seconds().ge(&target_execution_time.seconds()) {

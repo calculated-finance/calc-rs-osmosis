@@ -1,6 +1,6 @@
-use crate::msg::{EventsResponse, ExecuteMsg, QueryMsg};
+use crate::msg::ExecuteMsg;
 use crate::tests::helpers::{
-    assert_address_balances, assert_response_events, assert_vault_balance,
+    assert_address_balances, assert_events_published, assert_vault_balance,
 };
 use crate::tests::mocks::{
     fin_contract_default, fin_contract_fail_slippage_tolerance, MockApp, ADMIN, DENOM_UKUJI,
@@ -29,7 +29,7 @@ fn after_target_time_should_succeed() {
         ],
     );
 
-    let vault_id = mock.vault_ids.get("time").unwrap().vault_id;
+    let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
 
     mock.elapse_time(10);
 
@@ -37,7 +37,7 @@ fn after_target_time_should_succeed() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::ExecuteTimeTriggerById {
+            &ExecuteMsg::ExecuteTrigger {
                 trigger_id: Uint128::new(1),
             },
             &[],
@@ -56,20 +56,9 @@ fn after_target_time_should_succeed() {
         ],
     );
 
-    let events_response: EventsResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetEventsByAddressAndResourceId {
-                address: user_address.to_string(),
-                resource_id: vault_id,
-            },
-        )
-        .unwrap();
-
-    assert_response_events(
-        &events_response.events,
+    assert_events_published(
+        &mock,
+        vault_id,
         &[
             EventBuilder::new(
                 user_address.clone(),
@@ -124,7 +113,7 @@ fn before_target_time_limit_should_fail() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::ExecuteTimeTriggerById {
+            &ExecuteMsg::ExecuteTrigger {
                 trigger_id: Uint128::new(1),
             },
             &[],
@@ -182,7 +171,7 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::ExecuteTimeTriggerById {
+            &ExecuteMsg::ExecuteTrigger {
                 trigger_id: Uint128::new(1),
             },
             &[],

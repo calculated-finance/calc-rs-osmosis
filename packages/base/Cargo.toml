@@ -26,6 +26,7 @@ cosmwasm-std = "1.0.0"
 cosmwasm-storage = "1.1.1"
 cw-storage-plus = "0.15.0"
 cw2 = "0.15.0"
+enum-as-inner = "0.5.1"
 schemars = "0.8.10"
 serde = { version = "1.0.144", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }

@@ -1,5 +1,5 @@
-use base::triggers::time_configuration::TimeInterval;
-use base::vaults::dca_vault::PositionType;
+use base::triggers::trigger::TimeInterval;
+use base::vaults::vault::PositionType;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{attr, from_binary, Coin, Uint128, Uint64};
 
@@ -320,316 +320,6 @@ fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
 }
 
 #[test]
-fn create_vault_with_time_trigger_and_valid_inputs_should_succeed() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
-        base_denom: String::from("base"),
-        quote_denom: String::from("quote"),
-    };
-
-    let _create_pair_execute_message_result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        create_pair_execute_message,
-    )
-    .unwrap();
-
-    let create_vault_with_time_trigger_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: String::from(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(30),
-        time_interval: TimeInterval::Daily,
-        target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
-    };
-
-    let coin = Coin {
-        denom: String::from("quote"),
-        amount: Uint128::new(100),
-    };
-
-    let info_with_funds = mock_info(VALID_ADDRESS_THREE, &vec![coin]);
-
-    let result = execute(
-        deps.as_mut(),
-        env,
-        info_with_funds,
-        create_vault_with_time_trigger_execute_message,
-    )
-    .unwrap();
-
-    assert_eq!(
-        result.attributes,
-        vec![
-            attr("method", "create_vault_with_time_trigger"),
-            attr("id", "1"),
-            attr("owner", "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1"),
-            attr("vault_id", "1")
-        ]
-    )
-}
-
-#[test]
-fn create_vault_with_time_trigger_and_no_target_start_time_should_succeed() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
-        base_denom: String::from("base"),
-        quote_denom: String::from("quote"),
-    };
-    let _create_pair_execute_message_result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        create_pair_execute_message,
-    )
-    .unwrap();
-
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: String::from(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(30),
-        time_interval: TimeInterval::Daily,
-        target_start_time_utc_seconds: None,
-    };
-
-    let coin = Coin {
-        denom: String::from("quote"),
-        amount: Uint128::new(100),
-    };
-
-    let info_with_funds = mock_info(VALID_ADDRESS_THREE, &vec![coin]);
-
-    let result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info_with_funds,
-        create_vault_execute_message,
-    )
-    .unwrap();
-
-    assert_eq!(
-        result.attributes,
-        vec![
-            attr("method", "create_vault_with_time_trigger"),
-            attr("id", "1"),
-            attr("owner", "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1"),
-            attr("vault_id", "1")
-        ]
-    )
-}
-
-#[test]
-fn create_vault_with_time_trigger_and_no_funds_should_fail() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
-        base_denom: String::from("base"),
-        quote_denom: String::from("quote"),
-    };
-
-    let _create_pair_execute_message_result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        create_pair_execute_message,
-    )
-    .unwrap();
-
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: String::from(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(30),
-        time_interval: TimeInterval::Daily,
-        target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
-    };
-
-    let funds: Vec<Coin> = Vec::new();
-
-    let info_with_no_funds = mock_info(VALID_ADDRESS_THREE, &funds);
-
-    let result = execute(
-        deps.as_mut(),
-        env,
-        info_with_no_funds,
-        create_vault_execute_message,
-    )
-    .unwrap_err();
-
-    assert_eq!(
-        result.to_string(),
-        "Error: received 0 denoms but required exactly 1"
-    )
-}
-
-#[test]
-fn create_vault_with_time_trigger_and_unwhitelisted_pair_address_should_fail() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
-        base_denom: String::from("base"),
-        quote_denom: String::from("quote"),
-    };
-    let _create_pair_execute_message_result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        create_pair_execute_message,
-    )
-    .unwrap();
-
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: String::from(VALID_ADDRESS_THREE),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(100),
-        time_interval: TimeInterval::Daily,
-        target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
-    };
-
-    let coin = Coin {
-        denom: String::from("quote"),
-        amount: Uint128::new(100),
-    };
-
-    let info_with_funds = mock_info(VALID_ADDRESS_THREE, &vec![coin]);
-
-    let result = execute(
-        deps.as_mut(),
-        env,
-        info_with_funds,
-        create_vault_execute_message,
-    )
-    .unwrap_err();
-
-    assert_eq!(result.to_string(), "base::pair::Pair not found")
-}
-
-#[test]
-fn create_vault_with_time_trigger_and_trigger_time_in_past_should_fail() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
-        base_denom: String::from("base"),
-        quote_denom: String::from("quote"),
-    };
-    let _create_pair_execute_message_result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        create_pair_execute_message,
-    )
-    .unwrap();
-
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: String::from(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(30),
-        time_interval: TimeInterval::Daily,
-        target_start_time_utc_seconds: Some(Uint64::new(1562770365)),
-    };
-
-    let coin = Coin {
-        denom: String::from("quote"),
-        amount: Uint128::new(100),
-    };
-
-    let info_with_funds = mock_info(VALID_ADDRESS_THREE, &vec![coin]);
-
-    let result = execute(
-        deps.as_mut(),
-        env,
-        info_with_funds,
-        create_vault_execute_message,
-    )
-    .unwrap_err();
-
-    assert_eq!(
-        result.to_string(),
-        "Error: target_start_time_utc_seconds must be some time in the future"
-    )
-}
-
-#[test]
 fn cancel_vault_by_address_and_id_with_valid_inputs_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -660,13 +350,14 @@ fn cancel_vault_by_address_and_id_with_valid_inputs_should_succeed() {
     )
     .unwrap();
 
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
+    let create_vault_execute_message = ExecuteMsg::CreateVault {
         pair_address: String::from(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
+        target_price: None,
     };
 
     let coin = Coin {
@@ -708,90 +399,6 @@ fn cancel_vault_by_address_and_id_with_valid_inputs_should_succeed() {
 }
 
 #[test]
-fn get_all_active_vaults_with_one_vault_should_succeed() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
-        base_denom: String::from("base"),
-        quote_denom: String::from("quote"),
-    };
-    let _create_pair_execute_message_result = execute(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        create_pair_execute_message,
-    )
-    .unwrap();
-
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
-        pair_address: String::from(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
-        slippage_tolerance: None,
-        swap_amount: Uint128::new(30),
-        time_interval: TimeInterval::Daily,
-        target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
-    };
-
-    let coin = Coin {
-        denom: String::from("quote"),
-        amount: Uint128::new(100),
-    };
-
-    let info_with_funds = mock_info(VALID_ADDRESS_THREE, &vec![coin]);
-    let _create_vault_execute_message = execute(
-        deps.as_mut(),
-        env.clone(),
-        info_with_funds,
-        create_vault_execute_message,
-    )
-    .unwrap();
-
-    let get_all_active_vaults_query_message = QueryMsg::GetVaults {};
-    let binary = query(deps.as_ref(), env, get_all_active_vaults_query_message).unwrap();
-    let result: VaultsResponse = from_binary(&binary).unwrap();
-
-    assert_eq!(result.vaults.len(), 1);
-}
-
-#[test]
-fn get_all_active_vaults_with_no_vaults_should_succeed() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
-
-    let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-    };
-    let _instantiate_result = instantiate(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        instantiate_message,
-    )
-    .unwrap();
-
-    let get_all_active_vaults_query_message = QueryMsg::GetVaults {};
-    let binary = query(deps.as_ref(), env, get_all_active_vaults_query_message).unwrap();
-    let result: VaultsResponse = from_binary(&binary).unwrap();
-
-    assert_eq!(result.vaults.len(), 0);
-}
-
-#[test]
 fn get_active_vault_by_address_and_id_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -821,13 +428,14 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     )
     .unwrap();
 
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
+    let create_vault_execute_message = ExecuteMsg::CreateVault {
         pair_address: String::from(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
+        target_price: None,
     };
 
     let coin = Coin {
@@ -844,8 +452,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     )
     .unwrap();
 
-    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVaultByAddressAndId {
-        address: String::from(VALID_ADDRESS_THREE),
+    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVaultById {
         vault_id: Uint128::new(1),
     };
     let binary = query(
@@ -889,13 +496,14 @@ fn get_all_active_vaults_by_address_should_succeed() {
     )
     .unwrap();
 
-    let create_vault_execute_message_one = ExecuteMsg::CreateVaultWithTimeTrigger {
+    let create_vault_execute_message_one = ExecuteMsg::CreateVault {
         pair_address: String::from(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
+        target_price: None,
     };
 
     let coin_one = Coin {
@@ -912,13 +520,14 @@ fn get_all_active_vaults_by_address_should_succeed() {
     )
     .unwrap();
 
-    let create_vault_execute_message_two = ExecuteMsg::CreateVaultWithTimeTrigger {
+    let create_vault_execute_message_two = ExecuteMsg::CreateVault {
         pair_address: String::from(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
+        target_price: None,
     };
 
     let coin_two = Coin {
@@ -979,13 +588,14 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
     )
     .unwrap();
 
-    let create_vault_execute_message = ExecuteMsg::CreateVaultWithTimeTrigger {
+    let create_vault_execute_message = ExecuteMsg::CreateVault {
         pair_address: String::from(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
+        target_price: None,
     };
 
     let coin = Coin {
@@ -1003,19 +613,18 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
     )
     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetEventsByAddressAndResourceId {
-        address: VALID_ADDRESS_ONE.to_string(),
+    let get_all_executions_by_resource_id_query_message = QueryMsg::GetEventsByResourceId {
         resource_id: Uint128::new(1),
     };
     let binary = query(
         deps.as_ref(),
         env,
-        get_all_executions_by_vault_id_query_message,
+        get_all_executions_by_resource_id_query_message,
     )
     .unwrap();
     let result: EventsResponse = from_binary(&binary).unwrap();
 
-    assert_eq!(result.events.len(), 0);
+    assert_eq!(result.events.len(), 1);
 }
 
 #[test]
@@ -1035,8 +644,7 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
     )
     .unwrap();
 
-    let get_all_executions_by_vault_id_query_message = QueryMsg::GetEventsByAddressAndResourceId {
-        address: VALID_ADDRESS_ONE.to_string(),
+    let get_all_executions_by_resource_id_query_message = QueryMsg::GetEventsByResourceId {
         resource_id: Uint128::new(1),
     };
 
@@ -1044,7 +652,7 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
         &query(
             deps.as_ref(),
             env,
-            get_all_executions_by_vault_id_query_message,
+            get_all_executions_by_resource_id_query_message,
         )
         .unwrap(),
     )

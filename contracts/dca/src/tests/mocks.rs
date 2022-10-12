@@ -1,9 +1,8 @@
 use crate::contract::reply;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
-use base::triggers::time_configuration::TimeInterval;
-use base::vaults::dca_vault::{DCAConfiguration, DCAStatus, PositionType};
-use base::vaults::vault::Vault;
+use base::triggers::trigger::TimeInterval;
+use base::vaults::vault::{PositionType, Vault};
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal256, Empty, Env, Event, MessageInfo, Response,
@@ -33,7 +32,7 @@ pub struct MockApp {
     pub app: App,
     pub dca_contract_address: Addr,
     pub fin_contract_address: Addr,
-    pub vault_ids: HashMap<String, VaultId>,
+    pub vault_ids: HashMap<String, Uint128>,
 }
 
 impl MockApp {
@@ -47,11 +46,11 @@ impl MockApp {
                     vec![
                         Coin {
                             denom: String::from(DENOM_UKUJI),
-                            amount: Uint128::new(200),
+                            amount: Uint128::new(99999),
                         },
                         Coin {
                             denom: String::from(DENOM_UTEST),
-                            amount: Uint128::new(200),
+                            amount: Uint128::new(99999),
                         },
                     ],
                 )
@@ -161,19 +160,14 @@ impl MockApp {
     }
 
     pub fn with_funds_for(mut self, address: &Addr, amount: Uint128, denom: &str) -> MockApp {
-        self.app.init_modules(|router, _, storage| {
-            router
-                .bank
-                .init_balance(
-                    storage,
-                    address,
-                    vec![Coin {
-                        denom: String::from(denom),
-                        amount,
-                    }],
-                )
-                .unwrap();
-        });
+        self.app
+            .send_tokens(
+                Addr::unchecked(ADMIN),
+                address.clone(),
+                &[Coin::new(amount.u128(), denom.to_string())],
+            )
+            .unwrap();
+
         self
     }
 
@@ -185,15 +179,15 @@ impl MockApp {
         time_interval: TimeInterval,
         label: &str,
     ) -> Self {
-        let create_vault_with_price_trigger_message =
-            ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
-                pair_address: self.fin_contract_address.to_string(),
-                position_type: PositionType::Enter,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval,
-                target_price: Decimal256::from_str("1.0").unwrap(),
-            };
+        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVault {
+            pair_address: self.fin_contract_address.to_string(),
+            position_type: PositionType::Enter,
+            slippage_tolerance: None,
+            swap_amount,
+            time_interval,
+            target_price: Some(Decimal256::from_str("1.0").unwrap()),
+            target_start_time_utc_seconds: None,
+        };
 
         let response = self
             .app
@@ -207,28 +201,25 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            VaultId {
-                address: owner.clone(),
-                vault_id: Uint128::from_str(
-                    &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
-                )
-                .unwrap(),
-            },
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
         );
 
         self
     }
 
     pub fn with_vault_with_fin_limit_price_trigger(mut self, owner: &Addr, label: &str) -> MockApp {
-        let create_vault_with_price_trigger_message =
-            ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
-                pair_address: self.fin_contract_address.to_string(),
-                position_type: PositionType::Enter,
-                slippage_tolerance: None,
-                swap_amount: Uint128::new(10),
-                time_interval: TimeInterval::Hourly,
-                target_price: Decimal256::from_str("1.0").unwrap(),
-            };
+        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVault {
+            pair_address: self.fin_contract_address.to_string(),
+            position_type: PositionType::Enter,
+            slippage_tolerance: None,
+            swap_amount: Uint128::new(10),
+            time_interval: TimeInterval::Hourly,
+            target_price: Some(Decimal256::from_str("1.0").unwrap()),
+            target_start_time_utc_seconds: None,
+        };
 
         let funds = vec![Coin {
             denom: String::from(DENOM_UKUJI),
@@ -247,13 +238,10 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            VaultId {
-                address: owner.clone(),
-                vault_id: Uint128::from_str(
-                    &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
-                )
-                .unwrap(),
-            },
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
         );
 
         self
@@ -264,15 +252,15 @@ impl MockApp {
         owner: &Addr,
         label: &str,
     ) -> MockApp {
-        let create_vault_with_price_trigger_message =
-            ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
-                pair_address: self.fin_contract_address.to_string(),
-                position_type: PositionType::Enter,
-                slippage_tolerance: None,
-                swap_amount: Uint128::new(10),
-                time_interval: TimeInterval::Hourly,
-                target_price: Decimal256::from_str("1.0").unwrap(),
-            };
+        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVault {
+            pair_address: self.fin_contract_address.to_string(),
+            position_type: PositionType::Enter,
+            slippage_tolerance: None,
+            swap_amount: Uint128::new(10),
+            time_interval: TimeInterval::Hourly,
+            target_price: Some(Decimal256::from_str("1.0").unwrap()),
+            target_start_time_utc_seconds: None,
+        };
 
         let funds = vec![Coin {
             denom: String::from(DENOM_UKUJI),
@@ -291,13 +279,10 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            VaultId {
-                address: owner.clone(),
-                vault_id: Uint128::from_str(
-                    &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
-                )
-                .unwrap(),
-            },
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
         );
 
         // send 5 ukuji from fin to admin wallet to mock partially filled outgoing
@@ -328,7 +313,7 @@ impl MockApp {
     }
 
     pub fn with_vault_with_time_trigger(mut self, owner: &Addr, label: &str) -> MockApp {
-        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVaultWithTimeTrigger {
+        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVault {
             pair_address: self.fin_contract_address.to_string(),
             position_type: PositionType::Enter,
             slippage_tolerance: None,
@@ -337,6 +322,7 @@ impl MockApp {
             target_start_time_utc_seconds: Some(Uint64::from(
                 self.app.block_info().time.plus_seconds(2).seconds(),
             )),
+            target_price: None,
         };
 
         let funds = vec![Coin {
@@ -356,13 +342,10 @@ impl MockApp {
 
         self.vault_ids.insert(
             String::from(label),
-            VaultId {
-                address: owner.clone(),
-                vault_id: Uint128::from_str(
-                    &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
-                )
-                .unwrap(),
-            },
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
         );
 
         self
@@ -376,16 +359,15 @@ impl MockApp {
         });
     }
 
-    pub fn get_vault_by_label(&self, label: &str) -> Vault<DCAConfiguration, DCAStatus> {
+    pub fn get_vault_by_label(&self, label: &str) -> Vault {
         let vault_id = self.vault_ids.get(label).unwrap();
         let vault_response: VaultResponse = self
             .app
             .wrap()
             .query_wasm_smart(
                 self.dca_contract_address.clone(),
-                &QueryMsg::GetVaultByAddressAndId {
-                    address: vault_id.address.to_string(),
-                    vault_id: vault_id.vault_id,
+                &QueryMsg::GetVaultById {
+                    vault_id: vault_id.to_owned(),
                 },
             )
             .unwrap();

@@ -1,5 +1,5 @@
-use crate::msg::{EventsResponse, ExecuteMsg, QueryMsg, VaultsResponse};
-use crate::tests::helpers::{assert_address_balances, assert_response_events};
+use crate::msg::{ExecuteMsg, QueryMsg, VaultsResponse};
+use crate::tests::helpers::{assert_address_balances, assert_events_published};
 use crate::tests::mocks::{
     fin_contract_default, fin_contract_partially_filled_order, MockApp, ADMIN, DENOM_UKUJI,
     DENOM_UTEST, USER,
@@ -33,7 +33,7 @@ fn when_vault_has_unfulfilled_price_trigger_should_succeed() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVaultByAddressAndId {
                 address: user_address.to_string(),
-                vault_id: mock.vault_ids.get("fin").unwrap().vault_id,
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
             &[],
         )
@@ -53,27 +53,21 @@ fn when_vault_has_unfulfilled_price_trigger_should_succeed() {
 
     let vault_id = Uint128::new(1);
 
-    let events_response: EventsResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetEventsByAddressAndResourceId {
-                address: user_address.to_string(),
-                resource_id: vault_id,
-            },
-        )
-        .unwrap();
-
-    assert_response_events(
-        &events_response.events,
+    assert_events_published(
+        &mock,
+        vault_id,
         &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address.clone(), &QueryMsg::GetVaults {})
+        .query_wasm_smart(
+            &mock.dca_contract_address.clone(),
+            &QueryMsg::GetVaultsByAddress {
+                address: user_address.to_string(),
+            },
+        )
         .unwrap();
 
     assert_eq!(active_vaults_response.vaults.len(), 0);
@@ -98,7 +92,7 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
         ],
     );
 
-    let vault_id = mock.vault_ids.get("fin").unwrap().vault_id;
+    let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
 
     mock.app
         .execute_contract(
@@ -124,27 +118,21 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
         ],
     );
 
-    let events_response: EventsResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetEventsByAddressAndResourceId {
-                address: user_address.to_string(),
-                resource_id: vault_id,
-            },
-        )
-        .unwrap();
-
-    assert_response_events(
-        &events_response.events,
+    assert_events_published(
+        &mock,
+        vault_id,
         &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address.clone(), &QueryMsg::GetVaults {})
+        .query_wasm_smart(
+            &mock.dca_contract_address.clone(),
+            &QueryMsg::GetVaultsByAddress {
+                address: user_address.to_string(),
+            },
+        )
         .unwrap();
 
     assert_eq!(active_vaults_response.vaults.len(), 0);
@@ -169,7 +157,7 @@ fn when_vault_has_time_trigger_should_succeed() {
         ],
     );
 
-    let vault_id = mock.vault_ids.get("fin").unwrap().vault_id;
+    let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
 
     mock.app
         .execute_contract(
@@ -195,27 +183,21 @@ fn when_vault_has_time_trigger_should_succeed() {
         ],
     );
 
-    let events_response: EventsResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetEventsByAddressAndResourceId {
-                address: user_address.to_string(),
-                resource_id: vault_id,
-            },
-        )
-        .unwrap();
-
-    assert_response_events(
-        &events_response.events,
+    assert_events_published(
+        &mock,
+        vault_id,
         &[EventBuilder::new(user_address.clone(), vault_id, EventData::VaultCancelled).build(2)],
     );
 
     let active_vaults_response: VaultsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address.clone(), &QueryMsg::GetVaults {})
+        .query_wasm_smart(
+            &mock.dca_contract_address.clone(),
+            &QueryMsg::GetVaultsByAddress {
+                address: user_address.to_string(),
+            },
+        )
         .unwrap();
 
     assert_eq!(active_vaults_response.vaults.len(), 0);

@@ -1,10 +1,7 @@
-use cosmwasm_std::{Addr, Coin, Deps, Timestamp, Uint128};
-
 use crate::error::ContractError;
 use crate::state::CONFIG;
-
-use base::pair::Pair;
-use base::vaults::dca_vault::PositionType;
+use base::{pair::Pair, vaults::vault::PositionType};
+use cosmwasm_std::{Addr, Coin, Deps, Timestamp, Uint128};
 
 pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {
     if funds.is_empty() || funds.len() > 1 {
