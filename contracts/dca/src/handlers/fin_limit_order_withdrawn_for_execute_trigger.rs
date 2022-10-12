@@ -6,11 +6,13 @@ use crate::state::{
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{Vault, VaultStatus};
+use cosmwasm_std::Env;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response, StdResult, Uint128};
 
 pub fn fin_limit_order_withdrawn_for_execute_vault(
     deps: DepsMut,
+    env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
@@ -85,6 +87,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 EventBuilder::new(
                     vault.owner.clone(),
                     vault.id,
+                    env.block,
                     EventData::VaultExecutionCompleted {
                         sent: Coin {
                             denom: vault.get_swap_denom().clone(),

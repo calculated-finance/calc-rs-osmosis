@@ -133,6 +133,7 @@ pub fn fin_swap_completed(
                     EventBuilder::new(
                         vault.owner.clone(),
                         vault.id,
+                        env.block,
                         EventData::VaultExecutionCompleted {
                             sent: coin_sent.clone(),
                             received: coin_received.clone(),
@@ -149,6 +150,7 @@ pub fn fin_swap_completed(
                 EventBuilder::new(
                     vault.owner.clone(),
                     vault.id,
+                    env.block.to_owned(),
                     EventData::VaultExecutionSkipped {
                         reason: if e.contains(ERROR_SWAP_SLIPPAGE) {
                             ExecutionSkippedReason::SlippageToleranceExceeded

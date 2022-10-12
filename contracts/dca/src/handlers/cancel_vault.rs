@@ -9,6 +9,7 @@ use base::events::event::{EventBuilder, EventData};
 use base::pair::Pair;
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{Vault, VaultConfiguration};
+use cosmwasm_std::Env;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
 use fin_helpers::limit_orders::create_retract_order_sub_msg;
@@ -16,6 +17,7 @@ use fin_helpers::queries::query_order_details;
 
 pub fn cancel_vault_by_address_and_id(
     deps: DepsMut,
+    env: Env,
     address: String,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
@@ -37,7 +39,7 @@ pub fn cancel_vault_by_address_and_id(
             TriggerConfiguration::Time {
                 time_interval: _,
                 target_time: _,
-            } => cancel_vault_with_time_trigger(deps, vault),
+            } => cancel_vault_with_time_trigger(deps, env, vault),
             TriggerConfiguration::FINLimitOrder {
                 target_price: _,
                 order_idx: _,
@@ -46,13 +48,22 @@ pub fn cancel_vault_by_address_and_id(
     }
 }
 
-fn cancel_vault_with_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
+fn cancel_vault_with_time_trigger(
+    deps: DepsMut,
+    env: Env,
+    vault: Vault,
+) -> Result<Response, ContractError> {
     trigger_store().remove(deps.storage, vault.trigger_id.unwrap().into())?;
     vault_store().remove(deps.storage, vault.id.into())?;
 
     save_event(
         deps.storage,
-        EventBuilder::new(vault.owner.clone(), vault.id, EventData::VaultCancelled),
+        EventBuilder::new(
+            vault.owner.clone(),
+            vault.id,
+            env.block,
+            EventData::VaultCancelled,
+        ),
     )?;
 
     let balance = vault.get_current_balance().clone();

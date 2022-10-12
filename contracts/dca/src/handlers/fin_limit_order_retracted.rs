@@ -10,7 +10,7 @@ use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 
 pub fn fin_limit_order_retracted(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
@@ -47,7 +47,12 @@ pub fn fin_limit_order_retracted(
 
                     save_event(
                         deps.storage,
-                        EventBuilder::new(vault.owner.clone(), vault.id, EventData::VaultCancelled),
+                        EventBuilder::new(
+                            vault.owner.clone(),
+                            vault.id,
+                            env.block,
+                            EventData::VaultCancelled,
+                        ),
                     )?;
 
                     // if the entire amount isnt retracted, order was partially filled need to send the partially filled assets to user

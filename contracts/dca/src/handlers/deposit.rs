@@ -4,11 +4,13 @@ use crate::validation_helpers::{assert_denom_matches_pair_denom, assert_exactly_
 use base::events::event::{EventBuilder, EventData};
 
 use base::vaults::vault::{Vault, VaultConfiguration, VaultStatus};
+use cosmwasm_std::Env;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
 
 pub fn deposit(
     deps: DepsMut,
+    env: Env,
     info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
@@ -59,6 +61,7 @@ pub fn deposit(
                 EventBuilder::new(
                     vault.owner,
                     vault.id,
+                    env.block,
                     EventData::FundsDepositedToVault {
                         amount: info.funds[0].clone(),
                     },

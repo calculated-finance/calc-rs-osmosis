@@ -29,6 +29,7 @@ pub fn execute_trigger(
         EventBuilder::new(
             vault.owner.clone(),
             vault.id,
+            env.block.to_owned(),
             EventData::VaultExecutionTriggered {
                 trigger_id: trigger.id,
             },
@@ -109,6 +110,7 @@ fn execute_dca_vault_time_trigger(
             EventBuilder::new(
                 vault.owner.clone(),
                 vault.id,
+                env.block,
                 EventData::VaultExecutionSkipped {
                     reason: ExecutionSkippedReason::InsufficientFunds,
                 },

@@ -115,10 +115,10 @@ pub fn execute(
             target_price,
         ),
         ExecuteMsg::CancelVaultByAddressAndId { address, vault_id } => {
-            cancel_vault_by_address_and_id(deps, address, vault_id)
+            cancel_vault_by_address_and_id(deps, env, address, vault_id)
         }
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger(deps, env, trigger_id),
-        ExecuteMsg::Deposit { vault_id } => deposit(deps, info, vault_id),
+        ExecuteMsg::Deposit { vault_id } => deposit(deps, env, info, vault_id),
     }
 }
 
@@ -131,7 +131,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
             fin_limit_order_withdrawn_for_cancel_vault(deps, env, reply)
         }
         FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID => {
-            fin_limit_order_withdrawn_for_execute_vault(deps, reply)
+            fin_limit_order_withdrawn_for_execute_vault(deps, env, reply)
         }
         FIN_SWAP_COMPLETED_ID => fin_swap_completed(deps, env, reply),
         id => Err(ContractError::CustomError {
