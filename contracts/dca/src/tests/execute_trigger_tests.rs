@@ -106,8 +106,6 @@ fn should_succeed() {
         .unwrap();
 
     assert_eq!(get_all_time_triggers_response.triggers.len(), 1);
-
-    // TODO: assert vault executions are accurate
 }
 
 #[test]

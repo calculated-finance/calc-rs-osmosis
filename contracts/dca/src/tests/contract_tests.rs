@@ -559,7 +559,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
 }
 
 #[test]
-fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
+fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -613,13 +613,13 @@ fn get_all_executions_by_vault_id_for_new_vault_should_succeed() {
     )
     .unwrap();
 
-    let get_all_executions_by_resource_id_query_message = QueryMsg::GetEventsByResourceId {
+    let get_all_events_by_resource_id_query_message = QueryMsg::GetEventsByResourceId {
         resource_id: Uint128::new(1),
     };
     let binary = query(
         deps.as_ref(),
         env,
-        get_all_executions_by_resource_id_query_message,
+        get_all_events_by_resource_id_query_message,
     )
     .unwrap();
     let result: EventsResponse = from_binary(&binary).unwrap();
@@ -644,7 +644,7 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
     )
     .unwrap();
 
-    let get_all_executions_by_resource_id_query_message = QueryMsg::GetEventsByResourceId {
+    let get_all_events_by_resource_id_query_message = QueryMsg::GetEventsByResourceId {
         resource_id: Uint128::new(1),
     };
 
@@ -652,7 +652,7 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
         &query(
             deps.as_ref(),
             env,
-            get_all_executions_by_resource_id_query_message,
+            get_all_events_by_resource_id_query_message,
         )
         .unwrap(),
     )
