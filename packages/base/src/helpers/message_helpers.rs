@@ -17,25 +17,27 @@ pub fn get_flat_map_for_event_type(
         })
 }
 
-pub fn find_first_event_by_type<'a>(
-    events: &'a Vec<Event>,
+pub fn find_first_event_by_type(
+    events: &[Event],
     target_type: &str,
-) -> Result<&'a Event, ContractError> {
+) -> Result<Event, ContractError> {
     return events
         .iter()
         .find(|event| event.ty == target_type)
+        .map(|event| event.to_owned())
         .ok_or_else(|| ContractError::CustomError {
             val: format!("could not find event with type: {}", &target_type),
         });
 }
 
-pub fn find_first_attribute_by_key<'a>(
-    attributes: &'a Vec<Attribute>,
+pub fn find_first_attribute_by_key(
+    attributes: &[Attribute],
     target_key: &str,
-) -> Result<&'a Attribute, ContractError> {
+) -> Result<Attribute, ContractError> {
     return attributes
         .iter()
         .find(|attribute| attribute.key == target_key)
+        .map(|attribute| attribute.to_owned())
         .ok_or_else(|| ContractError::CustomError {
             val: format!("could not find attribute with key: {}", target_key),
         });
@@ -58,7 +60,6 @@ mod tests {
     #[test]
     fn find_first_event_by_type_given_two_matching_events_finds_first_event_successfully() {
         let mock_wasm_trade_event_one = Event::new("wasm-trade").add_attribute("index", "1");
-
         let mock_wasm_trade_event_two = Event::new("wasm-trade").add_attribute("index", "2");
 
         let events = vec![mock_wasm_trade_event_one, mock_wasm_trade_event_two];
