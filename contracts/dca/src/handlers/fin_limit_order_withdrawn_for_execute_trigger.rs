@@ -1,3 +1,4 @@
+use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{
     save_event, trigger_store, vault_store, Config, CACHE, CONFIG, LIMIT_ORDER_CACHE,
@@ -51,13 +52,13 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             vault_store().update(
                 deps.storage,
                 vault.id.into(),
-                |vault| -> Result<Vault, ContractError> {
+                |vault| -> Result<Vault<DCAConfiguration>, ContractError> {
                     match vault {
                         Some(mut existing_vault) => {
-                            existing_vault.balances[0].amount -=
+                            existing_vault.configuration.balance.amount -=
                                 limit_order_cache.original_offer_amount;
                             existing_vault.trigger_id = Some(time_trigger.id);
-                            if existing_vault.low_funds() {
+                            if existing_vault.configuration.low_funds() {
                                 existing_vault.status = VaultStatus::Inactive
                             }
                             Ok(existing_vault)
@@ -73,7 +74,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             )?;
 
             let coin_received_from_limit_order = Coin {
-                denom: vault.get_receive_denom().clone(),
+                denom: vault.configuration.get_receive_denom().clone(),
                 amount: limit_order_cache.filled,
             };
 
@@ -89,7 +90,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                     env.block,
                     EventData::VaultExecutionCompleted {
                         sent: Coin {
-                            denom: vault.get_swap_denom().clone(),
+                            denom: vault.configuration.get_swap_denom().clone(),
                             amount: limit_order_cache.original_offer_amount,
                         },
                         received: coin_received_from_limit_order,

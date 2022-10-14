@@ -1,3 +1,4 @@
+use crate::dca_configuration::DCAConfiguration;
 use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
 use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
@@ -7,7 +8,7 @@ use base::events::event::{EventBuilder, EventData};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::pair::Pair;
 use base::triggers::trigger::TimeInterval;
-use base::vaults::vault::{PositionType, Vault, VaultConfiguration, VaultStatus};
+use base::vaults::vault::{PositionType, Vault, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal256, Uint128, Uint64};
 use cw_multi_test::Executor;
 use std::str::FromStr;
@@ -128,9 +129,9 @@ fn with_price_trigger_should_create_vault() {
             id: Uint128::new(1),
             owner: user_address.clone(),
             created_at: mock.app.block_info().time,
-            balances: vec![Coin::new(100, DENOM_UKUJI.to_string())],
             status: VaultStatus::Active,
-            configuration: VaultConfiguration::DCA {
+            configuration: DCAConfiguration {
+                balance: Coin::new(100, DENOM_UKUJI.to_string()),
                 position_type: PositionType::Enter,
                 slippage_tolerance: None,
                 swap_amount: Uint128::new(10),
@@ -193,11 +194,11 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
             id: Uint128::new(2),
             owner: user_address.clone(),
             created_at: mock.app.block_info().time,
-            balances: vec![Coin::new(100, DENOM_UKUJI.to_string())],
             status: VaultStatus::Active,
-            configuration: VaultConfiguration::DCA {
+            configuration: DCAConfiguration {
                 position_type: PositionType::Enter,
                 slippage_tolerance: None,
+                balance: Coin::new(100, DENOM_UKUJI.to_string()),
                 swap_amount: Uint128::new(10),
                 pair: Pair {
                     address: mock.fin_contract_address.clone(),
@@ -421,10 +422,10 @@ fn with_time_trigger_should_create_vault() {
             id: Uint128::new(1),
             owner: user_address.clone(),
             created_at: mock.app.block_info().time,
-            balances: vec![Coin::new(100, DENOM_UKUJI.to_string())],
             status: VaultStatus::Active,
-            configuration: VaultConfiguration::DCA {
+            configuration: DCAConfiguration {
                 position_type: PositionType::Enter,
+                balance: Coin::new(100, DENOM_UKUJI.to_string()),
                 slippage_tolerance: None,
                 swap_amount: Uint128::new(10),
                 pair: Pair {
@@ -485,11 +486,11 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             id: Uint128::new(2),
             owner: user_address.clone(),
             created_at: mock.app.block_info().time,
-            balances: vec![Coin::new(100, DENOM_UKUJI.to_string())],
             status: VaultStatus::Active,
-            configuration: VaultConfiguration::DCA {
+            configuration: DCAConfiguration {
                 position_type: PositionType::Enter,
                 slippage_tolerance: None,
+                balance: Coin::new(100, DENOM_UKUJI.to_string()),
                 swap_amount: Uint128::new(10),
                 pair: Pair {
                     address: mock.fin_contract_address.clone(),

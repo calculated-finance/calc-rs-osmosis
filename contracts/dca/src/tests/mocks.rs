@@ -1,4 +1,5 @@
 use crate::contract::reply;
+use crate::dca_configuration::DCAConfiguration;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
@@ -359,7 +360,7 @@ impl MockApp {
         });
     }
 
-    pub fn get_vault_by_label(&self, label: &str) -> Vault {
+    pub fn get_vault_by_label(&self, label: &str) -> Vault<DCAConfiguration> {
         let vault_id = self.vault_ids.get(label).unwrap();
         let vault_response: VaultResponse = self
             .app

@@ -1,4 +1,5 @@
 use crate::contract::FIN_LIMIT_ORDER_RETRACTED_ID;
+use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{
     save_event, trigger_store, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,
@@ -6,9 +7,8 @@ use crate::state::{
 };
 use crate::validation_helpers::assert_sender_is_admin_or_vault_owner;
 use base::events::event::{EventBuilder, EventData};
-use base::pair::Pair;
 use base::triggers::trigger::TriggerConfiguration;
-use base::vaults::vault::{Vault, VaultConfiguration};
+use base::vaults::vault::Vault;
 use cosmwasm_std::Env;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
@@ -29,29 +29,22 @@ pub fn cancel_vault_by_address_and_id(
     let trigger_store = trigger_store();
     let trigger = trigger_store.load(deps.storage, vault.trigger_id.unwrap().u128())?;
 
-    match vault.configuration.clone() {
-        VaultConfiguration::DCA {
-            pair,
-            swap_amount: _,
-            position_type: _,
-            slippage_tolerance: _,
-        } => match trigger.configuration {
-            TriggerConfiguration::Time {
-                time_interval: _,
-                target_time: _,
-            } => cancel_vault_with_time_trigger(deps, env, vault),
-            TriggerConfiguration::FINLimitOrder {
-                target_price: _,
-                order_idx: _,
-            } => cancel_dca_vault_with_fin_limit_order_trigger(deps, vault, pair),
-        },
+    match trigger.configuration {
+        TriggerConfiguration::Time {
+            time_interval: _,
+            target_time: _,
+        } => cancel_vault_with_time_trigger(deps, env, vault),
+        TriggerConfiguration::FINLimitOrder {
+            target_price: _,
+            order_idx: _,
+        } => cancel_dca_vault_with_fin_limit_order_trigger(deps, vault),
     }
 }
 
 fn cancel_vault_with_time_trigger(
     deps: DepsMut,
     env: Env,
-    vault: Vault,
+    vault: Vault<DCAConfiguration>,
 ) -> Result<Response, ContractError> {
     trigger_store().remove(deps.storage, vault.trigger_id.unwrap().into())?;
     vault_store().remove(deps.storage, vault.id.into())?;
@@ -61,7 +54,7 @@ fn cancel_vault_with_time_trigger(
         EventBuilder::new(vault.id, env.block, EventData::VaultCancelled),
     )?;
 
-    let balance = vault.get_current_balance().clone();
+    let balance = vault.configuration.balance.clone();
 
     let refund_bank_msg = BankMsg::Send {
         to_address: vault.owner.to_string(),
@@ -77,8 +70,7 @@ fn cancel_vault_with_time_trigger(
 
 fn cancel_dca_vault_with_fin_limit_order_trigger(
     deps: DepsMut,
-    vault: Vault,
-    pair: Pair,
+    vault: Vault<DCAConfiguration>,
 ) -> Result<Response, ContractError> {
     TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.remove(deps.storage, vault.id.u128());
 
@@ -87,7 +79,7 @@ fn cancel_dca_vault_with_fin_limit_order_trigger(
 
     let (offer_amount, original_offer_amount, filled) = query_order_details(
         deps.querier,
-        pair.address.clone(),
+        vault.configuration.pair.address.clone(),
         fin_limit_order_trigger.id,
     );
 
@@ -100,7 +92,7 @@ fn cancel_dca_vault_with_fin_limit_order_trigger(
     LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
 
     let fin_retract_order_sub_msg = create_retract_order_sub_msg(
-        pair.address,
+        vault.configuration.pair.address,
         fin_limit_order_trigger.id,
         FIN_LIMIT_ORDER_RETRACTED_ID,
     );

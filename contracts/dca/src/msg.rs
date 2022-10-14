@@ -7,6 +7,8 @@ use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, Trigger};
 use base::vaults::vault::{PositionType, Vault};
 
+use crate::dca_configuration::DCAConfiguration;
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
     pub admin: String,
@@ -89,13 +91,13 @@ pub struct TriggerIdsResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct VaultResponse {
-    pub vault: Vault,
+    pub vault: Vault<DCAConfiguration>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct VaultsResponse {
-    pub vaults: Vec<Vault>,
+    pub vaults: Vec<Vault<DCAConfiguration>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

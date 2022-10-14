@@ -23,7 +23,7 @@ pub fn fin_limit_order_withdrawn_for_cancel_vault(
 
             // send assets from partially filled order to owner
             let filled_amount = Coin {
-                denom: vault.get_receive_denom().clone(),
+                denom: vault.configuration.get_receive_denom().clone(),
                 amount: limit_order_cache.filled,
             };
 

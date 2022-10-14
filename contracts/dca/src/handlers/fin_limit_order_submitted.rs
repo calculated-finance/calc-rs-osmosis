@@ -1,3 +1,4 @@
+use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{
     trigger_store, vault_store, Config, CACHE, CONFIG, FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID,
@@ -45,7 +46,7 @@ pub fn fin_limit_order_submitted(deps: DepsMut, reply: Reply) -> Result<Response
             vault_store().update(
                 deps.storage,
                 cache.vault_id.into(),
-                |vault| -> Result<Vault, ContractError> {
+                |vault| -> Result<Vault<DCAConfiguration>, ContractError> {
                     match vault {
                         Some(mut existing_vault) => {
                             existing_vault.trigger_id = Some(fin_limit_order_trigger.id);

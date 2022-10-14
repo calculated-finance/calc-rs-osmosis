@@ -16,6 +16,8 @@ use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::dca_configuration::DCAConfiguration;
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Cache {
     pub vault_id: Uint128,
@@ -45,17 +47,19 @@ pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cach
 pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v1");
 
 pub struct VaultIndexes<'a> {
-    pub owner: MultiIndex<'a, (Addr, u128), Vault, u128>,
+    pub owner: MultiIndex<'a, (Addr, u128), Vault<DCAConfiguration>, u128>,
 }
 
-impl<'a> IndexList<Vault> for VaultIndexes<'a> {
-    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<Vault>> + '_> {
-        let v: Vec<&dyn Index<Vault>> = vec![&self.owner];
+impl<'a> IndexList<Vault<DCAConfiguration>> for VaultIndexes<'a> {
+    fn get_indexes(
+        &'_ self,
+    ) -> Box<dyn Iterator<Item = &'_ dyn Index<Vault<DCAConfiguration>>> + '_> {
+        let v: Vec<&dyn Index<Vault<DCAConfiguration>>> = vec![&self.owner];
         Box::new(v.into_iter())
     }
 }
 
-pub fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
+pub fn vault_store<'a>() -> IndexedMap<'a, u128, Vault<DCAConfiguration>, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
         owner: MultiIndex::new(
             |_, v| (v.owner.clone(), v.id.u128()),

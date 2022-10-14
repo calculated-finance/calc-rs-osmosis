@@ -1,4 +1,5 @@
 use crate::contract::{FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID, FIN_SWAP_COMPLETED_ID};
+use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{
     save_event, trigger_store, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,
@@ -7,8 +8,7 @@ use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::time_helpers::target_time_elapsed;
 use base::pair::Pair;
 use base::triggers::trigger::TriggerConfiguration;
-use base::vaults::vault::{PositionType, Vault, VaultConfiguration, VaultStatus};
-use cosmwasm_std::Decimal256;
+use base::vaults::vault::{PositionType, Vault, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Timestamp, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
@@ -21,7 +21,6 @@ pub fn execute_trigger(
     trigger_id: Uint128,
 ) -> Result<Response, ContractError> {
     let trigger = trigger_store().load(deps.storage, trigger_id.into())?;
-
     let vault = vault_store().load(deps.storage, trigger.vault_id.into())?;
 
     save_event(
@@ -35,46 +34,28 @@ pub fn execute_trigger(
         ),
     )?;
 
-    match &vault.configuration {
-        VaultConfiguration::DCA {
-            pair,
-            swap_amount: _,
-            position_type,
-            slippage_tolerance,
-        } => match trigger.configuration {
-            TriggerConfiguration::Time {
-                time_interval: _,
-                target_time,
-            } => execute_dca_vault_time_trigger(
-                deps,
-                env,
-                vault.to_owned(),
-                pair.clone(),
-                target_time,
-                slippage_tolerance.to_owned(),
-                position_type.to_owned(),
-            ),
-            TriggerConfiguration::FINLimitOrder {
-                target_price: _,
-                order_idx,
-            } => execute_dca_vault_fin_limit_order_trigger(
-                deps,
-                vault.to_owned(),
-                pair.to_owned(),
-                order_idx.unwrap(),
-            ),
-        },
+    match trigger.configuration {
+        TriggerConfiguration::Time {
+            time_interval: _,
+            target_time,
+        } => execute_dca_vault_time_trigger(deps, env, vault.to_owned(), target_time),
+        TriggerConfiguration::FINLimitOrder {
+            target_price: _,
+            order_idx,
+        } => execute_dca_vault_fin_limit_order_trigger(
+            deps,
+            vault.to_owned(),
+            vault.configuration.pair.to_owned(),
+            order_idx.unwrap(),
+        ),
     }
 }
 
 fn execute_dca_vault_time_trigger(
     deps: DepsMut,
     env: Env,
-    vault: Vault,
-    pair: Pair,
+    vault: Vault<DCAConfiguration>,
     target_time: Timestamp,
-    slippage_tolerance: Option<Decimal256>,
-    position_type: PositionType,
 ) -> Result<Response, ContractError> {
     if !target_time_elapsed(env.block.time, target_time) {
         return Err(ContractError::CustomError {
@@ -83,11 +64,11 @@ fn execute_dca_vault_time_trigger(
     }
 
     // change the status of the vault so frontend knows
-    if vault.low_funds() {
+    if vault.configuration.low_funds() {
         vault_store().update(
             deps.storage,
             vault.id.into(),
-            |existing_vault| -> Result<Vault, ContractError> {
+            |existing_vault| -> Result<Vault<DCAConfiguration>, ContractError> {
                 match existing_vault {
                     Some(mut existing_vault) => {
                         existing_vault.status = VaultStatus::Inactive;
@@ -116,24 +97,28 @@ fn execute_dca_vault_time_trigger(
         )?;
     }
 
-    let fin_swap_msg = match slippage_tolerance {
+    let fin_swap_msg = match vault.configuration.slippage_tolerance {
         Some(tolerance) => {
-            let belief_price = match position_type {
-                PositionType::Enter => query_base_price(deps.querier, pair.address.clone()),
-                PositionType::Exit => query_quote_price(deps.querier, pair.address.clone()),
+            let belief_price = match vault.configuration.position_type {
+                PositionType::Enter => {
+                    query_base_price(deps.querier, vault.configuration.pair.address.clone())
+                }
+                PositionType::Exit => {
+                    query_quote_price(deps.querier, vault.configuration.pair.address.clone())
+                }
             };
 
             create_fin_swap_with_slippage(
-                pair.address.clone(),
+                vault.configuration.pair.address.clone(),
                 belief_price,
                 tolerance,
-                vault.get_swap_amount(),
+                vault.configuration.get_swap_amount(),
                 FIN_SWAP_COMPLETED_ID,
             )
         }
         None => create_fin_swap_without_slippage(
-            pair.address.clone(),
-            vault.get_swap_amount(),
+            vault.configuration.pair.address.clone(),
+            vault.configuration.get_swap_amount(),
             FIN_SWAP_COMPLETED_ID,
         ),
     };
@@ -151,7 +136,7 @@ fn execute_dca_vault_time_trigger(
 
 fn execute_dca_vault_fin_limit_order_trigger(
     deps: DepsMut,
-    vault: Vault,
+    vault: Vault<DCAConfiguration>,
     pair: Pair,
     order_idx: Uint128,
 ) -> Result<Response, ContractError> {

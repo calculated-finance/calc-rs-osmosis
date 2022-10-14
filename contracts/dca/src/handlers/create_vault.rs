@@ -1,4 +1,5 @@
 use crate::contract::FIN_LIMIT_ORDER_SUBMITTED_ID;
+use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{
     save_event, trigger_store, vault_store, Cache, Config, CACHE, CONFIG,
@@ -10,7 +11,7 @@ use crate::validation_helpers::{
 };
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
-use base::vaults::vault::{PositionType, Vault, VaultConfiguration, VaultStatus};
+use base::vaults::vault::{PositionType, Vault, VaultStatus};
 use cosmwasm_std::Decimal256;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, StdResult, Timestamp, Uint128, Uint64};
@@ -107,17 +108,17 @@ fn create_vault_with_time_trigger(
         },
     };
 
-    let vault: Vault = Vault {
+    let vault: Vault<DCAConfiguration> = Vault {
         id: config.vault_count,
         owner: info.sender.clone(),
         created_at: env.block.time,
-        balances: vec![info.funds[0].clone()],
         status: VaultStatus::Active,
-        configuration: VaultConfiguration::DCA {
+        configuration: DCAConfiguration {
             pair: existing_pair,
             swap_amount,
             position_type,
             slippage_tolerance,
+            balance: info.funds[0].clone(),
         },
         trigger_id: Some(trigger.id),
     };
@@ -167,22 +168,22 @@ fn create_vault_with_fin_limit_order_trigger(
     })?;
 
     // trigger information is updated upon successful limit order creation
-    let vault: Vault = Vault {
+    let vault: Vault<DCAConfiguration> = Vault {
         id: config.vault_count,
         owner: info.sender.clone(),
         created_at: env.block.time,
-        balances: vec![info.funds[0].clone()],
         status: VaultStatus::Active,
-        configuration: VaultConfiguration::DCA {
+        configuration: DCAConfiguration {
             pair: existing_pair.clone(),
             swap_amount,
+            balance: info.funds[0].clone(),
             position_type,
             slippage_tolerance,
         },
         trigger_id: None,
     };
 
-    let coin_to_send = vault.get_swap_amount();
+    let coin_to_send = vault.configuration.get_swap_amount();
 
     let fin_limit_order_sub_msg = create_limit_order_sub_msg(
         existing_pair.address,

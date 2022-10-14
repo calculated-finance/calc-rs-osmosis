@@ -1,5 +1,8 @@
 use super::mocks::MockApp;
-use crate::msg::{EventsResponse, QueryMsg, VaultResponse};
+use crate::{
+    dca_configuration::DCAConfiguration,
+    msg::{EventsResponse, QueryMsg, VaultResponse},
+};
 use base::{events::event::Event, vaults::vault::Vault};
 use cosmwasm_std::{Addr, Uint128};
 
@@ -17,7 +20,7 @@ pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str,
         })
 }
 
-pub fn assert_vault_eq(mock: &MockApp, vault_id: Uint128, expected_vault: Vault) {
+pub fn assert_vault_eq(mock: &MockApp, vault_id: Uint128, expected_vault: Vault<DCAConfiguration>) {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
@@ -66,7 +69,7 @@ pub fn assert_vault_balance(
     let vault = &vault_response.vault;
 
     assert_eq!(
-        vault.balances[0].amount, balance,
+        vault.configuration.balance.amount, balance,
         "Vault balance mismatch for vault_id: {}, owner: {}",
         vault_id, owner
     );
