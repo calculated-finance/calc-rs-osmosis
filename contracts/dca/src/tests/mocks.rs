@@ -1,7 +1,9 @@
 use crate::contract::reply;
-use crate::msg::{ExecuteMsg, InstantiateMsg};
-use base::triggers::time_configuration::TimeInterval;
-use base::vaults::dca_vault::PositionType;
+use crate::dca_configuration::DCAConfiguration;
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
+use base::helpers::message_helpers::get_flat_map_for_event_type;
+use base::triggers::trigger::TimeInterval;
+use base::vaults::vault::{PositionType, Vault};
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal256, Empty, Env, Event, MessageInfo, Response,
@@ -13,6 +15,8 @@ use kujira::fin::{
     BookResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg, OrderResponse,
     PoolResponse, QueryMsg as FINQueryMsg,
 };
+use rand::Rng;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 pub const USER: &str = "user";
@@ -20,10 +24,16 @@ pub const ADMIN: &str = "admin";
 pub const DENOM_UKUJI: &str = "ukuji";
 pub const DENOM_UTEST: &str = "utest";
 
+pub struct VaultId {
+    pub address: Addr,
+    pub vault_id: Uint128,
+}
+
 pub struct MockApp {
     pub app: App,
     pub dca_contract_address: Addr,
     pub fin_contract_address: Addr,
+    pub vault_ids: HashMap<String, Uint128>,
 }
 
 impl MockApp {
@@ -37,11 +47,11 @@ impl MockApp {
                     vec![
                         Coin {
                             denom: String::from(DENOM_UKUJI),
-                            amount: Uint128::new(200),
+                            amount: Uint128::new(99999),
                         },
                         Coin {
                             denom: String::from(DENOM_UTEST),
-                            amount: Uint128::new(200),
+                            amount: Uint128::new(99999),
                         },
                     ],
                 )
@@ -131,6 +141,7 @@ impl MockApp {
             app,
             dca_contract_address,
             fin_contract_address,
+            vault_ids: HashMap::new(),
         }
     }
 
@@ -150,39 +161,74 @@ impl MockApp {
     }
 
     pub fn with_funds_for(mut self, address: &Addr, amount: Uint128, denom: &str) -> MockApp {
-        self.app.init_modules(|router, _, storage| {
-            router
-                .bank
-                .init_balance(
-                    storage,
-                    address,
-                    vec![Coin {
-                        denom: String::from(denom),
-                        amount,
-                    }],
-                )
-                .unwrap();
-        });
+        self.app
+            .send_tokens(
+                Addr::unchecked(ADMIN),
+                address.clone(),
+                &[Coin::new(amount.u128(), denom.to_string())],
+            )
+            .unwrap();
+
         self
     }
 
-    pub fn with_vault_with_fin_limit_price_trigger(mut self, owner: &Addr) -> MockApp {
-        let create_vault_with_price_trigger_message =
-            ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
-                pair_address: self.fin_contract_address.to_string(),
-                position_type: PositionType::Enter,
-                slippage_tolerance: None,
-                swap_amount: Uint128::new(10),
-                time_interval: TimeInterval::Hourly,
-                target_price: Decimal256::from_str("1.0").unwrap(),
-            };
+    pub fn with_price_trigger_vault(
+        mut self,
+        owner: &Addr,
+        balance: Coin,
+        swap_amount: Uint128,
+        time_interval: TimeInterval,
+        label: &str,
+    ) -> Self {
+        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVault {
+            pair_address: self.fin_contract_address.to_string(),
+            position_type: PositionType::Enter,
+            slippage_tolerance: None,
+            swap_amount,
+            time_interval,
+            target_price: Some(Decimal256::from_str("1.0").unwrap()),
+            target_start_time_utc_seconds: None,
+        };
+
+        let response = self
+            .app
+            .execute_contract(
+                owner.clone(),
+                self.dca_contract_address.clone(),
+                &create_vault_with_price_trigger_message,
+                &vec![balance],
+            )
+            .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
+        );
+
+        self
+    }
+
+    pub fn with_vault_with_fin_limit_price_trigger(mut self, owner: &Addr, label: &str) -> MockApp {
+        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVault {
+            pair_address: self.fin_contract_address.to_string(),
+            position_type: PositionType::Enter,
+            slippage_tolerance: None,
+            swap_amount: Uint128::new(10),
+            time_interval: TimeInterval::Hourly,
+            target_price: Some(Decimal256::from_str("1.0").unwrap()),
+            target_start_time_utc_seconds: None,
+        };
 
         let funds = vec![Coin {
             denom: String::from(DENOM_UKUJI),
             amount: Uint128::new(100),
         }];
 
-        self.app
+        let response = self
+            .app
             .execute_contract(
                 owner.clone(),
                 self.dca_contract_address.clone(),
@@ -190,6 +236,14 @@ impl MockApp {
                 &funds,
             )
             .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
+        );
 
         self
     }
@@ -197,23 +251,25 @@ impl MockApp {
     pub fn with_vault_with_partially_filled_fin_limit_price_trigger(
         mut self,
         owner: &Addr,
+        label: &str,
     ) -> MockApp {
-        let create_vault_with_price_trigger_message =
-            ExecuteMsg::CreateVaultWithFINLimitOrderTrigger {
-                pair_address: self.fin_contract_address.to_string(),
-                position_type: PositionType::Enter,
-                slippage_tolerance: None,
-                swap_amount: Uint128::new(10),
-                time_interval: TimeInterval::Hourly,
-                target_price: Decimal256::from_str("1.0").unwrap(),
-            };
+        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVault {
+            pair_address: self.fin_contract_address.to_string(),
+            position_type: PositionType::Enter,
+            slippage_tolerance: None,
+            swap_amount: Uint128::new(10),
+            time_interval: TimeInterval::Hourly,
+            target_price: Some(Decimal256::from_str("1.0").unwrap()),
+            target_start_time_utc_seconds: None,
+        };
 
         let funds = vec![Coin {
             denom: String::from(DENOM_UKUJI),
             amount: Uint128::new(100),
         }];
 
-        self.app
+        let response = self
+            .app
             .execute_contract(
                 owner.clone(),
                 self.dca_contract_address.clone(),
@@ -221,6 +277,14 @@ impl MockApp {
                 &funds,
             )
             .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
+        );
 
         // send 5 ukuji from fin to admin wallet to mock partially filled outgoing
         self.app
@@ -249,8 +313,8 @@ impl MockApp {
         self
     }
 
-    pub fn with_vault_with_time_trigger(mut self, owner: &Addr) -> MockApp {
-        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVaultWithTimeTrigger {
+    pub fn with_vault_with_time_trigger(mut self, owner: &Addr, label: &str) -> MockApp {
+        let create_vault_with_price_trigger_message = ExecuteMsg::CreateVault {
             pair_address: self.fin_contract_address.to_string(),
             position_type: PositionType::Enter,
             slippage_tolerance: None,
@@ -259,6 +323,7 @@ impl MockApp {
             target_start_time_utc_seconds: Some(Uint64::from(
                 self.app.block_info().time.plus_seconds(2).seconds(),
             )),
+            target_price: None,
         };
 
         let funds = vec![Coin {
@@ -266,7 +331,8 @@ impl MockApp {
             amount: Uint128::new(100),
         }];
 
-        self.app
+        let response = self
+            .app
             .execute_contract(
                 owner.clone(),
                 self.dca_contract_address.clone(),
@@ -274,6 +340,14 @@ impl MockApp {
                 &funds,
             )
             .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
+        );
 
         self
     }
@@ -284,6 +358,22 @@ impl MockApp {
             let seconds_per_block = 5u64;
             block_info.height += seconds / seconds_per_block;
         });
+    }
+
+    pub fn get_vault_by_label(&self, label: &str) -> Vault<DCAConfiguration> {
+        let vault_id = self.vault_ids.get(label).unwrap();
+        let vault_response: VaultResponse = self
+            .app
+            .wrap()
+            .query_wasm_smart(
+                self.dca_contract_address.clone(),
+                &QueryMsg::GetVaultById {
+                    vault_id: vault_id.to_owned(),
+                },
+            )
+            .unwrap();
+
+        vault_response.vault
     }
 
     pub fn get_balance(&self, address: &Addr, denom: &str) -> Uint128 {
@@ -326,7 +416,10 @@ fn default_swap_handler(info: MessageInfo) -> StdResult<Response> {
 }
 
 fn default_submit_order_handler() -> StdResult<Response> {
-    Ok(Response::new().add_attribute("order_idx", "1"))
+    Ok(Response::new().add_attribute(
+        "order_idx",
+        rand::thread_rng().gen_range(0..100).to_string(),
+    ))
 }
 
 fn default_withdraw_orders_handler(
@@ -450,6 +543,12 @@ fn partially_filled_order_response(env: Env) -> StdResult<Binary> {
     Ok(to_binary(&response)?)
 }
 
+fn default_query_response() -> StdResult<Binary> {
+    #[derive(Serialize)]
+    pub struct Mock;
+    Ok(to_binary(&Mock)?)
+}
+
 pub fn fin_contract_default() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
@@ -479,11 +578,7 @@ pub fn fin_contract_default() -> Box<dyn Contract<Empty>> {
                     offset: _,
                 } => default_book_response(),
                 FINQueryMsg::Order { order_idx: _ } => default_order_response(env),
-                _ => {
-                    #[derive(Serialize)]
-                    pub struct Mock;
-                    Ok(to_binary(&Mock)?)
-                }
+                _ => default_query_response(),
             }
         },
     );
@@ -508,11 +603,7 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
-                _ => {
-                    #[derive(Serialize)]
-                    pub struct Mock;
-                    Ok(to_binary(&Mock)?)
-                }
+                _ => default_query_response(),
             }
         },
     );
@@ -538,11 +629,7 @@ pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
         |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
                 FINQueryMsg::Order { order_idx: _ } => partially_filled_order_response(env),
-                _ => {
-                    #[derive(Serialize)]
-                    pub struct Mock;
-                    Ok(to_binary(&Mock)?)
-                }
+                _ => default_query_response(),
             }
         },
     );

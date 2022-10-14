@@ -1,13 +1,17 @@
 use super::mocks::MockApp;
-use crate::msg::{QueryMsg, VaultResponse};
-use cosmwasm_std::{Addr, Event, Uint128};
+use crate::{
+    dca_configuration::DCAConfiguration,
+    msg::{EventsResponse, QueryMsg, VaultResponse},
+};
+use base::{events::event::Event, vaults::vault::Vault};
+use cosmwasm_std::{Addr, Uint128};
 
-pub fn assert_address_balances(app: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {
+pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {
     address_balances
         .iter()
         .for_each(|(address, denom, expected_balance)| {
             assert_eq!(
-                app.get_balance(address, denom),
+                mock.get_balance(address, denom),
                 expected_balance,
                 "Balance mismatch for {} at {}",
                 address,
@@ -16,12 +20,34 @@ pub fn assert_address_balances(app: &MockApp, address_balances: &[(&Addr, &str, 
         })
 }
 
-pub fn assert_response_events(actual_events: &[Event], expected_events: &[Event]) {
+pub fn assert_vault_eq(mock: &MockApp, vault_id: Uint128, expected_vault: Vault<DCAConfiguration>) {
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVaultById { vault_id },
+        )
+        .unwrap();
+
+    assert_eq!(vault_response.vault, expected_vault);
+}
+
+pub fn assert_events_published(mock: &MockApp, resource_id: Uint128, expected_events: &[Event]) {
+    let events_response: EventsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetEventsByResourceId { resource_id },
+        )
+        .unwrap();
+
     expected_events.iter().for_each(|expected_event| {
         assert!(
-            actual_events.contains(expected_event),
+            events_response.events.contains(expected_event),
             "Expected actual_events: \n\n{:?}\n\nto contain event:\n\n{:?}\n\n but it wasn't found",
-            actual_events,
+            events_response.events,
             expected_event
         );
     });
@@ -37,19 +63,13 @@ pub fn assert_vault_balance(
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            contract_address,
-            &QueryMsg::GetVaultByAddressAndId {
-                address: owner.to_string(),
-                vault_id,
-            },
-        )
+        .query_wasm_smart(contract_address, &QueryMsg::GetVaultById { vault_id })
         .unwrap();
 
     let vault = &vault_response.vault;
 
     assert_eq!(
-        vault.balances[0].amount, balance,
+        vault.configuration.balance.amount, balance,
         "Vault balance mismatch for vault_id: {}, owner: {}",
         vault_id, owner
     );
