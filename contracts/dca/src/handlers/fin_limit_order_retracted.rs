@@ -39,10 +39,10 @@ pub fn fin_limit_order_retracted(
 
             save_event(
                 deps.storage,
-                EventBuilder::new(vault.id, env.block, EventData::VaultCancelled),
+                EventBuilder::new(vault.id, env.block, EventData::DCAVaultCancelled),
             )?;
 
-            // if the entire amount isnt retracted, order was partially filled need to send the partially filled assets to user
+            // if the entire amount isnt retracted, order was partially filled need to send the partially retracted assets to user
             if amount_retracted != limit_order_cache.original_offer_amount {
                 let retracted_balance = Coin {
                     denom: vault.configuration.get_swap_denom().clone(),
@@ -69,7 +69,10 @@ pub fn fin_limit_order_retracted(
             } else {
                 let bank_msg = BankMsg::Send {
                     to_address: vault.owner.to_string(),
-                    amount: vec![vault.configuration.balance.clone()],
+                    amount: vec![Coin::new(
+                        vault.configuration.balance.amount.u128(),
+                        vault.configuration.get_swap_denom().clone(),
+                    )],
                 };
 
                 vault_store().remove(deps.storage, vault.id.into())?;

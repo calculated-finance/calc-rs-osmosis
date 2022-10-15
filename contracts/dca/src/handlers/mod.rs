@@ -15,3 +15,4 @@ pub mod get_pairs;
 pub mod get_time_triggers;
 pub mod get_vault_by_id;
 pub mod get_vaults_by_address;
+pub mod update_config;

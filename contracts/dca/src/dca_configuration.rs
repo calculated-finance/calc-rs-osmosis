@@ -28,13 +28,12 @@ impl DCAConfiguration {
     }
 
     pub fn get_swap_amount(&self) -> Coin {
-        if self.low_funds() {
-            self.balance.clone()
-        } else {
-            Coin {
-                denom: self.get_swap_denom(),
-                amount: self.swap_amount.clone(),
-            }
+        Coin {
+            denom: self.get_swap_denom(),
+            amount: match self.low_funds() {
+                true => self.balance.amount,
+                false => self.swap_amount,
+            },
         }
     }
 

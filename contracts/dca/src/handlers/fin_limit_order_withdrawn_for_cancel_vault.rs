@@ -2,6 +2,7 @@ use crate::{
     error::ContractError,
     state::{trigger_store, vault_store, CACHE, LIMIT_ORDER_CACHE},
 };
+use cosmwasm_std::Uint128;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response};
 
@@ -26,6 +27,11 @@ pub fn fin_limit_order_withdrawn_for_cancel_vault(
                 denom: vault.configuration.get_receive_denom().clone(),
                 amount: limit_order_cache.filled,
             };
+
+            if filled_amount.amount == Uint128::zero() {
+                return Ok(Response::default()
+                    .add_attribute("method", "after_cancel_trigger_withdraw_order"));
+            }
 
             let filled_amount_bank_msg = BankMsg::Send {
                 to_address: vault.owner.to_string(),

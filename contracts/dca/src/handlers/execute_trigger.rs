@@ -8,7 +8,7 @@ use base::events::event::{EventBuilder, EventData};
 use base::helpers::time_helpers::target_time_elapsed;
 use base::pair::Pair;
 use base::triggers::trigger::TriggerConfiguration;
-use base::vaults::vault::{PositionType, Vault, VaultStatus};
+use base::vaults::vault::{PositionType, Vault};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Timestamp, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
@@ -28,7 +28,7 @@ pub fn execute_trigger(
         EventBuilder::new(
             vault.id,
             env.block.to_owned(),
-            EventData::VaultExecutionTriggered {
+            EventData::DCAVaultExecutionTriggered {
                 trigger_id: trigger.id,
             },
         ),
@@ -63,29 +63,6 @@ fn execute_time_trigger(
         });
     }
 
-    // change the status of the vault so frontend knows
-    if vault.configuration.low_funds() {
-        vault_store().update(
-            deps.storage,
-            vault.id.into(),
-            |existing_vault| -> Result<Vault<DCAConfiguration>, ContractError> {
-                match existing_vault {
-                    Some(mut existing_vault) => {
-                        existing_vault.status = VaultStatus::Inactive;
-                        Ok(existing_vault)
-                    }
-                    None => Err(ContractError::CustomError {
-                        val: format!(
-                            "could not find vault for address: {} with id: {}",
-                            vault.owner.clone(),
-                            vault.id
-                        ),
-                    }),
-                }
-            },
-        )?;
-    }
-
     let fin_swap_msg = match vault.configuration.slippage_tolerance {
         Some(tolerance) => {
             let belief_price = match vault.configuration.position_type {
@@ -116,6 +93,7 @@ fn execute_time_trigger(
         vault_id: vault.id,
         owner: vault.owner.clone(),
     };
+
     CACHE.save(deps.storage, &cache)?;
 
     Ok(Response::new()
@@ -156,6 +134,7 @@ fn execute_fin_limit_order_trigger(
         vault_id: vault.id,
         owner: vault.owner.clone(),
     };
+
     CACHE.save(deps.storage, &cache)?;
 
     Ok(Response::new()

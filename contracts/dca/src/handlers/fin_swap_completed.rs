@@ -1,11 +1,11 @@
 use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
-use crate::state::{save_event, trigger_store, vault_store, CACHE};
+use crate::state::{save_event, trigger_store, vault_store, CACHE, CONFIG};
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::TriggerConfiguration;
-use base::vaults::vault::{PositionType, Vault};
+use base::vaults::vault::{PositionType, Vault, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
 use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
@@ -71,12 +71,27 @@ pub fn fin_swap_completed(
                 }
             };
 
-            let bank_msg_to_vault_owner: BankMsg = BankMsg::Send {
-                to_address: vault.owner.to_string(),
-                amount: vec![coin_received.clone()],
-            };
+            let config = CONFIG.load(deps.storage)?;
 
-            messages.push(CosmosMsg::Bank(bank_msg_to_vault_owner));
+            let execution_fee = Coin::new(
+                (coin_received.amount * config.fee_rate).u128(),
+                &coin_received.denom,
+            );
+
+            let funds_to_redistribute = Coin::new(
+                (coin_received.amount - execution_fee.amount).u128(),
+                &coin_received.denom,
+            );
+
+            messages.push(CosmosMsg::Bank(BankMsg::Send {
+                to_address: vault.owner.to_string(),
+                amount: vec![funds_to_redistribute],
+            }));
+
+            messages.push(CosmosMsg::Bank(BankMsg::Send {
+                to_address: config.fee_collector.to_string(),
+                amount: vec![execution_fee.clone()],
+            }));
 
             vault_store().update(
                 deps.storage,
@@ -84,7 +99,13 @@ pub fn fin_swap_completed(
                 |existing_vault| -> Result<Vault<DCAConfiguration>, ContractError> {
                     match existing_vault {
                         Some(mut existing_vault) => {
-                            existing_vault.configuration.balance.amount -= coin_sent.amount;
+                            existing_vault.configuration.balance.amount -=
+                                existing_vault.configuration.get_swap_amount().amount;
+
+                            if let true = existing_vault.configuration.low_funds() {
+                                existing_vault.status = VaultStatus::Inactive;
+                            }
+
                             Ok(existing_vault)
                         }
                         None => Err(ContractError::CustomError {
@@ -126,9 +147,10 @@ pub fn fin_swap_completed(
                 EventBuilder::new(
                     vault.id,
                     env.block,
-                    EventData::VaultExecutionCompleted {
+                    EventData::DCAVaultExecutionCompleted {
                         sent: coin_sent.clone(),
                         received: coin_received.clone(),
+                        fee: execution_fee,
                     },
                 ),
             )?;
@@ -141,7 +163,7 @@ pub fn fin_swap_completed(
                 EventBuilder::new(
                     vault.id,
                     env.block.to_owned(),
-                    EventData::VaultExecutionSkipped {
+                    EventData::DCAVaultExecutionSkipped {
                         reason: if e.contains(ERROR_SWAP_SLIPPAGE) {
                             ExecutionSkippedReason::SlippageToleranceExceeded
                         } else if e.contains(ERROR_SWAP_INSUFFICIENT_FUNDS) {
@@ -170,7 +192,7 @@ pub fn fin_swap_completed(
                                 Ok(trigger)
                             }
                             None => Err(ContractError::CustomError {
-                                val: format!("could not trigger with id: {}", trigger.id),
+                                val: format!("could not find trigger with id: {}", trigger.id),
                             }),
                         }
                     })?;
