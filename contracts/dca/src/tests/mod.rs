@@ -15,5 +15,3 @@ pub mod cancel_vault_tests;
 
 #[cfg(test)]
 pub mod execute_trigger_tests;
-
-pub mod constants;

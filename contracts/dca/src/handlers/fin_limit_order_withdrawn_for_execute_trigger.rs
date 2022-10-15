@@ -1,3 +1,4 @@
+use crate::constants::ONE_HUNDRED;
 use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{
@@ -83,7 +84,10 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             let config = CONFIG.load(deps.storage)?;
 
             let execution_fee = Coin::new(
-                (coin_received.amount * config.fee_rate).u128(),
+                (coin_received
+                    .amount
+                    .checked_multiply_ratio(config.fee_percent, ONE_HUNDRED)?)
+                .u128(),
                 &coin_received.denom,
             );
 
@@ -92,7 +96,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 &coin_received.denom,
             );
 
-            let vault_owner_bank_msg: BankMsg = BankMsg::Send {
+            let funds_redistribution_bank_msg: BankMsg = BankMsg::Send {
                 to_address: vault.owner.to_string(),
                 amount: vec![funds_to_redistribute],
             };
@@ -124,7 +128,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             Ok(Response::new()
                 .add_attribute("method", "after_withdraw_order")
                 .add_attribute("trigger_id", time_trigger.id)
-                .add_message(vault_owner_bank_msg)
+                .add_message(funds_redistribution_bank_msg)
                 .add_message(fee_collector_bank_msg))
         }
         cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {

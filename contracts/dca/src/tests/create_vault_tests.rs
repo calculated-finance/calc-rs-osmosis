@@ -1,4 +1,4 @@
-use super::constants::{ONE, ONE_THOUSAND, TEN};
+use crate::constants::{ONE, ONE_THOUSAND, TEN};
 use crate::dca_configuration::DCAConfiguration;
 use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
 use crate::tests::helpers::{

@@ -1,7 +1,6 @@
-use super::constants::ONE_HUNDRED;
 use super::mocks::fin_contract_fail_slippage_tolerance;
+use crate::constants::{ONE, ONE_HUNDRED, ONE_THOUSAND, TEN};
 use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
-use crate::tests::constants::{ONE, ONE_THOUSAND, TEN};
 use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
 };
@@ -10,7 +9,7 @@ use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use base::events::event::{EventBuilder, EventData};
-use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
+use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
 #[test]
@@ -19,7 +18,6 @@ fn fin_limit_order_trigger_should_succeed() {
     let user_balance = TEN;
     let vault_deposit = TEN;
     let swap_amount = ONE;
-    let swap_amount_after_fee = swap_amount * (Decimal::percent(100) - Decimal::percent(2));
     let mut mock = MockApp::new(fin_contract_filled_limit_order())
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_filled_fin_limit_price_trigger(
@@ -28,6 +26,11 @@ fn fin_limit_order_trigger_should_succeed() {
             swap_amount,
             "fin",
         );
+
+    let swap_amount_after_fee = swap_amount
+        - swap_amount
+            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
+            .unwrap();
 
     assert_address_balances(
         &mock,
@@ -105,7 +108,7 @@ fn fin_limit_order_trigger_should_succeed() {
                 EventData::DCAVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.u128(), DENOM_UKUJI),
                     received: Coin::new(swap_amount.u128(), DENOM_UTEST),
-                    fee: Coin::new((swap_amount * mock.fee_rate).u128(), DENOM_UTEST),
+                    fee: Coin::new((swap_amount - swap_amount_after_fee).u128(), DENOM_UTEST),
                 },
             )
             .build(3),
@@ -247,11 +250,16 @@ fn when_executions_result_in_empty_vault_should_succeed() {
             "fin",
         );
 
+    let vault_deposit_after_fee = vault_deposit
+        - vault_deposit
+            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
+            .unwrap();
+
     assert_address_balances(
         &mock,
         &[
             (&user_address, DENOM_UKUJI, user_funds - vault_deposit),
-            (&user_address, DENOM_UTEST, Uint128::new(0)),
+            (&user_address, DENOM_UTEST, Uint128::zero()),
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
@@ -315,11 +323,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         &mock,
         &[
             (&user_address, DENOM_UKUJI, ONE_HUNDRED - vault_deposit),
-            (
-                &user_address,
-                DENOM_UTEST,
-                vault_deposit * (Decimal::percent(100) - mock.fee_rate),
-            ),
+            (&user_address, DENOM_UTEST, vault_deposit_after_fee),
             (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (
@@ -350,7 +354,7 @@ fn after_target_time_should_succeed() {
     let user_balance = TEN;
     let vault_deposit = TEN;
     let swap_amount = ONE;
-    let swap_amount_after_fee = swap_amount * (Decimal::percent(100) - Decimal::percent(2));
+
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_time_trigger(
@@ -359,6 +363,11 @@ fn after_target_time_should_succeed() {
             swap_amount,
             "time",
         );
+
+    let swap_amount_after_fee = swap_amount
+        - swap_amount
+            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
+            .unwrap();
 
     assert_address_balances(
         &mock,
@@ -433,7 +442,7 @@ fn after_target_time_should_succeed() {
                 EventData::DCAVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.u128(), DENOM_UKUJI),
                     received: Coin::new(swap_amount.u128(), DENOM_UTEST),
-                    fee: Coin::new((swap_amount * mock.fee_rate).u128(), DENOM_UTEST),
+                    fee: Coin::new((swap_amount - swap_amount_after_fee).u128(), DENOM_UTEST),
                 },
             )
             .build(3),

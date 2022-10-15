@@ -1,5 +1,5 @@
+use crate::constants::{ONE, ONE_THOUSAND, TEN};
 use crate::msg::{ExecuteMsg, QueryMsg, VaultsResponse};
-use crate::tests::constants::{ONE, ONE_THOUSAND, TEN};
 use crate::tests::helpers::{assert_address_balances, assert_events_published};
 use crate::tests::mocks::{
     fin_contract_partially_filled_order, fin_contract_unfilled_limit_order, MockApp, ADMIN,

@@ -5,7 +5,6 @@ use base::triggers::trigger::Trigger;
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::Vault;
 use cosmwasm_std::Addr;
-use cosmwasm_std::Decimal;
 use cosmwasm_std::StdResult;
 use cosmwasm_std::Storage;
 use cosmwasm_std::Uint128;
@@ -31,7 +30,7 @@ pub struct Config {
     pub vault_count: Uint128,
     pub trigger_count: Uint128,
     pub fee_collector: Addr,
-    pub fee_rate: Decimal,
+    pub fee_percent: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

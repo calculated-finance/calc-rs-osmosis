@@ -1,4 +1,4 @@
-use super::constants::{ONE, ONE_THOUSAND};
+use crate::constants::{ONE, ONE_THOUSAND};
 use crate::contract::reply;
 use crate::dca_configuration::DCAConfiguration;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
@@ -7,8 +7,8 @@ use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::{PositionType, Vault};
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
-    to_binary, Addr, BankMsg, Binary, Coin, Decimal, Decimal256, Empty, Env, Event, MessageInfo,
-    Response, StdResult, Uint128, Uint256, Uint64,
+    to_binary, Addr, BankMsg, Binary, Coin, Decimal256, Empty, Env, Event, MessageInfo, Response,
+    StdResult, Uint128, Uint256, Uint64,
 };
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
 use kujira::denom::Denom;
@@ -35,7 +35,7 @@ pub struct MockApp {
     pub dca_contract_address: Addr,
     pub fin_contract_address: Addr,
     pub vault_ids: HashMap<String, Uint128>,
-    pub fee_rate: Decimal,
+    pub fee_percent: Uint128,
 }
 
 impl MockApp {
@@ -74,7 +74,7 @@ impl MockApp {
             &InstantiateMsg {
                 admin: String::from(ADMIN),
                 fee_collector: String::from(ADMIN),
-                fee_rate: Decimal::percent(2),
+                fee_percent: ONE + ONE,
             },
             "dca",
         );
@@ -146,7 +146,7 @@ impl MockApp {
             dca_contract_address,
             fin_contract_address,
             vault_ids: HashMap::new(),
-            fee_rate: Decimal::percent(2),
+            fee_percent: ONE + ONE,
         }
     }
 

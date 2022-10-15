@@ -1,3 +1,4 @@
+use crate::constants::ONE_HUNDRED;
 use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{save_event, trigger_store, vault_store, CACHE, CONFIG};
@@ -74,7 +75,10 @@ pub fn fin_swap_completed(
             let config = CONFIG.load(deps.storage)?;
 
             let execution_fee = Coin::new(
-                (coin_received.amount * config.fee_rate).u128(),
+                (coin_received
+                    .amount
+                    .checked_multiply_ratio(config.fee_percent, ONE_HUNDRED)?)
+                .u128(),
                 &coin_received.denom,
             );
 

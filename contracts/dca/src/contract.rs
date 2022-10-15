@@ -55,7 +55,7 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
         vault_count: Uint128::zero(),
         trigger_count: Uint128::zero(),
         fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
-        fee_rate: msg.fee_rate,
+        fee_percent: msg.fee_percent,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -74,7 +74,7 @@ pub fn instantiate(
         vault_count: Uint128::zero(),
         trigger_count: Uint128::zero(),
         fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
-        fee_rate: msg.fee_rate,
+        fee_percent: msg.fee_percent,
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -126,8 +126,8 @@ pub fn execute(
         ExecuteMsg::Deposit { vault_id } => deposit(deps, env, info, vault_id),
         ExecuteMsg::UpdateConfig {
             fee_collector,
-            fee_rate,
-        } => update_config(deps, info, fee_collector, fee_rate),
+            fee_percent,
+        } => update_config(deps, info, fee_collector, fee_percent),
     }
 }
 

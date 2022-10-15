@@ -1,5 +1,5 @@
 use base::events::event::Event;
-use cosmwasm_std::{Decimal, Decimal256, Uint128, Uint64};
+use cosmwasm_std::{Decimal256, Uint128, Uint64};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -13,14 +13,14 @@ use crate::dca_configuration::DCAConfiguration;
 pub struct InstantiateMsg {
     pub admin: String,
     pub fee_collector: String,
-    pub fee_rate: Decimal,
+    pub fee_percent: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MigrateMsg {
     pub admin: String,
     pub fee_collector: String,
-    pub fee_rate: Decimal,
+    pub fee_percent: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -55,7 +55,7 @@ pub enum ExecuteMsg {
     },
     UpdateConfig {
         fee_collector: Option<String>,
-        fee_rate: Option<Decimal>,
+        fee_percent: Option<Uint128>,
     },
 }
 
