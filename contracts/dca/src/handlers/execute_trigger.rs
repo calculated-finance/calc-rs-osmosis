@@ -4,7 +4,7 @@ use crate::error::ContractError;
 use crate::state::{
     save_event, trigger_store, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,
 };
-use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
+use base::events::event::{EventBuilder, EventData};
 use base::helpers::time_helpers::target_time_elapsed;
 use base::pair::Pair;
 use base::triggers::trigger::TriggerConfiguration;
@@ -38,11 +38,11 @@ pub fn execute_trigger(
         TriggerConfiguration::Time {
             time_interval: _,
             target_time,
-        } => execute_dca_vault_time_trigger(deps, env, vault.to_owned(), target_time),
+        } => execute_time_trigger(deps, env, vault.to_owned(), target_time),
         TriggerConfiguration::FINLimitOrder {
             target_price: _,
             order_idx,
-        } => execute_dca_vault_fin_limit_order_trigger(
+        } => execute_fin_limit_order_trigger(
             deps,
             vault.to_owned(),
             vault.configuration.pair.to_owned(),
@@ -51,7 +51,7 @@ pub fn execute_trigger(
     }
 }
 
-fn execute_dca_vault_time_trigger(
+fn execute_time_trigger(
     deps: DepsMut,
     env: Env,
     vault: Vault<DCAConfiguration>,
@@ -83,17 +83,6 @@ fn execute_dca_vault_time_trigger(
                     }),
                 }
             },
-        )?;
-
-        save_event(
-            deps.storage,
-            EventBuilder::new(
-                vault.id,
-                env.block,
-                EventData::VaultExecutionSkipped {
-                    reason: ExecutionSkippedReason::InsufficientFunds,
-                },
-            ),
         )?;
     }
 
@@ -134,7 +123,7 @@ fn execute_dca_vault_time_trigger(
         .add_submessage(fin_swap_msg))
 }
 
-fn execute_dca_vault_fin_limit_order_trigger(
+fn execute_fin_limit_order_trigger(
     deps: DepsMut,
     vault: Vault<DCAConfiguration>,
     pair: Pair,

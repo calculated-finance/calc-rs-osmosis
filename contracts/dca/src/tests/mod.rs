@@ -11,4 +11,7 @@ pub mod contract_tests;
 pub mod create_vault_tests;
 
 #[cfg(test)]
-pub mod cancel_vault_by_address_and_id_tests;
+pub mod cancel_vault_tests;
+
+#[cfg(test)]
+pub mod execute_trigger_tests;

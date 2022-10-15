@@ -11,6 +11,8 @@ use base::triggers::trigger::TimeInterval;
 use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
+use super::mocks::fin_contract_fail_slippage_tolerance;
+
 #[test]
 fn should_succeed() {
     let user_address = Addr::unchecked(USER);
@@ -69,16 +71,16 @@ fn should_succeed() {
         vault_id,
         &[
             EventBuilder::new(
-                user_address.clone(),
                 vault_id,
+                mock.app.block_info(),
                 EventData::VaultExecutionTriggered {
                     trigger_id: vault_response.vault.trigger_id.unwrap(),
                 },
             )
             .build(2),
             EventBuilder::new(
-                user_address.clone(),
                 vault_id,
+                mock.app.block_info(),
                 EventData::VaultExecutionCompleted {
                     sent: Coin::new(10, DENOM_UKUJI),
                     received: Coin::new(10, DENOM_UTEST),
@@ -320,16 +322,16 @@ fn after_target_time_should_succeed() {
         vault_id,
         &[
             EventBuilder::new(
-                user_address.clone(),
                 vault_id,
+                mock.app.block_info(),
                 EventData::VaultExecutionTriggered {
                     trigger_id: Uint128::new(1),
                 },
             )
             .build(2),
             EventBuilder::new(
-                user_address.clone(),
                 vault_id,
+                mock.app.block_info(),
                 EventData::VaultExecutionCompleted {
                     sent: Coin::new(10, DENOM_UKUJI),
                     received: Coin::new(10, DENOM_UTEST),
