@@ -51,7 +51,7 @@ fn cancel_vault_with_time_trigger(
 
     save_event(
         deps.storage,
-        EventBuilder::new(vault.id, env.block, EventData::VaultCancelled),
+        EventBuilder::new(vault.id, env.block, EventData::DCAVaultCancelled),
     )?;
 
     let balance = vault.configuration.balance.clone();
@@ -101,6 +101,7 @@ fn cancel_dca_vault_with_fin_limit_order_trigger(
         vault_id: vault.id,
         owner: vault.owner,
     };
+
     CACHE.save(deps.storage, &cache)?;
 
     Ok(Response::new()

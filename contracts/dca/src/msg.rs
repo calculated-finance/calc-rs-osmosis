@@ -12,11 +12,15 @@ use crate::dca_configuration::DCAConfiguration;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
     pub admin: String,
+    pub fee_collector: String,
+    pub fee_percent: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MigrateMsg {
     pub admin: String,
+    pub fee_collector: String,
+    pub fee_percent: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -48,6 +52,10 @@ pub enum ExecuteMsg {
     },
     ExecuteTrigger {
         trigger_id: Uint128,
+    },
+    UpdateConfig {
+        fee_collector: Option<String>,
+        fee_percent: Option<Uint128>,
     },
 }
 

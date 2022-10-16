@@ -1,3 +1,4 @@
+use crate::constants::ONE_HUNDRED;
 use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{
@@ -56,11 +57,13 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                     match vault {
                         Some(mut existing_vault) => {
                             existing_vault.configuration.balance.amount -=
-                                limit_order_cache.original_offer_amount;
+                                existing_vault.configuration.get_swap_amount().amount;
                             existing_vault.trigger_id = Some(time_trigger.id);
+
                             if existing_vault.configuration.low_funds() {
                                 existing_vault.status = VaultStatus::Inactive
                             }
+
                             Ok(existing_vault)
                         }
                         None => Err(ContractError::CustomError {
@@ -73,14 +76,34 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 },
             )?;
 
-            let coin_received_from_limit_order = Coin {
+            let coin_received = Coin {
                 denom: vault.configuration.get_receive_denom().clone(),
                 amount: limit_order_cache.filled,
             };
 
-            let vault_owner_bank_msg: BankMsg = BankMsg::Send {
+            let config = CONFIG.load(deps.storage)?;
+
+            let execution_fee = Coin::new(
+                (coin_received
+                    .amount
+                    .checked_multiply_ratio(config.fee_percent, ONE_HUNDRED)?)
+                .u128(),
+                &coin_received.denom,
+            );
+
+            let funds_to_redistribute = Coin::new(
+                (coin_received.amount - execution_fee.amount).u128(),
+                &coin_received.denom,
+            );
+
+            let funds_redistribution_bank_msg: BankMsg = BankMsg::Send {
                 to_address: vault.owner.to_string(),
-                amount: vec![coin_received_from_limit_order.clone()],
+                amount: vec![funds_to_redistribute],
+            };
+
+            let fee_collector_bank_msg: BankMsg = BankMsg::Send {
+                to_address: config.fee_collector.to_string(),
+                amount: vec![execution_fee.clone()],
             };
 
             save_event(
@@ -88,22 +111,25 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 EventBuilder::new(
                     vault.id,
                     env.block,
-                    EventData::VaultExecutionCompleted {
+                    EventData::DCAVaultExecutionCompleted {
                         sent: Coin {
                             denom: vault.configuration.get_swap_denom().clone(),
                             amount: limit_order_cache.original_offer_amount,
                         },
-                        received: coin_received_from_limit_order,
+                        received: coin_received,
+                        fee: execution_fee,
                     },
                 ),
             )?;
 
             LIMIT_ORDER_CACHE.remove(deps.storage);
             CACHE.remove(deps.storage);
+
             Ok(Response::new()
                 .add_attribute("method", "after_withdraw_order")
                 .add_attribute("trigger_id", time_trigger.id)
-                .add_message(vault_owner_bank_msg))
+                .add_message(funds_redistribution_bank_msg)
+                .add_message(fee_collector_bank_msg))
         }
         cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
             val: format!(

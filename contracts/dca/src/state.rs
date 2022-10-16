@@ -29,6 +29,8 @@ pub struct Config {
     pub admin: Addr,
     pub vault_count: Uint128,
     pub trigger_count: Uint128,
+    pub fee_collector: Addr,
+    pub fee_percent: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -16,6 +16,7 @@ use crate::handlers::get_pairs::get_pairs;
 use crate::handlers::get_time_triggers::get_time_triggers;
 use crate::handlers::get_vault_by_id::get_vault_by_id;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
+use crate::handlers::update_config::update_config;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{
     event_store, trigger_store, vault_store, Config, CACHE, CONFIG,
@@ -53,6 +54,8 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
         admin: deps.api.addr_validate(&msg.admin)?,
         vault_count: Uint128::zero(),
         trigger_count: Uint128::zero(),
+        fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
+        fee_percent: msg.fee_percent,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -70,6 +73,8 @@ pub fn instantiate(
         admin: deps.api.addr_validate(&msg.admin)?,
         vault_count: Uint128::zero(),
         trigger_count: Uint128::zero(),
+        fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
+        fee_percent: msg.fee_percent,
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -119,6 +124,10 @@ pub fn execute(
         }
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger(deps, env, trigger_id),
         ExecuteMsg::Deposit { vault_id } => deposit(deps, env, info, vault_id),
+        ExecuteMsg::UpdateConfig {
+            fee_collector,
+            fee_percent,
+        } => update_config(deps, info, fee_collector, fee_percent),
     }
 }
 

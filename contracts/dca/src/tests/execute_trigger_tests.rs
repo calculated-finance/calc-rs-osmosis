@@ -1,34 +1,54 @@
+use super::mocks::fin_contract_fail_slippage_tolerance;
+use crate::constants::{ONE, ONE_HUNDRED, ONE_THOUSAND, TEN};
 use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
 use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
 };
 use crate::tests::mocks::{
-    fin_contract_default, fin_contract_partially_filled_order, MockApp, ADMIN, DENOM_UKUJI,
-    DENOM_UTEST, USER,
+    fin_contract_filled_limit_order, fin_contract_partially_filled_order,
+    fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use base::events::event::{EventBuilder, EventData};
-use base::triggers::trigger::TimeInterval;
 use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
-use super::mocks::fin_contract_fail_slippage_tolerance;
-
 #[test]
-fn should_succeed() {
+fn fin_limit_order_trigger_should_succeed() {
     let user_address = Addr::unchecked(USER);
-    let mut mock = MockApp::new(fin_contract_default())
-        .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_fin_limit_price_trigger(&user_address, "fin");
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_filled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_filled_fin_limit_price_trigger(
+            &user_address,
+            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    let swap_amount_after_fee = swap_amount
+        - swap_amount
+            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
+            .unwrap();
 
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, Uint128::new(0)),
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
             (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(290)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(210)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit - swap_amount,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (
+                &mock.fin_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND + swap_amount,
+            ),
         ],
     );
 
@@ -58,11 +78,15 @@ fn should_succeed() {
         &mock,
         &[
             (&user_address, DENOM_UKUJI, Uint128::new(0)),
-            (&user_address, DENOM_UTEST, Uint128::new(10)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(290)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(210)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(190)),
+            (&user_address, DENOM_UTEST, swap_amount_after_fee),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit - swap_amount,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
     );
 
@@ -73,7 +97,7 @@ fn should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::VaultExecutionTriggered {
+                EventData::DCAVaultExecutionTriggered {
                     trigger_id: vault_response.vault.trigger_id.unwrap(),
                 },
             )
@@ -81,9 +105,10 @@ fn should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::VaultExecutionCompleted {
-                    sent: Coin::new(10, DENOM_UKUJI),
-                    received: Coin::new(10, DENOM_UTEST),
+                EventData::DCAVaultExecutionCompleted {
+                    sent: Coin::new(swap_amount.u128(), DENOM_UKUJI),
+                    received: Coin::new(swap_amount.u128(), DENOM_UTEST),
+                    fee: Coin::new((swap_amount - swap_amount_after_fee).u128(), DENOM_UTEST),
                 },
             )
             .build(3),
@@ -95,7 +120,7 @@ fn should_succeed() {
         &mock.dca_contract_address,
         &user_address,
         Uint128::new(1),
-        Uint128::new(90),
+        vault_deposit - swap_amount,
     );
 
     let get_all_time_triggers_response: TriggersResponse = mock
@@ -113,19 +138,39 @@ fn should_succeed() {
 #[test]
 fn when_order_partially_filled_should_fail() {
     let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
     let mut mock = MockApp::new(fin_contract_partially_filled_order())
-        .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_fin_limit_price_trigger(&user_address, "fin");
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_partially_filled_fin_limit_price_trigger(
+            &user_address,
+            Coin::new(vault_deposit.u128(), DENOM_UKUJI.to_string()),
+            swap_amount,
+            "fin",
+        );
 
     assert_address_balances(
         &mock,
         &[
             (&user_address, DENOM_UKUJI, Uint128::new(0)),
             (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(290)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(210)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit - swap_amount,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (
+                &mock.fin_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + swap_amount / Uint128::new(2),
+            ),
+            (
+                &mock.fin_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND + swap_amount / Uint128::new(2),
+            ),
         ],
     );
 
@@ -162,10 +207,22 @@ fn when_order_partially_filled_should_fail() {
         &[
             (&user_address, DENOM_UKUJI, Uint128::new(0)),
             (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(290)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(210)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit - swap_amount,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (
+                &mock.fin_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + swap_amount / Uint128::new(2),
+            ),
+            (
+                &mock.fin_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND + swap_amount / Uint128::new(2),
+            ),
         ],
     );
 
@@ -174,39 +231,51 @@ fn when_order_partially_filled_should_fail() {
         &mock.dca_contract_address,
         &user_address,
         Uint128::new(1),
-        Uint128::new(100),
+        vault_deposit,
     );
 }
 
 #[test]
 fn when_executions_result_in_empty_vault_should_succeed() {
     let user_address = Addr::unchecked(USER);
-    let mut mock = MockApp::new(fin_contract_default())
-        .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_price_trigger_vault(
+    let user_funds = ONE_HUNDRED;
+    let vault_deposit = ONE * Uint128::new(3) / Uint128::new(2);
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_filled_limit_order())
+        .with_funds_for(&user_address, user_funds, DENOM_UKUJI)
+        .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
-            Coin {
-                denom: DENOM_UKUJI.to_string(),
-                amount: Uint128::new(15),
-            },
-            Uint128::new(10),
-            TimeInterval::Daily,
+            Coin::new(vault_deposit.u128(), DENOM_UKUJI.to_string()),
+            swap_amount,
             "fin",
         );
+
+    let vault_deposit_after_fee = vault_deposit
+        - vault_deposit
+            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
+            .unwrap();
 
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, Uint128::new(85)),
-            (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(205)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(210)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (&user_address, DENOM_UKUJI, user_funds - vault_deposit),
+            (&user_address, DENOM_UTEST, Uint128::zero()),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit - swap_amount,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (
+                &mock.fin_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND + swap_amount,
+            ),
         ],
     );
 
-    let vault_with_price_trigger_response: VaultResponse = mock
+    let vault_response: VaultResponse = mock
         .app
         .wrap()
         .query_wasm_smart(
@@ -222,7 +291,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault_with_price_trigger_response.vault.trigger_id.unwrap(),
+                trigger_id: vault_response.vault.trigger_id.unwrap(),
             },
             &[],
         )
@@ -253,12 +322,20 @@ fn when_executions_result_in_empty_vault_should_succeed() {
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, Uint128::new(85)),
-            (&user_address, DENOM_UTEST, Uint128::new(15)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(200)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(215)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(185)),
+            (&user_address, DENOM_UKUJI, ONE_HUNDRED - vault_deposit),
+            (&user_address, DENOM_UTEST, vault_deposit_after_fee),
+            (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (
+                &mock.fin_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + swap_amount / Uint128::new(2),
+            ),
+            (
+                &mock.fin_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND - swap_amount / Uint128::new(2),
+            ),
         ],
     );
 
@@ -274,19 +351,37 @@ fn when_executions_result_in_empty_vault_should_succeed() {
 #[test]
 fn after_target_time_should_succeed() {
     let user_address = Addr::unchecked(USER);
-    let mut mock = MockApp::new(fin_contract_default())
-        .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_time_trigger(&user_address, "time");
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_time_trigger(
+            &user_address,
+            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            swap_amount,
+            "time",
+        );
+
+    let swap_amount_after_fee = swap_amount
+        - swap_amount
+            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
+            .unwrap();
 
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, Uint128::new(0)),
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
             (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(300)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
     );
 
@@ -309,11 +404,23 @@ fn after_target_time_should_succeed() {
         &mock,
         &[
             (&user_address, DENOM_UKUJI, Uint128::new(0)),
-            (&user_address, DENOM_UTEST, Uint128::new(10)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(290)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(210)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(190)),
+            (&user_address, DENOM_UTEST, swap_amount_after_fee),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit - swap_amount,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (
+                &mock.fin_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + swap_amount,
+            ),
+            (
+                &mock.fin_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND - swap_amount,
+            ),
         ],
     );
 
@@ -324,7 +431,7 @@ fn after_target_time_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::VaultExecutionTriggered {
+                EventData::DCAVaultExecutionTriggered {
                     trigger_id: Uint128::new(1),
                 },
             )
@@ -332,9 +439,10 @@ fn after_target_time_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::VaultExecutionCompleted {
-                    sent: Coin::new(10, DENOM_UKUJI),
-                    received: Coin::new(10, DENOM_UTEST),
+                EventData::DCAVaultExecutionCompleted {
+                    sent: Coin::new(swap_amount.u128(), DENOM_UKUJI),
+                    received: Coin::new(swap_amount.u128(), DENOM_UTEST),
+                    fee: Coin::new((swap_amount - swap_amount_after_fee).u128(), DENOM_UTEST),
                 },
             )
             .build(3),
@@ -346,26 +454,38 @@ fn after_target_time_should_succeed() {
         &mock.dca_contract_address,
         &user_address,
         Uint128::new(1),
-        Uint128::new(90),
+        TEN - ONE,
     );
 }
 
 #[test]
 fn before_target_time_limit_should_fail() {
     let user_address = Addr::unchecked(USER);
-    let mut mock = MockApp::new(fin_contract_default())
-        .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_time_trigger(&user_address, "time");
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, TEN, DENOM_UKUJI)
+        .with_vault_with_time_trigger(
+            &user_address,
+            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            swap_amount,
+            "time",
+        );
 
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, Uint128::new(0)),
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
             (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(300)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
     );
 
@@ -389,12 +509,16 @@ fn before_target_time_limit_should_fail() {
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, Uint128::new(0)),
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
             (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(300)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
     );
 
@@ -403,26 +527,38 @@ fn before_target_time_limit_should_fail() {
         &mock.dca_contract_address,
         &user_address,
         Uint128::new(1),
-        Uint128::new(100),
+        TEN,
     );
 }
 
 #[test]
 fn when_slippage_exceeds_limit_should_skip_execution() {
     let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
     let mut mock = MockApp::new(fin_contract_fail_slippage_tolerance())
-        .with_funds_for(&user_address, Uint128::new(100), DENOM_UKUJI)
-        .with_vault_with_time_trigger(&user_address, "time");
+        .with_funds_for(&user_address, TEN, DENOM_UKUJI)
+        .with_vault_with_time_trigger(
+            &user_address,
+            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            swap_amount,
+            "time",
+        );
 
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, Uint128::new(0)),
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
             (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(300)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
     );
 
@@ -442,12 +578,16 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, Uint128::new(0)),
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
             (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UKUJI, Uint128::new(300)),
-            (&mock.dca_contract_address, DENOM_UTEST, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UKUJI, Uint128::new(200)),
-            (&mock.fin_contract_address, DENOM_UTEST, Uint128::new(200)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
     );
 
@@ -456,6 +596,6 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
         &mock.dca_contract_address,
         &user_address,
         Uint128::new(1),
-        Uint128::new(100),
+        vault_deposit,
     );
 }
