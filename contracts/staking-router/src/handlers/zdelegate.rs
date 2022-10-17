@@ -11,8 +11,8 @@ use crate::ContractError;
 
 pub fn zdelegate(
     deps: DepsMut,
-    info: MessageInfo,
     env: Env,
+    info: MessageInfo,
     delegator_address: Addr,
     validator_address: Addr,
     denom: String,

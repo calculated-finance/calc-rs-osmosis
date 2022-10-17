@@ -41,13 +41,19 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::ZDelegate {
+            delegator_address,
+            validator_address,
+            denom,
+            amount,
+        } => zdelegate(
             deps,
+            env,
             info,
             delegator_address,
             validator_address,
             denom,
             amount,
-        } => zdelegate(env, delegator_address, validator_address, denom, amount),
+        ),
         ExecuteMsg::AddAllowedZCaller { allowed_z_caller } => {
             add_allowed_z_caller(deps, info, allowed_z_caller)
         }
