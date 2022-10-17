@@ -41,6 +41,8 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::ZDelegate {
+            deps,
+            info,
             delegator_address,
             validator_address,
             denom,
