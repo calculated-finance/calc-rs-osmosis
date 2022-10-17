@@ -15,9 +15,7 @@ pub enum EventData {
     FundsDepositedToDCAVault {
         amount: Coin,
     },
-    DCAVaultExecutionTriggered {
-        trigger_id: Uint128,
-    },
+    DCAVaultExecutionTriggered,
     DCAVaultExecutionCompleted {
         sent: Coin,
         received: Coin,

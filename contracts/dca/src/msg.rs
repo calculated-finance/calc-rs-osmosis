@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, Trigger};
-use base::vaults::vault::{PositionType, Vault};
+use base::vaults::vault::PositionType;
 
-use crate::dca_configuration::DCAConfiguration;
+use crate::vault::Vault;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
@@ -46,7 +46,7 @@ pub enum ExecuteMsg {
     Deposit {
         vault_id: Uint128,
     },
-    CancelVaultByAddressAndId {
+    CancelVault {
         address: String,
         vault_id: Uint128,
     },
@@ -64,7 +64,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     GetPairs {},
     GetTimeTriggers {},
-    GetVaultById {
+    GetVault {
         vault_id: Uint128,
     },
     GetVaultsByAddress {
@@ -97,15 +97,15 @@ pub struct TriggerIdsResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
 pub struct VaultResponse {
-    pub vault: Vault<DCAConfiguration>,
+    pub vault: Vault,
+    pub triggers: Vec<Trigger>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct VaultsResponse {
-    pub vaults: Vec<Vault<DCAConfiguration>>,
+    pub vaults: Vec<Vault>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, Decimal256, Timestamp, Uint128};
+use cosmwasm_std::{Decimal256, Timestamp, Uint128};
 use enum_as_inner::EnumAsInner;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,6 @@ pub enum TimeInterval {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, EnumAsInner)]
 pub enum TriggerConfiguration {
     Time {
-        time_interval: TimeInterval,
         target_time: Timestamp,
     },
     FINLimitOrder {
@@ -25,9 +24,32 @@ pub enum TriggerConfiguration {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub enum TriggerStatus {
+    Active,
+    Executed,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Trigger {
     pub id: Uint128,
-    pub owner: Addr,
     pub vault_id: Uint128,
     pub configuration: TriggerConfiguration,
+    pub status: TriggerStatus,
+}
+
+pub struct TriggerBuilder {
+    pub vault_id: Uint128,
+    pub configuration: TriggerConfiguration,
+    pub status: TriggerStatus,
+}
+
+impl TriggerBuilder {
+    pub fn build(self, id: Uint128) -> Trigger {
+        Trigger {
+            id,
+            vault_id: self.vault_id,
+            configuration: self.configuration,
+            status: self.status,
+        }
+    }
 }

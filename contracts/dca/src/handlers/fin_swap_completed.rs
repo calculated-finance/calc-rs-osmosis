@@ -1,12 +1,12 @@
 use crate::constants::ONE_HUNDRED;
-use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
-use crate::state::{save_event, trigger_store, vault_store, CACHE, CONFIG};
+use crate::state::{create_event, trigger_store, vault_store, CACHE, CONFIG, TIME_TRIGGER_CACHE};
+use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::TriggerConfiguration;
-use base::vaults::vault::{PositionType, Vault, VaultStatus};
+use base::vaults::vault::{PositionType, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
 use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
@@ -17,9 +17,10 @@ pub fn fin_swap_completed(
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
+    let time_trigger_cache = TIME_TRIGGER_CACHE.load(deps.storage)?;
     let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
     let trigger_store = trigger_store();
-    let trigger = trigger_store.load(deps.storage, vault.trigger_id.unwrap().into())?;
+    let trigger = trigger_store.load(deps.storage, time_trigger_cache.trigger_id.into())?;
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
@@ -45,14 +46,14 @@ pub fn fin_swap_completed(
                     .parse::<u128>()
                     .unwrap();
 
-            let (coin_sent, coin_received) = match vault.configuration.position_type {
+            let (coin_sent, coin_received) = match vault.position_type {
                 PositionType::Enter => {
                     let sent = Coin {
-                        denom: vault.configuration.get_swap_denom(),
+                        denom: vault.get_swap_denom(),
                         amount: Uint128::from(quote_amount),
                     };
                     let received = Coin {
-                        denom: vault.configuration.get_receive_denom(),
+                        denom: vault.get_receive_denom(),
                         amount: Uint128::from(base_amount),
                     };
 
@@ -60,11 +61,11 @@ pub fn fin_swap_completed(
                 }
                 PositionType::Exit => {
                     let sent = Coin {
-                        denom: vault.configuration.get_swap_denom(),
+                        denom: vault.get_swap_denom(),
                         amount: Uint128::from(base_amount),
                     };
                     let received = Coin {
-                        denom: vault.configuration.get_receive_denom(),
+                        denom: vault.get_receive_denom(),
                         amount: Uint128::from(quote_amount),
                     };
 
@@ -78,12 +79,12 @@ pub fn fin_swap_completed(
                 (coin_received
                     .amount
                     .checked_multiply_ratio(config.fee_percent, ONE_HUNDRED)?)
-                .u128(),
+                .into(),
                 &coin_received.denom,
             );
 
             let funds_to_redistribute = Coin::new(
-                (coin_received.amount - execution_fee.amount).u128(),
+                (coin_received.amount - execution_fee.amount).into(),
                 &coin_received.denom,
             );
 
@@ -100,13 +101,13 @@ pub fn fin_swap_completed(
             vault_store().update(
                 deps.storage,
                 vault.id.into(),
-                |existing_vault| -> Result<Vault<DCAConfiguration>, ContractError> {
+                |existing_vault| -> Result<Vault, ContractError> {
                     match existing_vault {
                         Some(mut existing_vault) => {
-                            existing_vault.configuration.balance.amount -=
-                                existing_vault.configuration.get_swap_amount().amount;
+                            existing_vault.balance.amount -=
+                                existing_vault.get_swap_amount().amount;
 
-                            if let true = existing_vault.configuration.low_funds() {
+                            if let true = existing_vault.low_funds() {
                                 existing_vault.status = VaultStatus::Inactive;
                             }
 
@@ -124,12 +125,9 @@ pub fn fin_swap_completed(
             )?;
 
             match trigger.configuration {
-                TriggerConfiguration::Time {
-                    time_interval,
-                    mut target_time,
-                } => {
+                TriggerConfiguration::Time { mut target_time } => {
                     let next_trigger_time =
-                        get_next_target_time(env.block.time, target_time, time_interval);
+                        get_next_target_time(env.block.time, target_time, vault.time_interval);
 
                     trigger_store.update(deps.storage, trigger.id.into(), |existing_trigger| {
                         match existing_trigger {
@@ -146,7 +144,7 @@ pub fn fin_swap_completed(
                 _ => panic!("should be a time based trigger"),
             }
 
-            save_event(
+            create_event(
                 deps.storage,
                 EventBuilder::new(
                     vault.id,
@@ -162,7 +160,7 @@ pub fn fin_swap_completed(
             attributes.push(Attribute::new("status", "success"));
         }
         cosmwasm_std::SubMsgResult::Err(e) => {
-            save_event(
+            create_event(
                 deps.storage,
                 EventBuilder::new(
                     vault.id,
@@ -182,12 +180,9 @@ pub fn fin_swap_completed(
             attributes.push(Attribute::new("status", "skipped"));
 
             match trigger.configuration {
-                TriggerConfiguration::Time {
-                    time_interval,
-                    mut target_time,
-                } => {
+                TriggerConfiguration::Time { mut target_time } => {
                     let next_trigger_time =
-                        get_next_target_time(env.block.time, target_time, time_interval);
+                        get_next_target_time(env.block.time, target_time, vault.time_interval);
 
                     trigger_store.update(deps.storage, trigger.id.into(), |existing_trigger| {
                         match existing_trigger {
@@ -209,7 +204,7 @@ pub fn fin_swap_completed(
     CACHE.remove(deps.storage);
 
     Ok(Response::new()
-        .add_attribute("method", "after_execute_vault_by_address_and_id")
+        .add_attribute("method", "after_fin_swap_completed")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id)
         .add_attributes(attributes)

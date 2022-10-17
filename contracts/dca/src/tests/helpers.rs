@@ -1,9 +1,9 @@
 use super::mocks::MockApp;
 use crate::{
-    dca_configuration::DCAConfiguration,
     msg::{EventsResponse, QueryMsg, VaultResponse},
+    vault::Vault,
 };
-use base::{events::event::Event, vaults::vault::Vault};
+use base::events::event::Event;
 use cosmwasm_std::{Addr, Uint128};
 
 pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {
@@ -20,14 +20,11 @@ pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str,
         })
 }
 
-pub fn assert_vault_eq(mock: &MockApp, vault_id: Uint128, expected_vault: Vault<DCAConfiguration>) {
+pub fn assert_vault_eq(mock: &MockApp, vault_id: Uint128, expected_vault: Vault) {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVaultById { vault_id },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(vault_response.vault, expected_vault);
@@ -63,13 +60,13 @@ pub fn assert_vault_balance(
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(contract_address, &QueryMsg::GetVaultById { vault_id })
+        .query_wasm_smart(contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     let vault = &vault_response.vault;
 
     assert_eq!(
-        vault.configuration.balance.amount, balance,
+        vault.balance.amount, balance,
         "Vault balance mismatch for vault_id: {}, owner: {}",
         vault_id, owner
     );

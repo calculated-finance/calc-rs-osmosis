@@ -1,18 +1,27 @@
-use base::{pair::Pair, vaults::vault::PositionType};
-use cosmwasm_std::{Coin, Decimal256, Uint128};
+use base::{
+    pair::Pair,
+    triggers::trigger::TimeInterval,
+    vaults::vault::{PositionType, VaultStatus},
+};
+use cosmwasm_std::{Addr, Coin, Decimal256, Timestamp, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct DCAConfiguration {
+pub struct Vault {
+    pub id: Uint128,
+    pub created_at: Timestamp,
+    pub owner: Addr,
+    pub status: VaultStatus,
     pub balance: Coin,
     pub pair: Pair,
     pub swap_amount: Uint128,
     pub position_type: PositionType,
     pub slippage_tolerance: Option<Decimal256>,
+    pub time_interval: TimeInterval,
 }
 
-impl DCAConfiguration {
+impl Vault {
     pub fn get_swap_denom(&self) -> String {
         if self.position_type.to_owned() == PositionType::Enter {
             return self.pair.quote_denom.clone();

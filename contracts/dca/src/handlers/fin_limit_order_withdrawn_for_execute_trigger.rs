@@ -1,16 +1,16 @@
 use crate::constants::ONE_HUNDRED;
-use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
 use crate::state::{
-    save_event, trigger_store, vault_store, Config, CACHE, CONFIG, LIMIT_ORDER_CACHE,
-    TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID,
+    create_event, create_trigger, trigger_store, vault_store, CACHE, CONFIG, LIMIT_ORDER_CACHE,
 };
+use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
-use base::triggers::trigger::{Trigger, TriggerConfiguration};
-use base::vaults::vault::{Vault, VaultStatus};
+use base::helpers::time_helpers::get_next_target_time;
+use base::triggers::trigger::{TriggerBuilder, TriggerConfiguration, TriggerStatus};
+use base::vaults::vault::VaultStatus;
 use cosmwasm_std::Env;
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response, StdResult, Uint128};
+use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response};
 
 pub fn fin_limit_order_withdrawn_for_execute_vault(
     deps: DepsMut,
@@ -20,47 +20,50 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
     let cache = CACHE.load(deps.storage)?;
     let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
     let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
-    let trigger_store = trigger_store();
+
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
-            let fin_limit_order_trigger =
-                trigger_store.load(deps.storage, vault.trigger_id.unwrap().into())?;
-
-            trigger_store.remove(deps.storage, fin_limit_order_trigger.id.u128())?;
-
-            let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
-                config.trigger_count = config.trigger_count.checked_add(Uint128::new(1))?;
-                Ok(config)
-            })?;
-
-            let time_trigger_configuration = TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID
-                .load(deps.storage, vault.id.into())?
-                .into_time()
-                .unwrap();
-
-            let time_trigger = Trigger {
-                id: config.trigger_count,
-                owner: vault.owner.clone(),
-                vault_id: vault.id,
-                configuration: TriggerConfiguration::Time {
-                    time_interval: time_trigger_configuration.0,
-                    target_time: time_trigger_configuration.1,
+            trigger_store().update(
+                deps.storage,
+                limit_order_cache.trigger_id.into(),
+                |trigger| match trigger {
+                    Some(mut trigger) => {
+                        trigger.status = TriggerStatus::Executed;
+                        Ok(trigger)
+                    }
+                    None => Err(ContractError::CustomError {
+                        val: format!(
+                            "could not find trigger with id {:?}",
+                            limit_order_cache.trigger_id
+                        ),
+                    }),
                 },
-            };
+            )?;
 
-            trigger_store.save(deps.storage, time_trigger.id.u128(), &time_trigger)?;
+            create_trigger(
+                deps.storage,
+                TriggerBuilder {
+                    vault_id: vault.id,
+                    status: TriggerStatus::Active,
+                    configuration: TriggerConfiguration::Time {
+                        target_time: get_next_target_time(
+                            env.block.time,
+                            env.block.time,
+                            vault.time_interval.clone(),
+                        ),
+                    },
+                },
+            )?;
 
             vault_store().update(
                 deps.storage,
                 vault.id.into(),
-                |vault| -> Result<Vault<DCAConfiguration>, ContractError> {
+                |vault| -> Result<Vault, ContractError> {
                     match vault {
                         Some(mut existing_vault) => {
-                            existing_vault.configuration.balance.amount -=
-                                existing_vault.configuration.get_swap_amount().amount;
-                            existing_vault.trigger_id = Some(time_trigger.id);
-
-                            if existing_vault.configuration.low_funds() {
+                            existing_vault.balance.amount -=
+                                limit_order_cache.original_offer_amount;
+                            if existing_vault.low_funds() {
                                 existing_vault.status = VaultStatus::Inactive
                             }
 
@@ -76,24 +79,24 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 },
             )?;
 
-            let coin_received = Coin {
-                denom: vault.configuration.get_receive_denom().clone(),
+            let coin_received_from_limit_order = Coin {
+                denom: vault.get_receive_denom().clone(),
                 amount: limit_order_cache.filled,
             };
 
             let config = CONFIG.load(deps.storage)?;
 
             let execution_fee = Coin::new(
-                (coin_received
+                (coin_received_from_limit_order
                     .amount
                     .checked_multiply_ratio(config.fee_percent, ONE_HUNDRED)?)
-                .u128(),
-                &coin_received.denom,
+                .into(),
+                &coin_received_from_limit_order.denom,
             );
 
             let funds_to_redistribute = Coin::new(
-                (coin_received.amount - execution_fee.amount).u128(),
-                &coin_received.denom,
+                (coin_received_from_limit_order.amount - execution_fee.amount).into(),
+                &coin_received_from_limit_order.denom,
             );
 
             let funds_redistribution_bank_msg: BankMsg = BankMsg::Send {
@@ -106,17 +109,17 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 amount: vec![execution_fee.clone()],
             };
 
-            save_event(
+            create_event(
                 deps.storage,
                 EventBuilder::new(
                     vault.id,
                     env.block,
                     EventData::DCAVaultExecutionCompleted {
                         sent: Coin {
-                            denom: vault.configuration.get_swap_denom().clone(),
+                            denom: vault.get_swap_denom().clone(),
                             amount: limit_order_cache.original_offer_amount,
                         },
-                        received: coin_received,
+                        received: coin_received_from_limit_order,
                         fee: execution_fee,
                     },
                 ),
@@ -126,8 +129,11 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             CACHE.remove(deps.storage);
 
             Ok(Response::new()
-                .add_attribute("method", "after_withdraw_order")
-                .add_attribute("trigger_id", time_trigger.id)
+                .add_attribute(
+                    "method",
+                    "after_fin_limit_order_withdrawn_for_execute_trigger",
+                )
+                .add_attribute("vault_id", vault.id)
                 .add_message(funds_redistribution_bank_msg)
                 .add_message(fee_collector_bank_msg))
         }

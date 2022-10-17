@@ -339,7 +339,7 @@ fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
 }
 
 #[test]
-fn cancel_vault_by_address_and_id_with_valid_inputs_should_succeed() {
+fn cancel_vault_with_valid_inputs_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -396,23 +396,17 @@ fn cancel_vault_by_address_and_id_with_valid_inputs_should_succeed() {
     )
     .unwrap();
 
-    let cancel_vault_by_address_and_id_execute_message = ExecuteMsg::CancelVaultByAddressAndId {
+    let cancel_vault_execute_message = ExecuteMsg::CancelVault {
         address: String::from(VALID_ADDRESS_THREE),
         vault_id: Uint128::new(1),
     };
 
-    let result = execute(
-        deps.as_mut(),
-        env,
-        info,
-        cancel_vault_by_address_and_id_execute_message,
-    )
-    .unwrap();
+    let result = execute(deps.as_mut(), env, info, cancel_vault_execute_message).unwrap();
 
     assert_eq!(
         result.attributes,
         vec![
-            attr("method", "cancel_vault_by_address_and_id"),
+            attr("method", "cancel_vault"),
             attr("owner", "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1"),
             attr("vault_id", "1")
         ]
@@ -475,7 +469,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     )
     .unwrap();
 
-    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVaultById {
+    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVault {
         vault_id: Uint128::new(1),
     };
     let binary = query(

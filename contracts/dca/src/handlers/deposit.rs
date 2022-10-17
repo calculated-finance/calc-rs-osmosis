@@ -1,10 +1,10 @@
-use crate::dca_configuration::DCAConfiguration;
 use crate::error::ContractError;
-use crate::state::{save_event, vault_store};
+use crate::state::{create_event, vault_store};
 use crate::validation_helpers::{assert_denom_matches_pair_denom, assert_exactly_one_asset};
+use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 
-use base::vaults::vault::{Vault, VaultStatus};
+use base::vaults::vault::VaultStatus;
 use cosmwasm_std::Env;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
@@ -22,19 +22,19 @@ pub fn deposit(
 
     assert_exactly_one_asset(info.funds.clone())?;
     assert_denom_matches_pair_denom(
-        vault.configuration.pair.clone(),
+        vault.pair.clone(),
         info.funds.clone(),
-        vault.configuration.position_type.clone(),
+        vault.position_type.clone(),
     )?;
 
     vault_store().update(
         deps.storage,
         vault.id.into(),
-        |existing_vault| -> Result<Vault<DCAConfiguration>, ContractError> {
+        |existing_vault| -> Result<Vault, ContractError> {
             match existing_vault {
                 Some(mut existing_vault) => {
-                    existing_vault.configuration.balance.amount += info.funds[0].amount;
-                    if !existing_vault.configuration.low_funds() {
+                    existing_vault.balance.amount += info.funds[0].amount;
+                    if !existing_vault.low_funds() {
                         existing_vault.status = VaultStatus::Active
                     }
                     Ok(existing_vault)
@@ -50,7 +50,7 @@ pub fn deposit(
         },
     )?;
 
-    save_event(
+    create_event(
         deps.storage,
         EventBuilder::new(
             vault.id,

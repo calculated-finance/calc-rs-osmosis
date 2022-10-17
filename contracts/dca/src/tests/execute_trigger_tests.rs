@@ -22,7 +22,7 @@ fn fin_limit_order_trigger_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
-            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
         );
@@ -59,7 +59,7 @@ fn fin_limit_order_trigger_should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVaultById { vault_id },
+            &&QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -68,7 +68,7 @@ fn fin_limit_order_trigger_should_succeed() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault_response.vault.trigger_id.unwrap(),
+                trigger_id: vault_response.vault.id,
             },
             &[],
         )
@@ -97,18 +97,16 @@ fn fin_limit_order_trigger_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
-                    trigger_id: vault_response.vault.trigger_id.unwrap(),
-                },
+                EventData::DCAVaultExecutionTriggered,
             )
             .build(2),
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
                 EventData::DCAVaultExecutionCompleted {
-                    sent: Coin::new(swap_amount.u128(), DENOM_UKUJI),
-                    received: Coin::new(swap_amount.u128(), DENOM_UTEST),
-                    fee: Coin::new((swap_amount - swap_amount_after_fee).u128(), DENOM_UTEST),
+                    sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
+                    received: Coin::new(swap_amount.into(), DENOM_UTEST),
+                    fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
                 },
             )
             .build(3),
@@ -145,7 +143,7 @@ fn when_order_partially_filled_should_fail() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_partially_filled_fin_limit_price_trigger(
             &user_address,
-            Coin::new(vault_deposit.u128(), DENOM_UKUJI.to_string()),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
             swap_amount,
             "fin",
         );
@@ -179,7 +177,7 @@ fn when_order_partially_filled_should_fail() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVaultById {
+            &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
         )
@@ -191,7 +189,7 @@ fn when_order_partially_filled_should_fail() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault_response.vault.trigger_id.unwrap(),
+                trigger_id: vault_response.vault.id,
             },
             &[],
         )
@@ -245,7 +243,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         .with_funds_for(&user_address, user_funds, DENOM_UKUJI)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
-            Coin::new(vault_deposit.u128(), DENOM_UKUJI.to_string()),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
             swap_amount,
             "fin",
         );
@@ -280,7 +278,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVaultById {
+            &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
         )
@@ -291,21 +289,18 @@ fn when_executions_result_in_empty_vault_should_succeed() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault_response.vault.trigger_id.unwrap(),
+                trigger_id: vault_response.vault.id,
             },
             &[],
         )
         .unwrap();
 
-    let vault_with_time_trigger_response: VaultResponse = mock
+    mock.elapse_time(3601);
+
+    let time_triggers: TriggersResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &&QueryMsg::GetVaultById {
-                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggers {})
         .unwrap();
 
     mock.app
@@ -313,7 +308,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault_with_time_trigger_response.vault.trigger_id.unwrap(),
+                trigger_id: time_triggers.triggers[0].id,
             },
             &[],
         )
@@ -343,7 +338,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         &mock,
         &mock.dca_contract_address,
         &user_address,
-        vault_with_time_trigger_response.vault.id,
+        vault_response.vault.id,
         Uint128::new(0),
     );
 }
@@ -359,7 +354,7 @@ fn after_target_time_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
         );
@@ -431,18 +426,16 @@ fn after_target_time_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
-                    trigger_id: Uint128::new(1),
-                },
+                EventData::DCAVaultExecutionTriggered,
             )
             .build(2),
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
                 EventData::DCAVaultExecutionCompleted {
-                    sent: Coin::new(swap_amount.u128(), DENOM_UKUJI),
-                    received: Coin::new(swap_amount.u128(), DENOM_UTEST),
-                    fee: Coin::new((swap_amount - swap_amount_after_fee).u128(), DENOM_UTEST),
+                    sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
+                    received: Coin::new(swap_amount.into(), DENOM_UTEST),
+                    fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
                 },
             )
             .build(3),
@@ -468,7 +461,7 @@ fn before_target_time_limit_should_fail() {
         .with_funds_for(&user_address, TEN, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
         );
@@ -541,7 +534,7 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
         .with_funds_for(&user_address, TEN, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
         );

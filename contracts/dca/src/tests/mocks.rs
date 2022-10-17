@@ -1,10 +1,10 @@
 use crate::constants::{ONE, ONE_THOUSAND};
 use crate::contract::reply;
-use crate::dca_configuration::DCAConfiguration;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
+use crate::vault::Vault;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
-use base::vaults::vault::{PositionType, Vault};
+use base::vaults::vault::PositionType;
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal256, Empty, Env, Event, MessageInfo, Response,
@@ -170,7 +170,7 @@ impl MockApp {
             .send_tokens(
                 Addr::unchecked(ADMIN),
                 address.clone(),
-                &[Coin::new(amount.u128(), denom.to_string())],
+                &[Coin::new(amount.into(), denom.to_string())],
             )
             .unwrap();
 
@@ -251,7 +251,7 @@ impl MockApp {
             .send_tokens(
                 self.fin_contract_address.clone(),
                 Addr::unchecked(ADMIN),
-                &[Coin::new(swap_amount.u128(), DENOM_UKUJI)],
+                &[Coin::new(swap_amount.into(), DENOM_UKUJI)],
             )
             .unwrap();
 
@@ -260,7 +260,7 @@ impl MockApp {
             .send_tokens(
                 Addr::unchecked(ADMIN),
                 self.fin_contract_address.clone(),
-                &[Coin::new(swap_amount.u128(), DENOM_UTEST)],
+                &[Coin::new(swap_amount.into(), DENOM_UTEST)],
             )
             .unwrap();
 
@@ -373,14 +373,14 @@ impl MockApp {
         });
     }
 
-    pub fn get_vault_by_label(&self, label: &str) -> Vault<DCAConfiguration> {
+    pub fn get_vault_by_label(&self, label: &str) -> Vault {
         let vault_id = self.vault_ids.get(label).unwrap();
         let vault_response: VaultResponse = self
             .app
             .wrap()
             .query_wasm_smart(
                 self.dca_contract_address.clone(),
-                &QueryMsg::GetVaultById {
+                &QueryMsg::GetVault {
                     vault_id: vault_id.to_owned(),
                 },
             )
@@ -444,7 +444,7 @@ fn withdraw_filled_order_handler(
         for _ in order_ids {
             response = response.add_message(BankMsg::Send {
                 to_address: info.sender.to_string(),
-                amount: vec![Coin::new(ONE.u128(), DENOM_UTEST.to_string())],
+                amount: vec![Coin::new(ONE.into(), DENOM_UTEST.to_string())],
             })
         }
     }

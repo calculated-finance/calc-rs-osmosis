@@ -6,7 +6,7 @@ pub fn get_events_by_resource_id(deps: Deps, resource_id: Uint128) -> StdResult<
     let events = event_store()
         .idx
         .resource_id
-        .sub_prefix(resource_id.u128())
+        .sub_prefix(resource_id.into())
         .range(deps.storage, None, None, Order::Ascending)
         .map(|result| result.unwrap().1)
         .collect::<Vec<Event>>();

@@ -19,7 +19,7 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_unfilled_fin_limit_price_trigger(
             &user_address,
-            Coin::new(user_balance.u128(), DENOM_UKUJI),
+            Coin::new(user_balance.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
         );
@@ -48,7 +48,7 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVaultByAddressAndId {
+            &ExecuteMsg::CancelVault {
                 address: user_address.to_string(),
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
@@ -105,7 +105,7 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_partially_filled_fin_limit_price_trigger(
             &user_address,
-            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
         );
@@ -140,7 +140,7 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVaultByAddressAndId {
+            &ExecuteMsg::CancelVault {
                 address: user_address.to_string(),
                 vault_id,
             },
@@ -199,7 +199,7 @@ fn when_vault_has_time_trigger_should_succeed() {
         .with_funds_for(&user_address, TEN, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            Coin::new(vault_deposit.u128(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
         );
@@ -226,7 +226,7 @@ fn when_vault_has_time_trigger_should_succeed() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVaultByAddressAndId {
+            &ExecuteMsg::CancelVault {
                 address: user_address.to_string(),
                 vault_id,
             },

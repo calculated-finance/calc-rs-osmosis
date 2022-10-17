@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::handlers::cancel_vault::cancel_vault_by_address_and_id;
+use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
 use crate::handlers::delete_pair::delete_pair;
@@ -14,7 +14,7 @@ use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
 use crate::handlers::get_time_triggers::get_time_triggers;
-use crate::handlers::get_vault_by_id::get_vault_by_id;
+use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::update_config::update_config;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
@@ -53,7 +53,6 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     let config = Config {
         admin: deps.api.addr_validate(&msg.admin)?,
         vault_count: Uint128::zero(),
-        trigger_count: Uint128::zero(),
         fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
         fee_percent: msg.fee_percent,
     };
@@ -72,7 +71,6 @@ pub fn instantiate(
     let config = Config {
         admin: deps.api.addr_validate(&msg.admin)?,
         vault_count: Uint128::zero(),
-        trigger_count: Uint128::zero(),
         fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
         fee_percent: msg.fee_percent,
     };
@@ -119,9 +117,7 @@ pub fn execute(
             target_start_time_utc_seconds,
             target_price,
         ),
-        ExecuteMsg::CancelVaultByAddressAndId { address, vault_id } => {
-            cancel_vault_by_address_and_id(deps, env, address, vault_id)
-        }
+        ExecuteMsg::CancelVault { address, vault_id } => cancel_vault(deps, env, address, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger(deps, env, trigger_id),
         ExecuteMsg::Deposit { vault_id } => deposit(deps, env, info, vault_id),
         ExecuteMsg::UpdateConfig {
@@ -157,7 +153,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetVaultsByAddress { address } => {
             to_binary(&get_vaults_by_address(deps, address)?)
         }
-        QueryMsg::GetVaultById { vault_id } => to_binary(&get_vault_by_id(deps, vault_id)?),
+        QueryMsg::GetVault { vault_id } => to_binary(&get_vault(deps, vault_id)?),
         QueryMsg::GetEventsByResourceId { resource_id } => {
             to_binary(&get_events_by_resource_id(deps, resource_id)?)
         }
