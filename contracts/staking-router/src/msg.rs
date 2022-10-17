@@ -2,6 +2,12 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Uint128};
 
 #[cw_serde]
+pub struct MigrateMsg {
+    pub admin: Addr,
+    pub allowed_z_callers: Vec<Addr>,
+}
+
+#[cw_serde]
 pub struct InstantiateMsg {
     pub admin: Addr,
     pub allowed_z_callers: Vec<Addr>,
