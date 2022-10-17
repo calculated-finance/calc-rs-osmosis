@@ -8,9 +8,9 @@ use base::events::event::{EventBuilder, EventData};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{TriggerBuilder, TriggerConfiguration, TriggerStatus};
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::Env;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response};
+use cosmwasm_std::{CosmosMsg, Env, Uint128};
 
 pub fn fin_limit_order_withdrawn_for_execute_vault(
     deps: DepsMut,
@@ -79,7 +79,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 },
             )?;
 
-            let coin_received_from_limit_order = Coin {
+            let coin_received = Coin {
                 denom: vault.get_receive_denom().clone(),
                 amount: limit_order_cache.filled,
             };
@@ -87,27 +87,42 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             let config = CONFIG.load(deps.storage)?;
 
             let execution_fee = Coin::new(
-                (coin_received_from_limit_order
+                (coin_received
                     .amount
                     .checked_multiply_ratio(config.fee_percent, ONE_HUNDRED)?)
                 .into(),
-                &coin_received_from_limit_order.denom,
+                &coin_received.denom,
             );
 
-            let funds_to_redistribute = Coin::new(
-                (coin_received_from_limit_order.amount - execution_fee.amount).into(),
-                &coin_received_from_limit_order.denom,
-            );
+            let mut messages: Vec<CosmosMsg> = Vec::new();
 
-            let funds_redistribution_bank_msg: BankMsg = BankMsg::Send {
-                to_address: vault.owner.to_string(),
-                amount: vec![funds_to_redistribute],
-            };
+            let total_to_redistribute = coin_received.amount - execution_fee.amount;
 
-            let fee_collector_bank_msg: BankMsg = BankMsg::Send {
+            vault
+                .destinations
+                .iter()
+                .map(|destination| BankMsg::Send {
+                    to_address: destination.address.to_string(),
+                    amount: vec![Coin::new(
+                        total_to_redistribute
+                            .checked_multiply_ratio(
+                                destination.allocation.atomics(),
+                                Uint128::new(10)
+                                    .checked_pow(destination.allocation.decimal_places())
+                                    .unwrap(),
+                            )
+                            .unwrap()
+                            .u128(),
+                        &coin_received.denom,
+                    )],
+                })
+                .into_iter()
+                .for_each(|msg| messages.push(CosmosMsg::Bank(msg.to_owned())));
+
+            messages.push(CosmosMsg::Bank(BankMsg::Send {
                 to_address: config.fee_collector.to_string(),
                 amount: vec![execution_fee.clone()],
-            };
+            }));
 
             create_event(
                 deps.storage,
@@ -119,7 +134,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                             denom: vault.get_swap_denom().clone(),
                             amount: limit_order_cache.original_offer_amount,
                         },
-                        received: coin_received_from_limit_order,
+                        received: coin_received,
                         fee: execution_fee,
                     },
                 ),
@@ -134,8 +149,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                     "after_fin_limit_order_withdrawn_for_execute_trigger",
                 )
                 .add_attribute("vault_id", vault.id)
-                .add_message(funds_redistribution_bank_msg)
-                .add_message(fee_collector_bank_msg))
+                .add_messages(messages))
         }
         cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
             val: format!(

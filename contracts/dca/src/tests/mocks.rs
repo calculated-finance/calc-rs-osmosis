@@ -4,7 +4,7 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
 use crate::vault::Vault;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
-use base::vaults::vault::PositionType;
+use base::vaults::vault::{Destination, PositionType};
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal256, Empty, Env, Event, MessageInfo, Response,
@@ -180,6 +180,7 @@ impl MockApp {
     pub fn with_vault_with_unfilled_fin_limit_price_trigger(
         mut self,
         owner: &Addr,
+        destinations: Vec<Destination>,
         balance: Coin,
         swap_amount: Uint128,
         label: &str,
@@ -190,6 +191,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    destinations,
                     pair_address: self.fin_contract_address.to_string(),
                     position_type: PositionType::Enter,
                     slippage_tolerance: None,
@@ -216,6 +218,7 @@ impl MockApp {
     pub fn with_vault_with_filled_fin_limit_price_trigger(
         mut self,
         owner: &Addr,
+        destinations: Vec<Destination>,
         balance: Coin,
         swap_amount: Uint128,
         label: &str,
@@ -226,6 +229,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    destinations,
                     pair_address: self.fin_contract_address.to_string(),
                     position_type: PositionType::Enter,
                     slippage_tolerance: None,
@@ -280,6 +284,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    destinations: vec![],
                     pair_address: self.fin_contract_address.to_string(),
                     position_type: PositionType::Enter,
                     slippage_tolerance: None,
@@ -330,6 +335,7 @@ impl MockApp {
     pub fn with_vault_with_time_trigger(
         mut self,
         owner: &Addr,
+        destinations: Vec<Destination>,
         balance: Coin,
         swap_amount: Uint128,
         label: &str,
@@ -340,6 +346,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    destinations,
                     pair_address: self.fin_contract_address.to_string(),
                     position_type: PositionType::Enter,
                     slippage_tolerance: None,

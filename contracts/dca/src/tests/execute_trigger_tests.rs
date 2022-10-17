@@ -9,7 +9,8 @@ use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use base::events::event::{EventBuilder, EventData};
-use cosmwasm_std::{Addr, Coin, Uint128};
+use base::vaults::vault::Destination;
+use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
 use cw_multi_test::Executor;
 
 #[test]
@@ -22,6 +23,7 @@ fn fin_limit_order_trigger_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
+            vec![],
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
@@ -134,6 +136,122 @@ fn fin_limit_order_trigger_should_succeed() {
 }
 
 #[test]
+fn fin_limit_order_trigger_with_multiple_destinations_should_distribute_funds_properly() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+
+    let mut destinations = vec![];
+
+    for i in 0..5 {
+        destinations.push(Destination {
+            address: Addr::unchecked(format!("{}-{:?}", USER, i)),
+            allocation: Decimal::percent(20),
+        });
+    }
+
+    let mut mock = MockApp::new(fin_contract_filled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_filled_fin_limit_price_trigger(
+            &user_address,
+            destinations.clone(),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::ExecuteTrigger {
+                trigger_id: Uint128::new(1),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let swap_amount_after_fee = swap_amount
+        - swap_amount
+            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
+            .unwrap();
+
+    assert_address_balances(
+        &mock,
+        &destinations
+            .iter()
+            .map(|destination| {
+                (
+                    &destination.address,
+                    DENOM_UTEST,
+                    swap_amount_after_fee * destination.allocation,
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
+}
+
+#[test]
+fn with_time_trigger_with_multiple_destinations_should_distribute_funds_properly() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+
+    let mut destinations = vec![];
+
+    for i in 0..5 {
+        destinations.push(Destination {
+            address: Addr::unchecked(format!("{}-{:?}", USER, i)),
+            allocation: Decimal::percent(20),
+        });
+    }
+
+    let mut mock = MockApp::new(fin_contract_filled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_time_trigger(
+            &user_address,
+            destinations.clone(),
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "time",
+        );
+
+    mock.elapse_time(10);
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::ExecuteTrigger {
+                trigger_id: Uint128::new(1),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let swap_amount_after_fee = swap_amount
+        - swap_amount
+            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
+            .unwrap();
+
+    assert_address_balances(
+        &mock,
+        &destinations
+            .iter()
+            .map(|destination| {
+                (
+                    &destination.address,
+                    DENOM_UTEST,
+                    swap_amount_after_fee * destination.allocation,
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
+}
+
+#[test]
 fn when_order_partially_filled_should_fail() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
@@ -243,6 +361,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         .with_funds_for(&user_address, user_funds, DENOM_UKUJI)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
+            vec![],
             Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
             swap_amount,
             "fin",
@@ -354,6 +473,7 @@ fn after_target_time_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
+            vec![],
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
@@ -461,6 +581,7 @@ fn before_target_time_limit_should_fail() {
         .with_funds_for(&user_address, TEN, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
+            vec![],
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
@@ -534,6 +655,7 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
         .with_funds_for(&user_address, TEN, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
+            vec![],
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",

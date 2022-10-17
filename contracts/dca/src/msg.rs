@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, Trigger};
-use base::vaults::vault::PositionType;
+use base::vaults::vault::{Destination, PositionType};
 
 use crate::vault::Vault;
 
@@ -35,6 +35,7 @@ pub enum ExecuteMsg {
         address: String,
     },
     CreateVault {
+        destinations: Vec<Destination>,
         pair_address: String,
         position_type: PositionType,
         slippage_tolerance: Option<Decimal256>,
