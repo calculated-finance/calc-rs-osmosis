@@ -120,8 +120,12 @@ pub fn fin_swap_completed(
                             existing_vault.balance.amount -=
                                 existing_vault.get_swap_amount().amount;
 
-                            if let true = existing_vault.low_funds() {
+                            if existing_vault.low_funds() {
                                 existing_vault.status = VaultStatus::Inactive;
+                            }
+
+                            if existing_vault.started_at.is_none() {
+                                existing_vault.started_at = Some(env.block.time);
                             }
 
                             Ok(existing_vault)

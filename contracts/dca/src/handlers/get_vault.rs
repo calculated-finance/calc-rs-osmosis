@@ -14,14 +14,13 @@ pub fn get_vault(deps: Deps, address: String, vault_id: Uint128) -> StdResult<Va
         });
     }
 
-    Ok(VaultResponse {
-        vault,
-        triggers: trigger_store()
-            .idx
-            .vault_id
-            .sub_prefix(vault_id.into())
-            .range(deps.storage, None, None, Order::Ascending)
-            .map(|result| result.unwrap().1)
-            .collect::<Vec<Trigger>>(),
-    })
+    let triggers = trigger_store()
+        .idx
+        .vault_id
+        .prefix(vault_id.u128())
+        .range(deps.storage, None, None, Order::Ascending)
+        .map(|t| t.unwrap().1.clone())
+        .collect::<Vec<Trigger>>();
+
+    Ok(VaultResponse { vault, triggers })
 }

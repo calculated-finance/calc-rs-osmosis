@@ -20,6 +20,7 @@ pub struct Vault {
     pub position_type: PositionType,
     pub slippage_tolerance: Option<Decimal256>,
     pub time_interval: TimeInterval,
+    pub started_at: Option<Timestamp>,
 }
 
 impl Vault {
