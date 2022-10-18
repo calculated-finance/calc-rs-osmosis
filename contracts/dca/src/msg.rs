@@ -45,6 +45,7 @@ pub enum ExecuteMsg {
         target_price: Option<Decimal256>,
     },
     Deposit {
+        address: String,
         vault_id: Uint128,
     },
     CancelVault {
@@ -66,6 +67,7 @@ pub enum QueryMsg {
     GetPairs {},
     GetTimeTriggers {},
     GetVault {
+        address: String,
         vault_id: Uint128,
     },
     GetVaultsByAddress {

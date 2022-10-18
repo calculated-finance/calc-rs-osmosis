@@ -121,7 +121,7 @@ pub fn execute(
         ),
         ExecuteMsg::CancelVault { address, vault_id } => cancel_vault(deps, env, address, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger(deps, env, trigger_id),
-        ExecuteMsg::Deposit { vault_id } => deposit(deps, env, info, vault_id),
+        ExecuteMsg::Deposit { address, vault_id } => deposit(deps, env, info, address, vault_id),
         ExecuteMsg::UpdateConfig {
             fee_collector,
             fee_percent,
@@ -155,7 +155,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetVaultsByAddress { address } => {
             to_binary(&get_vaults_by_address(deps, address)?)
         }
-        QueryMsg::GetVault { vault_id } => to_binary(&get_vault(deps, vault_id)?),
+        QueryMsg::GetVault { vault_id, address } => to_binary(&get_vault(deps, address, vault_id)?),
         QueryMsg::GetEventsByResourceId { resource_id } => {
             to_binary(&get_events_by_resource_id(deps, resource_id)?)
         }

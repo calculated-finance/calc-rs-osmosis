@@ -473,6 +473,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
 
     let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVault {
         vault_id: Uint128::new(1),
+        address: String::from(VALID_ADDRESS_TWO),
     };
     let binary = query(
         deps.as_ref(),

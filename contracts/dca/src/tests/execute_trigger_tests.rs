@@ -61,7 +61,10 @@ fn fin_limit_order_trigger_should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault { vault_id },
+            &&QueryMsg::GetVault {
+                vault_id,
+                address: user_address.to_string(),
+            },
         )
         .unwrap();
 
@@ -118,7 +121,7 @@ fn fin_limit_order_trigger_should_succeed() {
     assert_vault_balance(
         &mock,
         &mock.dca_contract_address,
-        &user_address,
+        user_address.to_string(),
         Uint128::new(1),
         vault_deposit - swap_amount,
     );
@@ -297,6 +300,7 @@ fn when_order_partially_filled_should_fail() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+                address: user_address.to_string(),
             },
         )
         .unwrap();
@@ -345,7 +349,7 @@ fn when_order_partially_filled_should_fail() {
     assert_vault_balance(
         &mock,
         &mock.dca_contract_address,
-        &user_address,
+        user_address.to_string(),
         Uint128::new(1),
         vault_deposit,
     );
@@ -399,6 +403,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+                address: user_address.to_string(),
             },
         )
         .unwrap();
@@ -456,7 +461,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
     assert_vault_balance(
         &mock,
         &mock.dca_contract_address,
-        &user_address,
+        user_address.to_string(),
         vault_response.vault.id,
         Uint128::new(0),
     );
@@ -565,7 +570,7 @@ fn after_target_time_should_succeed() {
     assert_vault_balance(
         &mock,
         &mock.dca_contract_address,
-        &user_address,
+        user_address.to_string(),
         Uint128::new(1),
         TEN - ONE,
     );
@@ -639,7 +644,7 @@ fn before_target_time_limit_should_fail() {
     assert_vault_balance(
         &mock,
         &mock.dca_contract_address,
-        &user_address,
+        user_address.to_string(),
         Uint128::new(1),
         TEN,
     );
@@ -709,7 +714,7 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
     assert_vault_balance(
         &mock,
         &mock.dca_contract_address,
-        &user_address,
+        user_address.to_string(),
         Uint128::new(1),
         vault_deposit,
     );
