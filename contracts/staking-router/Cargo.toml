@@ -1,5 +1,5 @@
 [package]
-name = "compounder"
+name = "staking-router"
 version = "0.1.0"
 authors = ["aidan <aidan@calculated.fi>"]
 edition = "2021"
@@ -23,13 +23,14 @@ library = []
 
 [dependencies]
 cosmwasm-schema = "1.1.3"
-cosmwasm-std = "1.1.3"
+cosmwasm-std = { version = "1.1.3", features = ["stargate"] }
 cosmwasm-storage = "1.1.3"
 cw-storage-plus = "0.15.1"
 cw2 = "0.15.1"
 schemars = "0.8.10"
 serde = { version = "1.0.145", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
+cosmos-sdk-proto = { version = "0.14.0", default-features = false }
 
 [dev-dependencies]
 cw-multi-test = "0.15.1"
