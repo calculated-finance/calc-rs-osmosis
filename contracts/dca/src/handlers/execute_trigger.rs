@@ -1,7 +1,7 @@
 use crate::contract::{FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID, FIN_SWAP_COMPLETED_ID};
 use crate::error::ContractError;
 use crate::state::{
-    create_event, trigger_store, vault_store, Cache, LimitOrderCache, TimeTriggerCache, CACHE,
+    create_event, get_trigger, vault_store, Cache, LimitOrderCache, TimeTriggerCache, CACHE,
     LIMIT_ORDER_CACHE, TIME_TRIGGER_CACHE,
 };
 use crate::vault::Vault;
@@ -10,7 +10,6 @@ use base::helpers::time_helpers::target_time_elapsed;
 use base::pair::Pair;
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{PositionType, VaultStatus};
-use cosmwasm_std::Order;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Timestamp, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
@@ -22,19 +21,7 @@ pub fn execute_trigger(
     env: Env,
     trigger_id: Uint128,
 ) -> Result<Response, ContractError> {
-    // TODO: refactor into multiple trigger stores?
-    let trigger = match trigger_store().may_load(deps.storage, trigger_id.into())? {
-        Some(trigger) => trigger,
-        None => trigger_store()
-            .idx
-            .order_idx
-            .prefix(trigger_id.into())
-            .range(deps.storage, None, None, Order::Descending)
-            .map(|item| item.map(|(_, trigger)| trigger))
-            .last()
-            .unwrap()?,
-    };
-
+    let trigger = get_trigger(deps.storage, trigger_id.into())?;
     let vault = vault_store().load(deps.storage, trigger.vault_id.into())?;
 
     create_event(
@@ -54,7 +41,6 @@ pub fn execute_trigger(
             deps,
             vault.to_owned(),
             vault.pair.to_owned(),
-            trigger_id,
             order_idx.unwrap(),
         ),
     }
@@ -136,14 +122,12 @@ fn execute_fin_limit_order_trigger(
     deps: DepsMut,
     vault: Vault,
     pair: Pair,
-    trigger_id: Uint128,
     order_idx: Uint128,
 ) -> Result<Response, ContractError> {
     let (offer_amount, original_offer_amount, filled) =
         query_order_details(deps.querier, pair.address.clone(), order_idx);
 
     let limit_order_cache = LimitOrderCache {
-        trigger_id,
         offer_amount,
         original_offer_amount,
         filled,

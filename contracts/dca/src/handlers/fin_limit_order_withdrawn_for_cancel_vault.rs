@@ -1,6 +1,6 @@
 use crate::{
     error::ContractError,
-    state::{trigger_store, vault_store, CACHE, LIMIT_ORDER_CACHE},
+    state::{remove_trigger, vault_store, CACHE, LIMIT_ORDER_CACHE},
 };
 use cosmwasm_std::Uint128;
 #[cfg(not(feature = "library"))]
@@ -33,7 +33,7 @@ pub fn fin_limit_order_withdrawn_for_cancel_vault(
                 amount: vec![filled_amount.clone()],
             };
 
-            trigger_store().remove(deps.storage, vault.id.into())?;
+            remove_trigger(deps.storage, vault.id.into())?;
             vault_store().remove(deps.storage, vault.id.into())?;
 
             LIMIT_ORDER_CACHE.remove(deps.storage);

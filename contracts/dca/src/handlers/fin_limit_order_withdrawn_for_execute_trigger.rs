@@ -1,12 +1,12 @@
 use crate::constants::ONE_HUNDRED;
 use crate::error::ContractError;
 use crate::state::{
-    create_event, create_trigger, trigger_store, vault_store, CACHE, CONFIG, LIMIT_ORDER_CACHE,
+    create_event, remove_trigger, save_trigger, vault_store, CACHE, CONFIG, LIMIT_ORDER_CACHE,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::time_helpers::get_next_target_time;
-use base::triggers::trigger::{TriggerBuilder, TriggerConfiguration, TriggerStatus};
+use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response};
@@ -23,28 +23,12 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
-            trigger_store().update(
-                deps.storage,
-                limit_order_cache.trigger_id.into(),
-                |trigger| match trigger {
-                    Some(mut trigger) => {
-                        trigger.status = TriggerStatus::Executed;
-                        Ok(trigger)
-                    }
-                    None => Err(ContractError::CustomError {
-                        val: format!(
-                            "could not find trigger with id {:?}",
-                            limit_order_cache.trigger_id
-                        ),
-                    }),
-                },
-            )?;
+            remove_trigger(deps.storage, vault.id)?;
 
-            create_trigger(
+            save_trigger(
                 deps.storage,
-                TriggerBuilder {
+                Trigger {
                     vault_id: vault.id,
-                    status: TriggerStatus::Active,
                     configuration: TriggerConfiguration::Time {
                         target_time: get_next_target_time(
                             env.block.time,

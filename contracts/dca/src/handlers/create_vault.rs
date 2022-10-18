@@ -1,8 +1,6 @@
 use crate::contract::FIN_LIMIT_ORDER_SUBMITTED_ID;
 use crate::error::ContractError;
-use crate::state::{
-    create_event, create_trigger, vault_store, Cache, Config, CACHE, CONFIG, PAIRS,
-};
+use crate::state::{create_event, save_trigger, vault_store, Cache, Config, CACHE, CONFIG, PAIRS};
 use crate::validation_helpers::{
     assert_denom_matches_pair_denom, assert_destination_allocations_add_up_to_one,
     assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
@@ -10,7 +8,7 @@ use crate::validation_helpers::{
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
-use base::triggers::trigger::{TimeInterval, TriggerBuilder, TriggerConfiguration, TriggerStatus};
+use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PositionType, VaultStatus};
 use cosmwasm_std::{Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
@@ -100,11 +98,10 @@ fn create_time_trigger(
 
     assert_target_start_time_is_in_future(env.block.time, target_time)?;
 
-    create_trigger(
+    save_trigger(
         deps.storage,
-        TriggerBuilder {
+        Trigger {
             vault_id: vault.id,
-            status: TriggerStatus::Active,
             configuration: TriggerConfiguration::Time { target_time },
         },
     )?;
@@ -120,11 +117,10 @@ fn create_fin_limit_order_trigger(
     vault: Vault,
     target_price: Decimal256,
 ) -> Result<Response, ContractError> {
-    create_trigger(
+    save_trigger(
         deps.storage,
-        TriggerBuilder {
+        Trigger {
             vault_id: vault.id,
-            status: TriggerStatus::Active,
             configuration: TriggerConfiguration::FINLimitOrder {
                 order_idx: None,
                 target_price: target_price.clone(),

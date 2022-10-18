@@ -1,11 +1,11 @@
 use crate::constants::ONE_HUNDRED;
 use crate::error::ContractError;
-use crate::state::{create_event, trigger_store, vault_store, CACHE, CONFIG, TIME_TRIGGER_CACHE};
+use crate::state::{create_event, get_trigger, save_trigger, vault_store, CACHE, CONFIG};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
 use base::helpers::time_helpers::get_next_target_time;
-use base::triggers::trigger::TriggerConfiguration;
+use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PositionType, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
@@ -17,10 +17,8 @@ pub fn fin_swap_completed(
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
-    let time_trigger_cache = TIME_TRIGGER_CACHE.load(deps.storage)?;
     let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
-    let trigger_store = trigger_store();
-    let trigger = trigger_store.load(deps.storage, time_trigger_cache.trigger_id.into())?;
+    let trigger = get_trigger(deps.storage, vault.id.into())?;
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
@@ -142,21 +140,20 @@ pub fn fin_swap_completed(
             )?;
 
             match trigger.configuration {
-                TriggerConfiguration::Time { mut target_time } => {
-                    let next_trigger_time =
-                        get_next_target_time(env.block.time, target_time, vault.time_interval);
-
-                    trigger_store.update(deps.storage, trigger.id.into(), |existing_trigger| {
-                        match existing_trigger {
-                            Some(trigger) => {
-                                target_time = next_trigger_time;
-                                Ok(trigger)
-                            }
-                            None => Err(ContractError::CustomError {
-                                val: format!("could not trigger with id: {}", trigger.id),
-                            }),
-                        }
-                    })?;
+                TriggerConfiguration::Time { target_time } => {
+                    save_trigger(
+                        deps.storage,
+                        Trigger {
+                            vault_id: vault.id,
+                            configuration: TriggerConfiguration::Time {
+                                target_time: get_next_target_time(
+                                    env.block.time,
+                                    target_time,
+                                    vault.time_interval,
+                                ),
+                            },
+                        },
+                    )?;
                 }
                 _ => panic!("should be a time based trigger"),
             }
@@ -197,21 +194,20 @@ pub fn fin_swap_completed(
             attributes.push(Attribute::new("status", "skipped"));
 
             match trigger.configuration {
-                TriggerConfiguration::Time { mut target_time } => {
-                    let next_trigger_time =
-                        get_next_target_time(env.block.time, target_time, vault.time_interval);
-
-                    trigger_store.update(deps.storage, trigger.id.into(), |existing_trigger| {
-                        match existing_trigger {
-                            Some(trigger) => {
-                                target_time = next_trigger_time;
-                                Ok(trigger)
-                            }
-                            None => Err(ContractError::CustomError {
-                                val: format!("could not find trigger with id: {}", trigger.id),
-                            }),
-                        }
-                    })?;
+                TriggerConfiguration::Time { target_time } => {
+                    save_trigger(
+                        deps.storage,
+                        Trigger {
+                            vault_id: vault.id,
+                            configuration: TriggerConfiguration::Time {
+                                target_time: get_next_target_time(
+                                    env.block.time,
+                                    target_time,
+                                    vault.time_interval,
+                                ),
+                            },
+                        },
+                    )?;
                 }
                 _ => panic!("should be a time based trigger"),
             }

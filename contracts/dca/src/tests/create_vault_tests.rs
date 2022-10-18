@@ -1,5 +1,5 @@
 use crate::constants::{ONE, ONE_THOUSAND, TEN};
-use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
+use crate::msg::{ExecuteMsg, QueryMsg, TriggerIdsResponse, VaultResponse};
 use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
 };
@@ -678,24 +678,18 @@ fn with_time_trigger_with_no_target_time_should_succeed() {
         ],
     );
 
-    let get_all_time_triggers_response: TriggersResponse = mock
+    let get_all_time_triggers_response: TriggerIdsResponse = mock
         .app
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggers {},
+            &QueryMsg::GetTimeTriggerIds {
+                before_target_time_in_utc_seconds: mock.app.block_info().time.seconds().into(),
+            },
         )
         .unwrap();
 
-    assert_eq!(get_all_time_triggers_response.triggers.len(), 1);
-
-    let trigger = &get_all_time_triggers_response.triggers[0]
-        .configuration
-        .to_owned()
-        .into_time()
-        .unwrap();
-
-    assert_eq!(trigger.seconds(), mock.app.block_info().time.seconds());
+    assert_eq!(get_all_time_triggers_response.trigger_ids.len(), 1);
 }
 
 #[test]

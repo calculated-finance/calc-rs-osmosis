@@ -65,7 +65,12 @@ pub enum ExecuteMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     GetPairs {},
-    GetTimeTriggers {},
+    GetTimeTriggerIds {
+        before_target_time_in_utc_seconds: Uint64,
+    },
+    GetTriggerIdByFinLimitOrderIdx {
+        order_idx: Uint128,
+    },
     GetVault {
         address: String,
         vault_id: Uint128,
@@ -89,8 +94,8 @@ pub struct PairsResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct TriggersResponse {
-    pub triggers: Vec<Trigger>,
+pub struct TriggerIdResponse {
+    pub trigger_id: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -102,7 +107,7 @@ pub struct TriggerIdsResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct VaultResponse {
     pub vault: Vault,
-    pub triggers: Vec<Trigger>,
+    pub trigger: Trigger,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

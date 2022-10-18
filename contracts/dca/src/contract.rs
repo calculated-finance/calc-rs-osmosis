@@ -13,15 +13,14 @@ use crate::handlers::fin_swap_completed::fin_swap_completed;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
-use crate::handlers::get_time_triggers::get_time_triggers;
+use crate::handlers::get_time_trigger_ids::get_time_trigger_ids;
+use crate::handlers::get_trigger_id_by_fin_limit_order_idx::get_trigger_id_by_fin_limit_order_idx;
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::update_config::update_config;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{
-    event_store, trigger_store, vault_store, Config, CACHE, CONFIG,
-    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID, LIMIT_ORDER_CACHE,
-    TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID,
+    clear_triggers, event_store, vault_store, Config, CACHE, CONFIG, LIMIT_ORDER_CACHE,
 };
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
@@ -42,9 +41,7 @@ pub const FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_ID: u64 = 5;
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     vault_store().clear(deps.storage);
-    trigger_store().clear(deps.storage);
-    TIME_TRIGGER_CONFIGURATIONS_BY_VAULT_ID.clear(deps.storage);
-    FIN_LIMIT_ORDER_CONFIGURATIONS_BY_VAULT_ID.clear(deps.storage);
+    clear_triggers(deps.storage);
     event_store().clear(deps.storage);
     CONFIG.remove(deps.storage);
     CACHE.remove(deps.storage);
@@ -151,7 +148,15 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetPairs {} => to_binary(&get_pairs(deps)?),
-        QueryMsg::GetTimeTriggers {} => to_binary(&get_time_triggers(deps)?),
+        QueryMsg::GetTimeTriggerIds {
+            before_target_time_in_utc_seconds,
+        } => to_binary(&get_time_trigger_ids(
+            deps,
+            before_target_time_in_utc_seconds,
+        )?),
+        QueryMsg::GetTriggerIdByFinLimitOrderIdx { order_idx } => {
+            to_binary(&get_trigger_id_by_fin_limit_order_idx(deps, order_idx)?)
+        }
         QueryMsg::GetVaultsByAddress { address } => {
             to_binary(&get_vaults_by_address(deps, address)?)
         }

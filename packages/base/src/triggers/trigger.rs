@@ -25,33 +25,7 @@ pub enum TriggerConfiguration {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum TriggerStatus {
-    Active,
-    Executed,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Trigger {
-    pub id: Uint128,
     pub vault_id: Uint128,
     pub configuration: TriggerConfiguration,
-    pub status: TriggerStatus,
-}
-
-pub struct TriggerBuilder {
-    pub vault_id: Uint128,
-    pub configuration: TriggerConfiguration,
-    pub status: TriggerStatus,
-}
-
-impl TriggerBuilder {
-    pub fn build(self, id: Uint128) -> Trigger {
-        Trigger {
-            id,
-            vault_id: self.vault_id,
-            configuration: self.configuration,
-            status: self.status,
-        }
-    }
 }
