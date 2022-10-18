@@ -23,7 +23,7 @@ fn fin_limit_order_trigger_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
-            vec![],
+            None,
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
@@ -155,7 +155,7 @@ fn fin_limit_order_trigger_with_multiple_destinations_should_distribute_funds_pr
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
-            destinations.clone(),
+            Some(destinations.clone()),
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
@@ -212,7 +212,7 @@ fn with_time_trigger_with_multiple_destinations_should_distribute_funds_properly
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            destinations.clone(),
+            Some(destinations.clone()),
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
@@ -361,7 +361,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         .with_funds_for(&user_address, user_funds, DENOM_UKUJI)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
-            vec![],
+            None,
             Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
             swap_amount,
             "fin",
@@ -473,7 +473,7 @@ fn after_target_time_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            vec![],
+            None,
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
@@ -581,7 +581,7 @@ fn before_target_time_limit_should_fail() {
         .with_funds_for(&user_address, TEN, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            vec![],
+            None,
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
@@ -655,7 +655,7 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
         .with_funds_for(&user_address, TEN, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            vec![],
+            None,
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",

@@ -13,6 +13,7 @@ pub enum TimeInterval {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, EnumAsInner)]
+#[serde(rename_all = "snake_case")]
 pub enum TriggerConfiguration {
     Time {
         target_time: Timestamp,
@@ -24,6 +25,7 @@ pub enum TriggerConfiguration {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum TriggerStatus {
     Active,
     Executed,

@@ -35,7 +35,7 @@ pub enum ExecuteMsg {
         address: String,
     },
     CreateVault {
-        destinations: Vec<Destination>,
+        destinations: Option<Vec<Destination>>,
         pair_address: String,
         position_type: PositionType,
         slippage_tolerance: Option<Decimal256>,
