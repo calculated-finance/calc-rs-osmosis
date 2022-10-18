@@ -1,6 +1,6 @@
 use super::mocks::fin_contract_fail_slippage_tolerance;
 use crate::constants::{ONE, ONE_HUNDRED, ONE_THOUSAND, TEN};
-use crate::msg::{ExecuteMsg, QueryMsg, TriggersResponse, VaultResponse};
+use crate::msg::{ExecuteMsg, QueryMsg, TriggerIdsResponse, VaultResponse};
 use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
 };
@@ -126,16 +126,18 @@ fn fin_limit_order_trigger_should_succeed() {
         vault_deposit - swap_amount,
     );
 
-    let get_all_time_triggers_response: TriggersResponse = mock
+    mock.elapse_time(3700);
+
+    let get_time_trigger_ids_response: TriggerIdsResponse = mock
         .app
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggers {},
+            &QueryMsg::GetTimeTriggerIds,
         )
         .unwrap();
 
-    assert_eq!(get_all_time_triggers_response.triggers.len(), 1);
+    assert_eq!(get_time_trigger_ids_response.trigger_ids.len(), 1);
 }
 
 #[test]
@@ -419,12 +421,12 @@ fn when_executions_result_in_empty_vault_should_succeed() {
         )
         .unwrap();
 
-    mock.elapse_time(3601);
+    mock.elapse_time(3700);
 
-    let time_triggers: TriggersResponse = mock
+    let time_triggers: TriggerIdsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggers {})
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggerIds)
         .unwrap();
 
     mock.app
@@ -432,7 +434,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteTrigger {
-                trigger_id: time_triggers.triggers[0].id,
+                trigger_id: time_triggers.trigger_ids[0],
             },
             &[],
         )

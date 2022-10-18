@@ -1,7 +1,8 @@
 use crate::error::ContractError;
-use crate::state::{trigger_store, CACHE};
+use crate::state::{save_trigger, CACHE};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
-use base::triggers::trigger::TriggerConfiguration;
+use base::triggers::trigger::{Trigger, TriggerConfiguration};
+use cosmwasm_std::Decimal256;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Reply, Response, Uint128};
 use std::str::FromStr;
@@ -19,20 +20,14 @@ pub fn fin_limit_order_submitted(deps: DepsMut, reply: Reply) -> Result<Response
 
             let cache = CACHE.load(deps.storage)?;
 
-            trigger_store().update(
+            save_trigger(
                 deps.storage,
-                cache.vault_id.into(),
-                |trigger| match trigger {
-                    Some(mut trigger) => {
-                        trigger.configuration = TriggerConfiguration::FINLimitOrder {
-                            order_idx: Some(order_idx),
-                            target_price: *trigger.configuration.as_fin_limit_order().unwrap().0,
-                        };
-                        Ok(trigger)
-                    }
-                    None => Err(ContractError::CustomError {
-                        val: "FIN limit order trigger not found".to_string(),
-                    }),
+                Trigger {
+                    vault_id: cache.vault_id,
+                    configuration: TriggerConfiguration::FINLimitOrder {
+                        order_idx: Some(order_idx),
+                        target_price: Decimal256::one(),
+                    },
                 },
             )?;
 

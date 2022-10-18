@@ -15,3 +15,9 @@ pub mod cancel_vault_tests;
 
 #[cfg(test)]
 pub mod execute_trigger_tests;
+
+#[cfg(test)]
+pub mod get_time_trigger_ids_tests;
+
+#[cfg(test)]
+pub mod get_trigger_id_by_fin_limit_order_idx_tests;

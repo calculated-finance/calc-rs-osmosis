@@ -1,7 +1,8 @@
 use crate::contract::FIN_LIMIT_ORDER_RETRACTED_ID;
 use crate::error::ContractError;
 use crate::state::{
-    create_event, trigger_store, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,
+    create_event, get_trigger, remove_trigger, vault_store, Cache, LimitOrderCache, CACHE,
+    LIMIT_ORDER_CACHE,
 };
 use crate::validation_helpers::assert_sender_is_admin_or_vault_owner;
 use crate::vault::Vault;
@@ -24,23 +25,23 @@ pub fn cancel_vault(
     let vault = vault_store().load(deps.storage, vault_id.into())?;
     assert_sender_is_admin_or_vault_owner(deps.as_ref(), vault.owner.clone(), validated_address)?;
 
-    let trigger = trigger_store().load(deps.storage, vault_id.into())?;
-
     create_event(
         deps.storage,
         EventBuilder::new(vault.id, env.block, EventData::DCAVaultCancelled),
     )?;
 
+    let trigger = get_trigger(deps.storage, vault_id.into())?;
+
     match trigger.configuration {
         TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, vault),
         TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
-            cancel_fin_limit_order_trigger(deps, trigger.id, order_idx.unwrap(), vault)
+            cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), vault)
         }
     }
 }
 
 fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
-    trigger_store().remove(deps.storage, vault.id.into())?;
+    remove_trigger(deps.storage, vault.id.into())?;
     vault_store().remove(deps.storage, vault.id.into())?;
 
     let refund_bank_msg = BankMsg::Send {
@@ -57,7 +58,6 @@ fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, Contract
 
 fn cancel_fin_limit_order_trigger(
     deps: DepsMut,
-    trigger_id: Uint128,
     order_idx: Uint128,
     vault: Vault,
 ) -> Result<Response, ContractError> {
@@ -65,7 +65,6 @@ fn cancel_fin_limit_order_trigger(
         query_order_details(deps.querier, vault.pair.address.clone(), order_idx);
 
     let limit_order_cache = LimitOrderCache {
-        trigger_id,
         offer_amount,
         original_offer_amount,
         filled,
