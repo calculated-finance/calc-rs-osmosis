@@ -98,6 +98,7 @@ pub fn execute(
         } => create_pair(deps, env, info, address, base_denom, quote_denom),
         ExecuteMsg::DeletePair { address } => delete_pair(deps, env, info, address),
         ExecuteMsg::CreateVault {
+            destinations,
             pair_address,
             position_type,
             slippage_tolerance,
@@ -109,6 +110,7 @@ pub fn execute(
             deps,
             env,
             info,
+            destinations,
             pair_address,
             position_type,
             slippage_tolerance,

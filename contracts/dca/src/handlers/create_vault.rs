@@ -4,14 +4,15 @@ use crate::state::{
     create_event, create_trigger, vault_store, Cache, Config, CACHE, CONFIG, PAIRS,
 };
 use crate::validation_helpers::{
-    assert_denom_matches_pair_denom, assert_exactly_one_asset,
+    assert_denom_matches_pair_denom, assert_destination_allocations_add_up_to_one,
+    assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
     assert_swap_amount_is_less_than_or_equal_to_balance, assert_target_start_time_is_in_future,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, TriggerBuilder, TriggerConfiguration, TriggerStatus};
-use base::vaults::vault::{PositionType, VaultStatus};
-use cosmwasm_std::Decimal256;
+use base::vaults::vault::{Destination, PositionType, VaultStatus};
+use cosmwasm_std::{Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, StdResult, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_limit_order_sub_msg;
@@ -20,6 +21,7 @@ pub fn create_vault(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
+    mut destinations: Vec<Destination>,
     pair_address: String,
     position_type: PositionType,
     slippage_tolerance: Option<Decimal256>,
@@ -29,6 +31,16 @@ pub fn create_vault(
     target_price: Option<Decimal256>,
 ) -> Result<Response, ContractError> {
     assert_exactly_one_asset(info.funds.clone())?;
+    assert_destinations_limit_is_not_breached(&destinations)?;
+
+    if destinations.is_empty() {
+        destinations.push(Destination {
+            address: info.sender.clone(),
+            allocation: Decimal::percent(100),
+        });
+    }
+
+    assert_destination_allocations_add_up_to_one(&destinations)?;
 
     let pair = PAIRS.load(deps.storage, deps.api.addr_validate(&pair_address)?)?;
 
@@ -43,6 +55,7 @@ pub fn create_vault(
     let vault = Vault {
         id: config.vault_count,
         owner: info.sender.clone(),
+        destinations,
         created_at: env.block.time,
         status: VaultStatus::Active,
         pair,

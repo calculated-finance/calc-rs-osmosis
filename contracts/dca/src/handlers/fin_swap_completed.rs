@@ -83,15 +83,28 @@ pub fn fin_swap_completed(
                 &coin_received.denom,
             );
 
-            let funds_to_redistribute = Coin::new(
-                (coin_received.amount - execution_fee.amount).into(),
-                &coin_received.denom,
-            );
+            let total_to_redistribute = coin_received.amount - execution_fee.amount;
 
-            messages.push(CosmosMsg::Bank(BankMsg::Send {
-                to_address: vault.owner.to_string(),
-                amount: vec![funds_to_redistribute],
-            }));
+            vault
+                .destinations
+                .iter()
+                .map(|destination| BankMsg::Send {
+                    to_address: destination.address.to_string(),
+                    amount: vec![Coin::new(
+                        total_to_redistribute
+                            .checked_multiply_ratio(
+                                destination.allocation.atomics(),
+                                Uint128::new(10)
+                                    .checked_pow(destination.allocation.decimal_places())
+                                    .unwrap(),
+                            )
+                            .unwrap()
+                            .u128(),
+                        &coin_received.denom,
+                    )],
+                })
+                .into_iter()
+                .for_each(|msg| messages.push(CosmosMsg::Bank(msg.to_owned())));
 
             messages.push(CosmosMsg::Bank(BankMsg::Send {
                 to_address: config.fee_collector.to_string(),

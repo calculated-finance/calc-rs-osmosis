@@ -1,7 +1,7 @@
 use base::{
     pair::Pair,
     triggers::trigger::TimeInterval,
-    vaults::vault::{PositionType, VaultStatus},
+    vaults::vault::{Destination, PositionType, VaultStatus},
 };
 use cosmwasm_std::{Addr, Coin, Decimal256, Timestamp, Uint128};
 use schemars::JsonSchema;
@@ -12,6 +12,7 @@ pub struct Vault {
     pub id: Uint128,
     pub created_at: Timestamp,
     pub owner: Addr,
+    pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
     pub pair: Pair,

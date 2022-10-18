@@ -1,7 +1,10 @@
 use crate::error::ContractError;
 use crate::state::CONFIG;
-use base::{pair::Pair, vaults::vault::PositionType};
-use cosmwasm_std::{Addr, Coin, Deps, Timestamp, Uint128};
+use base::{
+    pair::Pair,
+    vaults::vault::{Destination, PositionType},
+};
+use cosmwasm_std::{Addr, Coin, Decimal, Deps, Timestamp, Uint128};
 
 pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {
     if funds.is_empty() || funds.len() > 1 {
@@ -97,4 +100,34 @@ pub fn assert_target_start_time_is_in_future(
             val: String::from("target_start_time_utc_seconds must be some time in the future"),
         })
     }
+}
+
+pub fn assert_destinations_limit_is_not_breached(
+    destinations: &Vec<Destination>,
+) -> Result<(), ContractError> {
+    if destinations.len() > 10 {
+        return Err(ContractError::CustomError {
+            val: String::from("no more than 10 destinations can be provided"),
+        });
+    };
+
+    Ok(())
+}
+
+pub fn assert_destination_allocations_add_up_to_one(
+    destinations: &[Destination],
+) -> Result<(), ContractError> {
+    if destinations
+        .iter()
+        .fold(Decimal::zero(), |acc, destintation| {
+            acc.checked_add(destintation.allocation).unwrap()
+        })
+        != Decimal::percent(100)
+    {
+        return Err(ContractError::CustomError {
+            val: String::from("destination allocations must add up to 1"),
+        });
+    }
+
+    Ok(())
 }
