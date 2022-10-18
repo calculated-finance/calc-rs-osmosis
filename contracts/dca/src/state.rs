@@ -70,7 +70,7 @@ pub fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
         owner: MultiIndex::new(
             |_, v| (v.owner.clone(), v.id.into()),
             "vaults_v1",
-            "vaults_v1__variant",
+            "vaults_v1__owner",
         ),
     };
     IndexedMap::new("vaults_v1", indexes)

@@ -130,7 +130,13 @@ fn with_fin_limit_order_trigger_should_create_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault {
+                vault_id,
+                address: user_address.to_string(),
+            },
+        )
         .unwrap();
 
     assert_eq!(
@@ -201,7 +207,13 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault {
+                vault_id,
+                address: user_address.to_string(),
+            },
+        )
         .unwrap();
 
     assert_eq!(
@@ -360,7 +372,7 @@ fn with_fin_limit_order_trigger_twice_for_user_should_succeed() {
     assert_vault_balance(
         &mock,
         &mock.dca_contract_address,
-        &user_address,
+        user_address.to_string(),
         Uint128::new(1),
         vault_deposit,
     );
@@ -464,7 +476,13 @@ fn with_time_trigger_should_create_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault {
+                vault_id,
+                address: user_address.to_string(),
+            },
+        )
         .unwrap();
 
     assert_eq!(
@@ -537,7 +555,13 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault {
+                vault_id,
+                address: user_address.to_string(),
+            },
+        )
         .unwrap();
 
     assert_eq!(
@@ -714,7 +738,13 @@ fn with_mulitple_destinations_should_succeed() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault {
+                vault_id,
+                address: user_address.to_string(),
+            },
+        )
         .unwrap();
 
     assert_eq!(

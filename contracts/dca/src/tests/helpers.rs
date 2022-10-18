@@ -20,11 +20,14 @@ pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str,
         })
 }
 
-pub fn assert_vault_eq(mock: &MockApp, vault_id: Uint128, expected_vault: Vault) {
+pub fn assert_vault_eq(mock: &MockApp, address: String, vault_id: Uint128, expected_vault: Vault) {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault { vault_id, address },
+        )
         .unwrap();
 
     assert_eq!(vault_response.vault, expected_vault);
@@ -53,14 +56,20 @@ pub fn assert_events_published(mock: &MockApp, resource_id: Uint128, expected_ev
 pub fn assert_vault_balance(
     mock: &MockApp,
     contract_address: &Addr,
-    owner: &Addr,
+    address: String,
     vault_id: Uint128,
     balance: Uint128,
 ) {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(contract_address, &QueryMsg::GetVault { vault_id })
+        .query_wasm_smart(
+            contract_address,
+            &QueryMsg::GetVault {
+                vault_id,
+                address: address.clone(),
+            },
+        )
         .unwrap();
 
     let vault = &vault_response.vault;
@@ -68,6 +77,6 @@ pub fn assert_vault_balance(
     assert_eq!(
         vault.balance.amount, balance,
         "Vault balance mismatch for vault_id: {}, owner: {}",
-        vault_id, owner
+        vault_id, address
     );
 }

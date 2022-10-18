@@ -13,10 +13,13 @@ pub fn deposit(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
+    address: String,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
+    let validated_address = deps.api.addr_validate(address.as_str())?;
     let vault = vault_store().load(deps.storage, vault_id.into())?;
-    if info.sender != vault.owner {
+
+    if validated_address != vault.owner {
         return Err(ContractError::Unauthorized {});
     }
 
