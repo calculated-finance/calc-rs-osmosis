@@ -78,12 +78,13 @@ pub fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
 
 pub struct TriggerIndexes<'a> {
     pub vault_id: MultiIndex<'a, u128, Trigger, u128>,
+    pub order_idx: MultiIndex<'a, u128, Trigger, u128>,
     pub variant: MultiIndex<'a, u8, Trigger, u128>,
 }
 
 impl<'a> IndexList<Trigger> for TriggerIndexes<'a> {
     fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<Trigger>> + '_> {
-        let v: Vec<&dyn Index<Trigger>> = vec![&self.variant];
+        let v: Vec<&dyn Index<Trigger>> = vec![&self.vault_id, &self.order_idx, &self.variant];
         Box::new(v.into_iter())
     }
 }
@@ -94,6 +95,16 @@ pub fn trigger_store<'a>() -> IndexedMap<'a, u128, Trigger, TriggerIndexes<'a>> 
             |_, t| t.vault_id.u128(),
             "triggers_v1",
             "triggers_v1__vault_id",
+        ),
+        order_idx: MultiIndex::new(
+            |_, t| match t.configuration {
+                TriggerConfiguration::Time { .. } => Uint128::zero().u128(),
+                TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
+                    order_idx.unwrap_or(Uint128::zero()).u128()
+                }
+            },
+            "triggers_v1",
+            "triggers_v1__order_idx",
         ),
         variant: MultiIndex::new(
             |_, t| match t.configuration {

@@ -10,6 +10,7 @@ use base::helpers::time_helpers::target_time_elapsed;
 use base::pair::Pair;
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{PositionType, VaultStatus};
+use cosmwasm_std::Order;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Timestamp, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
@@ -21,7 +22,19 @@ pub fn execute_trigger(
     env: Env,
     trigger_id: Uint128,
 ) -> Result<Response, ContractError> {
-    let trigger = trigger_store().load(deps.storage, trigger_id.into())?;
+    // TODO: refactor into multiple trigger stores?
+    let trigger = match trigger_store().may_load(deps.storage, trigger_id.into())? {
+        Some(trigger) => trigger,
+        None => trigger_store()
+            .idx
+            .order_idx
+            .prefix(trigger_id.into())
+            .range(deps.storage, None, None, Order::Descending)
+            .map(|item| item.map(|(_, trigger)| trigger))
+            .last()
+            .unwrap()?,
+    };
+
     let vault = vault_store().load(deps.storage, trigger.vault_id.into())?;
 
     create_event(
