@@ -110,7 +110,7 @@ pub fn execute(
             deps,
             env,
             info,
-            destinations,
+            destinations.unwrap_or(vec![]),
             pair_address,
             position_type,
             slippage_tolerance,

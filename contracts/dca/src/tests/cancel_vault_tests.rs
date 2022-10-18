@@ -19,7 +19,7 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
         .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
         .with_vault_with_unfilled_fin_limit_price_trigger(
             &user_address,
-            vec![],
+            None,
             Coin::new(user_balance.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
@@ -200,7 +200,7 @@ fn when_vault_has_time_trigger_should_succeed() {
         .with_funds_for(&user_address, TEN, DENOM_UKUJI)
         .with_vault_with_time_trigger(
             &user_address,
-            vec![],
+            None,
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
