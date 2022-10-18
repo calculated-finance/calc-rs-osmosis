@@ -64,10 +64,8 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    GetPairs {},
-    GetTimeTriggerIds {
-        before_target_time_in_utc_seconds: Uint64,
-    },
+    GetPairs,
+    GetTimeTriggerIds,
     GetTriggerIdByFinLimitOrderIdx {
         order_idx: Uint128,
     },

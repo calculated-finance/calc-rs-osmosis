@@ -145,15 +145,10 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetPairs {} => to_binary(&get_pairs(deps)?),
-        QueryMsg::GetTimeTriggerIds {
-            before_target_time_in_utc_seconds,
-        } => to_binary(&get_time_trigger_ids(
-            deps,
-            before_target_time_in_utc_seconds,
-        )?),
+        QueryMsg::GetTimeTriggerIds => to_binary(&get_time_trigger_ids(deps, env)?),
         QueryMsg::GetTriggerIdByFinLimitOrderIdx { order_idx } => {
             to_binary(&get_trigger_id_by_fin_limit_order_idx(deps, order_idx)?)
         }

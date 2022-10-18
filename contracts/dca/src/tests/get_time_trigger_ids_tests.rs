@@ -44,23 +44,20 @@ fn should_return_active_triggers_only() {
         .wrap()
         .query_wasm_smart(
             mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds {
-                before_target_time_in_utc_seconds: mock.app.block_info().time.seconds().into(),
-            },
+            &QueryMsg::GetTimeTriggerIds,
         )
         .unwrap();
 
     assert_eq!(before_get_time_trigger_ids_response.trigger_ids.len(), 0);
+
+    mock.elapse_time(200);
 
     let after_get_time_trigger_ids_response: TriggerIdsResponse = mock
         .app
         .wrap()
         .query_wasm_smart(
             mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds {
-                before_target_time_in_utc_seconds: (mock.app.block_info().time.seconds() + 200)
-                    .into(),
-            },
+            &QueryMsg::GetTimeTriggerIds,
         )
         .unwrap();
 

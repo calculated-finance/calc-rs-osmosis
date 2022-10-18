@@ -126,15 +126,14 @@ fn fin_limit_order_trigger_should_succeed() {
         vault_deposit - swap_amount,
     );
 
+    mock.elapse_time(3700);
+
     let get_time_trigger_ids_response: TriggerIdsResponse = mock
         .app
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds {
-                before_target_time_in_utc_seconds: (mock.app.block_info().time.seconds() + 3700)
-                    .into(),
-            },
+            &QueryMsg::GetTimeTriggerIds,
         )
         .unwrap();
 
@@ -427,12 +426,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
     let time_triggers: TriggerIdsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetTimeTriggerIds {
-                before_target_time_in_utc_seconds: mock.app.block_info().time.seconds().into(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggerIds)
         .unwrap();
 
     mock.app

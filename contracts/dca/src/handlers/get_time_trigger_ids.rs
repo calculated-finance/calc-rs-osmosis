@@ -1,17 +1,14 @@
 use crate::{msg::TriggerIdsResponse, state::TRIGGER_IDS_BY_TARGET_TIME};
-use cosmwasm_std::{Deps, Order, StdResult, Uint128, Uint64};
+use cosmwasm_std::{Deps, Env, Order, StdResult, Uint128};
 use cw_storage_plus::Bound;
 
-pub fn get_time_trigger_ids(
-    deps: Deps,
-    before_target_time_in_utc_seconds: Uint64,
-) -> StdResult<TriggerIdsResponse> {
+pub fn get_time_trigger_ids(deps: Deps, env: Env) -> StdResult<TriggerIdsResponse> {
     Ok(TriggerIdsResponse {
         trigger_ids: TRIGGER_IDS_BY_TARGET_TIME
             .range(
                 deps.storage,
                 None,
-                Some(Bound::inclusive(before_target_time_in_utc_seconds)),
+                Some(Bound::inclusive(env.block.time.seconds())),
                 Order::Ascending,
             )
             .flat_map(|result| result.unwrap().1)
