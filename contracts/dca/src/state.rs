@@ -77,7 +77,7 @@ pub fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
 }
 
 pub struct TriggerIndexes<'a> {
-    pub vault_id: MultiIndex<'a, (u128, u128), Trigger, u128>,
+    pub vault_id: MultiIndex<'a, u128, Trigger, u128>,
     pub variant: MultiIndex<'a, u8, Trigger, u128>,
 }
 
@@ -91,7 +91,7 @@ impl<'a> IndexList<Trigger> for TriggerIndexes<'a> {
 pub fn trigger_store<'a>() -> IndexedMap<'a, u128, Trigger, TriggerIndexes<'a>> {
     let indexes = TriggerIndexes {
         vault_id: MultiIndex::new(
-            |_, t| (t.vault_id.into(), t.id.into()),
+            |_, t| t.vault_id.u128(),
             "triggers_v1",
             "triggers_v1__vault_id",
         ),

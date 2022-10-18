@@ -160,6 +160,7 @@ fn with_fin_limit_order_trigger_should_create_vault() {
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
             },
+            started_at: None
         }
     );
 }
@@ -237,6 +238,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
             },
+            started_at: None
         }
     );
 }
@@ -506,6 +508,7 @@ fn with_time_trigger_should_create_vault() {
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
             },
+            started_at: None
         }
     );
 }
@@ -585,6 +588,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
             },
+            started_at: None
         }
     );
 }
@@ -765,6 +769,7 @@ fn with_mulitple_destinations_should_succeed() {
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
             },
+            started_at: None
         }
     );
 }

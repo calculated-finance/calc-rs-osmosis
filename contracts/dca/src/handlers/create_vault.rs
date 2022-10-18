@@ -64,6 +64,7 @@ pub fn create_vault(
         slippage_tolerance,
         balance: info.funds[0].clone(),
         time_interval: time_interval.clone(),
+        started_at: None,
     };
 
     vault_store().save(deps.storage, vault.id.into(), &vault)?;

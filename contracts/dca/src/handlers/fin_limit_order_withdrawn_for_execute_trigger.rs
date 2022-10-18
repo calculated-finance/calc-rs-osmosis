@@ -63,8 +63,13 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                         Some(mut existing_vault) => {
                             existing_vault.balance.amount -=
                                 limit_order_cache.original_offer_amount;
+
                             if existing_vault.low_funds() {
                                 existing_vault.status = VaultStatus::Inactive
+                            }
+
+                            if existing_vault.started_at.is_none() {
+                                existing_vault.started_at = Some(env.block.time);
                             }
 
                             Ok(existing_vault)

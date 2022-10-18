@@ -463,6 +463,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     };
 
     let info_with_funds = mock_info(VALID_ADDRESS_THREE, &vec![coin]);
+
     let _create_vault_execute_message = execute(
         deps.as_mut(),
         env.clone(),
@@ -471,16 +472,13 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     )
     .unwrap();
 
-    let get_active_vault_by_address_and_id_query_message = QueryMsg::GetVault {
+    let get_vault_query_message = QueryMsg::GetVault {
         vault_id: Uint128::new(1),
-        address: String::from(VALID_ADDRESS_TWO),
+        address: String::from(VALID_ADDRESS_THREE),
     };
-    let binary = query(
-        deps.as_ref(),
-        env,
-        get_active_vault_by_address_and_id_query_message,
-    )
-    .unwrap();
+
+    let binary = query(deps.as_ref(), env, get_vault_query_message).unwrap();
+
     let result: VaultResponse = from_binary(&binary).unwrap();
 
     assert_eq!(result.vault.owner.to_string(), VALID_ADDRESS_THREE);
