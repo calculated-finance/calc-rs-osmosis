@@ -1,8 +1,8 @@
 use crate::contract::{FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID, FIN_SWAP_COMPLETED_ID};
 use crate::error::ContractError;
 use crate::state::{
-    create_event, get_trigger, vault_store, Cache, LimitOrderCache, TimeTriggerCache, CACHE,
-    LIMIT_ORDER_CACHE, TIME_TRIGGER_CACHE,
+    create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE,
+    LIMIT_ORDER_CACHE,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
@@ -35,7 +35,7 @@ pub fn execute_trigger(
 
     match trigger.configuration {
         TriggerConfiguration::Time { target_time } => {
-            execute_time_trigger(deps, env, vault, trigger_id, target_time)
+            execute_time_trigger(deps, env, vault, target_time)
         }
         TriggerConfiguration::FINLimitOrder { order_idx, .. } => execute_fin_limit_order_trigger(
             deps,
@@ -50,7 +50,6 @@ fn execute_time_trigger(
     deps: DepsMut,
     env: Env,
     vault: Vault,
-    trigger_id: Uint128,
     target_time: Timestamp,
 ) -> Result<Response, ContractError> {
     if !target_time_elapsed(env.block.time, target_time) {
@@ -102,8 +101,6 @@ fn execute_time_trigger(
             FIN_SWAP_COMPLETED_ID,
         ),
     };
-
-    TIME_TRIGGER_CACHE.save(deps.storage, &TimeTriggerCache { trigger_id })?;
 
     CACHE.save(
         deps.storage,
