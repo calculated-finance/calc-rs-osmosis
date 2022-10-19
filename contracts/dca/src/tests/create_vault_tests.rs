@@ -10,7 +10,7 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::pair::Pair;
-use base::triggers::trigger::TimeInterval;
+use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
 use base::vaults::vault::{Destination, PositionType, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128, Uint64};
 use cw_multi_test::Executor;
@@ -163,6 +163,66 @@ fn with_fin_limit_order_trigger_should_create_vault() {
             started_at: None
         }
     );
+}
+
+#[test]
+fn with_fin_limit_order_trigger_should_create_trigger() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                destinations: None,
+                pair_address: mock.fin_contract_address.to_string(),
+                position_type: PositionType::Enter,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_price: Some(Decimal256::from_str("1.879").unwrap()),
+                target_start_time_utc_seconds: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::from_str(
+        &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+    )
+    .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault {
+                vault_id,
+                address: user_address.to_string(),
+            },
+        )
+        .unwrap();
+
+    match vault_response.trigger.configuration {
+        TriggerConfiguration::FINLimitOrder {
+            target_price,
+            order_idx,
+        } => {
+            assert_eq!(target_price, Decimal256::from_str("1.879").unwrap());
+            assert!(order_idx.is_some());
+        }
+        _ => panic!("expected a fin limit order trigger"),
+    }
 }
 
 #[test]

@@ -159,7 +159,7 @@ pub fn fin_swap_completed(
                         },
                     )?;
                 }
-                _ => panic!("should be a time based trigger"),
+                _ => panic!("should be a time trigger"),
             }
 
             create_event(
@@ -213,7 +213,7 @@ pub fn fin_swap_completed(
                         },
                     )?;
                 }
-                _ => panic!("should be a time based trigger"),
+                _ => panic!("should be a time trigger"),
             }
         }
     };
