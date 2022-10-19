@@ -683,7 +683,7 @@ fn with_time_trigger_with_no_target_time_should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds,
+            &QueryMsg::GetTimeTriggerIds {},
         )
         .unwrap();
 

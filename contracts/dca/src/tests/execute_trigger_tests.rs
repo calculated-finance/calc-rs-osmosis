@@ -133,7 +133,7 @@ fn fin_limit_order_trigger_should_succeed() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds,
+            &QueryMsg::GetTimeTriggerIds {},
         )
         .unwrap();
 
@@ -426,7 +426,7 @@ fn when_executions_result_in_empty_vault_should_succeed() {
     let time_triggers: TriggerIdsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggerIds)
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggerIds {})
         .unwrap();
 
     mock.app
