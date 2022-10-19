@@ -2,6 +2,7 @@ use crate::error::ContractError;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
+use crate::handlers::delegation_succeeded::delegation_succeeded;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
 use crate::handlers::execute_trigger::execute_trigger;
@@ -140,6 +141,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
             fin_limit_order_withdrawn_for_execute_vault(deps, env, reply)
         }
         FIN_SWAP_COMPLETED_ID => fin_swap_completed(deps, env, reply),
+        DELEGATION_SUCCEEDED_ID => delegation_succeeded(deps, env, reply),
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),
         }),

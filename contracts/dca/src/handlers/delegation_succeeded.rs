@@ -28,5 +28,9 @@ pub fn delegation_succeeded(
         }
     }
 
-    Ok(Response::new().add_attribute("method", "delegation_succeeded"))
+    CACHE.remove(deps.storage);
+
+    Ok(Response::new()
+        .add_attribute("method", "delegation_succeeded")
+        .add_attribute("vault_id", vault.id.to_string()))
 }

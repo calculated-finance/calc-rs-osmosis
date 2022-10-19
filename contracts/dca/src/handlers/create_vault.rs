@@ -35,7 +35,7 @@ pub fn create_vault(
         destinations.push(Destination {
             address: info.sender.clone(),
             allocation: Decimal::percent(100),
-            post_execution_action: PostExecutionAction::Send,
+            action: PostExecutionAction::Send,
         });
     }
 

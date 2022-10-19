@@ -28,5 +28,5 @@ pub enum PostExecutionAction {
 pub struct Destination {
     pub address: Addr,
     pub allocation: Decimal,
-    pub post_execution_action: PostExecutionAction,
+    pub action: PostExecutionAction,
 }

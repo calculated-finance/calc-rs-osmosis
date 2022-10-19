@@ -8,7 +8,7 @@ use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
-use base::vaults::vault::{PositionType, VaultStatus};
+use base::vaults::vault::{PositionType, PostExecutionAction, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
 use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
@@ -204,7 +204,13 @@ pub fn fin_swap_completed(
         }
     };
 
-    CACHE.remove(deps.storage);
+    if vault
+        .destinations
+        .iter()
+        .all(|destination| destination.action == PostExecutionAction::Send)
+    {
+        CACHE.remove(deps.storage);
+    }
 
     Ok(Response::new()
         .add_attribute("method", "after_fin_swap_completed")

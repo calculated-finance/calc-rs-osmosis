@@ -10,7 +10,7 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::pair::Pair;
-use base::triggers::trigger::TimeInterval;
+use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
 use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128, Uint64};
 use cw_multi_test::Executor;
@@ -147,7 +147,7 @@ fn with_fin_limit_order_trigger_should_create_vault() {
             destinations: vec![Destination {
                 address: user_address.clone(),
                 allocation: Decimal::percent(100),
-                post_execution_action: PostExecutionAction::Send
+                action: PostExecutionAction::Send
             }],
             created_at: mock.app.block_info().time,
             status: VaultStatus::Active,
@@ -286,7 +286,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
             destinations: vec![Destination {
                 address: user_address.clone(),
                 allocation: Decimal::percent(100),
-                post_execution_action: PostExecutionAction::Send
+                action: PostExecutionAction::Send
             }],
             created_at: mock.app.block_info().time,
             status: VaultStatus::Active,
@@ -557,7 +557,7 @@ fn with_time_trigger_should_create_vault() {
             destinations: vec![Destination {
                 address: user_address.clone(),
                 allocation: Decimal::percent(100),
-                post_execution_action: PostExecutionAction::Send
+                action: PostExecutionAction::Send
             }],
             created_at: mock.app.block_info().time,
             status: VaultStatus::Active,
@@ -637,7 +637,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             destinations: vec![Destination {
                 address: user_address.clone(),
                 allocation: Decimal::percent(100),
-                post_execution_action: PostExecutionAction::Send
+                action: PostExecutionAction::Send
             }],
             owner: user_address.clone(),
             created_at: mock.app.block_info().time,
@@ -772,7 +772,7 @@ fn with_mulitple_destinations_should_succeed() {
         destinations.push(Destination {
             address: Addr::unchecked(USER),
             allocation: Decimal::percent(20),
-            post_execution_action: PostExecutionAction::Send,
+            action: PostExecutionAction::Send,
         });
     }
 
@@ -1041,7 +1041,7 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
                 destinations: Some(vec![Destination {
                     address: Addr::unchecked(USER),
                     allocation: Decimal::percent(50),
-                    post_execution_action: PostExecutionAction::Send,
+                    action: PostExecutionAction::Send,
                 }]),
                 pair_address: mock.fin_contract_address.to_string(),
                 position_type: PositionType::Enter,
@@ -1079,7 +1079,7 @@ fn with_more_than_10_destination_allocations_should_fail() {
         destinations.push(Destination {
             address: Addr::unchecked(USER),
             allocation: Decimal::percent(5),
-            post_execution_action: PostExecutionAction::Send,
+            action: PostExecutionAction::Send,
         });
     }
 

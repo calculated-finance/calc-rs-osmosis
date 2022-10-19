@@ -153,7 +153,7 @@ fn fin_limit_order_trigger_with_multiple_destinations_should_distribute_funds_pr
         destinations.push(Destination {
             address: Addr::unchecked(format!("{}-{:?}", USER, i)),
             allocation: Decimal::percent(20),
-            post_execution_action: PostExecutionAction::Send,
+            action: PostExecutionAction::Send,
         });
     }
 
@@ -211,7 +211,7 @@ fn with_time_trigger_with_multiple_destinations_should_distribute_funds_properly
         destinations.push(Destination {
             address: Addr::unchecked(format!("{}-{:?}", USER, i)),
             allocation: Decimal::percent(20),
-            post_execution_action: PostExecutionAction::Send,
+            action: PostExecutionAction::Send,
         });
     }
 
