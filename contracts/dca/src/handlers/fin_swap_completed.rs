@@ -1,6 +1,8 @@
 use crate::constants::ONE_HUNDRED;
 use crate::error::ContractError;
-use crate::state::{create_event, get_trigger, save_trigger, vault_store, CACHE, CONFIG};
+use crate::state::{
+    create_event, get_trigger, remove_trigger, save_trigger, vault_store, CACHE, CONFIG,
+};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
@@ -22,6 +24,8 @@ pub fn fin_swap_completed(
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
+
+    remove_trigger(deps.storage, vault.id)?;
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
