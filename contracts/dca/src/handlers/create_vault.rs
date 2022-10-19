@@ -9,7 +9,7 @@ use crate::validation_helpers::{
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
-use base::vaults::vault::{Destination, PositionType, VaultStatus};
+use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, StdResult, Timestamp, Uint128, Uint64};
@@ -35,6 +35,7 @@ pub fn create_vault(
         destinations.push(Destination {
             address: info.sender.clone(),
             allocation: Decimal::percent(100),
+            post_execution_action: PostExecutionAction::Send,
         });
     }
 

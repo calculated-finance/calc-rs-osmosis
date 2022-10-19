@@ -14,6 +14,7 @@ pub struct InstantiateMsg {
     pub admin: String,
     pub fee_collector: String,
     pub fee_percent: Uint128,
+    pub staking_router_address: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -21,6 +22,7 @@ pub struct MigrateMsg {
     pub admin: String,
     pub fee_collector: String,
     pub fee_percent: Uint128,
+    pub staking_router_address: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

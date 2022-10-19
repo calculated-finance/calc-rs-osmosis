@@ -237,7 +237,8 @@
       "type": "object",
       "required": [
         "address",
-        "allocation"
+        "allocation",
+        "post_execution_action"
       ],
       "properties": {
         "address": {
@@ -245,6 +246,9 @@
         },
         "allocation": {
           "$ref": "#/definitions/Decimal"
+        },
+        "post_execution_action": {
+          "$ref": "#/definitions/PostExecutionAction"
         }
       }
     },
@@ -253,6 +257,14 @@
       "enum": [
         "enter",
         "exit"
+      ]
+    },
+    "PostExecutionAction": {
+      "type": "string",
+      "enum": [
+        "send",
+        "delegate",
+        "z_delegate"
       ]
     },
     "TimeInterval": {

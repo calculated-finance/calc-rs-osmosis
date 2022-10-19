@@ -1,7 +1,9 @@
-use crate::contract::{FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID, FIN_SWAP_COMPLETED_ID};
+use crate::contract::{
+    DELEGATION_SUCCEEDED_ID, FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID, FIN_SWAP_COMPLETED_ID,
+};
 use crate::error::ContractError;
 use crate::state::{
-    create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE,
+    create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE, CONFIG,
     LIMIT_ORDER_CACHE,
 };
 use crate::vault::Vault;
@@ -10,11 +12,13 @@ use base::helpers::time_helpers::target_time_elapsed;
 use base::pair::Pair;
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{PositionType, VaultStatus};
+use cosmwasm_std::{to_binary, CosmosMsg, ReplyOn, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Timestamp, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
 use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
+use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn execute_trigger(
     deps: DepsMut,
@@ -102,6 +106,32 @@ fn execute_time_trigger(
         ),
     };
 
+    let config = CONFIG.load(deps.storage)?;
+
+    let mut delegate_sub_messages: Vec<SubMsg> = Vec::new();
+
+    vault.destinations.iter().for_each(|destination| {
+        let staking_sub_msg = StakingRouterExecuteMsg::ZDelegate {
+            delegator_address: vault.owner.clone(),
+            validator_address: destination.address.clone(),
+            denom: vault.get_receive_denom(),
+            amount: vault.balance.amount,
+        };
+
+        let wasm_execute_msg = WasmMsg::Execute {
+            contract_addr: config.staking_router_address.to_string(),
+            msg: to_binary(&staking_sub_msg).unwrap(),
+            funds: vec![],
+        };
+
+        delegate_sub_messages.push(SubMsg {
+            id: DELEGATION_SUCCEEDED_ID,
+            msg: CosmosMsg::Wasm(wasm_execute_msg),
+            gas_limit: None,
+            reply_on: ReplyOn::Always,
+        });
+    });
+
     CACHE.save(
         deps.storage,
         &Cache {
@@ -112,7 +142,8 @@ fn execute_time_trigger(
 
     Ok(Response::new()
         .add_attribute("method", "execute_time_trigger")
-        .add_submessage(fin_swap_msg))
+        .add_submessage(fin_swap_msg)
+        .add_submessages(delegate_sub_messages))
 }
 
 fn execute_fin_limit_order_trigger(

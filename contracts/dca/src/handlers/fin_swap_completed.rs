@@ -5,7 +5,7 @@ use crate::state::{
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
-use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
+use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PositionType, VaultStatus};
@@ -32,21 +32,10 @@ pub fn fin_swap_completed(
             let fin_swap_response = reply.result.into_result().unwrap();
 
             let wasm_trade_event =
-                find_first_event_by_type(&fin_swap_response.events, "wasm-trade").unwrap();
+                get_flat_map_for_event_type(&fin_swap_response.events, "wasm-trade").unwrap();
 
-            let base_amount =
-                find_first_attribute_by_key(&wasm_trade_event.attributes, "base_amount")
-                    .unwrap()
-                    .value
-                    .parse::<u128>()
-                    .unwrap();
-
-            let quote_amount =
-                find_first_attribute_by_key(&wasm_trade_event.attributes, "quote_amount")
-                    .unwrap()
-                    .value
-                    .parse::<u128>()
-                    .unwrap();
+            let base_amount = wasm_trade_event["base_amount"].parse::<u128>().unwrap();
+            let quote_amount = wasm_trade_event["quote_amount"].parse::<u128>().unwrap();
 
             let (coin_sent, coin_received) = match vault.position_type {
                 PositionType::Enter => {
@@ -87,10 +76,8 @@ pub fn fin_swap_completed(
 
             let total_to_redistribute = coin_received.amount - execution_fee.amount;
 
-            vault
-                .destinations
-                .iter()
-                .map(|destination| BankMsg::Send {
+            vault.destinations.iter().for_each(|destination| {
+                messages.push(CosmosMsg::Bank(BankMsg::Send {
                     to_address: destination.address.to_string(),
                     amount: vec![Coin::new(
                         total_to_redistribute
@@ -104,9 +91,8 @@ pub fn fin_swap_completed(
                             .u128(),
                         &coin_received.denom,
                     )],
-                })
-                .into_iter()
-                .for_each(|msg| messages.push(CosmosMsg::Bank(msg.to_owned())));
+                }))
+            });
 
             messages.push(CosmosMsg::Bank(BankMsg::Send {
                 to_address: config.fee_collector.to_string(),

@@ -25,6 +25,8 @@ pub enum EventData {
         reason: ExecutionSkippedReason,
     },
     DCAVaultCancelled,
+    DCAVaultDelegationSucceeded,
+    DCAVaultDelegationFailed,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -28,6 +28,7 @@ pub struct Config {
     pub vault_count: Uint128,
     pub fee_collector: Addr,
     pub fee_percent: Uint128,
+    pub staking_router_address: Addr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

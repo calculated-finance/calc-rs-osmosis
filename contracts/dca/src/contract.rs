@@ -37,6 +37,7 @@ pub const FIN_LIMIT_ORDER_SUBMITTED_ID: u64 = 2;
 pub const FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID: u64 = 3;
 pub const FIN_LIMIT_ORDER_RETRACTED_ID: u64 = 4;
 pub const FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_ID: u64 = 5;
+pub const DELEGATION_SUCCEEDED_ID: u64 = 6;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -51,6 +52,7 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
         vault_count: Uint128::zero(),
         fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
         fee_percent: msg.fee_percent,
+        staking_router_address: deps.api.addr_validate(&msg.staking_router_address)?,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -69,6 +71,7 @@ pub fn instantiate(
         vault_count: Uint128::zero(),
         fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
         fee_percent: msg.fee_percent,
+        staking_router_address: deps.api.addr_validate(&msg.staking_router_address)?,
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;

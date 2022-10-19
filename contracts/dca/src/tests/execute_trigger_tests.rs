@@ -9,7 +9,7 @@ use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use base::events::event::{EventBuilder, EventData};
-use base::vaults::vault::Destination;
+use base::vaults::vault::{Destination, PostExecutionAction};
 use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
 use cw_multi_test::Executor;
 
@@ -153,6 +153,7 @@ fn fin_limit_order_trigger_with_multiple_destinations_should_distribute_funds_pr
         destinations.push(Destination {
             address: Addr::unchecked(format!("{}-{:?}", USER, i)),
             allocation: Decimal::percent(20),
+            post_execution_action: PostExecutionAction::Send,
         });
     }
 
@@ -210,6 +211,7 @@ fn with_time_trigger_with_multiple_destinations_should_distribute_funds_properly
         destinations.push(Destination {
             address: Addr::unchecked(format!("{}-{:?}", USER, i)),
             allocation: Decimal::percent(20),
+            post_execution_action: PostExecutionAction::Send,
         });
     }
 
