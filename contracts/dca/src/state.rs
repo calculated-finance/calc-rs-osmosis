@@ -48,8 +48,6 @@ pub const CACHE: Item<Cache> = Item::new("cache_v1");
 
 pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cache_v1");
 
-pub const TIME_TRIGGER_CACHE: Item<TimeTriggerCache> = Item::new("time_trigger_cache_v1");
-
 pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v1");
 
 pub struct VaultIndexes<'a> {
@@ -67,14 +65,14 @@ pub fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
         owner: MultiIndex::new(
             |_, v| (v.owner.clone(), v.id.into()),
-            "vaults_v1",
-            "vaults_v1__owner",
+            "vaults_v2",
+            "vaults_v2__owner",
         ),
     };
-    IndexedMap::new("vaults_v1", indexes)
+    IndexedMap::new("vaults_v2", indexes)
 }
 
-const TRIGGERS: Map<u128, Trigger> = Map::new("triggers_v1");
+pub const TRIGGERS: Map<u128, Trigger> = Map::new("triggers_v1");
 
 pub const TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX: Map<u128, u128> =
     Map::new("trigger_id_by_fin_limit_order_idx_v1");
@@ -163,11 +161,11 @@ pub fn event_store<'a>() -> IndexedMap<'a, u64, Event, EventIndexes<'a>> {
     let indexes = EventIndexes {
         resource_id: MultiIndex::new(
             |_, e| (e.resource_id.into(), e.id),
-            "events_v1",
-            "events_v1__resource_id",
+            "events_v2",
+            "events_v2__resource_id",
         ),
     };
-    IndexedMap::new("events_v1", indexes)
+    IndexedMap::new("events_v2", indexes)
 }
 
 fn fetch_and_increment_counter(store: &mut dyn Storage, counter: Item<u64>) -> StdResult<u64> {
@@ -176,7 +174,7 @@ fn fetch_and_increment_counter(store: &mut dyn Storage, counter: Item<u64>) -> S
     Ok(id)
 }
 
-const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v1");
+pub const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v1");
 
 pub fn create_event(store: &mut dyn Storage, event_builder: EventBuilder) -> StdResult<u64> {
     let event = event_builder.build(fetch_and_increment_counter(store, EVENT_COUNTER)?.into());
