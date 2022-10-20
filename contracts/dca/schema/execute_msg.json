@@ -236,19 +236,19 @@
     "Destination": {
       "type": "object",
       "required": [
+        "action",
         "address",
-        "allocation",
-        "post_execution_action"
+        "allocation"
       ],
       "properties": {
+        "action": {
+          "$ref": "#/definitions/PostExecutionAction"
+        },
         "address": {
           "$ref": "#/definitions/Addr"
         },
         "allocation": {
           "$ref": "#/definitions/Decimal"
-        },
-        "post_execution_action": {
-          "$ref": "#/definitions/PostExecutionAction"
         }
       }
     },
@@ -263,7 +263,6 @@
       "type": "string",
       "enum": [
         "send",
-        "delegate",
         "z_delegate"
       ]
     },
