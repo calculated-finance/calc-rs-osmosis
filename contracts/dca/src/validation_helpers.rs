@@ -102,6 +102,19 @@ pub fn assert_target_start_time_is_in_future(
     }
 }
 
+pub fn assert_target_time_is_in_past(
+    current_time: Timestamp,
+    target_time: Timestamp,
+) -> Result<(), ContractError> {
+    if target_time.seconds().le(&current_time.seconds()) {
+        Ok(())
+    } else {
+        Err(ContractError::CustomError {
+            val: String::from("trigger execution time has not yet elapsed"),
+        })
+    }
+}
+
 pub fn assert_destinations_limit_is_not_breached(
     destinations: &Vec<Destination>,
 ) -> Result<(), ContractError> {
