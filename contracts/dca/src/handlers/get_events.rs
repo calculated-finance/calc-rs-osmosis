@@ -9,7 +9,7 @@ pub fn get_events(
     limit: Option<u8>,
 ) -> StdResult<EventsResponse> {
     if limit.is_some() && limit.unwrap() > 30u8 {
-        return Err(StdError::generic_err("Limit cannot be greater than 30."));
+        return Err(StdError::generic_err("limit cannot be greater than 30."));
     }
 
     let events = event_store()

@@ -14,6 +14,8 @@ pub fn fin_limit_order_retracted(
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
     let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
+    let response = Response::new()
+        .add_attribute("method", "fin_limit_order_retracted");
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
@@ -55,8 +57,7 @@ pub fn fin_limit_order_retracted(
                     FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_ID,
                 );
 
-                Ok(Response::new()
-                    .add_attribute("method", "after_retract_order")
+                Ok(response
                     .add_attribute("withdraw_required", "true")
                     .add_submessage(fin_withdraw_sub_msg)
                     .add_message(retracted_amount_bank_msg))
@@ -69,8 +70,7 @@ pub fn fin_limit_order_retracted(
                 vault_store().remove(deps.storage, vault.id.into())?;
                 remove_trigger(deps.storage, vault.id.into())?;
 
-                Ok(Response::new()
-                    .add_attribute("method", "after_retract_order")
+                Ok(response
                     .add_attribute("withdraw_required", "false")
                     .add_message(bank_msg))
             }

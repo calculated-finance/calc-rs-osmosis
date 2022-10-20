@@ -110,7 +110,7 @@ fn create_time_trigger(
     )?;
 
     Ok(Response::new()
-        .add_attribute("method", "create_vault")
+        .add_attribute("method", "create_time_trigger")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id))
 }
@@ -147,7 +147,7 @@ fn create_fin_limit_order_trigger(
     );
 
     Ok(Response::new()
-        .add_attribute("method", "create_vault")
+        .add_attribute("method", "create_fin_limit_order_trigger")
         .add_attribute("owner", vault.owner)
         .add_attribute("vault_id", vault.id)
         .add_submessage(fin_limit_order_sub_msg))
