@@ -14,8 +14,7 @@ pub fn fin_limit_order_retracted(
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
     let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
-    let response = Response::new()
-        .add_attribute("method", "fin_limit_order_retracted");
+    let response = Response::new().add_attribute("method", "fin_limit_order_retracted");
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {

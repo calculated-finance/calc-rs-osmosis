@@ -1,13 +1,30 @@
-use cosmwasm_std::{Attribute, Event};
+use cosmwasm_std::{Attribute, Event, Coin, Uint128};
 use std::collections::HashMap;
 
 use crate::ContractError;
+
+pub fn get_coin_from_display_formatted_coin(formatted_coin: String) -> Coin {
+
+    let denom_start_index = formatted_coin
+    .chars()
+    .position(|c| !c.is_numeric())
+    .unwrap();
+
+    let amount: Uint128 = formatted_coin[0..denom_start_index].to_string()
+    .parse::<Uint128>()
+    .unwrap();
+
+    let denom = formatted_coin[denom_start_index..formatted_coin.len()].to_string();
+
+    Coin { denom, amount }
+}
 
 pub fn get_flat_map_for_event_type(
     events: &[Event],
     event_type: &str,
 ) -> Result<HashMap<String, String>, ContractError> {
     let events_with_type = events.iter().filter(|event| event.ty == event_type);
+
     events_with_type
         .into_iter()
         .flat_map(|event| event.attributes.iter())
@@ -136,5 +153,32 @@ mod tests {
             result.to_string(),
             "Custom Error val: \"could not find attribute with key: test-one\""
         );
+    }
+
+    #[test]
+    fn get_coin_from_amount_string_should_succeed_with_ukuji() {
+        let mock_attribute_amount = String::from("492500ukuji");
+        let result = get_coin_from_display_formatted_coin(mock_attribute_amount);
+
+        assert_eq!(result.denom, "ukuji".to_string());
+        assert_eq!(result.amount, Uint128::new(492500));
+    }
+
+    #[test]
+    fn get_coin_from_amount_string_should_succeed_with_ibc() {
+        let mock_attribute_amount = String::from("123456789ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518");
+        let result = get_coin_from_display_formatted_coin(mock_attribute_amount);
+
+        assert_eq!(result.denom, "ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518".to_string());
+        assert_eq!(result.amount, Uint128::new(123456789));
+    }
+
+    #[test]
+    fn get_coin_from_amount_string_should_succeed_with_factory() {
+        let mock_attribute_amount = String::from("123456789factory/kujira1r85reqy6h0lu02vyz0hnzhv5whsns55gdt4w0d7ft87utzk7u0wqr4ssll/uusk");
+        let result = get_coin_from_display_formatted_coin(mock_attribute_amount);
+
+        assert_eq!(result.denom, "factory/kujira1r85reqy6h0lu02vyz0hnzhv5whsns55gdt4w0d7ft87utzk7u0wqr4ssll/uusk".to_string());
+        assert_eq!(result.amount, Uint128::new(123456789));
     }
 }
