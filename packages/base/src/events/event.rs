@@ -12,7 +12,7 @@ pub enum ExecutionSkippedReason {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub enum EventData {
     DCAVaultCreated,
-    FundsDepositedToDCAVault {
+    DCAVaultFundsDeposited {
         amount: Coin,
     },
     DCAVaultExecutionTriggered,
@@ -25,7 +25,10 @@ pub enum EventData {
         reason: ExecutionSkippedReason,
     },
     DCAVaultCancelled,
-    DCAVaultDelegationSucceeded,
+    DCAVaultDelegationSucceeded {
+        validator_address: String,
+        delegation: Coin
+    },
     DCAVaultDelegationFailed,
 }
 

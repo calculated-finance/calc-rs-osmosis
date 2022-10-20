@@ -1,10 +1,7 @@
-use crate::contract::{
-    FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID, FIN_SWAP_COMPLETED_ID,
-};
+use crate::contract::{FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID, FIN_SWAP_COMPLETED_ID};
 use crate::error::ContractError;
 use crate::state::{
-    create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE,
-    LIMIT_ORDER_CACHE,
+    create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
