@@ -2,6 +2,7 @@ use crate::error::ContractError;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
+use crate::handlers::delegation_succeeded::delegation_succeeded;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
 use crate::handlers::execute_trigger::execute_trigger;
@@ -20,7 +21,7 @@ use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::update_config::update_config;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{
-    clear_triggers, event_store, vault_store, Config, CACHE, CONFIG, LIMIT_ORDER_CACHE,
+    clear_triggers, event_store, vault_store, Config, CONFIG,
 };
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
@@ -37,6 +38,7 @@ pub const FIN_LIMIT_ORDER_SUBMITTED_ID: u64 = 2;
 pub const FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID: u64 = 3;
 pub const FIN_LIMIT_ORDER_RETRACTED_ID: u64 = 4;
 pub const FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_ID: u64 = 5;
+pub const DELEGATION_SUCCEEDED_ID: u64 = 6;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -44,13 +46,12 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     clear_triggers(deps.storage);
     event_store().clear(deps.storage);
     CONFIG.remove(deps.storage);
-    CACHE.remove(deps.storage);
-    LIMIT_ORDER_CACHE.remove(deps.storage);
     let config = Config {
         admin: deps.api.addr_validate(&msg.admin)?,
         vault_count: Uint128::zero(),
         fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
         fee_percent: msg.fee_percent,
+        staking_router_address: deps.api.addr_validate(&msg.staking_router_address)?,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -69,6 +70,7 @@ pub fn instantiate(
         vault_count: Uint128::zero(),
         fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
         fee_percent: msg.fee_percent,
+        staking_router_address: deps.api.addr_validate(&msg.staking_router_address)?,
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -137,6 +139,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
             fin_limit_order_withdrawn_for_execute_vault(deps, env, reply)
         }
         FIN_SWAP_COMPLETED_ID => fin_swap_completed(deps, env, reply),
+        DELEGATION_SUCCEEDED_ID => delegation_succeeded(deps, env, reply),
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),
         }),

@@ -17,7 +17,15 @@ pub enum VaultStatus {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PostExecutionAction {
+    Send,
+    ZDelegate,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Destination {
     pub address: Addr,
     pub allocation: Decimal,
+    pub action: PostExecutionAction,
 }

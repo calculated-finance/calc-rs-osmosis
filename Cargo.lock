@@ -312,6 +312,7 @@ dependencies = [
  "rand",
  "schemars",
  "serde",
+ "staking-router",
  "thiserror",
 ]
 

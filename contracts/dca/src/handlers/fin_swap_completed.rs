@@ -1,17 +1,20 @@
 use crate::constants::ONE_HUNDRED;
+use crate::contract::DELEGATION_SUCCEEDED_ID;
 use crate::error::ContractError;
 use crate::state::{
     create_event, get_trigger, remove_trigger, save_trigger, vault_store, CACHE, CONFIG,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
-use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
+use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
-use base::vaults::vault::{PositionType, VaultStatus};
+use base::vaults::vault::{PositionType, PostExecutionAction, VaultStatus};
+use cosmwasm_std::{to_binary, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
 use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
+use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn fin_swap_completed(
     deps: DepsMut,
@@ -24,6 +27,7 @@ pub fn fin_swap_completed(
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
+    let mut sub_msgs: Vec<SubMsg> = Vec::new();
 
     remove_trigger(deps.storage, vault.id)?;
 
@@ -32,21 +36,10 @@ pub fn fin_swap_completed(
             let fin_swap_response = reply.result.into_result().unwrap();
 
             let wasm_trade_event =
-                find_first_event_by_type(&fin_swap_response.events, "wasm-trade").unwrap();
+                get_flat_map_for_event_type(&fin_swap_response.events, "wasm-trade").unwrap();
 
-            let base_amount =
-                find_first_attribute_by_key(&wasm_trade_event.attributes, "base_amount")
-                    .unwrap()
-                    .value
-                    .parse::<u128>()
-                    .unwrap();
-
-            let quote_amount =
-                find_first_attribute_by_key(&wasm_trade_event.attributes, "quote_amount")
-                    .unwrap()
-                    .value
-                    .parse::<u128>()
-                    .unwrap();
+            let base_amount = wasm_trade_event["base_amount"].parse::<u128>().unwrap();
+            let quote_amount = wasm_trade_event["quote_amount"].parse::<u128>().unwrap();
 
             let (coin_sent, coin_received) = match vault.position_type {
                 PositionType::Enter => {
@@ -87,26 +80,44 @@ pub fn fin_swap_completed(
 
             let total_to_redistribute = coin_received.amount - execution_fee.amount;
 
-            vault
-                .destinations
-                .iter()
-                .map(|destination| BankMsg::Send {
-                    to_address: destination.address.to_string(),
-                    amount: vec![Coin::new(
-                        total_to_redistribute
-                            .checked_multiply_ratio(
-                                destination.allocation.atomics(),
-                                Uint128::new(10)
-                                    .checked_pow(destination.allocation.decimal_places())
-                                    .unwrap(),
-                            )
-                            .unwrap()
-                            .u128(),
-                        &coin_received.denom,
-                    )],
-                })
-                .into_iter()
-                .for_each(|msg| messages.push(CosmosMsg::Bank(msg.to_owned())));
+            vault.destinations.iter().for_each(|destination| {
+                let amount = total_to_redistribute
+                    .checked_multiply_ratio(
+                        destination.allocation.atomics(),
+                        Uint128::new(10)
+                            .checked_pow(destination.allocation.decimal_places())
+                            .unwrap(),
+                    )
+                    .unwrap();
+
+                match destination.action {
+                    PostExecutionAction::Send => messages.push(CosmosMsg::Bank(BankMsg::Send {
+                        to_address: destination.address.to_string(),
+                        amount: vec![Coin::new(amount.u128(), &coin_received.denom)],
+                    })),
+                    PostExecutionAction::ZDelegate => {
+                        // authz delegations use funds from the users wallet so send back to user
+                        messages.push(CosmosMsg::Bank(BankMsg::Send {
+                            to_address: vault.owner.to_string(),
+                            amount: vec![Coin::new(amount.u128(), &coin_received.denom)],
+                        }));
+                        sub_msgs.push(SubMsg::reply_always(
+                            CosmosMsg::Wasm(WasmMsg::Execute {
+                                contract_addr: config.staking_router_address.to_string(),
+                                msg: to_binary(&StakingRouterExecuteMsg::ZDelegate {
+                                    delegator_address: vault.owner.clone(),
+                                    validator_address: destination.address.clone(),
+                                    denom: vault.get_receive_denom(),
+                                    amount,
+                                })
+                                .unwrap(),
+                                funds: vec![],
+                            }),
+                            DELEGATION_SUCCEEDED_ID,
+                        ))
+                    }
+                }
+            });
 
             messages.push(CosmosMsg::Bank(BankMsg::Send {
                 to_address: config.fee_collector.to_string(),
@@ -218,12 +229,11 @@ pub fn fin_swap_completed(
         }
     };
 
-    CACHE.remove(deps.storage);
-
     Ok(Response::new()
         .add_attribute("method", "after_fin_swap_completed")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id)
         .add_attributes(attributes)
-        .add_messages(messages))
+        .add_messages(messages)
+        .add_submessages(sub_msgs))
 }

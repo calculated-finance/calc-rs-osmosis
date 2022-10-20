@@ -236,10 +236,14 @@
     "Destination": {
       "type": "object",
       "required": [
+        "action",
         "address",
         "allocation"
       ],
       "properties": {
+        "action": {
+          "$ref": "#/definitions/PostExecutionAction"
+        },
         "address": {
           "$ref": "#/definitions/Addr"
         },
@@ -253,6 +257,13 @@
       "enum": [
         "enter",
         "exit"
+      ]
+    },
+    "PostExecutionAction": {
+      "type": "string",
+      "enum": [
+        "send",
+        "z_delegate"
       ]
     },
     "TimeInterval": {

@@ -5,7 +5,8 @@
   "required": [
     "admin",
     "fee_collector",
-    "fee_percent"
+    "fee_percent",
+    "staking_router_address"
   ],
   "properties": {
     "admin": {
@@ -16,6 +17,9 @@
     },
     "fee_percent": {
       "$ref": "#/definitions/Uint128"
+    },
+    "staking_router_address": {
+      "type": "string"
     }
   },
   "definitions": {

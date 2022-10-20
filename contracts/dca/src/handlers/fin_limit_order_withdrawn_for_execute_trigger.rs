@@ -1,4 +1,5 @@
 use crate::constants::ONE_HUNDRED;
+use crate::contract::DELEGATION_SUCCEEDED_ID;
 use crate::error::ContractError;
 use crate::state::{
     create_event, remove_trigger, save_trigger, vault_store, CACHE, CONFIG, LIMIT_ORDER_CACHE,
@@ -7,10 +8,11 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
-use base::vaults::vault::VaultStatus;
+use base::vaults::vault::{PostExecutionAction, VaultStatus};
+use cosmwasm_std::{to_binary, CosmosMsg, Env, SubMsg, Uint128, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response};
-use cosmwasm_std::{CosmosMsg, Env, Uint128};
+use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn fin_limit_order_withdrawn_for_execute_vault(
     deps: DepsMut,
@@ -84,29 +86,48 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             );
 
             let mut messages: Vec<CosmosMsg> = Vec::new();
+            let mut sub_msgs: Vec<SubMsg> = Vec::new();
 
             let total_to_redistribute = coin_received.amount - execution_fee.amount;
 
-            vault
-                .destinations
-                .iter()
-                .map(|destination| BankMsg::Send {
-                    to_address: destination.address.to_string(),
-                    amount: vec![Coin::new(
-                        total_to_redistribute
-                            .checked_multiply_ratio(
-                                destination.allocation.atomics(),
-                                Uint128::new(10)
-                                    .checked_pow(destination.allocation.decimal_places())
-                                    .unwrap(),
-                            )
-                            .unwrap()
-                            .u128(),
-                        &coin_received.denom,
-                    )],
-                })
-                .into_iter()
-                .for_each(|msg| messages.push(CosmosMsg::Bank(msg.to_owned())));
+            vault.destinations.iter().for_each(|destination| {
+                let amount = total_to_redistribute
+                    .checked_multiply_ratio(
+                        destination.allocation.atomics(),
+                        Uint128::new(10)
+                            .checked_pow(destination.allocation.decimal_places())
+                            .unwrap(),
+                    )
+                    .unwrap();
+
+                match destination.action {
+                    PostExecutionAction::Send => messages.push(CosmosMsg::Bank(BankMsg::Send {
+                        to_address: destination.address.to_string(),
+                        amount: vec![Coin::new(amount.u128(), &coin_received.denom)],
+                    })),
+                    PostExecutionAction::ZDelegate => {
+                        // authz delegations use funds from the users wallet so send back to user
+                        messages.push(CosmosMsg::Bank(BankMsg::Send {
+                            to_address: vault.owner.to_string(),
+                            amount: vec![Coin::new(amount.u128(), &coin_received.denom)],
+                        }));
+                        sub_msgs.push(SubMsg::reply_always(
+                            CosmosMsg::Wasm(WasmMsg::Execute {
+                                contract_addr: config.staking_router_address.to_string(),
+                                msg: to_binary(&StakingRouterExecuteMsg::ZDelegate {
+                                    delegator_address: vault.owner.clone(),
+                                    validator_address: destination.address.clone(),
+                                    denom: vault.get_receive_denom(),
+                                    amount,
+                                })
+                                .unwrap(),
+                                funds: vec![],
+                            }),
+                            DELEGATION_SUCCEEDED_ID,
+                        ))
+                    }
+                }
+            });
 
             messages.push(CosmosMsg::Bank(BankMsg::Send {
                 to_address: config.fee_collector.to_string(),
@@ -129,16 +150,14 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 ),
             )?;
 
-            LIMIT_ORDER_CACHE.remove(deps.storage);
-            CACHE.remove(deps.storage);
-
             Ok(Response::new()
                 .add_attribute(
                     "method",
                     "after_fin_limit_order_withdrawn_for_execute_trigger",
                 )
                 .add_attribute("vault_id", vault.id)
-                .add_messages(messages))
+                .add_messages(messages)
+                .add_submessages(sub_msgs))
         }
         cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
             val: format!(

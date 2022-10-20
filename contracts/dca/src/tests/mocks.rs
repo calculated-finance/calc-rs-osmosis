@@ -75,6 +75,7 @@ impl MockApp {
                 admin: String::from(ADMIN),
                 fee_collector: String::from(ADMIN),
                 fee_percent: ONE + ONE,
+                staking_router_address: String::from("staking-router"),
             },
             "dca",
         );

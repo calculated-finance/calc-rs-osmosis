@@ -69,9 +69,6 @@ pub fn fin_limit_order_retracted(
                 vault_store().remove(deps.storage, vault.id.into())?;
                 remove_trigger(deps.storage, vault.id.into())?;
 
-                LIMIT_ORDER_CACHE.remove(deps.storage);
-                CACHE.remove(deps.storage);
-
                 Ok(Response::new()
                     .add_attribute("method", "after_retract_order")
                     .add_attribute("withdraw_required", "false")

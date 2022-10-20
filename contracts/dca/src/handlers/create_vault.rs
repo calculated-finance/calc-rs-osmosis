@@ -9,7 +9,7 @@ use crate::validation_helpers::{
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
-use base::vaults::vault::{Destination, PositionType, VaultStatus};
+use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, StdResult, Timestamp, Uint128, Uint64};
@@ -35,8 +35,11 @@ pub fn create_vault(
         destinations.push(Destination {
             address: info.sender.clone(),
             allocation: Decimal::percent(100),
+            action: PostExecutionAction::Send,
         });
     }
+
+    // assert addresses are valid wallets/validators
 
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
@@ -79,7 +82,7 @@ pub fn create_vault(
         (None, Some(_)) => create_fin_limit_order_trigger(deps, vault, target_price.unwrap()),
         _ => Err(ContractError::CustomError {
             val: String::from(
-                "Cannot provide both a target_start_time_utc_seconds and a target_price",
+                "cannot provide both a target_start_time_utc_seconds and a target_price",
             ),
         }),
     }
