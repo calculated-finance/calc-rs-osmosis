@@ -3,9 +3,9 @@ use crate::error::ContractError;
 use crate::state::{
     create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,
 };
+use crate::validation_helpers::assert_target_time_is_in_past;
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
-use base::helpers::time_helpers::target_time_elapsed;
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{PositionType, VaultStatus};
 #[cfg(not(feature = "library"))]
@@ -35,11 +35,7 @@ pub fn execute_trigger(
 
     match trigger.configuration {
         TriggerConfiguration::Time { target_time } => {
-            if !target_time_elapsed(env.block.time, target_time) {
-                return Err(ContractError::CustomError {
-                    val: String::from("trigger execution time has not yet elapsed"),
-                });
-            }
+            assert_target_time_is_in_past(env.block.time, target_time)?;
 
             if vault.low_funds() {
                 vault_store().update(
