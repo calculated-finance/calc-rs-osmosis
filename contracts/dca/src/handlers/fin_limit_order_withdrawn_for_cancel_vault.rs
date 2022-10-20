@@ -36,9 +36,6 @@ pub fn fin_limit_order_withdrawn_for_cancel_vault(
             remove_trigger(deps.storage, vault.id.into())?;
             vault_store().remove(deps.storage, vault.id.into())?;
 
-            LIMIT_ORDER_CACHE.remove(deps.storage);
-            CACHE.remove(deps.storage);
-
             Ok(Response::new()
                 .add_attribute("method", "fin_limit_order_withdrawn_for_cancel_vault")
                 .add_message(filled_amount_bank_msg))

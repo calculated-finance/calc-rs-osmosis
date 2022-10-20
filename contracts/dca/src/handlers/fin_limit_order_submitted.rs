@@ -40,8 +40,6 @@ pub fn fin_limit_order_submitted(deps: DepsMut, reply: Reply) -> Result<Response
                 }
             }
 
-            CACHE.remove(deps.storage);
-
             Ok(Response::new()
                 .add_attribute("method", "fin_limit_order_submitted")
                 .add_attribute("order_idx", order_idx))

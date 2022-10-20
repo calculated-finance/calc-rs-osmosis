@@ -238,15 +238,6 @@ pub fn fin_swap_completed(
         }
     };
 
-    // if sub messages go completely through their execution before another message can start, we don't need to remove cache?
-    // if vault
-    //     .destinations
-    //     .iter()
-    //     .all(|destination| destination.action == PostExecutionAction::Send)
-    // {
-    //     CACHE.remove(deps.storage);
-    // }
-
     Ok(Response::new()
         .add_attribute("method", "after_fin_swap_completed")
         .add_attribute("owner", vault.owner.to_string())

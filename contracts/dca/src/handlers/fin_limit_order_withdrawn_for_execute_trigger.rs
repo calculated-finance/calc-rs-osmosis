@@ -159,9 +159,6 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                 ),
             )?;
 
-            LIMIT_ORDER_CACHE.remove(deps.storage);
-            //CACHE.remove(deps.storage);
-
             Ok(Response::new()
                 .add_attribute(
                     "method",

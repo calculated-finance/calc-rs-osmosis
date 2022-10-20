@@ -28,9 +28,6 @@ pub fn delegation_succeeded(
         }
     }
 
-    // if we have multiple delegations we can't remove this cache
-    // CACHE.remove(deps.storage);
-
     Ok(Response::new()
         .add_attribute("method", "delegation_succeeded")
         .add_attribute("vault_id", vault.id.to_string()))
