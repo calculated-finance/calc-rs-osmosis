@@ -21,7 +21,7 @@ use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::update_config::update_config;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{
-    clear_triggers, event_store, vault_store, Config, CACHE, CONFIG, LIMIT_ORDER_CACHE,
+    clear_triggers, event_store, vault_store, Config, CONFIG,
 };
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
