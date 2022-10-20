@@ -38,32 +38,6 @@ pub fn execute_trigger(
 
     let response = Response::new().add_attribute("method", "execute_trigger");
 
-    let mut delegate_sub_messages: Vec<SubMsg> = Vec::new();
-    let config = CONFIG.load(deps.storage)?;
-
-    vault
-        .destinations
-        .iter()
-        .filter(|destination| destination.action != PostExecutionAction::Send)
-        .for_each(|destination| {
-            delegate_sub_messages.push(SubMsg {
-                id: DELEGATION_SUCCEEDED_ID,
-                msg: CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: config.staking_router_address.to_string(),
-                    msg: to_binary(&StakingRouterExecuteMsg::ZDelegate {
-                        delegator_address: vault.owner.clone(),
-                        validator_address: destination.address.clone(),
-                        denom: vault.get_receive_denom(),
-                        amount: vault.balance.amount,
-                    })
-                    .unwrap(),
-                    funds: vec![],
-                }),
-                gas_limit: None,
-                reply_on: ReplyOn::Always,
-            });
-        });
-
     match trigger.configuration {
         TriggerConfiguration::Time { target_time } => {
             if !target_time_elapsed(env.block.time, target_time) {
@@ -130,7 +104,7 @@ pub fn execute_trigger(
 
             Ok(response
                 .add_submessage(fin_swap_msg)
-                .add_submessages(delegate_sub_messages))
+            )
         }
         TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
             let (offer_amount, original_offer_amount, filled) =
@@ -165,7 +139,7 @@ pub fn execute_trigger(
 
             Ok(response
                 .add_submessage(fin_withdraw_sub_msg)
-                .add_submessages(delegate_sub_messages))
+            )
         }
     }
 }

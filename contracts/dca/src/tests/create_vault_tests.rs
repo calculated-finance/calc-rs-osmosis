@@ -905,7 +905,7 @@ fn with_price_and_time_trigger_should_fail() {
 
     assert_eq!(
         response.root_cause().to_string(),
-        "Error: Cannot provide both a target_start_time_utc_seconds and a target_price"
+        "Error: cannot provide both a target_start_time_utc_seconds and a target_price"
     );
 }
 

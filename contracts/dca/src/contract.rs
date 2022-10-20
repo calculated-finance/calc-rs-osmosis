@@ -46,8 +46,6 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     clear_triggers(deps.storage);
     event_store().clear(deps.storage);
     CONFIG.remove(deps.storage);
-    CACHE.remove(deps.storage);
-    LIMIT_ORDER_CACHE.remove(deps.storage);
     let config = Config {
         admin: deps.api.addr_validate(&msg.admin)?,
         vault_count: Uint128::zero(),

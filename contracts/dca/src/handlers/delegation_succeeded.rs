@@ -28,7 +28,8 @@ pub fn delegation_succeeded(
         }
     }
 
-    CACHE.remove(deps.storage);
+    // if we have multiple delegations we can't remove this cache
+    // CACHE.remove(deps.storage);
 
     Ok(Response::new()
         .add_attribute("method", "delegation_succeeded")

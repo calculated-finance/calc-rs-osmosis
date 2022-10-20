@@ -20,7 +20,6 @@ pub enum VaultStatus {
 #[serde(rename_all = "snake_case")]
 pub enum PostExecutionAction {
     Send,
-    Delegate,
     ZDelegate,
 }
 

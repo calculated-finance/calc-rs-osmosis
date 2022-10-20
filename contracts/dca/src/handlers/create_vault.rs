@@ -39,6 +39,8 @@ pub fn create_vault(
         });
     }
 
+    // assert addresses are valid wallets/validators
+
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
     let pair = PAIRS.load(deps.storage, deps.api.addr_validate(&pair_address)?)?;
@@ -80,7 +82,7 @@ pub fn create_vault(
         (None, Some(_)) => create_fin_limit_order_trigger(deps, vault, target_price.unwrap()),
         _ => Err(ContractError::CustomError {
             val: String::from(
-                "Cannot provide both a target_start_time_utc_seconds and a target_price",
+                "cannot provide both a target_start_time_utc_seconds and a target_price",
             ),
         }),
     }
