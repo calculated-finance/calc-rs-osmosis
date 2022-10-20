@@ -25,7 +25,7 @@ pub fn fin_limit_order_withdrawn_for_cancel_vault(
 
             if filled_amount.amount == Uint128::zero() {
                 return Ok(Response::default()
-                    .add_attribute("method", "after_cancel_trigger_withdraw_order"));
+                    .add_attribute("method", "fin_limit_order_withdrawn_for_cancel_vault"));
             }
 
             let filled_amount_bank_msg = BankMsg::Send {

@@ -230,7 +230,7 @@ pub fn fin_swap_completed(
     };
 
     Ok(Response::new()
-        .add_attribute("method", "after_fin_swap_completed")
+        .add_attribute("method", "fin_swap_completed")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id)
         .add_attributes(attributes)

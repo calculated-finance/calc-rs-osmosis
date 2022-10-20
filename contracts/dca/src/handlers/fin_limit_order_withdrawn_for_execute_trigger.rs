@@ -153,7 +153,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
             Ok(Response::new()
                 .add_attribute(
                     "method",
-                    "after_fin_limit_order_withdrawn_for_execute_trigger",
+                    "fin_limit_order_withdrawn_for_execute_vault",
                 )
                 .add_attribute("vault_id", vault.id)
                 .add_messages(messages)
