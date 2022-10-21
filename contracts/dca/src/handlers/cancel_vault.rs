@@ -8,6 +8,7 @@ use crate::validation_helpers::assert_sender_is_admin_or_vault_owner;
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::TriggerConfiguration;
+use base::vaults::vault::VaultStatus;
 use cosmwasm_std::Env;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
@@ -22,7 +23,26 @@ pub fn cancel_vault(
 ) -> Result<Response, ContractError> {
     let validated_address = deps.api.addr_validate(&address)?;
 
-    let vault = vault_store().load(deps.storage, vault_id.into())?;
+    let vault = vault_store().update(
+        deps.storage,
+        vault_id.into(),
+        |existing_vault| -> Result<Vault, ContractError> {
+            match existing_vault {
+                Some(mut existing_vault) => {
+                    existing_vault.status = VaultStatus::Cancelled;
+                    Ok(existing_vault)
+                }
+                None => Err(ContractError::CustomError {
+                    val: format!(
+                        "could not find vault for address: {} with id: {}",
+                        validated_address.clone(),
+                        vault_id
+                    ),
+                }),
+            }
+        },
+    )?;
+
     assert_sender_is_admin_or_vault_owner(deps.as_ref(), vault.owner.clone(), validated_address)?;
 
     create_event(
@@ -42,7 +62,6 @@ pub fn cancel_vault(
 
 fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
     remove_trigger(deps.storage, vault.id.into())?;
-    vault_store().remove(deps.storage, vault.id.into())?;
 
     let refund_bank_msg = BankMsg::Send {
         to_address: vault.owner.to_string(),
