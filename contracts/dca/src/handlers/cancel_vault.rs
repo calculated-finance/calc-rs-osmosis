@@ -23,7 +23,7 @@ pub fn cancel_vault(
 ) -> Result<Response, ContractError> {
     let validated_address = deps.api.addr_validate(&address)?;
 
-    let vault = vault_store().update(
+    let updated_vault = vault_store().update(
         deps.storage,
         vault_id.into(),
         |existing_vault| -> Result<Vault, ContractError> {
@@ -43,19 +43,23 @@ pub fn cancel_vault(
         },
     )?;
 
-    assert_sender_is_admin_or_vault_owner(deps.as_ref(), vault.owner.clone(), validated_address)?;
+    assert_sender_is_admin_or_vault_owner(
+        deps.as_ref(),
+        updated_vault.owner.clone(),
+        validated_address,
+    )?;
 
     create_event(
         deps.storage,
-        EventBuilder::new(vault.id, env.block, EventData::DCAVaultCancelled),
+        EventBuilder::new(updated_vault.id, env.block, EventData::DCAVaultCancelled),
     )?;
 
     let trigger = get_trigger(deps.storage, vault_id.into())?;
 
     match trigger.configuration {
-        TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, vault),
+        TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, updated_vault),
         TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
-            cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), vault)
+            cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), updated_vault)
         }
     }
 }
