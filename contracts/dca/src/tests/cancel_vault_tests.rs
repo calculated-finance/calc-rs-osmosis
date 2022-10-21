@@ -6,6 +6,7 @@ use crate::tests::mocks::{
     DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use base::events::event::{EventBuilder, EventData};
+use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
@@ -187,7 +188,10 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
         )
         .unwrap();
 
-    assert_eq!(active_vaults_response.vaults.len(), 0);
+    assert_eq!(
+        active_vaults_response.vaults[0].status,
+        VaultStatus::Cancelled
+    );
 }
 
 #[test]
@@ -270,5 +274,8 @@ fn when_vault_has_time_trigger_should_succeed() {
         )
         .unwrap();
 
-    assert_eq!(active_vaults_response.vaults.len(), 0);
+    assert_eq!(
+        active_vaults_response.vaults[0].status,
+        VaultStatus::Cancelled
+    );
 }

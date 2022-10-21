@@ -11,6 +11,7 @@ pub enum PositionType {
 pub enum VaultStatus {
     Active,
     Inactive,
+    Cancelled,
 }
 
 #[cw_serde]
