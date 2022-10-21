@@ -1,9 +1,7 @@
 use crate::error::ContractError;
 use crate::state::CONFIG;
-use base::{
-    pair::Pair,
-    vaults::vault::{Destination, PositionType},
-};
+use base::vaults::vault::{Destination, PostExecutionAction};
+use base::{pair::Pair, vaults::vault::PositionType};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Timestamp, Uint128};
 
 pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {
@@ -116,13 +114,34 @@ pub fn assert_target_time_is_in_past(
 }
 
 pub fn assert_destinations_limit_is_not_breached(
-    destinations: &Vec<Destination>,
+    destinations: &[Destination],
 ) -> Result<(), ContractError> {
     if destinations.len() > 10 {
         return Err(ContractError::CustomError {
             val: String::from("no more than 10 destinations can be provided"),
         });
     };
+
+    Ok(())
+}
+
+pub fn assert_destination_send_addresses_are_valid(
+    deps: Deps,
+    destinations: &[Destination],
+) -> Result<(), ContractError> {
+    for destination in destinations
+        .iter()
+        .filter(|d| d.action == PostExecutionAction::Send)
+    {
+        match deps.api.addr_validate(&destination.address.to_string()) {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(ContractError::CustomError {
+                    val: format!("destination address {:?} is invalid", destination.address),
+                });
+            }
+        }
+    }
 
     Ok(())
 }
