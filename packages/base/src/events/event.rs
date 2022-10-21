@@ -26,7 +26,7 @@ pub enum EventData {
     DCAVaultCancelled,
     DCAVaultDelegationSucceeded {
         validator_address: String,
-        delegation: Coin
+        delegation: Coin,
     },
     DCAVaultDelegationFailed,
 }

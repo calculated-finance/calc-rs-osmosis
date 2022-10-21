@@ -1,10 +1,8 @@
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Decimal256, Timestamp, Uint128};
 use enum_as_inner::EnumAsInner;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[cw_serde]
 pub enum TimeInterval {
     Hourly,
     Daily,
@@ -12,8 +10,8 @@ pub enum TimeInterval {
     Monthly,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, EnumAsInner)]
-#[serde(rename_all = "snake_case")]
+#[derive(EnumAsInner)]
+#[cw_serde]
 pub enum TriggerConfiguration {
     Time {
         target_time: Timestamp,
@@ -24,7 +22,7 @@ pub enum TriggerConfiguration {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct Trigger {
     pub vault_id: Uint128,
     pub configuration: TriggerConfiguration,

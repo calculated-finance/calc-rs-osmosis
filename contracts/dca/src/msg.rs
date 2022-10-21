@@ -1,7 +1,6 @@
 use base::events::event::Event;
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Decimal256, Uint128, Uint64};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, Trigger};
@@ -9,7 +8,7 @@ use base::vaults::vault::{Destination, PositionType};
 
 use crate::vault::Vault;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct InstantiateMsg {
     pub admin: String,
     pub fee_collector: String,
@@ -17,7 +16,7 @@ pub struct InstantiateMsg {
     pub staking_router_address: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct MigrateMsg {
     pub admin: String,
     pub fee_collector: String,
@@ -25,8 +24,7 @@ pub struct MigrateMsg {
     pub staking_router_address: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[cw_serde]
 pub enum ExecuteMsg {
     CreatePair {
         address: String,
@@ -63,8 +61,7 @@ pub enum ExecuteMsg {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[cw_serde]
 pub enum QueryMsg {
     GetPairs {},
     GetTimeTriggerIds {},
@@ -87,37 +84,33 @@ pub enum QueryMsg {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct PairsResponse {
     pub pairs: Vec<Pair>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[cw_serde]
 pub struct TriggerIdResponse {
     pub trigger_id: Uint128,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[cw_serde]
 pub struct TriggerIdsResponse {
     pub trigger_ids: Vec<Uint128>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct VaultResponse {
     pub vault: Vault,
     pub trigger: Trigger,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[cw_serde]
 pub struct VaultsResponse {
     pub vaults: Vec<Vault>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[cw_serde]
 pub struct EventsResponse {
     pub events: Vec<Event>,
 }

@@ -3,11 +3,10 @@ use base::{
     triggers::trigger::TimeInterval,
     vaults::vault::{Destination, PositionType, VaultStatus},
 };
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal256, Timestamp, Uint128};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct Vault {
     pub id: Uint128,
     pub created_at: Timestamp,

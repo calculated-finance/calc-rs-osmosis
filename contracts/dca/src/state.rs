@@ -4,6 +4,7 @@ use base::events::event::EventBuilder;
 use base::pair::Pair;
 use base::triggers::trigger::Trigger;
 use base::triggers::trigger::TriggerConfiguration;
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
 use cosmwasm_std::StdResult;
 use cosmwasm_std::Storage;
@@ -13,16 +14,14 @@ use cw_storage_plus::IndexList;
 use cw_storage_plus::IndexedMap;
 use cw_storage_plus::MultiIndex;
 use cw_storage_plus::{Item, Map};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct Cache {
     pub vault_id: Uint128,
     pub owner: Addr,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct Config {
     pub admin: Addr,
     pub vault_count: Uint128,
@@ -31,14 +30,14 @@ pub struct Config {
     pub staking_router_address: Addr,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct LimitOrderCache {
     pub offer_amount: Uint128,
     pub original_offer_amount: Uint128,
     pub filled: Uint128,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct TimeTriggerCache {
     pub trigger_id: Uint128,
 }

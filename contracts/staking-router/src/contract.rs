@@ -8,18 +8,14 @@ use crate::handlers::add_allowed_z_caller::add_allowed_z_caller;
 use crate::handlers::get_allowed_z_callers::get_allowed_z_callers;
 use crate::handlers::remove_allowed_z_caller::remove_allowed_z_caller;
 use crate::handlers::zdelegate::zdelegate;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, MigrateMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{Config, CONFIG};
 
 const CONTRACT_NAME: &str = "crates.io:staking-router";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(
-    deps: DepsMut,
-    _env: Env,
-    msg: MigrateMsg,
-) -> Result<Response, ContractError> {
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     CONFIG.remove(deps.storage);
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
