@@ -5,6 +5,7 @@ use crate::vault::Vault;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::{Destination, PositionType};
+use cosmwasm_schema::cw_serde;
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal256, Empty, Env, Event, MessageInfo, Response,
@@ -577,7 +578,7 @@ fn partially_filled_order_response(env: Env) -> StdResult<Binary> {
 }
 
 fn default_query_response() -> StdResult<Binary> {
-    #[derive(Serialize)]
+    #[cw_serde]
     pub struct Mock;
     Ok(to_binary(&Mock)?)
 }
