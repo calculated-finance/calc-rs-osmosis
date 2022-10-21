@@ -1,15 +1,14 @@
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{BlockInfo, Coin, Timestamp, Uint128};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub enum ExecutionSkippedReason {
     SlippageToleranceExceeded,
     InsufficientFunds,
     UnknownFailure,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub enum EventData {
     DCAVaultCreated,
     DCAVaultFundsDeposited {
@@ -32,7 +31,7 @@ pub enum EventData {
     DCAVaultDelegationFailed,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[cw_serde]
 pub struct Event {
     pub id: u64,
     pub resource_id: Uint128,
