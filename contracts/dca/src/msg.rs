@@ -1,10 +1,9 @@
 use base::events::event::Event;
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Decimal256, Uint128, Uint64};
-
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, Trigger};
 use base::vaults::vault::{Destination, PositionType};
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::{Decimal256, Uint128, Uint64};
 
 use crate::vault::Vault;
 

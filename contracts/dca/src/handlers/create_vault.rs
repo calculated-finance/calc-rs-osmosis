@@ -3,8 +3,9 @@ use crate::error::ContractError;
 use crate::state::{create_event, save_trigger, vault_store, Cache, Config, CACHE, CONFIG, PAIRS};
 use crate::validation_helpers::{
     assert_denom_matches_pair_denom, assert_destination_allocations_add_up_to_one,
-    assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
-    assert_swap_amount_is_less_than_or_equal_to_balance, assert_target_start_time_is_in_future,
+    assert_destination_send_addresses_are_valid, assert_destinations_limit_is_not_breached,
+    assert_exactly_one_asset, assert_swap_amount_is_less_than_or_equal_to_balance,
+    assert_target_start_time_is_in_future,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
@@ -29,6 +30,7 @@ pub fn create_vault(
     target_price: Option<Decimal256>,
 ) -> Result<Response, ContractError> {
     assert_exactly_one_asset(info.funds.clone())?;
+    assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
     assert_destinations_limit_is_not_breached(&destinations)?;
 
     if destinations.is_empty() {
@@ -39,14 +41,12 @@ pub fn create_vault(
         });
     }
 
-    // assert addresses are valid wallets/validators
-
+    assert_destination_send_addresses_are_valid(deps.as_ref(), &destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
     let pair = PAIRS.load(deps.storage, deps.api.addr_validate(&pair_address)?)?;
 
     assert_denom_matches_pair_denom(pair.clone(), info.funds.clone(), position_type.clone())?;
-    assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
 
     let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
         config.vault_count = config.vault_count.checked_add(Uint128::new(1))?;
@@ -80,7 +80,7 @@ pub fn create_vault(
             create_time_trigger(deps, env, vault, target_start_time_utc_seconds)
         }
         (None, Some(_)) => create_fin_limit_order_trigger(deps, vault, target_price.unwrap()),
-        _ => Err(ContractError::CustomError {
+        (Some(_), Some(_)) => Err(ContractError::CustomError {
             val: String::from(
                 "cannot provide both a target_start_time_utc_seconds and a target_price",
             ),
