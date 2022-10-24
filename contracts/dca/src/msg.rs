@@ -9,18 +9,18 @@ use crate::vault::Vault;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub admin: String,
-    pub fee_collector: String,
+    pub admin: Addr,
+    pub fee_collector: Addr,
     pub fee_percent: Uint128,
-    pub staking_router_address: String,
+    pub staking_router_address: Addr,
 }
 
 #[cw_serde]
 pub struct MigrateMsg {
-    pub admin: String,
-    pub fee_collector: String,
+    pub admin: Addr,
+    pub fee_collector: Addr,
     pub fee_percent: Uint128,
-    pub staking_router_address: String,
+    pub staking_router_address: Addr,
 }
 
 #[cw_serde]
@@ -55,7 +55,7 @@ pub enum ExecuteMsg {
         trigger_id: Uint128,
     },
     UpdateConfig {
-        fee_collector: Option<String>,
+        fee_collector: Option<Addr>,
         fee_percent: Option<Uint128>,
         staking_router_address: Option<Addr>,
     },

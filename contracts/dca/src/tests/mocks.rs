@@ -73,10 +73,10 @@ impl MockApp {
             ),
             Addr::unchecked(ADMIN),
             &InstantiateMsg {
-                admin: String::from(ADMIN),
-                fee_collector: String::from(ADMIN),
+                admin: Addr::unchecked(ADMIN),
+                fee_collector: Addr::unchecked(ADMIN),
                 fee_percent: ONE + ONE,
-                staking_router_address: String::from("staking-router"),
+                staking_router_address: Addr::unchecked("staking-router"),
             },
             "dca",
         );

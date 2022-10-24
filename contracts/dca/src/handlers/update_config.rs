@@ -9,7 +9,7 @@ use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, StdResult, Uint128};
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
-    fee_collector: Option<String>,
+    fee_collector: Option<Addr>,
     fee_percent: Option<Uint128>,
     staking_router_address: Option<Addr>,
 ) -> Result<Response, ContractError> {
@@ -23,7 +23,8 @@ pub fn update_config(
 
     let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
         if let Some(fee_collector) = fee_collector {
-            config.fee_collector = deps.api.addr_validate(&fee_collector)?;
+            deps.api.addr_validate(&fee_collector.to_string())?;
+            config.fee_collector = fee_collector;
         }
         if let Some(fee_percent) = fee_percent {
             config.fee_percent = fee_percent
