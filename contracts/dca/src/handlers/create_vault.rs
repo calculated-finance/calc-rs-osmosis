@@ -20,6 +20,7 @@ pub fn create_vault(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
+    label: String,
     mut destinations: Vec<Destination>,
     pair_address: Addr,
     position_type: PositionType,
@@ -57,6 +58,7 @@ pub fn create_vault(
     let vault = Vault {
         id: config.vault_count,
         owner: info.sender.clone(),
+        label,
         destinations,
         created_at: env.block.time,
         status: VaultStatus::Active,

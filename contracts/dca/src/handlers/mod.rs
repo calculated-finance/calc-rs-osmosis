@@ -18,3 +18,4 @@ pub mod get_trigger_id_by_fin_limit_order_idx;
 pub mod get_vault;
 pub mod get_vaults_by_address;
 pub mod update_config;
+pub mod update_vault_label;

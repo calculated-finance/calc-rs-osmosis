@@ -11,6 +11,7 @@ pub struct Vault {
     pub id: Uint128,
     pub created_at: Timestamp,
     pub owner: Addr,
+    pub label: String,
     pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
