@@ -5,7 +5,7 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::Env;
+use cosmwasm_std::{Addr, Env};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
 
@@ -13,13 +13,13 @@ pub fn deposit(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    address: String,
+    address: Addr,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    let validated_address = deps.api.addr_validate(address.as_str())?;
+    deps.api.addr_validate(address.as_str())?;
     let vault = vault_store().load(deps.storage, vault_id.into())?;
 
-    if validated_address != vault.owner {
+    if address != vault.owner {
         return Err(ContractError::Unauthorized {});
     }
 
