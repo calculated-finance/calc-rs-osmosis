@@ -347,7 +347,7 @@ impl MockApp {
         balance: Coin,
         swap_amount: Uint128,
         label: &str,
-        price_threshold: Option<Decimal256>
+        price_threshold: Option<Decimal256>,
     ) -> MockApp {
         let response = self
             .app

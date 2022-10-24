@@ -208,7 +208,7 @@ fn when_vault_has_time_trigger_should_succeed() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
-            None
+            None,
         );
 
     assert_address_balances(

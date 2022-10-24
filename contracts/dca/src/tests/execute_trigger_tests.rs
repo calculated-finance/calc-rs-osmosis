@@ -12,7 +12,7 @@ use crate::tests::mocks::{
 };
 use base::events::event::{EventBuilder, EventData};
 use base::vaults::vault::{Destination, PostExecutionAction};
-use cosmwasm_std::{Addr, Coin, Decimal, Uint128, Decimal256};
+use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128};
 use cw_multi_test::Executor;
 
 #[test]
@@ -225,7 +225,7 @@ fn with_time_trigger_with_multiple_destinations_should_distribute_funds_properly
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            None
+            None,
         );
 
     mock.elapse_time(10);
@@ -489,7 +489,7 @@ fn after_target_time_should_succeed() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            None
+            None,
         );
 
     let swap_amount_after_fee = swap_amount
@@ -599,7 +599,7 @@ fn with_price_threshold_should_succeed() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            Some(Decimal256::from_str("1.5").unwrap())
+            Some(Decimal256::from_str("1.5").unwrap()),
         );
 
     let swap_amount_after_fee = swap_amount
@@ -694,7 +694,6 @@ fn with_price_threshold_should_succeed() {
     );
 }
 
-
 #[test]
 fn with_price_threshold_should_skip_execution() {
     let user_address = Addr::unchecked(USER);
@@ -710,7 +709,7 @@ fn with_price_threshold_should_skip_execution() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            Some(Decimal256::from_str("0.9").unwrap())
+            Some(Decimal256::from_str("0.9").unwrap()),
         );
 
     assert_address_balances(
@@ -773,7 +772,11 @@ fn with_price_threshold_should_skip_execution() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionSkipped { reason: base::events::event::ExecutionSkippedReason::PriceThresholdExceeded { price: Decimal256::from_str("1").unwrap() } },
+                EventData::DCAVaultExecutionSkipped {
+                    reason: base::events::event::ExecutionSkippedReason::PriceThresholdExceeded {
+                        price: Decimal256::from_str("1").unwrap(),
+                    },
+                },
             )
             .build(3),
         ],
@@ -787,7 +790,6 @@ fn with_price_threshold_should_skip_execution() {
         TEN,
     );
 }
-
 
 #[test]
 fn before_target_time_limit_should_fail() {
@@ -803,7 +805,7 @@ fn before_target_time_limit_should_fail() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            None
+            None,
         );
 
     assert_address_balances(
@@ -878,7 +880,7 @@ fn when_slippage_exceeds_limit_should_skip_execution() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            None
+            None,
         );
 
     assert_address_balances(

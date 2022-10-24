@@ -65,7 +65,8 @@ pub fn execute_trigger(
                 match vault.position_type {
                     PositionType::Enter => {
                         // dca in with price ceiling
-                        let current_price = query_base_price(deps.querier, vault.pair.address.clone());
+                        let current_price =
+                            query_base_price(deps.querier, vault.pair.address.clone());
                         println!("price {}", current_price);
                         if current_price > price_threshold {
                             create_event(
@@ -73,29 +74,34 @@ pub fn execute_trigger(
                                 EventBuilder::new(
                                     vault.id,
                                     env.block.to_owned(),
-                                    EventData::DCAVaultExecutionSkipped { reason: ExecutionSkippedReason::PriceThresholdExceeded { price: current_price } },
+                                    EventData::DCAVaultExecutionSkipped {
+                                        reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                                            price: current_price,
+                                        },
+                                    },
                                 ),
                             )?;
-                            return Ok(
-                                response
-                            )
+                            return Ok(response);
                         }
-                    },
+                    }
                     PositionType::Exit => {
                         // dca out with price floor
-                        let current_price = query_quote_price(deps.querier, vault.pair.address.clone());
+                        let current_price =
+                            query_quote_price(deps.querier, vault.pair.address.clone());
                         if current_price < price_threshold {
                             create_event(
                                 deps.storage,
                                 EventBuilder::new(
                                     vault.id,
                                     env.block.to_owned(),
-                                    EventData::DCAVaultExecutionSkipped { reason: ExecutionSkippedReason::PriceThresholdExceeded { price: current_price } },
+                                    EventData::DCAVaultExecutionSkipped {
+                                        reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                                            price: current_price,
+                                        },
+                                    },
                                 ),
                             )?;
-                            return Ok(
-                                response
-                            )
+                            return Ok(response);
                         }
                     }
                 };
