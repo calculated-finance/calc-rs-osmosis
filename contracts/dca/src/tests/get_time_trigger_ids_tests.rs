@@ -24,6 +24,7 @@ fn should_return_active_triggers_only() {
             Addr::unchecked(USER),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
+                price_threshold: None,
                 label: "label".to_string(),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),

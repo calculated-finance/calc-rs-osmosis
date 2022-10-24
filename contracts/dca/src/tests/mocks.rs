@@ -193,6 +193,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    price_threshold: None,
                     label: "label".to_string(),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
@@ -232,6 +233,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    price_threshold: None,
                     label: "label".to_string(),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
@@ -288,6 +290,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    price_threshold: None,
                     label: "label".to_string(),
                     destinations: None,
                     pair_address: self.fin_contract_address.clone(),
@@ -344,6 +347,7 @@ impl MockApp {
         balance: Coin,
         swap_amount: Uint128,
         label: &str,
+        price_threshold: Option<Decimal256>
     ) -> MockApp {
         let response = self
             .app
@@ -351,6 +355,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    price_threshold,
                     label: "label".to_string(),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
@@ -511,8 +516,8 @@ fn retract_partially_filled_order_handler(info: MessageInfo) -> StdResult<Respon
 fn default_book_response() -> StdResult<Binary> {
     book_response(
         String::from(DENOM_UTEST),
-        Decimal256::from_str(&ONE.to_string())?,
-        Decimal256::from_str(&ONE.to_string())?,
+        Decimal256::from_str("1")?,
+        Decimal256::from_str("1")?,
     )
 }
 

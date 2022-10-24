@@ -1,10 +1,13 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{BlockInfo, Coin, Timestamp, Uint128};
+use cosmwasm_std::{BlockInfo, Coin, Timestamp, Uint128, Decimal256};
 
 #[cw_serde]
 pub enum ExecutionSkippedReason {
     SlippageToleranceExceeded,
     InsufficientFunds,
+    PriceThresholdExceeded {
+        price: Decimal256
+    },
     UnknownFailure,
 }
 

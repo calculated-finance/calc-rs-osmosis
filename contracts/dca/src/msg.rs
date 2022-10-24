@@ -39,6 +39,7 @@ pub enum ExecuteMsg {
         pair_address: Addr,
         position_type: PositionType,
         slippage_tolerance: Option<Decimal256>,
+        price_threshold: Option<Decimal256>,
         swap_amount: Uint128,
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
