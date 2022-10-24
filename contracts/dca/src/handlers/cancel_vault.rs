@@ -95,8 +95,11 @@ fn cancel_fin_limit_order_trigger(
 
     LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
 
-    let fin_retract_order_sub_msg =
-        create_retract_order_sub_msg(vault.pair.address, order_idx, AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID);
+    let fin_retract_order_sub_msg = create_retract_order_sub_msg(
+        vault.pair.address,
+        order_idx,
+        AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+    );
 
     let cache = Cache {
         vault_id: vault.id,

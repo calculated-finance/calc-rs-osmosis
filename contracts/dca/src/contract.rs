@@ -1,16 +1,16 @@
 use crate::error::ContractError;
-use crate::handlers::cancel_vault::cancel_vault;
-use crate::handlers::create_pair::create_pair;
-use crate::handlers::create_vault::create_vault;
-use crate::handlers::after_z_delegation::after_z_delegation;
-use crate::handlers::delete_pair::delete_pair;
-use crate::handlers::deposit::deposit;
-use crate::handlers::execute_trigger::execute_trigger;
 use crate::handlers::after_fin_limit_order_retracted::after_fin_limit_order_retracted;
 use crate::handlers::after_fin_limit_order_submitted::after_fin_limit_order_submitted;
 use crate::handlers::after_fin_limit_order_withdrawn_for_cancel_vault::after_fin_limit_order_withdrawn_for_cancel_vault;
 use crate::handlers::after_fin_limit_order_withdrawn_for_execute_trigger::after_fin_limit_order_withdrawn_for_execute_vault;
 use crate::handlers::after_fin_swap::after_fin_swap;
+use crate::handlers::after_z_delegation::after_z_delegation;
+use crate::handlers::cancel_vault::cancel_vault;
+use crate::handlers::create_pair::create_pair;
+use crate::handlers::create_vault::create_vault;
+use crate::handlers::delete_pair::delete_pair;
+use crate::handlers::deposit::deposit;
+use crate::handlers::execute_trigger::execute_trigger;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
@@ -121,14 +121,23 @@ pub fn execute(
         ExecuteMsg::UpdateConfig {
             fee_collector,
             fee_percent,
-        } => update_config(deps, info, fee_collector, fee_percent),
+            staking_router_address,
+        } => update_config(
+            deps,
+            info,
+            fee_collector,
+            fee_percent,
+            staking_router_address,
+        ),
     }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
-        AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID => after_fin_limit_order_retracted(deps, env, reply),
+        AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID => {
+            after_fin_limit_order_retracted(deps, env, reply)
+        }
         AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID => after_fin_limit_order_submitted(deps, reply),
         AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID => {
             after_fin_limit_order_withdrawn_for_cancel_vault(deps, env, reply)
