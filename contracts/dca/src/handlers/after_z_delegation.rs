@@ -8,7 +8,7 @@ use cosmwasm_std::SubMsgResult;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Reply, Response};
 
-pub fn after_delegation(
+pub fn after_z_delegation(
     deps: DepsMut,
     env: Env,
     reply: Reply,
@@ -41,7 +41,7 @@ pub fn after_delegation(
                 EventBuilder::new(
                     vault.id,
                     env.block,
-                    EventData::DCAVaultDelegationSucceeded {
+                    EventData::DCAVaultZDelegationSucceeded {
                         validator_address,
                         delegation: delegation_amount,
                     },

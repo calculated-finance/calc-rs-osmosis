@@ -1,7 +1,7 @@
 pub mod cancel_vault;
 pub mod create_pair;
 pub mod create_vault;
-pub mod after_delegation;
+pub mod after_z_delegation;
 pub mod delete_pair;
 pub mod deposit;
 pub mod execute_trigger;

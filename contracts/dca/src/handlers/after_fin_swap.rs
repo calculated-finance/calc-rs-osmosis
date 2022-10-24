@@ -1,5 +1,5 @@
 use crate::constants::ONE_HUNDRED;
-use crate::contract::AFTER_DELEGATION_REPLY_ID;
+use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
     create_event, get_trigger, remove_trigger, save_trigger, vault_store, CACHE, CONFIG,
@@ -113,7 +113,7 @@ pub fn after_fin_swap(
                                 .unwrap(),
                                 funds: vec![],
                             }),
-                            AFTER_DELEGATION_REPLY_ID,
+                            AFTER_Z_DELEGATION_REPLY_ID,
                         ))
                     }
                 }

@@ -2,7 +2,7 @@ use crate::error::ContractError;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
-use crate::handlers::after_delegation::after_delegation;
+use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
 use crate::handlers::execute_trigger::execute_trigger;
@@ -36,7 +36,7 @@ pub const AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID: u64 = 2;
 pub const AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID: u64 = 3;
 pub const AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID: u64 = 4;
 pub const AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID: u64 = 5;
-pub const AFTER_DELEGATION_REPLY_ID: u64 = 6;
+pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 6;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -137,7 +137,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
             after_fin_limit_order_withdrawn_for_execute_vault(deps, env, reply)
         }
         AFTER_FIN_SWAP_REPLY_ID => after_fin_swap(deps, env, reply),
-        AFTER_DELEGATION_REPLY_ID => after_delegation(deps, env, reply),
+        AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),
         }),

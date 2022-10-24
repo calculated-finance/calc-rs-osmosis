@@ -1,5 +1,5 @@
 use crate::constants::ONE_HUNDRED;
-use crate::contract::AFTER_DELEGATION_REPLY_ID;
+use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
     create_event, remove_trigger, save_trigger, vault_store, CACHE, CONFIG, LIMIT_ORDER_CACHE,
@@ -123,7 +123,7 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                                 .unwrap(),
                                 funds: vec![],
                             }),
-                            AFTER_DELEGATION_REPLY_ID,
+                            AFTER_Z_DELEGATION_REPLY_ID,
                         ))
                     }
                 }

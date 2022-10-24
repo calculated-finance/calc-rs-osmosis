@@ -24,7 +24,7 @@ pub enum EventData {
         reason: ExecutionSkippedReason,
     },
     DCAVaultCancelled,
-    DCAVaultDelegationSucceeded {
+    DCAVaultZDelegationSucceeded {
         validator_address: String,
         delegation: Coin,
     },
