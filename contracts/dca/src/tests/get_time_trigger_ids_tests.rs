@@ -25,7 +25,7 @@ fn should_return_active_triggers_only() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 destinations: None,
-                pair_address: mock.fin_contract_address.to_string(),
+                pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
                 slippage_tolerance: None,
                 swap_amount,

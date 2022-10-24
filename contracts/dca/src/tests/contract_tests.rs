@@ -1,7 +1,7 @@
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::PositionType;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{attr, from_binary, Coin, Uint128, Uint64, Addr};
+use cosmwasm_std::{attr, from_binary, Addr, Coin, Uint128, Uint64};
 
 use crate::constants::ONE;
 use crate::contract::{execute, instantiate, query};
@@ -82,7 +82,7 @@ fn create_pair_with_valid_address_should_succeed() {
     .unwrap();
 
     let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -121,7 +121,7 @@ fn create_pair_that_already_exists_should_fail() {
     .unwrap();
 
     let _create_first_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -135,7 +135,7 @@ fn create_pair_that_already_exists_should_fail() {
     .unwrap();
 
     let _create_second_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -175,7 +175,7 @@ fn create_pair_with_invalid_address_should_fail() {
     .unwrap();
 
     let execute_message = ExecuteMsg::CreatePair {
-        address: String::from(INVALID_ADDRESS),
+        address: Addr::unchecked(INVALID_ADDRESS),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -210,7 +210,7 @@ fn create_pair_with_unauthorised_sender_should_fail() {
 
     let info_with_unauthorised_sender = mock_info(VALID_ADDRESS_THREE, &vec![]);
     let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(INVALID_ADDRESS),
+        address: Addr::unchecked(INVALID_ADDRESS),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -247,7 +247,7 @@ fn delete_pair_with_valid_address_should_succeed() {
     .unwrap();
 
     let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -261,7 +261,7 @@ fn delete_pair_with_valid_address_should_succeed() {
     .unwrap();
 
     let delete_pair_execute_message = ExecuteMsg::DeletePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
     };
 
     let result = execute(deps.as_mut(), env, info, delete_pair_execute_message).unwrap();
@@ -296,7 +296,7 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
     .unwrap();
 
     let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -368,7 +368,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
     .unwrap();
 
     let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -382,7 +382,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
 
     let create_vault_execute_message = ExecuteMsg::CreateVault {
         destinations: None,
-        pair_address: String::from(VALID_ADDRESS_TWO),
+        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
@@ -445,7 +445,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     .unwrap();
 
     let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -459,7 +459,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
 
     let create_vault_execute_message = ExecuteMsg::CreateVault {
         destinations: None,
-        pair_address: String::from(VALID_ADDRESS_TWO),
+        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
@@ -517,7 +517,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
     .unwrap();
 
     let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -531,7 +531,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
 
     let create_vault_execute_message_one = ExecuteMsg::CreateVault {
         destinations: None,
-        pair_address: String::from(VALID_ADDRESS_TWO),
+        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
@@ -556,7 +556,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
 
     let create_vault_execute_message_two = ExecuteMsg::CreateVault {
         destinations: None,
-        pair_address: String::from(VALID_ADDRESS_TWO),
+        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
@@ -615,7 +615,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
     .unwrap();
 
     let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: String::from(VALID_ADDRESS_TWO),
+        address: Addr::unchecked(VALID_ADDRESS_TWO),
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -629,7 +629,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
 
     let create_vault_execute_message = ExecuteMsg::CreateVault {
         destinations: None,
-        pair_address: String::from(VALID_ADDRESS_TWO),
+        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),

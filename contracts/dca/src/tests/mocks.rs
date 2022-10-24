@@ -135,7 +135,7 @@ impl MockApp {
             Addr::unchecked(ADMIN),
             dca_contract_address.clone(),
             &ExecuteMsg::CreatePair {
-                address: fin_contract_address.to_string(),
+                address: fin_contract_address.clone(),
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
             },
@@ -194,7 +194,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     destinations,
-                    pair_address: self.fin_contract_address.to_string(),
+                    pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
                     slippage_tolerance: None,
                     swap_amount,
@@ -232,7 +232,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     destinations,
-                    pair_address: self.fin_contract_address.to_string(),
+                    pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
                     slippage_tolerance: None,
                     swap_amount,
@@ -287,7 +287,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     destinations: None,
-                    pair_address: self.fin_contract_address.to_string(),
+                    pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
                     slippage_tolerance: None,
                     swap_amount,
@@ -349,7 +349,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     destinations,
-                    pair_address: self.fin_contract_address.to_string(),
+                    pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
                     slippage_tolerance: None,
                     swap_amount,

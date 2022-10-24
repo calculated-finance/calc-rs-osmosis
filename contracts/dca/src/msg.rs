@@ -26,16 +26,16 @@ pub struct MigrateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     CreatePair {
-        address: String,
+        address: Addr,
         base_denom: String,
         quote_denom: String,
     },
     DeletePair {
-        address: String,
+        address: Addr,
     },
     CreateVault {
         destinations: Option<Vec<Destination>>,
-        pair_address: String,
+        pair_address: Addr,
         position_type: PositionType,
         slippage_tolerance: Option<Decimal256>,
         swap_amount: Uint128,
