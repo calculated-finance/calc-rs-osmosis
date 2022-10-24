@@ -23,18 +23,13 @@ Because cosmos chains implement the actor pattern, we can be certain that anythi
 
 #### Domain Logic
 
-- save a vault using the create vault message details
+- save a vault using the submitted vault details
 - save a vault created event
 - if the submitted `target_price` was `None`:
-  - save a time trigger
-  - create and return a cosmwasm `Response` with no messages or submessages
+  - save a time trigger with the submitted `target_start_time_utc_seconds` or the block time if `target_start_time_utc_seconds` was `None`
 - else:
-  - save a fin limit order trigger with `None` value for the `order_idx`
-  - save the vault id to the cache
-  - create and return a cosmwasm response with a submessage to create a limit order on fin for the `swap_amount` at the `target_price`
-  - after the fin limit order is submitted
-    - update the fin limit order trigger with the created `order_idx`
-    - create and return a cosmwasm response with no messages or submessages
+  - create a fin limit order for the submitted `swap_amount` and `target_price`
+  - create a fin limit order trigger with the generated `order_idx` from fin
 
 #### Trigger Execution
 
