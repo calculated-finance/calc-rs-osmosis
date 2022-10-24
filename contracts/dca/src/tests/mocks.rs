@@ -193,6 +193,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    label: "label".to_string(),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
@@ -231,6 +232,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    label: "label".to_string(),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
@@ -286,6 +288,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    label: "label".to_string(),
                     destinations: None,
                     pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
@@ -348,6 +351,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    label: "label".to_string(),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,

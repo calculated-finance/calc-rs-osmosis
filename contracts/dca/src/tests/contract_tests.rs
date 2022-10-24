@@ -381,6 +381,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
     .unwrap();
 
     let create_vault_execute_message = ExecuteMsg::CreateVault {
+        label: "label".to_string(),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
@@ -458,6 +459,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     .unwrap();
 
     let create_vault_execute_message = ExecuteMsg::CreateVault {
+        label: "label".to_string(),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
@@ -530,6 +532,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
     .unwrap();
 
     let create_vault_execute_message_one = ExecuteMsg::CreateVault {
+        label: "label".to_string(),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
@@ -555,6 +558,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
     .unwrap();
 
     let create_vault_execute_message_two = ExecuteMsg::CreateVault {
+        label: "label".to_string(),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,
@@ -628,6 +632,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
     .unwrap();
 
     let create_vault_execute_message = ExecuteMsg::CreateVault {
+        label: "label".to_string(),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
         position_type: PositionType::Enter,

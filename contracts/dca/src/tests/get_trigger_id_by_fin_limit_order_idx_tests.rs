@@ -29,6 +29,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
             Addr::unchecked(USER),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
+                label: "label".to_string(),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,

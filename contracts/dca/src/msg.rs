@@ -34,6 +34,7 @@ pub enum ExecuteMsg {
         address: Addr,
     },
     CreateVault {
+        label: String,
         destinations: Option<Vec<Destination>>,
         pair_address: Addr,
         position_type: PositionType,
@@ -58,6 +59,11 @@ pub enum ExecuteMsg {
         fee_collector: Option<Addr>,
         fee_percent: Option<Uint128>,
         staking_router_address: Option<Addr>,
+    },
+    UpdateVault {
+        address: Addr,
+        vault_id: Uint128,
+        label: Option<String>,
     },
 }
 
