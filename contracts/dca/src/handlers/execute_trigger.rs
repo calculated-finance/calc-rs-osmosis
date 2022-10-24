@@ -1,4 +1,4 @@
-use crate::contract::{FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID, FIN_SWAP_COMPLETED_ID};
+use crate::contract::{AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID};
 use crate::error::ContractError;
 use crate::state::{
     create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,
@@ -75,13 +75,13 @@ pub fn execute_trigger(
                         belief_price,
                         tolerance,
                         vault.get_swap_amount(),
-                        FIN_SWAP_COMPLETED_ID,
+                        AFTER_FIN_SWAP_REPLY_ID,
                     )
                 }
                 None => create_fin_swap_without_slippage(
                     vault.pair.address.clone(),
                     vault.get_swap_amount(),
-                    FIN_SWAP_COMPLETED_ID,
+                    AFTER_FIN_SWAP_REPLY_ID,
                 ),
             };
 
@@ -116,7 +116,7 @@ pub fn execute_trigger(
             let fin_withdraw_sub_msg = create_withdraw_limit_order_sub_msg(
                 vault.pair.address,
                 order_idx.unwrap(),
-                FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID,
+                AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             );
 
             let cache: Cache = Cache {

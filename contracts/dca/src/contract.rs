@@ -2,15 +2,15 @@ use crate::error::ContractError;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
-use crate::handlers::delegation_succeeded::delegation_succeeded;
+use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
 use crate::handlers::execute_trigger::execute_trigger;
-use crate::handlers::fin_limit_order_retracted::fin_limit_order_retracted;
-use crate::handlers::fin_limit_order_submitted::fin_limit_order_submitted;
-use crate::handlers::fin_limit_order_withdrawn_for_cancel_vault::fin_limit_order_withdrawn_for_cancel_vault;
-use crate::handlers::fin_limit_order_withdrawn_for_execute_trigger::fin_limit_order_withdrawn_for_execute_vault;
-use crate::handlers::fin_swap_completed::fin_swap_completed;
+use crate::handlers::after_fin_limit_order_retracted::after_fin_limit_order_retracted;
+use crate::handlers::after_fin_limit_order_submitted::after_fin_limit_order_submitted;
+use crate::handlers::after_fin_limit_order_withdrawn_for_cancel_vault::after_fin_limit_order_withdrawn_for_cancel_vault;
+use crate::handlers::after_fin_limit_order_withdrawn_for_execute_trigger::after_fin_limit_order_withdrawn_for_execute_vault;
+use crate::handlers::after_fin_swap::after_fin_swap;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
@@ -31,12 +31,12 @@ use cw2::set_contract_version;
 pub const CONTRACT_NAME: &str = "crates.io:calc-dca";
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub const FIN_SWAP_COMPLETED_ID: u64 = 1;
-pub const FIN_LIMIT_ORDER_SUBMITTED_ID: u64 = 2;
-pub const FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID: u64 = 3;
-pub const FIN_LIMIT_ORDER_RETRACTED_ID: u64 = 4;
-pub const FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_ID: u64 = 5;
-pub const DELEGATION_SUCCEEDED_ID: u64 = 6;
+pub const AFTER_FIN_SWAP_REPLY_ID: u64 = 1;
+pub const AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID: u64 = 2;
+pub const AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID: u64 = 3;
+pub const AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID: u64 = 4;
+pub const AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID: u64 = 5;
+pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 6;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -128,16 +128,16 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
-        FIN_LIMIT_ORDER_RETRACTED_ID => fin_limit_order_retracted(deps, env, reply),
-        FIN_LIMIT_ORDER_SUBMITTED_ID => fin_limit_order_submitted(deps, reply),
-        FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_ID => {
-            fin_limit_order_withdrawn_for_cancel_vault(deps, env, reply)
+        AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID => after_fin_limit_order_retracted(deps, env, reply),
+        AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID => after_fin_limit_order_submitted(deps, reply),
+        AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID => {
+            after_fin_limit_order_withdrawn_for_cancel_vault(deps, env, reply)
         }
-        FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_ID => {
-            fin_limit_order_withdrawn_for_execute_vault(deps, env, reply)
+        AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID => {
+            after_fin_limit_order_withdrawn_for_execute_vault(deps, env, reply)
         }
-        FIN_SWAP_COMPLETED_ID => fin_swap_completed(deps, env, reply),
-        DELEGATION_SUCCEEDED_ID => delegation_succeeded(deps, env, reply),
+        AFTER_FIN_SWAP_REPLY_ID => after_fin_swap(deps, env, reply),
+        AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),
         }),

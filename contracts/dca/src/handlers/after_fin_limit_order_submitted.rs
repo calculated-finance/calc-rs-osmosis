@@ -6,7 +6,7 @@ use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use cosmwasm_std::{DepsMut, Reply, Response, Uint128};
 use std::str::FromStr;
 
-pub fn fin_limit_order_submitted(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {
+pub fn after_fin_limit_order_submitted(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let fin_submit_order_response = reply.result.into_result().unwrap();

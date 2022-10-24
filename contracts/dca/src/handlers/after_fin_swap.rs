@@ -1,5 +1,5 @@
 use crate::constants::ONE_HUNDRED;
-use crate::contract::DELEGATION_SUCCEEDED_ID;
+use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
     create_event, get_trigger, remove_trigger, save_trigger, vault_store, CACHE, CONFIG,
@@ -16,7 +16,7 @@ use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Res
 use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
-pub fn fin_swap_completed(
+pub fn after_fin_swap(
     deps: DepsMut,
     env: Env,
     reply: Reply,
@@ -113,7 +113,7 @@ pub fn fin_swap_completed(
                                 .unwrap(),
                                 funds: vec![],
                             }),
-                            DELEGATION_SUCCEEDED_ID,
+                            AFTER_Z_DELEGATION_REPLY_ID,
                         ))
                     }
                 }
