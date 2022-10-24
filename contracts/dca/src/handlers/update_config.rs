@@ -4,13 +4,14 @@ use crate::{
     state::{Config, CONFIG},
     validation_helpers::assert_sender_is_admin,
 };
-use cosmwasm_std::{DepsMut, MessageInfo, Response, StdResult, Uint128};
+use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, StdResult, Uint128};
 
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
     fee_collector: Option<String>,
     fee_percent: Option<Uint128>,
+    staking_router_address: Option<Addr>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.as_ref(), info.sender)?;
 
@@ -27,11 +28,21 @@ pub fn update_config(
         if let Some(fee_percent) = fee_percent {
             config.fee_percent = fee_percent
         }
+        if let Some(staking_router_address) = staking_router_address {
+            deps.api
+                .addr_validate(&staking_router_address.to_string())?;
+            config.staking_router_address = staking_router_address;
+        }
+
         Ok(config)
     })?;
 
     Ok(Response::default()
         .add_attribute("method", "update_config")
         .add_attribute("fee_percent", config.fee_percent.to_string())
-        .add_attribute("fee_collector", config.fee_collector.to_string()))
+        .add_attribute("fee_collector", config.fee_collector.to_string())
+        .add_attribute(
+            "staking_router_address",
+            config.staking_router_address.to_string(),
+        ))
 }

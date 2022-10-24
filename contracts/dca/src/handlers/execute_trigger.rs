@@ -1,4 +1,6 @@
-use crate::contract::{AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID};
+use crate::contract::{
+    AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID,
+};
 use crate::error::ContractError;
 use crate::state::{
     create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,

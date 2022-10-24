@@ -16,11 +16,7 @@ use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Res
 use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
-pub fn after_fin_swap(
-    deps: DepsMut,
-    env: Env,
-    reply: Reply,
-) -> Result<Response, ContractError> {
+pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
     let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
     let trigger = get_trigger(deps.storage, vault.id.into())?;
