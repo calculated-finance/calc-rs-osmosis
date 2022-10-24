@@ -1,5 +1,5 @@
 use crate::constants::ONE_HUNDRED;
-use crate::contract::DELEGATION_SUCCEEDED_ID;
+use crate::contract::AFTER_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
     create_event, remove_trigger, save_trigger, vault_store, CACHE, CONFIG, LIMIT_ORDER_CACHE,
@@ -14,7 +14,7 @@ use cosmwasm_std::{to_binary, CosmosMsg, Env, SubMsg, Uint128, WasmMsg};
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response};
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
-pub fn fin_limit_order_withdrawn_for_execute_vault(
+pub fn after_fin_limit_order_withdrawn_for_execute_vault(
     deps: DepsMut,
     env: Env,
     reply: Reply,
@@ -123,7 +123,7 @@ pub fn fin_limit_order_withdrawn_for_execute_vault(
                                 .unwrap(),
                                 funds: vec![],
                             }),
-                            DELEGATION_SUCCEEDED_ID,
+                            AFTER_DELEGATION_REPLY_ID,
                         ))
                     }
                 }

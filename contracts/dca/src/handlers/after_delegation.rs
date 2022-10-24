@@ -8,7 +8,7 @@ use cosmwasm_std::SubMsgResult;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Reply, Response};
 
-pub fn delegation_succeeded(
+pub fn after_delegation(
     deps: DepsMut,
     env: Env,
     reply: Reply,

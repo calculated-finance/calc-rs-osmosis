@@ -1,4 +1,4 @@
-use crate::contract::FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_ID;
+use crate::contract::AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{create_event, remove_trigger, vault_store, CACHE, LIMIT_ORDER_CACHE};
 use base::events::event::{EventBuilder, EventData};
@@ -7,7 +7,7 @@ use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_eve
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 
-pub fn fin_limit_order_retracted(
+pub fn after_fin_limit_order_retracted(
     deps: DepsMut,
     env: Env,
     reply: Reply,
@@ -53,7 +53,7 @@ pub fn fin_limit_order_retracted(
                 let fin_withdraw_sub_msg = create_withdraw_limit_order_sub_msg(
                     vault.pair.address.clone(),
                     vault.id,
-                    FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_ID,
+                    AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID,
                 );
 
                 Ok(response

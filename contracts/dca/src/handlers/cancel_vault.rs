@@ -1,4 +1,4 @@
-use crate::contract::FIN_LIMIT_ORDER_RETRACTED_ID;
+use crate::contract::AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
     create_event, get_trigger, remove_trigger, vault_store, Cache, LimitOrderCache, CACHE,
@@ -96,7 +96,7 @@ fn cancel_fin_limit_order_trigger(
     LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
 
     let fin_retract_order_sub_msg =
-        create_retract_order_sub_msg(vault.pair.address, order_idx, FIN_LIMIT_ORDER_RETRACTED_ID);
+        create_retract_order_sub_msg(vault.pair.address, order_idx, AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID);
 
     let cache = Cache {
         vault_id: vault.id,

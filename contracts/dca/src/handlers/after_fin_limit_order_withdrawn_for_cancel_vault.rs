@@ -6,7 +6,7 @@ use cosmwasm_std::Uint128;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response};
 
-pub fn fin_limit_order_withdrawn_for_cancel_vault(
+pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
     deps: DepsMut,
     _env: Env,
     reply: Reply,

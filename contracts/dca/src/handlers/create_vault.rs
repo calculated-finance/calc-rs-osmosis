@@ -1,4 +1,4 @@
-use crate::contract::FIN_LIMIT_ORDER_SUBMITTED_ID;
+use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{create_event, save_trigger, vault_store, Cache, Config, CACHE, CONFIG, PAIRS};
 use crate::validation_helpers::{
@@ -143,7 +143,7 @@ fn create_fin_limit_order_trigger(
         vault.pair.address.clone(),
         target_price,
         vault.get_swap_amount(),
-        FIN_LIMIT_ORDER_SUBMITTED_ID,
+        AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID,
     );
 
     Ok(Response::new()
