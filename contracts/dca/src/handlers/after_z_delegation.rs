@@ -57,6 +57,6 @@ pub fn after_z_delegation(
     }
 
     Ok(Response::new()
-        .add_attribute("method", "delegation_succeeded")
+        .add_attribute("method", "after_z_delegation")
         .add_attribute("vault_id", vault.id.to_string()))
 }
