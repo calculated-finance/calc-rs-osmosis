@@ -11,7 +11,7 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{Decimal, Decimal256};
+use cosmwasm_std::{Addr, Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, StdResult, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_limit_order_sub_msg;
@@ -21,7 +21,7 @@ pub fn create_vault(
     env: Env,
     info: MessageInfo,
     mut destinations: Vec<Destination>,
-    pair_address: String,
+    pair_address: Addr,
     position_type: PositionType,
     slippage_tolerance: Option<Decimal256>,
     swap_amount: Uint128,
@@ -44,7 +44,8 @@ pub fn create_vault(
     assert_destination_send_addresses_are_valid(deps.as_ref(), &destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
-    let pair = PAIRS.load(deps.storage, deps.api.addr_validate(&pair_address)?)?;
+    deps.api.addr_validate(&pair_address.to_string())?;
+    let pair = PAIRS.load(deps.storage, pair_address)?;
 
     assert_denom_matches_pair_denom(pair.clone(), info.funds.clone(), position_type.clone())?;
 
