@@ -80,6 +80,8 @@ pub enum QueryMsg {
     },
     GetVaultsByAddress {
         address: Addr,
+        start_after: Option<u128>,
+        limit: Option<u8>,
     },
     GetEventsByResourceId {
         resource_id: Uint128,

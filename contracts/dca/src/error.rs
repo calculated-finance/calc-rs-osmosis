@@ -26,3 +26,13 @@ impl From<CheckedMultiplyRatioError> for ContractError {
         }
     }
 }
+
+impl From<ContractError> for StdError {
+    fn from(from: ContractError) -> Self {
+        match from {
+            ContractError::Std(err) => err,
+            ContractError::CustomError { val } => StdError::generic_err(val),
+            _ => StdError::generic_err(format!("{:#?}", from)),
+        }
+    }
+}

@@ -1,6 +1,8 @@
-use crate::{msg::EventsResponse, state::event_store};
+use crate::{
+    msg::EventsResponse, state::event_store, validation_helpers::assert_page_limit_is_valid,
+};
 use base::events::event::Event;
-use cosmwasm_std::{Deps, StdError, StdResult};
+use cosmwasm_std::{Deps, StdResult};
 use cw_storage_plus::Bound;
 
 pub fn get_events(
@@ -8,14 +10,12 @@ pub fn get_events(
     start_after: Option<u64>,
     limit: Option<u8>,
 ) -> StdResult<EventsResponse> {
-    if limit.is_some() && limit.unwrap() > 30u8 {
-        return Err(StdError::generic_err("limit cannot be greater than 30."));
-    }
+    assert_page_limit_is_valid(limit)?;
 
     let events = event_store()
         .range(
             deps.storage,
-            start_after.map(|s| Bound::exclusive(s)),
+            start_after.map(Bound::exclusive),
             None,
             cosmwasm_std::Order::Ascending,
         )

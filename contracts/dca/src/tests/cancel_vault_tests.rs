@@ -90,6 +90,8 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
             &mock.dca_contract_address.clone(),
             &QueryMsg::GetVaultsByAddress {
                 address: user_address.clone(),
+                start_after: None,
+                limit: None,
             },
         )
         .unwrap();
@@ -184,6 +186,8 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
             &mock.dca_contract_address.clone(),
             &QueryMsg::GetVaultsByAddress {
                 address: user_address.clone(),
+                start_after: None,
+                limit: None,
             },
         )
         .unwrap();
@@ -270,6 +274,8 @@ fn when_vault_has_time_trigger_should_succeed() {
             &mock.dca_contract_address.clone(),
             &QueryMsg::GetVaultsByAddress {
                 address: user_address.clone(),
+                start_after: None,
+                limit: None,
             },
         )
         .unwrap();

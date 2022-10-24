@@ -180,9 +180,11 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetTriggerIdByFinLimitOrderIdx { order_idx } => {
             to_binary(&get_trigger_id_by_fin_limit_order_idx(deps, order_idx)?)
         }
-        QueryMsg::GetVaultsByAddress { address } => {
-            to_binary(&get_vaults_by_address(deps, address)?)
-        }
+        QueryMsg::GetVaultsByAddress {
+            address,
+            start_after,
+            limit,
+        } => to_binary(&get_vaults_by_address(deps, address, start_after, limit)?),
         QueryMsg::GetVault { vault_id, address } => to_binary(&get_vault(deps, address, vault_id)?),
         QueryMsg::GetEventsByResourceId { resource_id } => {
             to_binary(&get_events_by_resource_id(deps, resource_id)?)
