@@ -44,12 +44,18 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     clear_triggers(deps.storage);
     event_store().clear(deps.storage);
     CONFIG.remove(deps.storage);
+
+    deps.api.addr_validate(&msg.admin.to_string())?;
+    deps.api.addr_validate(&msg.fee_collector.to_string())?;
+    deps.api
+        .addr_validate(&msg.staking_router_address.to_string())?;
+
     let config = Config {
-        admin: deps.api.addr_validate(&msg.admin)?,
+        admin: msg.admin,
         vault_count: Uint128::zero(),
-        fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
+        fee_collector: msg.fee_collector,
         fee_percent: msg.fee_percent,
-        staking_router_address: deps.api.addr_validate(&msg.staking_router_address)?,
+        staking_router_address: msg.staking_router_address,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -63,12 +69,17 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    deps.api.addr_validate(&msg.admin.to_string())?;
+    deps.api.addr_validate(&msg.fee_collector.to_string())?;
+    deps.api
+        .addr_validate(&msg.staking_router_address.to_string())?;
+
     let config = Config {
-        admin: deps.api.addr_validate(&msg.admin)?,
+        admin: msg.admin.clone(),
         vault_count: Uint128::zero(),
-        fee_collector: deps.api.addr_validate(&msg.fee_collector)?,
+        fee_collector: msg.fee_collector,
         fee_percent: msg.fee_percent,
-        staking_router_address: deps.api.addr_validate(&msg.staking_router_address)?,
+        staking_router_address: msg.staking_router_address,
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;

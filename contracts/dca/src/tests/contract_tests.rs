@@ -1,7 +1,7 @@
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::PositionType;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{attr, from_binary, Coin, Uint128, Uint64};
+use cosmwasm_std::{attr, from_binary, Coin, Uint128, Uint64, Addr};
 
 use crate::constants::ONE;
 use crate::contract::{execute, instantiate, query};
@@ -23,10 +23,10 @@ fn instantiation_with_valid_admin_address_should_succeed() {
     let info = mock_info("", &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
 
     let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap();
@@ -47,10 +47,10 @@ fn instantiation_with_invalid_admin_address_should_fail() {
     let info = mock_info("", &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(INVALID_ADDRESS),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(INVALID_ADDRESS),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
 
     let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -68,10 +68,10 @@ fn create_pair_with_valid_address_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -107,10 +107,10 @@ fn create_pair_that_already_exists_should_fail() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -161,10 +161,10 @@ fn create_pair_with_invalid_address_should_fail() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -195,10 +195,10 @@ fn create_pair_with_unauthorised_sender_should_fail() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -233,10 +233,10 @@ fn delete_pair_with_valid_address_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -282,10 +282,10 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -327,10 +327,10 @@ fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -353,10 +353,10 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
 
     let _instantiate_result = instantiate(
@@ -430,10 +430,10 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
 
     let _instantiate_result = instantiate(
@@ -502,10 +502,10 @@ fn get_all_active_vaults_by_address_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
 
     let _instantiate_result = instantiate(
@@ -600,10 +600,10 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
 
     let _instantiate_result = instantiate(
@@ -674,10 +674,10 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
 
     let instantiate_message = InstantiateMsg {
-        admin: String::from(VALID_ADDRESS_ONE),
-        fee_collector: String::from(VALID_ADDRESS_ONE),
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_percent: ONE + ONE,
-        staking_router_address: String::from(VALID_ADDRESS_ONE),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
     };
 
     let _instantiate_result = instantiate(
