@@ -19,7 +19,7 @@ use crate::handlers::get_trigger_id_by_fin_limit_order_idx::get_trigger_id_by_fi
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::update_config::update_config;
-use crate::handlers::update_vault_label::update_vault_label;
+use crate::handlers::update_vault_label::update_vault;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{clear_triggers, event_store, vault_store, Config, CONFIG};
 #[cfg(not(feature = "library"))]
@@ -143,11 +143,11 @@ pub fn execute(
             fee_percent,
             staking_router_address,
         ),
-        ExecuteMsg::UpdateVaultLabel {
+        ExecuteMsg::UpdateVault {
             address,
             vault_id,
             label,
-        } => update_vault_label(deps, info, address, vault_id, label),
+        } => update_vault(deps, info, address, vault_id, label),
     }
 }
 

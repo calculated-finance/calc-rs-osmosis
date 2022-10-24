@@ -24,6 +24,14 @@ pub fn assert_sender_is_admin(deps: Deps, sender: Addr) -> Result<(), ContractEr
     }
 }
 
+pub fn asset_sender_is_vault_owner(vault_owner: Addr, sender: Addr) -> Result<(), ContractError> {
+    if sender == vault_owner {
+        Ok(())
+    } else {
+        Err(ContractError::Unauthorized {})
+    }
+}
+
 pub fn assert_sender_is_admin_or_vault_owner(
     deps: Deps,
     vault_owner: Addr,

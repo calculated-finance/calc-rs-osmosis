@@ -60,10 +60,10 @@ pub enum ExecuteMsg {
         fee_percent: Option<Uint128>,
         staking_router_address: Option<Addr>,
     },
-    UpdateVaultLabel {
+    UpdateVault {
         address: Addr,
         vault_id: Uint128,
-        label: String,
+        label: Option<String>,
     },
 }
 
