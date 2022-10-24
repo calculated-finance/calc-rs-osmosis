@@ -34,6 +34,13 @@ pub fn create_vault(
     assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
     assert_destinations_limit_is_not_breached(&destinations)?;
 
+    if let Some(target_time) = target_start_time_utc_seconds {
+        assert_target_start_time_is_in_future(
+            env.block.time,
+            Timestamp::from_seconds(target_time.u64()),
+        )?;
+    }
+
     if destinations.is_empty() {
         destinations.push(Destination {
             address: info.sender.clone(),
@@ -101,8 +108,6 @@ fn create_time_trigger(
         Some(time) => Timestamp::from_seconds(time.u64()),
         None => env.block.time,
     };
-
-    assert_target_start_time_is_in_future(env.block.time, target_time)?;
 
     save_trigger(
         deps.storage,
