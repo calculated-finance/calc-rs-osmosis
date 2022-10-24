@@ -382,7 +382,7 @@ impl MockApp {
         });
     }
 
-    pub fn get_vault_by_label(&self, label: &str, address: String) -> Vault {
+    pub fn get_vault_by_label(&self, label: &str, address: Addr) -> Vault {
         let vault_id = self.vault_ids.get(label).unwrap();
         let vault_response: VaultResponse = self
             .app

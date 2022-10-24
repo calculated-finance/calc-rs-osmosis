@@ -407,7 +407,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
     .unwrap();
 
     let cancel_vault_execute_message = ExecuteMsg::CancelVault {
-        address: String::from(VALID_ADDRESS_THREE),
+        address: Addr::unchecked(VALID_ADDRESS_THREE),
         vault_id: Uint128::new(1),
     };
 
@@ -485,7 +485,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
 
     let get_vault_query_message = QueryMsg::GetVault {
         vault_id: Uint128::new(1),
-        address: String::from(VALID_ADDRESS_THREE),
+        address: Addr::unchecked(VALID_ADDRESS_THREE),
     };
 
     let binary = query(deps.as_ref(), env, get_vault_query_message).unwrap();
@@ -580,7 +580,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
     .unwrap();
 
     let get_all_active_vaults_by_address_query_message = QueryMsg::GetVaultsByAddress {
-        address: String::from(VALID_ADDRESS_THREE),
+        address: Addr::unchecked(VALID_ADDRESS_THREE),
     };
     let binary = query(
         deps.as_ref(),

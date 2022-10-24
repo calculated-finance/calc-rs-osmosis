@@ -2,9 +2,9 @@ use crate::{
     msg::VaultResponse,
     state::{get_trigger, vault_store},
 };
-use cosmwasm_std::{Deps, StdResult, Uint128};
+use cosmwasm_std::{Addr, Deps, StdResult, Uint128};
 
-pub fn get_vault(deps: Deps, address: String, vault_id: Uint128) -> StdResult<VaultResponse> {
+pub fn get_vault(deps: Deps, address: Addr, vault_id: Uint128) -> StdResult<VaultResponse> {
     let vault = vault_store().load(deps.storage, vault_id.into())?;
 
     if vault.owner != address {

@@ -32,7 +32,7 @@ fn with_multiple_vaults_should_succeed() {
         .query_wasm_smart(
             &mock.dca_contract_address,
             &QueryMsg::GetVaultsByAddress {
-                address: user_address.to_string(),
+                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -50,7 +50,7 @@ fn with_no_vaults_should_succeed() {
         .query_wasm_smart(
             &mock.dca_contract_address,
             &QueryMsg::GetVaultsByAddress {
-                address: "not-a-user".to_string(),
+                address: Addr::unchecked("not-a-user".to_string()),
             },
         )
         .unwrap();

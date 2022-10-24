@@ -9,7 +9,7 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::Env;
+use cosmwasm_std::{Addr, Env};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
 use fin_helpers::limit_orders::create_retract_order_sub_msg;
@@ -18,10 +18,10 @@ use fin_helpers::queries::query_order_details;
 pub fn cancel_vault(
     deps: DepsMut,
     env: Env,
-    address: String,
+    address: Addr,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    let validated_address = deps.api.addr_validate(&address)?;
+    deps.api.addr_validate(&address.to_string())?;
 
     let updated_vault = vault_store().update(
         deps.storage,
@@ -35,7 +35,7 @@ pub fn cancel_vault(
                 None => Err(ContractError::CustomError {
                     val: format!(
                         "could not find vault for address: {} with id: {}",
-                        validated_address.clone(),
+                        address.clone(),
                         vault_id
                     ),
                 }),
@@ -43,11 +43,7 @@ pub fn cancel_vault(
         },
     )?;
 
-    assert_sender_is_admin_or_vault_owner(
-        deps.as_ref(),
-        updated_vault.owner.clone(),
-        validated_address,
-    )?;
+    assert_sender_is_admin_or_vault_owner(deps.as_ref(), updated_vault.owner.clone(), address)?;
 
     create_event(
         deps.storage,

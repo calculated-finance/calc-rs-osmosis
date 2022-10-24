@@ -54,7 +54,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
             &mock.dca_contract_address,
             &QueryMsg::GetVault {
                 vault_id,
-                address: user_address.to_string(),
+                address: user_address.clone(),
             },
         )
         .unwrap();

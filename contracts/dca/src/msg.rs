@@ -44,11 +44,11 @@ pub enum ExecuteMsg {
         target_price: Option<Decimal256>,
     },
     Deposit {
-        address: String,
+        address: Addr,
         vault_id: Uint128,
     },
     CancelVault {
-        address: String,
+        address: Addr,
         vault_id: Uint128,
     },
     ExecuteTrigger {
@@ -69,11 +69,11 @@ pub enum QueryMsg {
         order_idx: Uint128,
     },
     GetVault {
-        address: String,
+        address: Addr,
         vault_id: Uint128,
     },
     GetVaultsByAddress {
-        address: String,
+        address: Addr,
     },
     GetEventsByResourceId {
         resource_id: Uint128,

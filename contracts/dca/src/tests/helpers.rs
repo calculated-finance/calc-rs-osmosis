@@ -20,7 +20,7 @@ pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str,
         })
 }
 
-pub fn assert_vault_eq(mock: &MockApp, address: String, vault_id: Uint128, expected_vault: Vault) {
+pub fn assert_vault_eq(mock: &MockApp, address: Addr, vault_id: Uint128, expected_vault: Vault) {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
@@ -56,7 +56,7 @@ pub fn assert_events_published(mock: &MockApp, resource_id: Uint128, expected_ev
 pub fn assert_vault_balance(
     mock: &MockApp,
     contract_address: &Addr,
-    address: String,
+    address: Addr,
     vault_id: Uint128,
     balance: Uint128,
 ) {
