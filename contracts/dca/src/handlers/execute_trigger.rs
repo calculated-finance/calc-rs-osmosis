@@ -7,7 +7,7 @@ use crate::state::{
 };
 use crate::validation_helpers::assert_target_time_is_in_past;
 use crate::vault::Vault;
-use base::events::event::{EventBuilder, EventData};
+use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{PositionType, VaultStatus};
 #[cfg(not(feature = "library"))]
@@ -24,12 +24,22 @@ pub fn execute_trigger(
     let trigger = get_trigger(deps.storage, trigger_id.into())?;
     let vault = vault_store().load(deps.storage, trigger.vault_id.into())?;
 
+    let current_price = match vault.position_type {
+        PositionType::Enter => query_base_price(deps.querier, vault.pair.address.clone()),
+        PositionType::Exit => query_quote_price(deps.querier, vault.pair.address.clone()),
+    };
+
     create_event(
         deps.storage,
         EventBuilder::new(
             vault.id,
             env.block.to_owned(),
-            EventData::DCAVaultExecutionTriggered,
+            EventData::DCAVaultExecutionTriggered {
+                base_denom: vault.pair.base_denom.clone(),
+                quote_denom: vault.pair.quote_denom.clone(),
+                position_type: vault.position_type.clone(),
+                asset_price: current_price.clone(),
+            },
         ),
     )?;
 
@@ -39,7 +49,7 @@ pub fn execute_trigger(
         TriggerConfiguration::Time { target_time } => {
             assert_target_time_is_in_past(env.block.time, target_time)?;
 
-            if vault.low_funds() {
+            if vault.is_active() && vault.low_funds() {
                 vault_store().update(
                     deps.storage,
                     vault.id.into(),
@@ -61,25 +71,49 @@ pub fn execute_trigger(
                 )?;
             }
 
-            let fin_swap_msg = match vault.slippage_tolerance {
-                Some(tolerance) => {
-                    let belief_price = match vault.position_type {
-                        PositionType::Enter => {
-                            query_base_price(deps.querier, vault.pair.address.clone())
-                        }
-                        PositionType::Exit => {
-                            query_quote_price(deps.querier, vault.pair.address.clone())
-                        }
-                    };
-
-                    create_fin_swap_with_slippage(
-                        vault.pair.address.clone(),
-                        belief_price,
-                        tolerance,
-                        vault.get_swap_amount(),
-                        AFTER_FIN_SWAP_REPLY_ID,
-                    )
+            if let Some(price_threshold) = vault.price_threshold {
+                // dca in with price ceiling
+                if vault.position_type == PositionType::Enter && current_price > price_threshold {
+                    create_event(
+                        deps.storage,
+                        EventBuilder::new(
+                            vault.id,
+                            env.block.to_owned(),
+                            EventData::DCAVaultExecutionSkipped {
+                                reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                                    price: current_price,
+                                },
+                            },
+                        ),
+                    )?;
+                    return Ok(response);
                 }
+                // dca out with price floor
+                if vault.position_type == PositionType::Exit && current_price < price_threshold {
+                    create_event(
+                        deps.storage,
+                        EventBuilder::new(
+                            vault.id,
+                            env.block.to_owned(),
+                            EventData::DCAVaultExecutionSkipped {
+                                reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                                    price: current_price,
+                                },
+                            },
+                        ),
+                    )?;
+                    return Ok(response);
+                }
+            };
+
+            let fin_swap_msg = match vault.slippage_tolerance {
+                Some(tolerance) => create_fin_swap_with_slippage(
+                    vault.pair.address.clone(),
+                    current_price,
+                    tolerance,
+                    vault.get_swap_amount(),
+                    AFTER_FIN_SWAP_REPLY_ID,
+                ),
                 None => create_fin_swap_without_slippage(
                     vault.pair.address.clone(),
                     vault.get_swap_amount(),

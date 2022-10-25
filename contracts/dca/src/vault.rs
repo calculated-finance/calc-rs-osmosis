@@ -19,6 +19,7 @@ pub struct Vault {
     pub swap_amount: Uint128,
     pub position_type: PositionType,
     pub slippage_tolerance: Option<Decimal256>,
+    pub price_threshold: Option<Decimal256>,
     pub time_interval: TimeInterval,
     pub started_at: Option<Timestamp>,
 }
@@ -50,5 +51,9 @@ impl Vault {
 
     pub fn low_funds(&self) -> bool {
         self.balance.amount < self.swap_amount
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.status == VaultStatus::Active
     }
 }

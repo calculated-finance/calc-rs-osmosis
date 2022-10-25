@@ -1,10 +1,15 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{BlockInfo, Coin, Timestamp, Uint128};
+use cosmwasm_std::{BlockInfo, Coin, Timestamp, Uint128, Decimal256};
+
+use crate::vaults::vault::PositionType;
 
 #[cw_serde]
 pub enum ExecutionSkippedReason {
     SlippageToleranceExceeded,
     InsufficientFunds,
+    PriceThresholdExceeded {
+        price: Decimal256
+    },
     UnknownFailure,
 }
 
@@ -14,7 +19,12 @@ pub enum EventData {
     DCAVaultFundsDeposited {
         amount: Coin,
     },
-    DCAVaultExecutionTriggered,
+    DCAVaultExecutionTriggered {
+        base_denom: String,
+        quote_denom: String,
+        position_type: PositionType,
+        asset_price: Decimal256
+    },
     DCAVaultExecutionCompleted {
         sent: Coin,
         received: Coin,
