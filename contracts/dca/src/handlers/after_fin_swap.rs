@@ -74,6 +74,15 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 &coin_received.denom,
             );
 
+            // never try to send 0 tokens
+            if execution_fee.amount.gt(&Uint128::zero())
+            {
+                messages.push(CosmosMsg::Bank(BankMsg::Send {
+                    to_address: config.fee_collector.to_string(),
+                    amount: vec![execution_fee.clone()],
+                }));
+            }
+
             let total_to_redistribute = coin_received.amount - execution_fee.amount;
 
             vault.destinations.iter().for_each(|destination| {
@@ -114,11 +123,6 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                     }
                 }
             });
-
-            messages.push(CosmosMsg::Bank(BankMsg::Send {
-                to_address: config.fee_collector.to_string(),
-                amount: vec![execution_fee.clone()],
-            }));
 
             update_vault(
                 deps.storage,

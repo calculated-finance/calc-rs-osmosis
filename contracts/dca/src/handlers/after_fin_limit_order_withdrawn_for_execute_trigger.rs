@@ -26,6 +26,10 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
+            
+            let mut messages: Vec<CosmosMsg> = Vec::new();
+            let mut sub_msgs: Vec<SubMsg> = Vec::new();
+
             delete_trigger(deps.storage, vault.id)?;
 
             save_trigger(
@@ -87,8 +91,14 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 &coin_received.denom,
             );
 
-            let mut messages: Vec<CosmosMsg> = Vec::new();
-            let mut sub_msgs: Vec<SubMsg> = Vec::new();
+            // never try to send 0 tokens
+            if execution_fee.amount.gt(&Uint128::zero())
+            {
+                messages.push(CosmosMsg::Bank(BankMsg::Send {
+                    to_address: config.fee_collector.to_string(),
+                    amount: vec![execution_fee.clone()],
+                }));
+            }
 
             let total_to_redistribute = coin_received.amount - execution_fee.amount;
 
@@ -130,11 +140,6 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                     }
                 }
             });
-
-            messages.push(CosmosMsg::Bank(BankMsg::Send {
-                to_address: config.fee_collector.to_string(),
-                amount: vec![execution_fee.clone()],
-            }));
 
             create_event(
                 deps.storage,
