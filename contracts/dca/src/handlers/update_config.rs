@@ -13,7 +13,7 @@ pub fn update_config(
     fee_percent: Option<Uint128>,
     staking_router_address: Option<Addr>,
 ) -> Result<Response, ContractError> {
-    assert_sender_is_admin(deps.as_ref(), info.sender)?;
+    assert_sender_is_admin(deps.storage, info.sender)?;
 
     if fee_percent.is_some() && fee_percent.unwrap() > ONE_HUNDRED {
         return Err(ContractError::CustomError {

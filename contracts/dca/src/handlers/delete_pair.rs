@@ -10,7 +10,7 @@ pub fn delete_pair(
     info: MessageInfo,
     address: Addr,
 ) -> Result<Response, ContractError> {
-    assert_sender_is_admin(deps.as_ref(), info.sender)?;
+    assert_sender_is_admin(deps.storage, info.sender)?;
 
     deps.api.addr_validate(&address.to_string())?;
 
