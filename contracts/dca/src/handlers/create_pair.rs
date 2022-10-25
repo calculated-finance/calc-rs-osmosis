@@ -13,7 +13,7 @@ pub fn create_pair(
     base_denom: String,
     quote_denom: String,
 ) -> Result<Response, ContractError> {
-    assert_sender_is_admin(deps.as_ref(), info.sender)?;
+    assert_sender_is_admin(deps.storage, info.sender)?;
 
     deps.api.addr_validate(&address.to_string())?;
 

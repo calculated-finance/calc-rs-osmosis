@@ -39,7 +39,7 @@ pub fn cancel_vault(
         },
     )?;
 
-    assert_sender_is_admin_or_vault_owner(deps.as_ref(), updated_vault.owner.clone(), address)?;
+    assert_sender_is_admin_or_vault_owner(deps.storage, updated_vault.owner.clone(), address)?;
 
     create_event(
         deps.storage,
