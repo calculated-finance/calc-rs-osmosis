@@ -219,7 +219,7 @@ impl MockApp {
         self
     }
 
-    pub fn with_vault_with_filled_fin_limit_price_trigger(
+    pub fn VaultStawith_vault_with_filled_fin_limit_price_trigger(
         mut self,
         owner: &Addr,
         destinations: Option<Vec<Destination>>,

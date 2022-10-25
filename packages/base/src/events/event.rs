@@ -1,6 +1,8 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{BlockInfo, Coin, Timestamp, Uint128, Decimal256};
 
+use crate::vaults::vault::PositionType;
+
 #[cw_serde]
 pub enum ExecutionSkippedReason {
     SlippageToleranceExceeded,
@@ -18,6 +20,9 @@ pub enum EventData {
         amount: Coin,
     },
     DCAVaultExecutionTriggered {
+        base_denom: String,
+        quote_denom: String,
+        position_type: PositionType,
         asset_price: Decimal256
     },
     DCAVaultExecutionCompleted {

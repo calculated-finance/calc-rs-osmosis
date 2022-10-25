@@ -35,6 +35,9 @@ pub fn execute_trigger(
             vault.id,
             env.block.to_owned(),
             EventData::DCAVaultExecutionTriggered {
+                base_denom: vault.pair.base_denom.clone(),
+                quote_denom: vault.pair.quote_denom.clone(),
+                position_type: vault.position_type.clone(),
                 asset_price: current_price.clone(),
             },
         ),

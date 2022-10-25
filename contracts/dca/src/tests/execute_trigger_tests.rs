@@ -11,7 +11,7 @@ use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use base::events::event::{EventBuilder, EventData};
-use base::vaults::vault::{Destination, PostExecutionAction};
+use base::vaults::vault::{Destination, PositionType, PostExecutionAction};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128};
 use cw_multi_test::Executor;
 
@@ -105,6 +105,9 @@ fn fin_limit_order_trigger_should_succeed() {
                 vault_id,
                 mock.app.block_info(),
                 EventData::DCAVaultExecutionTriggered {
+                    base_denom: DENOM_UTEST.to_string(),
+                    quote_denom: DENOM_UKUJI.to_string(),
+                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
@@ -562,6 +565,9 @@ fn after_target_time_should_succeed() {
                 vault_id,
                 mock.app.block_info(),
                 EventData::DCAVaultExecutionTriggered {
+                    base_denom: DENOM_UTEST.to_string(),
+                    quote_denom: DENOM_UKUJI.to_string(),
+                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
@@ -674,6 +680,9 @@ fn with_price_threshold_should_succeed() {
                 vault_id,
                 mock.app.block_info(),
                 EventData::DCAVaultExecutionTriggered {
+                    base_denom: DENOM_UTEST.to_string(),
+                    quote_denom: DENOM_UKUJI.to_string(),
+                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
@@ -773,6 +782,9 @@ fn with_price_threshold_should_skip_execution() {
                 vault_id,
                 mock.app.block_info(),
                 EventData::DCAVaultExecutionTriggered {
+                    base_denom: DENOM_UTEST.to_string(),
+                    quote_denom: DENOM_UKUJI.to_string(),
+                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
