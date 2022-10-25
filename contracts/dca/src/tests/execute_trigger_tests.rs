@@ -104,7 +104,9 @@ fn fin_limit_order_trigger_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered,
+                EventData::DCAVaultExecutionTriggered {
+                    asset_price: Decimal256::from_str("1.0").unwrap(),
+                },
             )
             .build(2),
             EventBuilder::new(
@@ -559,7 +561,9 @@ fn after_target_time_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered,
+                EventData::DCAVaultExecutionTriggered {
+                    asset_price: Decimal256::from_str("1.0").unwrap(),
+                },
             )
             .build(2),
             EventBuilder::new(
@@ -669,7 +673,9 @@ fn with_price_threshold_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered,
+                EventData::DCAVaultExecutionTriggered {
+                    asset_price: Decimal256::from_str("1.0").unwrap(),
+                },
             )
             .build(2),
             EventBuilder::new(
@@ -766,7 +772,9 @@ fn with_price_threshold_should_skip_execution() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered,
+                EventData::DCAVaultExecutionTriggered {
+                    asset_price: Decimal256::from_str("1.0").unwrap(),
+                },
             )
             .build(2),
             EventBuilder::new(

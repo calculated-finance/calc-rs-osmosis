@@ -17,7 +17,9 @@ pub enum EventData {
     DCAVaultFundsDeposited {
         amount: Coin,
     },
-    DCAVaultExecutionTriggered,
+    DCAVaultExecutionTriggered {
+        asset_price: Decimal256
+    },
     DCAVaultExecutionCompleted {
         sent: Coin,
         received: Coin,

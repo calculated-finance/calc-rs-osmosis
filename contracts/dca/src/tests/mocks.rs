@@ -682,6 +682,10 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
+                FINQueryMsg::Book {
+                    limit: _,
+                    offset: _,
+                } => default_book_response(),
                 _ => default_query_response(),
             }
         },
@@ -707,6 +711,10 @@ pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
+                FINQueryMsg::Book {
+                    limit: _,
+                    offset: _,
+                } => default_book_response(),
                 FINQueryMsg::Order { order_idx: _ } => partially_filled_order_response(env),
                 _ => default_query_response(),
             }
