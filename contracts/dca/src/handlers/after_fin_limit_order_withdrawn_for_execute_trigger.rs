@@ -2,14 +2,15 @@ use crate::constants::ONE_HUNDRED;
 use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
-    create_event, remove_trigger, save_trigger, vault_store, CACHE, CONFIG, LIMIT_ORDER_CACHE,
+    create_event, delete_trigger, get_vault, save_trigger, update_vault, CACHE, CONFIG,
+    LIMIT_ORDER_CACHE,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PostExecutionAction, VaultStatus};
-use cosmwasm_std::{to_binary, CosmosMsg, Env, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{to_binary, CosmosMsg, Env, StdError, StdResult, SubMsg, Uint128, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response};
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
@@ -21,11 +22,11 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
     let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
-    let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
+    let vault = get_vault(deps.storage, cache.vault_id.into())?;
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
-            remove_trigger(deps.storage, vault.id)?;
+            delete_trigger(deps.storage, vault.id)?;
 
             save_trigger(
                 deps.storage,
@@ -41,11 +42,11 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 },
             )?;
 
-            vault_store().update(
+            update_vault(
                 deps.storage,
                 vault.id.into(),
-                |vault| -> Result<Vault, ContractError> {
-                    match vault {
+                |stored_value: Option<Vault>| -> StdResult<Vault> {
+                    match stored_value {
                         Some(mut existing_vault) => {
                             existing_vault.balance.amount -=
                                 limit_order_cache.original_offer_amount;
@@ -60,10 +61,11 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
 
                             Ok(existing_vault)
                         }
-                        None => Err(ContractError::CustomError {
-                            val: format!(
-                                "could not find vault for address: {} with id: {}",
-                                cache.owner, cache.vault_id
+                        None => Err(StdError::NotFound {
+                            kind: format!(
+                                "vault for address: {} with id: {}",
+                                vault.owner.clone(),
+                                vault.id
                             ),
                         }),
                     }

@@ -3,7 +3,8 @@ use crate::contract::{
 };
 use crate::error::ContractError;
 use crate::state::{
-    create_event, get_trigger, vault_store, Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE,
+    create_event, get_trigger, get_vault, update_vault, Cache, LimitOrderCache, CACHE,
+    LIMIT_ORDER_CACHE,
 };
 use crate::validation_helpers::assert_target_time_is_in_past;
 use crate::vault::Vault;
@@ -12,6 +13,7 @@ use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{PositionType, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
+use cosmwasm_std::{StdError, StdResult};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
 use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
@@ -22,7 +24,7 @@ pub fn execute_trigger(
     trigger_id: Uint128,
 ) -> Result<Response, ContractError> {
     let trigger = get_trigger(deps.storage, trigger_id.into())?;
-    let vault = vault_store().load(deps.storage, trigger.vault_id.into())?;
+    let vault = get_vault(deps.storage, trigger.vault_id.into())?;
 
     let current_price = match vault.position_type {
         PositionType::Enter => query_base_price(deps.querier, vault.pair.address.clone()),
@@ -50,18 +52,18 @@ pub fn execute_trigger(
             assert_target_time_is_in_past(env.block.time, target_time)?;
 
             if vault.is_active() && vault.low_funds() {
-                vault_store().update(
+                update_vault(
                     deps.storage,
                     vault.id.into(),
-                    |existing_vault| -> Result<Vault, ContractError> {
+                    |existing_vault| -> StdResult<Vault> {
                         match existing_vault {
                             Some(mut existing_vault) => {
                                 existing_vault.status = VaultStatus::Inactive;
                                 Ok(existing_vault)
                             }
-                            None => Err(ContractError::CustomError {
-                                val: format!(
-                                    "could not find vault for address: {} with id: {}",
+                            None => Err(StdError::NotFound {
+                                kind: format!(
+                                    "vault for address: {} with id: {}",
                                     vault.owner.clone(),
                                     vault.id
                                 ),

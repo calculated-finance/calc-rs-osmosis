@@ -1,7 +1,7 @@
 use crate::contract::AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
-    create_event, get_trigger, remove_trigger, vault_store, Cache, LimitOrderCache, CACHE,
+    create_event, delete_trigger, get_trigger, update_vault, Cache, LimitOrderCache, CACHE,
     LIMIT_ORDER_CACHE,
 };
 use crate::validation_helpers::assert_sender_is_admin_or_vault_owner;
@@ -9,7 +9,7 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Env};
+use cosmwasm_std::{Addr, Env, StdError, StdResult};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
 use fin_helpers::limit_orders::create_retract_order_sub_msg;
@@ -23,21 +23,17 @@ pub fn cancel_vault(
 ) -> Result<Response, ContractError> {
     deps.api.addr_validate(&address.to_string())?;
 
-    let updated_vault = vault_store().update(
+    let updated_vault = update_vault(
         deps.storage,
         vault_id.into(),
-        |existing_vault| -> Result<Vault, ContractError> {
+        |existing_vault| -> StdResult<Vault> {
             match existing_vault {
                 Some(mut existing_vault) => {
                     existing_vault.status = VaultStatus::Cancelled;
                     Ok(existing_vault)
                 }
-                None => Err(ContractError::CustomError {
-                    val: format!(
-                        "could not find vault for address: {} with id: {}",
-                        address.clone(),
-                        vault_id
-                    ),
+                None => Err(StdError::NotFound {
+                    kind: format!("vault for address: {} with id: {}", address, vault_id),
                 }),
             }
         },
@@ -61,7 +57,7 @@ pub fn cancel_vault(
 }
 
 fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
-    remove_trigger(deps.storage, vault.id.into())?;
+    delete_trigger(deps.storage, vault.id.into())?;
 
     let refund_bank_msg = BankMsg::Send {
         to_address: vault.owner.to_string(),

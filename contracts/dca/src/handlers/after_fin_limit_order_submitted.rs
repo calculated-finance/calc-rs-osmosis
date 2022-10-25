@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::{get_trigger, remove_trigger, save_trigger, CACHE};
+use crate::state::{delete_trigger, get_trigger, save_trigger, CACHE};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 #[cfg(not(feature = "library"))]
@@ -23,7 +23,7 @@ pub fn after_fin_limit_order_submitted(
             let cache = CACHE.load(deps.storage)?;
 
             let trigger = get_trigger(deps.storage, cache.vault_id)?;
-            remove_trigger(deps.storage, cache.vault_id)?;
+            delete_trigger(deps.storage, cache.vault_id)?;
 
             match trigger.configuration {
                 TriggerConfiguration::FINLimitOrder { target_price, .. } => {

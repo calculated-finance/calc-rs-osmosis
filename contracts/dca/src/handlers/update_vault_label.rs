@@ -1,20 +1,20 @@
 use crate::{
-    error::ContractError, state::vault_store, validation_helpers::asset_sender_is_vault_owner,
+    error::ContractError, state::update_vault, validation_helpers::asset_sender_is_vault_owner,
     vault::Vault,
 };
-use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, Uint128};
+use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, StdError, StdResult, Uint128};
 
-pub fn update_vault(
+pub fn update_vault_label(
     deps: DepsMut,
     info: MessageInfo,
     address: Addr,
     vault_id: Uint128,
     label: Option<String>,
 ) -> Result<Response, ContractError> {
-    let updated_vault = vault_store().update(
+    let updated_vault = update_vault(
         deps.storage,
         vault_id.into(),
-        |existing_vault| -> Result<Vault, ContractError> {
+        |existing_vault| -> StdResult<Vault> {
             match existing_vault {
                 Some(mut existing_vault) => {
                     if let Some(label) = label {
@@ -22,12 +22,8 @@ pub fn update_vault(
                     }
                     Ok(existing_vault)
                 }
-                None => Err(ContractError::CustomError {
-                    val: format!(
-                        "could not find vault for address: {} with id: {}",
-                        address.clone(),
-                        vault_id
-                    ),
+                None => Err(StdError::NotFound {
+                    kind: format!("vault for address: {} with id: {}", address, vault_id),
                 }),
             }
         },

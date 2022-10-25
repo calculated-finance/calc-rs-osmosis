@@ -1,4 +1,5 @@
 use crate::vault::Vault;
+use crate::vault::VaultBuilder;
 use base::events::event::Event;
 use base::events::event::EventBuilder;
 use base::pair::Pair;
@@ -9,6 +10,7 @@ use cosmwasm_std::Addr;
 use cosmwasm_std::StdResult;
 use cosmwasm_std::Storage;
 use cosmwasm_std::Uint128;
+use cw_storage_plus::Bound;
 use cw_storage_plus::Index;
 use cw_storage_plus::IndexList;
 use cw_storage_plus::IndexedMap;
@@ -24,7 +26,6 @@ pub struct Cache {
 #[cw_serde]
 pub struct Config {
     pub admin: Addr,
-    pub vault_count: Uint128,
     pub fee_collector: Addr,
     pub fee_percent: Uint128,
     pub staking_router_address: Addr,
@@ -50,7 +51,9 @@ pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cach
 
 pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v1");
 
-pub struct VaultIndexes<'a> {
+pub const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v1");
+
+struct VaultIndexes<'a> {
     pub owner: MultiIndex<'a, (Addr, u128), Vault, u128>,
 }
 
@@ -61,7 +64,7 @@ impl<'a> IndexList<Vault> for VaultIndexes<'a> {
     }
 }
 
-pub fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
+fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
         owner: MultiIndex::new(
             |_, v| (v.owner.clone(), v.id.into()),
@@ -70,6 +73,53 @@ pub fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
         ),
     };
     IndexedMap::new("vaults_v2", indexes)
+}
+
+pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdResult<Vault> {
+    let vault = vault_builder.build(fetch_and_increment_counter(store, VAULT_COUNTER)?.into());
+    vault_store().save(store, vault.id.into(), &vault)?;
+    Ok(vault)
+}
+
+pub fn get_vault(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vault> {
+    vault_store().load(store, vault_id.into())
+}
+
+pub fn get_vaults_by_address(
+    store: &dyn Storage,
+    address: Addr,
+    start_after: Option<u128>,
+    limit: Option<u8>,
+) -> StdResult<Vec<Vault>> {
+    Ok(vault_store()
+        .idx
+        .owner
+        .sub_prefix(address)
+        .range(
+            store,
+            start_after.map(|vault_id| Bound::exclusive((vault_id, vault_id))),
+            None,
+            cosmwasm_std::Order::Ascending,
+        )
+        .take(limit.unwrap_or(30) as usize)
+        .map(|result| result.expect("a vault stored by id").1)
+        .collect::<Vec<Vault>>())
+}
+
+pub fn update_vault<T>(store: &mut dyn Storage, vault_id: Uint128, update_fn: T) -> StdResult<Vault>
+where
+    T: FnOnce(Option<Vault>) -> StdResult<Vault>,
+{
+    vault_store().update(store, vault_id.into(), update_fn)
+}
+
+pub fn delete_vault(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<()> {
+    delete_trigger(store, vault_id)?;
+    vault_store().remove(store, vault_id.into())
+}
+
+pub fn clear_vaults(store: &mut dyn Storage) {
+    vault_store().clear(store)
 }
 
 pub const TRIGGERS: Map<u128, Trigger> = Map::new("triggers_v1");
@@ -117,7 +167,7 @@ pub fn get_trigger(store: &dyn Storage, vault_id: Uint128) -> StdResult<Trigger>
     TRIGGERS.load(store, vault_id.into())
 }
 
-pub fn remove_trigger(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<Uint128> {
+pub fn delete_trigger(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<Uint128> {
     let trigger = TRIGGERS.load(store, vault_id.into())?;
     TRIGGERS.remove(store, trigger.vault_id.into());
     match trigger.configuration {

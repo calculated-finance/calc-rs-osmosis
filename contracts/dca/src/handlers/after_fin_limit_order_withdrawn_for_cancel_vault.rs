@@ -1,6 +1,6 @@
 use crate::{
     error::ContractError,
-    state::{remove_trigger, vault_store, CACHE, LIMIT_ORDER_CACHE},
+    state::{delete_trigger, get_vault, CACHE, LIMIT_ORDER_CACHE},
 };
 use cosmwasm_std::Uint128;
 #[cfg(not(feature = "library"))]
@@ -12,7 +12,7 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
-    let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
+    let vault = get_vault(deps.storage, cache.vault_id.into())?;
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
@@ -33,7 +33,7 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
                 amount: vec![filled_amount.clone()],
             };
 
-            remove_trigger(deps.storage, vault.id.into())?;
+            delete_trigger(deps.storage, vault.id.into())?;
 
             Ok(Response::new()
                 .add_attribute("method", "fin_limit_order_withdrawn_for_cancel_vault")

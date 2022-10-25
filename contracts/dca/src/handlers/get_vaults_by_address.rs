@@ -1,9 +1,6 @@
-use crate::{
-    msg::VaultsResponse, state::vault_store, validation_helpers::assert_page_limit_is_valid,
-    vault::Vault,
-};
+use crate::state::get_vaults_by_address as fetch_vaults_by_address;
+use crate::{msg::VaultsResponse, validation_helpers::assert_page_limit_is_valid};
 use cosmwasm_std::{Addr, Deps, StdResult};
-use cw_storage_plus::Bound;
 
 pub fn get_vaults_by_address(
     deps: Deps,
@@ -14,19 +11,7 @@ pub fn get_vaults_by_address(
     deps.api.addr_validate(&address.to_string())?;
     assert_page_limit_is_valid(limit)?;
 
-    let vaults = vault_store()
-        .idx
-        .owner
-        .sub_prefix(address)
-        .range(
-            deps.storage,
-            start_after.map(|vault_id| Bound::exclusive((vault_id, vault_id))),
-            None,
-            cosmwasm_std::Order::Ascending,
-        )
-        .take(limit.unwrap_or(30u8) as usize)
-        .map(|result| result.unwrap().1)
-        .collect::<Vec<Vault>>();
+    let vaults = fetch_vaults_by_address(deps.storage, address, start_after, limit)?;
 
     Ok(VaultsResponse { vaults })
 }

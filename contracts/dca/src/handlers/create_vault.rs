@@ -1,19 +1,19 @@
 use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
-use crate::state::{create_event, save_trigger, vault_store, Cache, Config, CACHE, CONFIG, PAIRS};
+use crate::state::{create_event, save_trigger, save_vault, Cache, CACHE, PAIRS};
 use crate::validation_helpers::{
     assert_denom_matches_pair_denom, assert_destination_allocations_add_up_to_one,
     assert_destination_send_addresses_are_valid, assert_destinations_limit_is_not_breached,
     assert_exactly_one_asset, assert_swap_amount_is_less_than_or_equal_to_balance,
     assert_target_start_time_is_in_future,
 };
-use crate::vault::Vault;
+use crate::vault::{Vault, VaultBuilder};
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, StdResult, Timestamp, Uint128, Uint64};
+use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_limit_order_sub_msg;
 
 pub fn create_vault(
@@ -58,13 +58,7 @@ pub fn create_vault(
 
     assert_denom_matches_pair_denom(pair.clone(), info.funds.clone(), position_type.clone())?;
 
-    let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
-        config.vault_count = config.vault_count.checked_add(Uint128::new(1))?;
-        Ok(config)
-    })?;
-
-    let vault = Vault {
-        id: config.vault_count,
+    let vault_builder = VaultBuilder {
         owner: info.sender.clone(),
         label,
         destinations,
@@ -80,7 +74,7 @@ pub fn create_vault(
         started_at: None,
     };
 
-    vault_store().save(deps.storage, vault.id.into(), &vault)?;
+    let vault = save_vault(deps.storage, vault_builder)?;
 
     create_event(
         deps.storage,

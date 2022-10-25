@@ -19,13 +19,12 @@ use crate::handlers::get_trigger_id_by_fin_limit_order_idx::get_trigger_id_by_fi
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::update_config::update_config;
-use crate::handlers::update_vault_label::update_vault;
+use crate::handlers::update_vault_label::update_vault_label;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::state::{clear_triggers, event_store, vault_store, Config, CONFIG};
+use crate::state::{clear_triggers, clear_vaults, event_store, Config, CONFIG};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
-    Uint128,
 };
 use cw2::set_contract_version;
 
@@ -41,7 +40,7 @@ pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 6;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
-    vault_store().clear(deps.storage);
+    clear_vaults(deps.storage);
     clear_triggers(deps.storage);
     event_store().clear(deps.storage);
     CONFIG.remove(deps.storage);
@@ -53,7 +52,6 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
     let config = Config {
         admin: msg.admin,
-        vault_count: Uint128::zero(),
         fee_collector: msg.fee_collector,
         fee_percent: msg.fee_percent,
         staking_router_address: msg.staking_router_address,
@@ -77,7 +75,6 @@ pub fn instantiate(
 
     let config = Config {
         admin: msg.admin.clone(),
-        vault_count: Uint128::zero(),
         fee_collector: msg.fee_collector,
         fee_percent: msg.fee_percent,
         staking_router_address: msg.staking_router_address,
@@ -149,7 +146,7 @@ pub fn execute(
             address,
             vault_id,
             label,
-        } => update_vault(deps, info, address, vault_id, label),
+        } => update_vault_label(deps, info, address, vault_id, label),
     }
 }
 

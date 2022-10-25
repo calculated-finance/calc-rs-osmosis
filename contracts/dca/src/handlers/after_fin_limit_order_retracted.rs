@@ -1,6 +1,6 @@
 use crate::contract::AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID;
 use crate::error::ContractError;
-use crate::state::{create_event, remove_trigger, vault_store, CACHE, LIMIT_ORDER_CACHE};
+use crate::state::{create_event, delete_vault, get_vault, CACHE, LIMIT_ORDER_CACHE};
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
 #[cfg(not(feature = "library"))]
@@ -13,7 +13,7 @@ pub fn after_fin_limit_order_retracted(
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
-    let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
+    let vault = get_vault(deps.storage, cache.vault_id)?;
     let response = Response::new().add_attribute("method", "fin_limit_order_retracted");
 
     match reply.result {
@@ -66,8 +66,7 @@ pub fn after_fin_limit_order_retracted(
                     amount: vec![vault.balance.clone()],
                 };
 
-                vault_store().remove(deps.storage, vault.id.into())?;
-                remove_trigger(deps.storage, vault.id.into())?;
+                delete_vault(deps.storage, vault.id)?;
 
                 Ok(response
                     .add_attribute("withdraw_required", "false")

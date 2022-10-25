@@ -1,11 +1,11 @@
 use crate::error::ContractError;
-use crate::state::{create_event, vault_store};
+use crate::state::{create_event, get_vault, update_vault};
 use crate::validation_helpers::{assert_denom_matches_pair_denom, assert_exactly_one_asset};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Env};
+use cosmwasm_std::{Addr, Env, StdError, StdResult};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
 
@@ -17,7 +17,7 @@ pub fn deposit(
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
     deps.api.addr_validate(address.as_str())?;
-    let vault = vault_store().load(deps.storage, vault_id.into())?;
+    let vault = get_vault(deps.storage, vault_id.into())?;
 
     if address != vault.owner {
         return Err(ContractError::Unauthorized {});
@@ -30,10 +30,10 @@ pub fn deposit(
         vault.position_type.clone(),
     )?;
 
-    vault_store().update(
+    update_vault(
         deps.storage,
         vault.id.into(),
-        |existing_vault| -> Result<Vault, ContractError> {
+        |existing_vault| -> StdResult<Vault> {
             match existing_vault {
                 Some(mut existing_vault) => {
                     existing_vault.balance.amount += info.funds[0].amount;
@@ -42,9 +42,9 @@ pub fn deposit(
                     }
                     Ok(existing_vault)
                 }
-                None => Err(ContractError::CustomError {
-                    val: format!(
-                        "could not find vault for address: {} with id: {}",
+                None => Err(StdError::NotFound {
+                    kind: format!(
+                        "vault for address: {} with id: {}",
                         vault.owner.clone(),
                         vault.id
                     ),

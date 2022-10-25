@@ -2,7 +2,7 @@ use crate::constants::ONE_HUNDRED;
 use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
-    create_event, get_trigger, remove_trigger, save_trigger, vault_store, CACHE, CONFIG,
+    create_event, delete_trigger, get_trigger, get_vault, save_trigger, update_vault, CACHE, CONFIG,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
@@ -10,7 +10,7 @@ use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PositionType, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{to_binary, SubMsg, WasmMsg};
+use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
 use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
@@ -18,14 +18,14 @@ use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
-    let vault = vault_store().load(deps.storage, cache.vault_id.into())?;
+    let vault = get_vault(deps.storage, cache.vault_id.into())?;
     let trigger = get_trigger(deps.storage, vault.id.into())?;
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
     let mut sub_msgs: Vec<SubMsg> = Vec::new();
 
-    remove_trigger(deps.storage, vault.id)?;
+    delete_trigger(deps.storage, vault.id)?;
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
@@ -120,11 +120,11 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 amount: vec![execution_fee.clone()],
             }));
 
-            vault_store().update(
+            update_vault(
                 deps.storage,
                 vault.id.into(),
-                |existing_vault| -> Result<Vault, ContractError> {
-                    match existing_vault {
+                |stored_value: Option<Vault>| -> StdResult<Vault> {
+                    match stored_value {
                         Some(mut existing_vault) => {
                             existing_vault.balance.amount -=
                                 existing_vault.get_swap_amount().amount;
@@ -139,9 +139,9 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
                             Ok(existing_vault)
                         }
-                        None => Err(ContractError::CustomError {
-                            val: format!(
-                                "could not find vault for address: {} with id: {}",
+                        None => Err(StdError::NotFound {
+                            kind: format!(
+                                "vault for address: {} with id: {}",
                                 vault.owner.clone(),
                                 vault.id
                             ),
