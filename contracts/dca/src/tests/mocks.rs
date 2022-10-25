@@ -193,6 +193,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    owner: None,
                     price_threshold: None,
                     label: "label".to_string(),
                     destinations,
@@ -233,6 +234,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    owner: None,
                     price_threshold: None,
                     label: "label".to_string(),
                     destinations,
@@ -290,6 +292,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    owner: None,
                     price_threshold: None,
                     label: "label".to_string(),
                     destinations: None,
@@ -355,6 +358,7 @@ impl MockApp {
                 owner.clone(),
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
+                    owner: None,
                     price_threshold,
                     label: "label".to_string(),
                     destinations,

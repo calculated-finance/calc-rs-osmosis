@@ -2,10 +2,10 @@ use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{create_event, save_trigger, save_vault, Cache, CACHE, PAIRS};
 use crate::validation_helpers::{
-    assert_denom_matches_pair_denom, assert_destination_allocations_add_up_to_one,
-    assert_destination_send_addresses_are_valid, assert_destinations_limit_is_not_breached,
-    assert_exactly_one_asset, assert_swap_amount_is_less_than_or_equal_to_balance,
-    assert_target_start_time_is_in_future,
+    assert_address_is_valid, assert_denom_matches_pair_denom,
+    assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
+    assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
+    assert_swap_amount_is_less_than_or_equal_to_balance, assert_target_start_time_is_in_future,
 };
 use crate::vault::{Vault, VaultBuilder};
 use base::events::event::{EventBuilder, EventData};
@@ -19,7 +19,8 @@ use fin_helpers::limit_orders::create_limit_order_sub_msg;
 pub fn create_vault(
     deps: DepsMut,
     env: Env,
-    info: MessageInfo,
+    info: &MessageInfo,
+    owner: Addr,
     label: String,
     mut destinations: Vec<Destination>,
     pair_address: Addr,
@@ -31,6 +32,7 @@ pub fn create_vault(
     target_start_time_utc_seconds: Option<Uint64>,
     target_price: Option<Decimal256>,
 ) -> Result<Response, ContractError> {
+    assert_address_is_valid(deps.as_ref(), owner.clone(), "owner".to_string())?;
     assert_exactly_one_asset(info.funds.clone())?;
     assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
     assert_destinations_limit_is_not_breached(&destinations)?;
@@ -59,7 +61,7 @@ pub fn create_vault(
     assert_denom_matches_pair_denom(pair.clone(), info.funds.clone(), position_type.clone())?;
 
     let vault_builder = VaultBuilder {
-        owner: info.sender.clone(),
+        owner,
         label,
         destinations,
         created_at: env.block.time,
