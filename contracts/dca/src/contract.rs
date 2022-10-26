@@ -104,7 +104,6 @@ pub fn execute(
         } => create_pair(deps, env, info, address, base_denom, quote_denom),
         ExecuteMsg::DeletePair { address } => delete_pair(deps, env, info, address),
         ExecuteMsg::CreateVault {
-            owner,
             label,
             destinations,
             pair_address,
@@ -118,8 +117,7 @@ pub fn execute(
         } => create_vault(
             deps,
             env,
-            &info,
-            owner.unwrap_or(info.sender.clone()),
+            info,
             label,
             destinations.unwrap_or(vec![]),
             pair_address,

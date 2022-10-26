@@ -113,6 +113,11 @@ where
     vault_store().update(store, vault_id.into(), update_fn)
 }
 
+pub fn delete_vault(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<()> {
+    delete_trigger(store, vault_id)?;
+    vault_store().remove(store, vault_id.into())
+}
+
 pub fn clear_vaults(store: &mut dyn Storage) {
     vault_store().clear(store)
 }

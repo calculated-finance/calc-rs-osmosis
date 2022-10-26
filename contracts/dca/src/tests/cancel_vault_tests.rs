@@ -1,5 +1,5 @@
 use crate::constants::{ONE, ONE_THOUSAND, TEN};
-use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse, VaultsResponse};
+use crate::msg::{ExecuteMsg, QueryMsg, VaultsResponse};
 use crate::tests::helpers::{assert_address_balances, assert_events_published};
 use crate::tests::mocks::{
     fin_contract_partially_filled_order, fin_contract_unfilled_limit_order, MockApp, ADMIN,
@@ -83,19 +83,20 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
         .build(2)],
     );
 
-    let vault_response: VaultResponse = mock
+    let active_vaults_response: VaultsResponse = mock
         .app
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetVault {
+            &QueryMsg::GetVaultsByAddress {
                 address: user_address.clone(),
-                vault_id,
+                start_after: None,
+                limit: None,
             },
         )
         .unwrap();
 
-    assert_eq!(vault_response.vault.status, VaultStatus::Cancelled);
+    assert_eq!(active_vaults_response.vaults.len(), 0);
 }
 
 #[test]
@@ -178,19 +179,23 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
         .build(2)],
     );
 
-    let vault_response: VaultResponse = mock
+    let active_vaults_response: VaultsResponse = mock
         .app
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetVault {
+            &QueryMsg::GetVaultsByAddress {
                 address: user_address.clone(),
-                vault_id,
+                start_after: None,
+                limit: None,
             },
         )
         .unwrap();
 
-    assert_eq!(vault_response.vault.status, VaultStatus::Cancelled);
+    assert_eq!(
+        active_vaults_response.vaults[0].status,
+        VaultStatus::Cancelled
+    );
 }
 
 #[test]
