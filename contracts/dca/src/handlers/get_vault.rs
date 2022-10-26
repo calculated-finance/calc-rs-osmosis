@@ -11,7 +11,7 @@ pub fn get_vault(deps: Deps, address: Addr, vault_id: Uint128) -> StdResult<Vaul
         });
     }
 
-    let trigger = get_trigger(deps.storage, vault.id)?;
+    let trigger = get_trigger(deps.storage, vault.id).ok();
 
     Ok(VaultResponse { vault, trigger })
 }

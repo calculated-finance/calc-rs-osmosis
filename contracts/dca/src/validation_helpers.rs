@@ -133,17 +133,23 @@ pub fn assert_destination_send_addresses_are_valid(
         .iter()
         .filter(|d| d.action == PostExecutionAction::Send)
     {
-        match deps.api.addr_validate(&destination.address.to_string()) {
-            Ok(_) => {}
-            Err(_) => {
-                return Err(ContractError::CustomError {
-                    val: format!("destination address {:?} is invalid", destination.address),
-                });
-            }
-        }
+        assert_address_is_valid(deps, destination.address.clone(), "destination".to_string())?;
     }
 
     Ok(())
+}
+
+pub fn assert_address_is_valid(
+    deps: Deps,
+    address: Addr,
+    label: String,
+) -> Result<(), ContractError> {
+    match deps.api.addr_validate(&address.to_string()) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(ContractError::CustomError {
+            val: format!("{:?} address {:?} is invalid", label, address),
+        }),
+    }
 }
 
 pub fn assert_destination_allocations_add_up_to_one(

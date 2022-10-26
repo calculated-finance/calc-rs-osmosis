@@ -10,6 +10,7 @@ Because cosmos chains implement the actor pattern, we can be certain that anythi
 
 #### Validation
 
+- if an owner is provided, it must be a valid address
 - only a single asset can be provided in the message funds
 - the vault `swap_amount` must be less than or equal to the vault balance
 - the number of destinations provided must not exceed the limit set in config

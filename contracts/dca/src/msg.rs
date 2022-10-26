@@ -34,6 +34,7 @@ pub enum ExecuteMsg {
         address: Addr,
     },
     CreateVault {
+        owner: Option<Addr>,
         label: String,
         destinations: Option<Vec<Destination>>,
         pair_address: Addr,
@@ -111,7 +112,7 @@ pub struct TriggerIdsResponse {
 #[cw_serde]
 pub struct VaultResponse {
     pub vault: Vault,
-    pub trigger: Trigger,
+    pub trigger: Option<Trigger>,
 }
 
 #[cw_serde]
