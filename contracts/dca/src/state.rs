@@ -49,7 +49,7 @@ pub const CACHE: Item<Cache> = Item::new("cache_v2");
 
 pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cache_v2");
 
-pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v2");
+pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v1");
 
 pub const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v2");
 
