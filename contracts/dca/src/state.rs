@@ -43,15 +43,15 @@ pub struct TimeTriggerCache {
     pub trigger_id: Uint128,
 }
 
-pub const CONFIG: Item<Config> = Item::new("config_v1");
+pub const CONFIG: Item<Config> = Item::new("config_v2");
 
-pub const CACHE: Item<Cache> = Item::new("cache_v1");
+pub const CACHE: Item<Cache> = Item::new("cache_v2");
 
-pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cache_v1");
+pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cache_v2");
 
-pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v1");
+pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v2");
 
-pub const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v1");
+pub const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v2");
 
 struct VaultIndexes<'a> {
     pub owner: MultiIndex<'a, (Addr, u128), Vault, u128>,
@@ -117,13 +117,13 @@ pub fn clear_vaults(store: &mut dyn Storage) {
     vault_store().clear(store)
 }
 
-pub const TRIGGERS: Map<u128, Trigger> = Map::new("triggers_v1");
+pub const TRIGGERS: Map<u128, Trigger> = Map::new("triggers_v2");
 
 pub const TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX: Map<u128, u128> =
-    Map::new("trigger_id_by_fin_limit_order_idx_v1");
+    Map::new("trigger_id_by_fin_limit_order_idx_v2");
 
 pub const TRIGGER_IDS_BY_TARGET_TIME: Map<u64, Vec<u128>> =
-    Map::new("trigger_ids_by_target_time_v1");
+    Map::new("trigger_ids_by_target_time_v2");
 
 pub fn save_trigger(store: &mut dyn Storage, trigger: Trigger) -> StdResult<Uint128> {
     TRIGGERS.save(store, trigger.vault_id.into(), &trigger)?;
@@ -206,11 +206,11 @@ pub fn event_store<'a>() -> IndexedMap<'a, u64, Event, EventIndexes<'a>> {
     let indexes = EventIndexes {
         resource_id: MultiIndex::new(
             |_, e| (e.resource_id.into(), e.id),
-            "events_v5",
-            "events_v5__resource_id",
+            "events_v6",
+            "events_v6__resource_id",
         ),
     };
-    IndexedMap::new("events_v5", indexes)
+    IndexedMap::new("events_v6", indexes)
 }
 
 fn fetch_and_increment_counter(store: &mut dyn Storage, counter: Item<u64>) -> StdResult<u64> {
@@ -219,7 +219,7 @@ fn fetch_and_increment_counter(store: &mut dyn Storage, counter: Item<u64>) -> S
     Ok(id)
 }
 
-pub const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v1");
+pub const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v2");
 
 pub fn create_event(store: &mut dyn Storage, event_builder: EventBuilder) -> StdResult<u64> {
     let event = event_builder.build(fetch_and_increment_counter(store, EVENT_COUNTER)?.into());
