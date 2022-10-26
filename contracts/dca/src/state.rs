@@ -68,11 +68,11 @@ fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
         owner: MultiIndex::new(
             |_, v| (v.owner.clone(), v.id.into()),
-            "vaults_v3",
-            "vaults_v3__owner",
+            "vaults_v4",
+            "vaults_v4__owner",
         ),
     };
-    IndexedMap::new("vaults_v3", indexes)
+    IndexedMap::new("vaults_v4", indexes)
 }
 
 pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdResult<Vault> {
@@ -206,11 +206,11 @@ pub fn event_store<'a>() -> IndexedMap<'a, u64, Event, EventIndexes<'a>> {
     let indexes = EventIndexes {
         resource_id: MultiIndex::new(
             |_, e| (e.resource_id.into(), e.id),
-            "events_v3",
-            "events_v3__resource_id",
+            "events_v4",
+            "events_v4__resource_id",
         ),
     };
-    IndexedMap::new("events_v3", indexes)
+    IndexedMap::new("events_v4", indexes)
 }
 
 fn fetch_and_increment_counter(store: &mut dyn Storage, counter: Item<u64>) -> StdResult<u64> {
