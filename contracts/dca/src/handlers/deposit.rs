@@ -19,14 +19,20 @@ pub fn deposit(
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
     deps.api.addr_validate(address.as_str())?;
+    assert_exactly_one_asset(info.funds.clone())?;
+
     let vault = get_vault(deps.storage, vault_id.into())?;
 
     if address != vault.owner {
-        return Err(ContractError::Unauthorized {});
+        return Err(ContractError::CustomError {
+            val: format!(
+                "provided an incorrect owner address for vault id={:?}",
+                vault_id
+            ),
+        });
     }
 
     assert_vault_is_not_cancelled(&vault)?;
-    assert_exactly_one_asset(info.funds.clone())?;
     assert_denom_matches_pair_denom(
         vault.pair.clone(),
         info.funds.clone(),

@@ -127,3 +127,24 @@ Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal 
 - all cancelled vaults must have a balance of 0
 - all cancelled vaults must have a status of cancelled
 - all funds are to be redistributed to the vault owner address, including any partially filled fin limit orders
+
+### Deposit
+
+#### Vaildation
+
+- the provided address must match the vault `owner`
+- the vault must not be cancelled
+- only a single asset must be provided
+- the deposited funds denom must match the vault swap denom
+
+#### Domain Logic
+
+- update the vault balance to include the deposited funds
+- if the vault status is inactive:
+  - update the vault status to active
+- save a vault funds deposited event
+
+#### Assertions
+
+- no vault should ever have balance < 0
+- every vault that gets topped up should be active afterwards
