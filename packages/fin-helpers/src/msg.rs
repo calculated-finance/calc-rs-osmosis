@@ -1,5 +1,5 @@
 use cosmwasm_std::{Decimal256, Uint128, Uint256};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 // use serde instead of cw_serde so allow for deserialisation of unknown fields
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct FINPoolResponseWithoutDenom {
