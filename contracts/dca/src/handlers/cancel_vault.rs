@@ -11,7 +11,7 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Coin, Env, StdError, StdResult};
+use cosmwasm_std::{Addr, Coin, CosmosMsg, Env, StdError, StdResult};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
 use fin_helpers::limit_orders::create_retract_order_sub_msg;
@@ -47,10 +47,13 @@ pub fn cancel_vault(
 fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
     delete_trigger(deps.storage, vault.id.into())?;
 
-    let refund_bank_msg = BankMsg::Send {
-        to_address: vault.owner.to_string(),
-        amount: vec![vault.balance.clone()],
-    };
+    let mut refund_bank_msgs: Vec<CosmosMsg> = Vec::new();
+    if vault.balance.amount.gt(&Uint128::zero()) {
+        refund_bank_msgs.push(CosmosMsg::Bank(BankMsg::Send {
+            to_address: vault.owner.to_string(),
+            amount: vec![vault.balance.clone()],
+        }))
+    }
 
     update_vault(
         deps.storage,
@@ -73,7 +76,7 @@ fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, Contract
         .add_attribute("method", "cancel_vault")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id)
-        .add_message(refund_bank_msg))
+        .add_messages(refund_bank_msgs))
 }
 
 fn cancel_fin_limit_order_trigger(
