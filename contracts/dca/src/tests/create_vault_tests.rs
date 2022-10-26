@@ -363,6 +363,54 @@ fn with_price_trigger_should_publish_vault_created_event() {
 }
 
 #[test]
+fn with_price_trigger_should_publish_funds_deposited_event() {
+    let user_address = Addr::unchecked(USER);
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
+        &user_address,
+        vault_deposit,
+        DENOM_UKUJI,
+    );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                price_threshold: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: PositionType::Enter,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: None,
+                target_price: Some(Decimal256::from_str("1.0").unwrap()),
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::new(1);
+
+    assert_events_published(
+        &mock,
+        vault_id,
+        &[EventBuilder::new(
+            vault_id,
+            mock.app.block_info(),
+            EventData::DCAVaultFundsDeposited {
+                amount: Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            },
+        )
+        .build(2)],
+    );
+}
+
+#[test]
 fn with_fin_limit_order_trigger_twice_for_user_should_succeed() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN * Uint128::new(2);
@@ -452,7 +500,7 @@ fn with_fin_limit_order_trigger_twice_for_user_should_succeed() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::DCAVaultCreated).build(2)],
+        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::DCAVaultCreated).build(3)],
     );
 
     assert_vault_balance(

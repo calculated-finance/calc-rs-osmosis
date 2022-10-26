@@ -45,6 +45,7 @@ Vaults are created by users via the CALC frontend application.
 
 - save a vault using the submitted vault details
 - save a vault created event
+- save a vault funds deposited event
 - if the submitted `target_price` was `None`:
   - save a time trigger with the submitted `target_start_time_utc_seconds` or the block time if `target_start_time_utc_seconds` was `None`
 - else:

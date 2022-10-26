@@ -101,6 +101,17 @@ pub fn create_vault(
         EventBuilder::new(vault.id, env.block.clone(), EventData::DCAVaultCreated),
     )?;
 
+    create_event(
+        deps.storage,
+        EventBuilder::new(
+            vault.id,
+            env.block.clone(),
+            EventData::DCAVaultFundsDeposited {
+                amount: info.funds[0].clone(),
+            },
+        ),
+    )?;
+
     match (target_start_time_utc_seconds, target_price) {
         (None, None) | (Some(_), None) => {
             create_time_trigger(deps, env, vault, target_start_time_utc_seconds)

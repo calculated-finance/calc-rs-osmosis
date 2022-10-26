@@ -108,7 +108,7 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_publish_events() {
             mock.app.block_info(),
             EventData::DCAVaultCancelled,
         )
-        .build(2)],
+        .build(3)],
     );
 }
 
@@ -323,7 +323,7 @@ fn when_vault_has_partially_filled_price_trigger_should_succeed() {
             mock.app.block_info(),
             EventData::DCAVaultCancelled,
         )
-        .build(2)],
+        .build(3)],
     );
 
     let vault_response: VaultResponse = mock
@@ -408,7 +408,7 @@ fn when_vault_has_time_trigger_should_succeed() {
             mock.app.block_info(),
             EventData::DCAVaultCancelled,
         )
-        .build(2)],
+        .build(3)],
     );
 
     let active_vaults_response: VaultsResponse = mock

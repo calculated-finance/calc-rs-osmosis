@@ -111,7 +111,7 @@ fn fin_limit_order_trigger_should_succeed() {
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
-            .build(2),
+            .build(3),
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
@@ -121,7 +121,7 @@ fn fin_limit_order_trigger_should_succeed() {
                     fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
                 },
             )
-            .build(3),
+            .build(4),
         ],
     );
 
@@ -571,7 +571,7 @@ fn after_target_time_should_succeed() {
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
-            .build(2),
+            .build(3),
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
@@ -581,7 +581,7 @@ fn after_target_time_should_succeed() {
                     fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
                 },
             )
-            .build(3),
+            .build(4),
         ],
     );
 
@@ -686,7 +686,7 @@ fn with_price_threshold_should_succeed() {
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
-            .build(2),
+            .build(3),
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
@@ -696,7 +696,7 @@ fn with_price_threshold_should_succeed() {
                     fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
                 },
             )
-            .build(3),
+            .build(4),
         ],
     );
 
@@ -788,7 +788,7 @@ fn with_price_threshold_should_skip_execution() {
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
-            .build(2),
+            .build(3),
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
@@ -798,7 +798,7 @@ fn with_price_threshold_should_skip_execution() {
                     },
                 },
             )
-            .build(3),
+            .build(4),
         ],
     );
 

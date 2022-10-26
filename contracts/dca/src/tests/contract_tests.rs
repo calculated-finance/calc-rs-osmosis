@@ -681,7 +681,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
     .unwrap();
     let result: EventsResponse = from_binary(&binary).unwrap();
 
-    assert_eq!(result.events.len(), 1);
+    assert_eq!(result.events.len(), 2);
 }
 
 #[test]
