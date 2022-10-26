@@ -2,7 +2,7 @@ use base::events::event::Event;
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, Trigger};
 use base::vaults::vault::{Destination, PositionType};
-use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Decimal256, Uint128, Uint64};
 
 use crate::vault::Vault;
@@ -70,32 +70,24 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
-#[derive(QueryResponses)]
 pub enum QueryMsg {
-    #[returns(PairsResponse)]
     GetPairs {},
-    #[returns(TriggerIdsResponse)]
     GetTimeTriggerIds {},
-    #[returns(TriggerIdResponse)]
     GetTriggerIdByFinLimitOrderIdx {
         order_idx: Uint128,
     },
-    #[returns(VaultResponse)]
     GetVault {
         address: Addr,
         vault_id: Uint128,
     },
-    #[returns(VaultsResponse)]
     GetVaultsByAddress {
         address: Addr,
         start_after: Option<u128>,
         limit: Option<u8>,
     },
-    #[returns(EventsResponse)]
     GetEventsByResourceId {
         resource_id: Uint128,
     },
-    #[returns(EventsResponse)]
     GetEvents {
         start_after: Option<u64>,
         limit: Option<u8>,
