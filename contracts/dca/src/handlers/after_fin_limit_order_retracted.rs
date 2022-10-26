@@ -1,10 +1,13 @@
 use crate::contract::AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID;
 use crate::error::ContractError;
-use crate::state::{create_event, get_vault, CACHE, LIMIT_ORDER_CACHE};
+use crate::state::{create_event, get_vault, update_vault, CACHE, LIMIT_ORDER_CACHE};
+use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
+use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response, Uint128};
+use cosmwasm_std::{StdError, StdResult};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 
 pub fn after_fin_limit_order_retracted(
@@ -65,6 +68,27 @@ pub fn after_fin_limit_order_retracted(
                     to_address: vault.owner.to_string(),
                     amount: vec![vault.balance.clone()],
                 };
+
+                update_vault(
+                    deps.storage,
+                    vault.id.into(),
+                    |existing_vault| -> StdResult<Vault> {
+                        match existing_vault {
+                            Some(mut existing_vault) => {
+                                existing_vault.status = VaultStatus::Cancelled;
+                                existing_vault.balance =
+                                    Coin::new(0, existing_vault.get_swap_denom());
+                                Ok(existing_vault)
+                            }
+                            None => Err(StdError::NotFound {
+                                kind: format!(
+                                    "vault for address: {} with id: {}",
+                                    vault.owner, vault.id
+                                ),
+                            }),
+                        }
+                    },
+                )?;
 
                 Ok(response
                     .add_attribute("withdraw_required", "false")

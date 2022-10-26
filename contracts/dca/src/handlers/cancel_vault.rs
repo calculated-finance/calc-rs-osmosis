@@ -1,15 +1,17 @@
 use crate::contract::AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
-    create_event, delete_trigger, get_trigger, update_vault, Cache, LimitOrderCache, CACHE,
-    LIMIT_ORDER_CACHE,
+    create_event, delete_trigger, get_trigger, get_vault, update_vault, Cache, LimitOrderCache,
+    CACHE, LIMIT_ORDER_CACHE,
 };
-use crate::validation_helpers::assert_sender_is_admin_or_vault_owner;
+use crate::validation_helpers::{
+    assert_sender_is_admin_or_vault_owner, assert_vault_is_not_already_cancelled,
+};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Env, StdError, StdResult};
+use cosmwasm_std::{Addr, Coin, Env, StdError, StdResult};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
 use fin_helpers::limit_orders::create_retract_order_sub_msg;
@@ -22,36 +24,22 @@ pub fn cancel_vault(
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
     deps.api.addr_validate(&address.to_string())?;
+    let vault = get_vault(deps.storage, vault_id)?;
 
-    let updated_vault = update_vault(
-        deps.storage,
-        vault_id.into(),
-        |existing_vault| -> StdResult<Vault> {
-            match existing_vault {
-                Some(mut existing_vault) => {
-                    existing_vault.status = VaultStatus::Cancelled;
-                    Ok(existing_vault)
-                }
-                None => Err(StdError::NotFound {
-                    kind: format!("vault for address: {} with id: {}", address, vault_id),
-                }),
-            }
-        },
-    )?;
-
-    assert_sender_is_admin_or_vault_owner(deps.storage, updated_vault.owner.clone(), address)?;
+    assert_sender_is_admin_or_vault_owner(deps.storage, vault.owner.clone(), address.clone())?;
+    assert_vault_is_not_already_cancelled(&vault)?;
 
     create_event(
         deps.storage,
-        EventBuilder::new(updated_vault.id, env.block, EventData::DCAVaultCancelled),
+        EventBuilder::new(vault.id, env.block, EventData::DCAVaultCancelled),
     )?;
 
     let trigger = get_trigger(deps.storage, vault_id.into())?;
 
     match trigger.configuration {
-        TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, updated_vault),
+        TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, vault),
         TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
-            cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), updated_vault)
+            cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), vault)
         }
     }
 }
@@ -63,6 +51,23 @@ fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, Contract
         to_address: vault.owner.to_string(),
         amount: vec![vault.balance.clone()],
     };
+
+    update_vault(
+        deps.storage,
+        vault.id.into(),
+        |existing_vault| -> StdResult<Vault> {
+            match existing_vault {
+                Some(mut existing_vault) => {
+                    existing_vault.status = VaultStatus::Cancelled;
+                    existing_vault.balance = Coin::new(0, existing_vault.get_swap_denom());
+                    Ok(existing_vault)
+                }
+                None => Err(StdError::NotFound {
+                    kind: format!("vault for address: {} with id: {}", vault.owner, vault.id),
+                }),
+            }
+        },
+    )?;
 
     Ok(Response::new()
         .add_attribute("method", "cancel_vault")

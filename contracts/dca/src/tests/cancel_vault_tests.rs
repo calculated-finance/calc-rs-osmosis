@@ -11,7 +11,7 @@ use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
 #[test]
-fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
+fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_update_address_balances() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
     let vault_deposit = TEN;
@@ -69,6 +69,34 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
             (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
     );
+}
+
+#[test]
+fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_publish_events() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_unfilled_fin_limit_price_trigger(
+            &user_address,
+            None,
+            Coin::new(user_balance.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault {
+                address: user_address.clone(),
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+            },
+            &[],
+        )
+        .unwrap();
 
     let vault_id = Uint128::new(1);
 
@@ -82,6 +110,36 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
         )
         .build(2)],
     );
+}
+
+#[test]
+fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_cancel_vault() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_unfilled_fin_limit_price_trigger(
+            &user_address,
+            None,
+            Coin::new(user_balance.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault {
+                address: user_address.clone(),
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::new(1);
 
     let vault_response: VaultResponse = mock
         .app
@@ -96,6 +154,96 @@ fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_succeed() {
         .unwrap();
 
     assert_eq!(vault_response.vault.status, VaultStatus::Cancelled);
+}
+
+#[test]
+fn when_vault_has_unfulfilled_fin_limit_order_trigger_should_empty_vault_balance() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_unfilled_fin_limit_price_trigger(
+            &user_address,
+            None,
+            Coin::new(user_balance.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault {
+                address: user_address.clone(),
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::new(1);
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address.clone(),
+            &QueryMsg::GetVault {
+                address: user_address.clone(),
+                vault_id,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(vault_response.vault.balance.amount, Uint128::zero());
+}
+
+#[test]
+fn on_already_cancelled_vault_should_fail() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_unfilled_fin_limit_price_trigger(
+            &user_address,
+            None,
+            Coin::new(user_balance.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault {
+                address: user_address.clone(),
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault {
+                address: user_address.clone(),
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+            },
+            &[],
+        )
+        .unwrap_err();
+
+    assert!(response
+        .root_cause()
+        .to_string()
+        .contains("Error: vault is already cancelled"));
 }
 
 #[test]

@@ -50,6 +50,12 @@ Vaults are created by users via the CALC frontend application.
   - create a fin limit order for the submitted `swap_amount` and `target_price`
   - save a fin limit order trigger with the generated `order_idx` from fin
 
+#### Assertions
+
+- all vaults should be created with a price trigger or a time trigger
+- all vaults should be created in the scheduled status
+- all vaults should be created with a balance > 0
+
 ### Execute Trigger
 
 Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal to the vault `id`. An off chain scheduler obtains `trigger_id`s for triggers that are ready to be executed via FIN and the `GetTriggerIdByFinLimitOrderIdx` query for price triggers, and via the `GetTimeTriggerIds` query for time triggers.
@@ -71,14 +77,16 @@ Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal 
   - execute a fin swap for the vault pair
   - if the fin swap is successful:
     - delete the current time trigger
-    - save a new time trigger using the vault `time_interval`
+    - if the vault balance > 0:
+      - save a new time trigger using the vault `time_interval`
   - else:
     - publish a `DCAVaultExecutionSkipped` event with the relevant skipped reason
 - if the trigger is a fin limit order trigger:
   - withdraw the limit order from fin
   - if the fin limit withdrawal is successful:
     - delete the fin limit order trigger
-    - save a new time trigger using the vault `time_interval`
+    - if the vault balance > 0:
+      - save a new time trigger using the vault `time_interval`
   - else:
     - return an error to be logged by the off-chain scheduler
 - reduce the vault balance by the swap amount
@@ -87,49 +95,35 @@ Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal 
 - use `authz` permissions to delegate funds from destination addresses to validators for destinations with action type `PostExecutionAction:Delegate`
 - save a `DCAVaultExecutionCompleted` event
 
-#### Cancellation
+#### Assertions
 
-1. Cancellation (pt.1)
-   - load vault using owner address and vault id
-   - match on the vaults trigger variant (in this case we match for the FINLimitOrder variant)
-   - delete the future time trigger configuration (the trigger that would have been assigned to the vault after the price trigger executed)
-   - load the fin limit order trigger using the trigger id given from the vault
-   - query the existing limit order using the fin limit order trigger's order idx (allows us to determine the status of the order and what needs to be refunded - this needs to be done before retract order as we can't query this info once the order has been retracted)
-   - save fin limit order details to the fin limit order cache (so this info can be referenced in replies)
-   - create a retract order sub message using the fin limit order triggers order ix (after the order is retracted we can see how much we get back, and if any partially filled order needs to be withdrawn)
-   - same vault owner and id to the cache (so we can reference the vault in the replies)
-   - send fin retract order sub message
-2. Cancellation (pt.2)
-   - load the cache
-   - load the vault using the info we stored in the cache
-   - load the fin limit order cache
-   - load the fin limit order trigger
-   - parse the fin retract order result to find the amount of token that was retracted
-   - compare the amount of token that was retracted to the origial offer amount (fin limit order cache) - if the they are not equal we need to withdraw the partially filled order
-3. Cancellation (pt.2.1 withdrawing partially filled orders)
-   - send retracted amount of coin back to vault owner (some fraction of the vaults total value _[0% - 100%)_ )
-   - create a fin withdraw limit order message using the fin limit order triggers order idx
-   - send fin withdraw limit order message
-4. Cancellation (pt.2.2 no partially filled order to retract)
-   - get the remaining balance of the vault
-   - create a new bank message with the vaults remaining balanced calculated previously
-   - save the vault with the empty balance to cancelled vaults using the vaults owner and vault id
-   - remove the vault from active vaults using the vaults owner and vault id
-   - remove the fin limit order trigger using the trigger id
-   - remove the fin limit order trigger id using the order idx
-   - remove fin limit order cache
-   - remove cache
-5. Cancellation (pt.3)
-   - load the cache
-   - load the vault using the info from the cache
-   - load the fin limit order cache
-   - load the fin limit order trigger using the vaults trigger id
-   - get the received denom from the limit order and filled amount to be sent to the user (the filled amount was stored in the fin limit order cache at pt.1 of this flow)
-   - set the vaults balance to zero as we sent the owner a combination of initial assets, and assets received from the swap
-   - remove the fin limit order trigger by trigger id
-   - remove the fin limit order trigger ids using the fin limit order triggers order idx
-   - remove the active vault using the vault owner and vault id
-   - save the vault to cancelled vaults using the vault owner and vault id
-   - remove the limit order cache
-   - remove the cache
-   - send bank message to user
+- no vault should have a balance < 0
+- no execution should redistribute more funds than the vault swap amount
+- no execution should redistribute more funds than the vault balance
+- every execution should reduce the vault balance by the amount of funds redistributed + calc fee
+- no inactive or cancelled vault should have a trigger
+
+### Cancel Vault
+
+#### Validation
+
+- the sender address must be the vault owner or admin
+- the vault to be cancelled must not be already cancelled
+
+#### Domain Logic
+
+- update the vault to have `status == VaultStatus::Cancelled`
+- if the vault has a time trigger:
+  - delete the trigger and return the vault balance to the vault owner address
+- if the vault has a price trigger:
+  - withdraw and the associated fin limit order trigger
+  - if the fin limit order has a non-zero filled amount:
+    - retract the filled portion of the fin limit order
+  - return the withdrawn and filled funds from the fin limit order to the vault owner address
+  - return the remaining balance to the vault owner address
+
+#### Assertions
+
+- all cancelled vaults must have a balance of 0
+- all cancelled vaults must have a status of cancelled
+- all funds are to be redistributed to the vault owner address, including any partially filled fin limit orders

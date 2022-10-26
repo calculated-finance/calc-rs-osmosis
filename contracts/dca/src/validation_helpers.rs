@@ -1,6 +1,7 @@
 use crate::error::ContractError;
 use crate::state::CONFIG;
-use base::vaults::vault::{Destination, PostExecutionAction};
+use crate::vault::Vault;
+use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use base::{pair::Pair, vaults::vault::PositionType};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Storage, Timestamp, Uint128};
 
@@ -39,6 +40,15 @@ pub fn assert_sender_is_admin_or_vault_owner(
     let config = CONFIG.load(storage)?;
     if sender != config.admin && sender != vault_owner {
         return Err(ContractError::Unauthorized {});
+    }
+    Ok(())
+}
+
+pub fn assert_vault_is_not_already_cancelled(vault: &Vault) -> Result<(), ContractError> {
+    if vault.status == VaultStatus::Cancelled {
+        return Err(ContractError::CustomError {
+            val: "vault is already cancelled".to_string(),
+        });
     }
     Ok(())
 }
