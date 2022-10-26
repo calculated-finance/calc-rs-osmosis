@@ -58,10 +58,6 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                                 existing_vault.status = VaultStatus::Inactive
                             }
 
-                            if existing_vault.started_at.is_none() {
-                                existing_vault.started_at = Some(env.block.time);
-                            }
-
                             Ok(existing_vault)
                         }
                         None => Err(StdError::NotFound {

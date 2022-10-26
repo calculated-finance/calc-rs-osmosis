@@ -56,6 +56,10 @@ impl Vault {
     pub fn is_active(&self) -> bool {
         self.status == VaultStatus::Active
     }
+
+    pub fn is_scheduled(&self) -> bool {
+        self.status == VaultStatus::Scheduled
+    }
 }
 
 pub struct VaultBuilder {

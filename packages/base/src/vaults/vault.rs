@@ -9,6 +9,7 @@ pub enum PositionType {
 
 #[cw_serde]
 pub enum VaultStatus {
+    Scheduled,
     Active,
     Inactive,
     Cancelled,

@@ -83,7 +83,7 @@ pub fn create_vault(
         label,
         destinations,
         created_at: env.block.time,
-        status: VaultStatus::Active,
+        status: VaultStatus::Scheduled,
         pair,
         swap_amount,
         position_type,
