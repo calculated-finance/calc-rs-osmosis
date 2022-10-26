@@ -70,6 +70,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
             &QueryMsg::GetTriggerIdByFinLimitOrderIdx {
                 order_idx: vault_response
                     .trigger
+                    .unwrap()
                     .configuration
                     .into_fin_limit_order()
                     .unwrap()

@@ -225,7 +225,7 @@ fn with_fin_limit_order_trigger_should_create_trigger() {
         )
         .unwrap();
 
-    match vault_response.trigger.configuration {
+    match vault_response.trigger.unwrap().configuration {
         TriggerConfiguration::FINLimitOrder {
             target_price,
             order_idx,
