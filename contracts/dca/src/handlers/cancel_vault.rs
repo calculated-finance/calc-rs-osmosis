@@ -5,7 +5,7 @@ use crate::state::{
     CACHE, LIMIT_ORDER_CACHE,
 };
 use crate::validation_helpers::{
-    assert_sender_is_admin_or_vault_owner, assert_vault_is_not_already_cancelled,
+    assert_sender_is_admin_or_vault_owner, assert_vault_is_not_cancelled,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
@@ -27,7 +27,7 @@ pub fn cancel_vault(
     let vault = get_vault(deps.storage, vault_id)?;
 
     assert_sender_is_admin_or_vault_owner(deps.storage, vault.owner.clone(), address.clone())?;
-    assert_vault_is_not_already_cancelled(&vault)?;
+    assert_vault_is_not_cancelled(&vault)?;
 
     create_event(
         deps.storage,

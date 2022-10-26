@@ -24,3 +24,6 @@ pub mod get_trigger_id_by_fin_limit_order_idx_tests;
 
 #[cfg(test)]
 pub mod get_vaults_by_address_tests;
+
+#[cfg(test)]
+pub mod deposit_tests;

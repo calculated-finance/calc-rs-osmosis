@@ -44,7 +44,7 @@ pub fn assert_sender_is_admin_or_vault_owner(
     Ok(())
 }
 
-pub fn assert_vault_is_not_already_cancelled(vault: &Vault) -> Result<(), ContractError> {
+pub fn assert_vault_is_not_cancelled(vault: &Vault) -> Result<(), ContractError> {
     if vault.status == VaultStatus::Cancelled {
         return Err(ContractError::CustomError {
             val: "vault is already cancelled".to_string(),
