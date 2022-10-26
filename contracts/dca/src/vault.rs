@@ -11,7 +11,7 @@ pub struct Vault {
     pub id: Uint128,
     pub created_at: Timestamp,
     pub owner: Addr,
-    pub label: String,
+    pub label: Option<String>,
     pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
@@ -61,7 +61,7 @@ impl Vault {
 pub struct VaultBuilder {
     pub created_at: Timestamp,
     pub owner: Addr,
-    pub label: String,
+    pub label: Option<String>,
     pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
@@ -78,7 +78,7 @@ impl VaultBuilder {
     pub fn new(
         created_at: Timestamp,
         owner: Addr,
-        label: String,
+        label: Option<String>,
         destinations: Vec<Destination>,
         status: VaultStatus,
         balance: Coin,

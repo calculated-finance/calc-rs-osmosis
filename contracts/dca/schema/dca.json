@@ -101,7 +101,6 @@
           "create_vault": {
             "type": "object",
             "required": [
-              "label",
               "pair_address",
               "position_type",
               "swap_amount",
@@ -118,7 +117,10 @@
                 }
               },
               "label": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "owner": {
                 "anyOf": [
@@ -1411,7 +1413,6 @@
             "created_at",
             "destinations",
             "id",
-            "label",
             "owner",
             "pair",
             "position_type",
@@ -1436,7 +1437,10 @@
               "$ref": "#/definitions/Uint128"
             },
             "label": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "owner": {
               "$ref": "#/definitions/Addr"
@@ -1629,7 +1633,6 @@
             "created_at",
             "destinations",
             "id",
-            "label",
             "owner",
             "pair",
             "position_type",
@@ -1654,7 +1657,10 @@
               "$ref": "#/definitions/Uint128"
             },
             "label": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "owner": {
               "$ref": "#/definitions/Addr"

@@ -26,7 +26,7 @@ fn should_return_active_triggers_only() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,

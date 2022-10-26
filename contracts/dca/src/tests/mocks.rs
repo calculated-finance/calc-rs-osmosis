@@ -195,7 +195,7 @@ impl MockApp {
                 &ExecuteMsg::CreateVault {
                     owner: None,
                     price_threshold: None,
-                    label: "label".to_string(),
+                    label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
@@ -236,7 +236,7 @@ impl MockApp {
                 &ExecuteMsg::CreateVault {
                     owner: None,
                     price_threshold: None,
-                    label: "label".to_string(),
+                    label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
@@ -294,7 +294,7 @@ impl MockApp {
                 &ExecuteMsg::CreateVault {
                     owner: None,
                     price_threshold: None,
-                    label: "label".to_string(),
+                    label: Some("label".to_string()),
                     destinations: None,
                     pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,
@@ -360,7 +360,7 @@ impl MockApp {
                 &ExecuteMsg::CreateVault {
                     owner: None,
                     price_threshold,
-                    label: "label".to_string(),
+                    label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
                     position_type: PositionType::Enter,

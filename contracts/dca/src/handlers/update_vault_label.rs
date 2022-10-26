@@ -18,7 +18,7 @@ pub fn update_vault_label(
             match existing_vault {
                 Some(mut existing_vault) => {
                     if let Some(label) = label {
-                        existing_vault.label = label;
+                        existing_vault.label = Some(label);
                     }
                     Ok(existing_vault)
                 }

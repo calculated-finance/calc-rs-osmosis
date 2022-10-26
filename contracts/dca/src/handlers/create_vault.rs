@@ -21,7 +21,7 @@ pub fn create_vault(
     env: Env,
     info: &MessageInfo,
     owner: Addr,
-    label: String,
+    label: Option<String>,
     mut destinations: Vec<Destination>,
     pair_address: Addr,
     position_type: PositionType,

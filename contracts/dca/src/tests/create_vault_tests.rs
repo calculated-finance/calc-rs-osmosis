@@ -47,7 +47,7 @@ fn with_fin_limit_order_trigger_should_update_address_balances() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -114,7 +114,7 @@ fn with_fin_limit_order_trigger_should_create_vault() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -149,7 +149,7 @@ fn with_fin_limit_order_trigger_should_create_vault() {
         vault_response.vault,
         Vault {
             price_threshold: None,
-            label: "label".to_string(),
+            label: Some("label".to_string()),
             id: Uint128::new(1),
             owner: user_address.clone(),
             destinations: vec![Destination {
@@ -194,7 +194,7 @@ fn with_fin_limit_order_trigger_should_create_trigger() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -261,7 +261,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -296,7 +296,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
         vault_response.vault,
         Vault {
             price_threshold: None,
-            label: "label".to_string(),
+            label: Some("label".to_string()),
             id: Uint128::new(2),
             owner: user_address.clone(),
             destinations: vec![Destination {
@@ -339,7 +339,7 @@ fn with_price_trigger_should_publish_vault_created_event() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -406,7 +406,7 @@ fn with_fin_limit_order_trigger_twice_for_user_should_succeed() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -497,7 +497,7 @@ fn with_time_trigger_should_update_address_balances() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -549,7 +549,7 @@ fn with_time_trigger_should_create_vault() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -581,7 +581,7 @@ fn with_time_trigger_should_create_vault() {
         vault_response.vault,
         Vault {
             price_threshold: None,
-            label: "label".to_string(),
+            label: Some("label".to_string()),
             id: Uint128::new(1),
             owner: user_address.clone(),
             destinations: vec![Destination {
@@ -633,7 +633,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -668,7 +668,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
         vault_response.vault,
         Vault {
             price_threshold: None,
-            label: "label".to_string(),
+            label: Some("label".to_string()),
             id: Uint128::new(2),
             destinations: vec![Destination {
                 address: user_address.clone(),
@@ -712,7 +712,7 @@ fn with_time_trigger_should_publish_vault_created_event() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -754,7 +754,7 @@ fn with_time_trigger_with_no_target_time_should_succeed() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -825,7 +825,7 @@ fn with_mulitple_destinations_should_succeed() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: Some(destinations.clone()),
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -857,7 +857,7 @@ fn with_mulitple_destinations_should_succeed() {
         vault_response.vault,
         Vault {
             price_threshold: None,
-            label: "label".to_string(),
+            label: Some("label".to_string()),
             id: Uint128::new(1),
             owner: user_address.clone(),
             destinations,
@@ -898,7 +898,7 @@ fn with_time_trigger_with_target_time_in_the_past_should_fail() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -940,7 +940,7 @@ fn with_price_and_time_trigger_should_fail() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -981,7 +981,7 @@ fn with_no_assets_should_fail() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -1019,7 +1019,7 @@ fn with_multiple_assets_should_fail() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -1062,7 +1062,7 @@ fn with_non_existent_pair_address_should_fail() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: Addr::unchecked("not-a-pair-address".to_string()),
                 position_type: PositionType::Enter,
@@ -1102,7 +1102,7 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: Some(vec![Destination {
                     address: Addr::unchecked(USER),
                     allocation: Decimal::percent(50),
@@ -1156,7 +1156,7 @@ fn with_more_than_10_destination_allocations_should_fail() {
             &ExecuteMsg::CreateVault {
                 owner: None,
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: Some(destinations),
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,
@@ -1197,7 +1197,7 @@ fn with_passed_in_owner_should_create_vault() {
             &ExecuteMsg::CreateVault {
                 owner: Some(owner.clone()),
                 price_threshold: None,
-                label: "label".to_string(),
+                label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
                 position_type: PositionType::Enter,

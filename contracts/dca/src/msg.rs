@@ -35,7 +35,7 @@ pub enum ExecuteMsg {
     },
     CreateVault {
         owner: Option<Addr>,
-        label: String,
+        label: Option<String>,
         destinations: Option<Vec<Destination>>,
         pair_address: Addr,
         position_type: PositionType,
