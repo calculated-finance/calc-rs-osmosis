@@ -47,9 +47,13 @@ pub fn cancel_vault(
 fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
     delete_trigger(deps.storage, vault.id.into())?;
 
-    let mut refund_bank_msgs: Vec<CosmosMsg> = Vec::new();
+    let mut response = Response::new()
+        .add_attribute("method", "cancel_vault")
+        .add_attribute("owner", vault.owner.to_string())
+        .add_attribute("vault_id", vault.id);
+
     if vault.balance.amount.gt(&Uint128::zero()) {
-        refund_bank_msgs.push(CosmosMsg::Bank(BankMsg::Send {
+        response = response.add_message(CosmosMsg::Bank(BankMsg::Send {
             to_address: vault.owner.to_string(),
             amount: vec![vault.balance.clone()],
         }))
@@ -72,11 +76,7 @@ fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, Contract
         },
     )?;
 
-    Ok(Response::new()
-        .add_attribute("method", "cancel_vault")
-        .add_attribute("owner", vault.owner.to_string())
-        .add_attribute("vault_id", vault.id)
-        .add_messages(refund_bank_msgs))
+    Ok(response)
 }
 
 fn cancel_fin_limit_order_trigger(

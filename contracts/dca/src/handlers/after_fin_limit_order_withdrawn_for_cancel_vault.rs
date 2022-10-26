@@ -25,10 +25,12 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
                 amount: limit_order_cache.filled,
             };
 
+            let mut response = Response::new()
+                .add_attribute("method", "fin_limit_order_withdrawn_for_cancel_vault");
+
             // i dont think its possible for this to be zero
-            let mut filled_amount_bank_msgs: Vec<CosmosMsg> = Vec::new();
             if filled_amount.amount.gt(&Uint128::zero()) {
-                filled_amount_bank_msgs.push(CosmosMsg::Bank(BankMsg::Send {
+                response = response.add_message(CosmosMsg::Bank(BankMsg::Send {
                     to_address: vault.owner.to_string(),
                     amount: vec![filled_amount.clone()],
                 }))
@@ -56,9 +58,7 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
 
             delete_trigger(deps.storage, vault.id.into())?;
 
-            Ok(Response::new()
-                .add_attribute("method", "fin_limit_order_withdrawn_for_cancel_vault")
-                .add_messages(filled_amount_bank_msgs))
+            Ok(response)
         }
         cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
             val: format!(
