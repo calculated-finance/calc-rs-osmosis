@@ -32,7 +32,8 @@ Vaults are created by users via the CALC frontend application.
 - only a single asset can be provided in the message funds
 - the vault `swap_amount` must be less than or equal to the vault balance
 - the number of destinations provided must not exceed the limit set in config
-- destinations of type `PostExecutionAction::Send` must have vaild bech32 addresses
+- destinations of type `PostExecutionAction::Send` must have valid bech32 addresses
+- destinations of type `PostExecutionAction::ZDelegate` must have valid validator addresses
 - the sum of all destination allocations must == 1.0
 - the submitted `pair_address` must be a valid bech32 address
 - the submitted `pair_address` must match an existing pair stored in the contract
