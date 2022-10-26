@@ -418,6 +418,7 @@ fn when_vault_has_time_trigger_should_succeed() {
             &mock.dca_contract_address.clone(),
             &QueryMsg::GetVaultsByAddress {
                 address: user_address.clone(),
+                status: None,
                 start_after: None,
                 limit: None,
             },

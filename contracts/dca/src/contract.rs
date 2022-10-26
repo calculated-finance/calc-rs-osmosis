@@ -187,9 +187,16 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::GetVaultsByAddress {
             address,
+            status,
             start_after,
             limit,
-        } => to_binary(&get_vaults_by_address(deps, address, start_after, limit)?),
+        } => to_binary(&get_vaults_by_address(
+            deps,
+            address,
+            status,
+            start_after,
+            limit,
+        )?),
         QueryMsg::GetVault { vault_id, address } => to_binary(&get_vault(deps, address, vault_id)?),
         QueryMsg::GetEventsByResourceId { resource_id } => {
             to_binary(&get_events_by_resource_id(deps, resource_id)?)

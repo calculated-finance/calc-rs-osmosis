@@ -593,6 +593,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
 
     let get_all_active_vaults_by_address_query_message = QueryMsg::GetVaultsByAddress {
         address: Addr::unchecked(VALID_ADDRESS_THREE),
+        status: None,
         start_after: None,
         limit: None,
     };

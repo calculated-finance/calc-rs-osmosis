@@ -1,7 +1,7 @@
 use base::events::event::Event;
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, Trigger};
-use base::vaults::vault::{Destination, PositionType};
+use base::vaults::vault::{Destination, PositionType, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Decimal256, Uint128, Uint64};
 
@@ -83,6 +83,7 @@ pub enum QueryMsg {
     #[returns(VaultsResponse)]
     GetVaultsByAddress {
         address: Addr,
+        status: Option<VaultStatus>,
         start_after: Option<u128>,
         limit: Option<u8>,
     },
