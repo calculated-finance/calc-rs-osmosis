@@ -4,9 +4,27 @@
 
 Because cosmos chains implement the actor pattern, we can be certain that anything read from the cache will be relevant to the current transaction. Cache is never read from at the start of a brand new transaction, only ever written to.
 
-## Vault life-cycles
+## Vaults & Triggers
+
+Vaults store information relating to the overall DCA strategy the user has requested including (but not only):
+
+- `owner`: only the owner can cancel the vault
+- `destinations`: the addresses to distribute funds to after vault executions
+- `status`: `Active`, `Inactive` or `Cancelled`
+- `balance`: the current balance of the vault
+- `pair`: the FIN pair address and denomination ordering for execution swaps and limit orders
+- `swap_amount`: the amount to be swapped
+- `position_type`: whether the vault is DCA in (investing) or DCA out (profit-taking)
+- `time_interval`: the time interval at which the executions should take place once the vault executions have started
+
+Triggers store the information required decide whether to execute a vault or not. Currently, there are 2 trigger types:.
+
+1. Price triggers - set using fin limit orders, and executed once the full limit order has been filled.
+2. Time triggers - set using the vault time interval and scheduled start date, executed once the trigger `target_time` has passed.
 
 ### Create Vault
+
+Vaults are created by users via the CALC frontend application.
 
 #### Validation
 
@@ -30,44 +48,44 @@ Because cosmos chains implement the actor pattern, we can be certain that anythi
   - save a time trigger with the submitted `target_start_time_utc_seconds` or the block time if `target_start_time_utc_seconds` was `None`
 - else:
   - create a fin limit order for the submitted `swap_amount` and `target_price`
-  - create a fin limit order trigger with the generated `order_idx` from fin
+  - save a fin limit order trigger with the generated `order_idx` from fin
 
-#### Trigger Execution
+### Execute Trigger
 
-1. Trigger execution - off chain (p.1)
-   - off-chain components query all orders under the contract address and find limit orders that have been fullfilled (fin limit order triggers)
-   - the order idx of a fullfilled limit order can be used to execute a fin limit order trigger
-2. Trigger execution - on chain (pt.2)
-   - load fin limit order trigger by id using the given order idx
-   - load fin limit order trigger by trigger id retrieved in previous step
-   - load vault using the fin limit order trigger owner and vault id fields
-   - use on chain querier to validate the fin limit order has completed by ensuring the 'offer_amount' field is 0 (there is no more tokens to swap the order is fullfilled)
-   - save the amount of coins sent and received in the limit order to the limit order cache (used to update the vault balance after the fin limit order has been successfuly withdrawn)
-   - create fin withdraw message using the given order idx and vault pair address
-   - save vault id and owner in cache (to be used for finding the vault by id and owner in the fin withdraw order reply handler)
-   - send fin withdraw order sub message
-3. Trigger execution - on chain (pt.3)
-   - reply handler to continue on after withdraw order sub message has replied
-   - load cache
-   - load limit order cache
-   - load vault using information stored in cache
-   - load fin limit order trigger using the vaults trigger id field
-   - remove the fin limit order trigger id using the fin limit order trigger order idx field (this limit order has been withdrawm and no longer exists/the trigger is complete)
-   - remove the fin limit order trigger using its own id (this trigger is now considered complete and we will switch over to a time trigger)
-   - load config and increment trigger counter to generate a new trigger id
-   - load the time trigger configuration using the vault id field
-   - build the time trigger and update the id, vault id and owner
-   - update the vault with new trigger information and reduce the current balance by the amount sent with the limit order (using the limit order cache)
-   - if the time trigger has 0 trigger remaining (ie someone created a dca vault with a price trigger and 1 total execution) move vault to inactive and don't save the time trigger
-   - save the time trigger using the trigger id (assuming vault is still active)
-   - create coins that were sent and received from the limit order (to be used in execution information)
-   - create bank send message to send the vault owner the assets received from the limit order
-   - load executions to get a new sequence number for the next execution (sequence number indexes the order executions happened)
-   - build a new execution using the success fin limit order trigger setter
-   - save execution against the vault id
-   - remove limit order cache as the execute trigger flow has now ended
-   - remove cache as the execute trigger flow has now ended
-   - send bank message
+Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal to the vault `id`. An off chain scheduler obtains `trigger_id`s for triggers that are ready to be executed via FIN and the `GetTriggerIdByFinLimitOrderIdx` query for price triggers, and via the `GetTimeTriggerIds` query for time triggers.
+
+#### Validation
+
+- if the trigger is a time trigger:
+  - the `target_time` must be in the past
+  - if the vault `position_type` is `PositionType::Enter`:
+    - the current price of the swap asset must be lower than the price threshold (if there is one)
+  - if the vault `position_type` is `PositionType::Exit`:
+    - the current price of the swap asset must be higher than the price threshold (if there is one)
+- if the trigger is a fin limit order trigger:
+  - the fin limit order must be completely filled
+
+#### Domain Logic
+
+- if the trigger is a time trigger:
+  - execute a fin swap for the vault pair
+  - if the fin swap is successful:
+    - delete the current time trigger
+    - save a new time trigger using the vault `time_interval`
+  - else:
+    - publish a `DCAVaultExecutionSkipped` event with the relevant skipped reason
+- if the trigger is a fin limit order trigger:
+  - withdraw the limit order from fin
+  - if the fin limit withdrawal is successful:
+    - delete the fin limit order trigger
+    - save a new time trigger using the vault `time_interval`
+  - else:
+    - return an error to be logged by the off-chain scheduler
+- reduce the vault balance by the swap amount
+- send the CALC fee to the `fee_collector` address
+- distribute remaining swapped funds to all vault `destinations` based on destination allocations
+- use `authz` permissions to delegate funds from destination addresses to validators for destinations with action type `PostExecutionAction:Delegate`
+- save a `DCAVaultExecutionCompleted` event
 
 #### Cancellation
 
