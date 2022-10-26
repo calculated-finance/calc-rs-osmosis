@@ -17,7 +17,7 @@ pub fn after_fin_limit_order_retracted(
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
     let vault = get_vault(deps.storage, cache.vault_id)?;
-    let response = Response::new().add_attribute("method", "fin_limit_order_retracted");
+    let mut response = Response::new().add_attribute("method", "fin_limit_order_retracted");
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
@@ -49,12 +49,11 @@ pub fn after_fin_limit_order_retracted(
                 };
 
                 // i dont think its possible for this to be zero
-                let mut retracted_balance_bank_msgs: Vec<CosmosMsg> = Vec::new();
                 if retracted_balance.amount.gt(&Uint128::zero()) {
-                    retracted_balance_bank_msgs.push(CosmosMsg::Bank(BankMsg::Send {
+                    response = response.add_message(CosmosMsg::Bank(BankMsg::Send {
                         to_address: vault.owner.to_string(),
                         amount: vec![retracted_balance.clone()],
-                    }))
+                    }));
                 }
 
                 let fin_withdraw_sub_msg = create_withdraw_limit_order_sub_msg(
@@ -65,15 +64,13 @@ pub fn after_fin_limit_order_retracted(
 
                 Ok(response
                     .add_attribute("withdraw_required", "true")
-                    .add_submessage(fin_withdraw_sub_msg)
-                    .add_messages(retracted_balance_bank_msgs))
+                    .add_submessage(fin_withdraw_sub_msg))
             } else {
-                let mut refund_bank_msgs: Vec<CosmosMsg> = Vec::new();
                 if vault.balance.amount.gt(&Uint128::zero()) {
-                    refund_bank_msgs.push(CosmosMsg::Bank(BankMsg::Send {
+                    response = response.add_message(CosmosMsg::Bank(BankMsg::Send {
                         to_address: vault.owner.to_string(),
                         amount: vec![vault.balance.clone()],
-                    }))
+                    }));
                 }
 
                 update_vault(
@@ -97,9 +94,7 @@ pub fn after_fin_limit_order_retracted(
                     },
                 )?;
 
-                Ok(response
-                    .add_attribute("withdraw_required", "false")
-                    .add_messages(refund_bank_msgs))
+                Ok(response.add_attribute("withdraw_required", "false"))
             }
         }
         cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
