@@ -149,6 +149,20 @@ pub fn assert_destination_send_addresses_are_valid(
     Ok(())
 }
 
+pub fn assert_destination_validator_addresses_are_valid(
+    deps: Deps,
+    destinations: &[Destination],
+) -> Result<(), ContractError> {
+    for destination in destinations
+        .iter()
+        .filter(|d| d.action == PostExecutionAction::ZDelegate)
+    {
+        assert_validator_is_valid(deps, destination.address.to_string())?;
+    }
+
+    Ok(())
+}
+
 pub fn assert_address_is_valid(
     deps: Deps,
     address: Addr,
@@ -187,5 +201,22 @@ pub fn assert_page_limit_is_valid(limit: Option<u8>) -> Result<(), ContractError
         });
     }
 
+    Ok(())
+}
+
+pub fn assert_validator_is_valid(
+    deps: Deps,
+    validator_address: String,
+) -> Result<(), ContractError> {
+    let validator = deps
+        .querier
+        .query_validator(validator_address.clone())
+        .unwrap();
+
+    if validator.is_none() {
+        return Err(ContractError::CustomError {
+            val: format!("validator {} is invalid", validator_address),
+        });
+    }
     Ok(())
 }

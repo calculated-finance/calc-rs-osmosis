@@ -26,7 +26,6 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
 
     match reply.result {
         cosmwasm_std::SubMsgResult::Ok(_) => {
-            
             let mut messages: Vec<CosmosMsg> = Vec::new();
             let mut sub_msgs: Vec<SubMsg> = Vec::new();
 
@@ -92,8 +91,7 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
             );
 
             // never try to send 0 tokens
-            if execution_fee.amount.gt(&Uint128::zero())
-            {
+            if execution_fee.amount.gt(&Uint128::zero()) {
                 messages.push(CosmosMsg::Bank(BankMsg::Send {
                     to_address: config.fee_collector.to_string(),
                     amount: vec![execution_fee.clone()],

@@ -1,6 +1,8 @@
 use crate::error::ContractError;
 use crate::state::{create_event, get_vault, update_vault};
-use crate::validation_helpers::{assert_denom_matches_pair_denom, assert_exactly_one_asset, assert_vault_is_not_cancelled};
+use crate::validation_helpers::{
+    assert_denom_matches_pair_denom, assert_exactly_one_asset, assert_vault_is_not_cancelled,
+};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 

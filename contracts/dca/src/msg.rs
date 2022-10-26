@@ -77,14 +77,9 @@ pub enum QueryMsg {
     #[returns(TriggerIdsResponse)]
     GetTimeTriggerIds {},
     #[returns(TriggerIdResponse)]
-    GetTriggerIdByFinLimitOrderIdx {
-        order_idx: Uint128,
-    },
+    GetTriggerIdByFinLimitOrderIdx { order_idx: Uint128 },
     #[returns(VaultResponse)]
-    GetVault {
-        address: Addr,
-        vault_id: Uint128,
-    },
+    GetVault { address: Addr, vault_id: Uint128 },
     #[returns(VaultsResponse)]
     GetVaultsByAddress {
         address: Addr,
@@ -92,9 +87,7 @@ pub enum QueryMsg {
         limit: Option<u8>,
     },
     #[returns(EventsResponse)]
-    GetEventsByResourceId {
-        resource_id: Uint128,
-    },
+    GetEventsByResourceId { resource_id: Uint128 },
     #[returns(EventsResponse)]
     GetEvents {
         start_after: Option<u64>,

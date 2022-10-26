@@ -1,9 +1,6 @@
-use crate::constants::{ONE, TEN, ONE_THOUSAND, ONE_HUNDRED};
+use crate::constants::{ONE, ONE_HUNDRED, ONE_THOUSAND, TEN};
 use crate::msg::ExecuteMsg;
-use crate::tests::mocks::{
-    fin_contract_unfilled_limit_order, MockApp, ADMIN,
-    DENOM_UKUJI, USER,
-};
+use crate::tests::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, USER};
 use base::events::event::EventBuilder;
 use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
@@ -27,8 +24,7 @@ fn when_vault_is_active_should_succeed() {
             "fin",
         );
 
-    mock
-        .app
+    mock.app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
@@ -40,18 +36,21 @@ fn when_vault_is_active_should_succeed() {
         )
         .unwrap();
 
-        assert_address_balances(
-            &mock,
-            &[
-                (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
-                (&user_address, DENOM_UTEST, Uint128::new(0)),
-                (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND - swap_amount + vault_deposit + vault_deposit),
-                (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
-                (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND + ONE),
-                (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
-            ],
-        );
-
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
+            (&user_address, DENOM_UTEST, Uint128::new(0)),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND - swap_amount + vault_deposit + vault_deposit,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND + ONE),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+        ],
+    );
 }
 
 #[test]
@@ -72,8 +71,7 @@ fn when_vault_is_active_should_update_vault_balance() {
 
     let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
 
-    mock
-        .app
+    mock.app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
@@ -85,14 +83,13 @@ fn when_vault_is_active_should_update_vault_balance() {
         )
         .unwrap();
 
-        assert_vault_balance(
-            &mock,
-            &mock.dca_contract_address,
-            user_address,
-            Uint128::new(1),
-            vault_deposit + vault_deposit,
-        );
-
+    assert_vault_balance(
+        &mock,
+        &mock.dca_contract_address,
+        user_address,
+        Uint128::new(1),
+        vault_deposit + vault_deposit,
+    );
 }
 
 #[test]
@@ -113,8 +110,7 @@ fn when_vault_is_active_should_create_event() {
 
     let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
 
-    mock
-        .app
+    mock.app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
@@ -126,19 +122,18 @@ fn when_vault_is_active_should_create_event() {
         )
         .unwrap();
 
-        assert_events_published(
-            &mock,
+    assert_events_published(
+        &mock,
+        vault_id,
+        &[EventBuilder::new(
             vault_id,
-            &[
-                EventBuilder::new(
-                    vault_id,
-                    mock.app.block_info(),
-                    base::events::event::EventData::DCAVaultFundsDeposited { amount: Coin::new(TEN.into(), DENOM_UKUJI) }
-                )
-                .build(2),
-            ],
-        );
-
+            mock.app.block_info(),
+            base::events::event::EventData::DCAVaultFundsDeposited {
+                amount: Coin::new(TEN.into(), DENOM_UKUJI),
+            },
+        )
+        .build(2)],
+    );
 }
 
 #[test]
