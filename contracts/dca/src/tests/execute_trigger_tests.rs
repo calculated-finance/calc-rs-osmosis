@@ -11,6 +11,7 @@ use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use base::events::event::{EventBuilder, EventData};
+use base::helpers::math_helpers::checked_mul;
 use base::vaults::vault::{Destination, PositionType, PostExecutionAction};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128};
 use cw_multi_test::Executor;
@@ -31,10 +32,8 @@ fn fin_limit_order_trigger_should_succeed() {
             "fin",
         );
 
-    let swap_amount_after_fee = swap_amount
-        - swap_amount
-            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
-            .unwrap();
+    let swap_amount_after_fee =
+        swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
 
     assert_address_balances(
         &mock,
@@ -185,10 +184,8 @@ fn fin_limit_order_trigger_with_multiple_destinations_should_distribute_funds_pr
         )
         .unwrap();
 
-    let swap_amount_after_fee = swap_amount
-        - swap_amount
-            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
-            .unwrap();
+    let swap_amount_after_fee =
+        swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
 
     assert_address_balances(
         &mock,
@@ -246,10 +243,8 @@ fn with_time_trigger_with_multiple_destinations_should_distribute_funds_properly
         )
         .unwrap();
 
-    let swap_amount_after_fee = swap_amount
-        - swap_amount
-            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
-            .unwrap();
+    let swap_amount_after_fee =
+        swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
 
     assert_address_balances(
         &mock,
@@ -383,10 +378,8 @@ fn when_executions_result_in_empty_vault_should_succeed() {
             "fin",
         );
 
-    let vault_deposit_after_fee = vault_deposit
-        - vault_deposit
-            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
-            .unwrap();
+    let vault_deposit_after_fee =
+        vault_deposit - checked_mul(vault_deposit, mock.fee_percent).ok().unwrap();
 
     assert_address_balances(
         &mock,
@@ -497,10 +490,8 @@ fn after_target_time_should_succeed() {
             None,
         );
 
-    let swap_amount_after_fee = swap_amount
-        - swap_amount
-            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
-            .unwrap();
+    let swap_amount_after_fee =
+        swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
 
     assert_address_balances(
         &mock,
@@ -612,10 +603,8 @@ fn with_price_threshold_should_succeed() {
             Some(Decimal256::from_str("1.5").unwrap()),
         );
 
-    let swap_amount_after_fee = swap_amount
-        - swap_amount
-            .checked_multiply_ratio(mock.fee_percent, ONE_HUNDRED)
-            .unwrap();
+    let swap_amount_after_fee =
+        swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
 
     assert_address_balances(
         &mock,

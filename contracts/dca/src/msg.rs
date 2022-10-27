@@ -3,7 +3,7 @@ use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, Trigger};
 use base::vaults::vault::{Destination, PositionType, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Decimal256, Uint128, Uint64};
+use cosmwasm_std::{Addr, Decimal, Decimal256, Uint128, Uint64};
 
 use crate::vault::Vault;
 
@@ -11,7 +11,7 @@ use crate::vault::Vault;
 pub struct InstantiateMsg {
     pub admin: Addr,
     pub fee_collector: Addr,
-    pub fee_percent: Uint128,
+    pub fee_percent: Decimal,
     pub staking_router_address: Addr,
 }
 
@@ -19,7 +19,7 @@ pub struct InstantiateMsg {
 pub struct MigrateMsg {
     pub admin: Addr,
     pub fee_collector: Addr,
-    pub fee_percent: Uint128,
+    pub fee_percent: Decimal,
     pub staking_router_address: Addr,
 }
 
@@ -59,7 +59,7 @@ pub enum ExecuteMsg {
     },
     UpdateConfig {
         fee_collector: Option<Addr>,
-        fee_percent: Option<Uint128>,
+        fee_percent: Option<Decimal>,
         staking_router_address: Option<Addr>,
     },
     UpdateVault {

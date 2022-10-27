@@ -1,21 +1,20 @@
 use crate::{
-    constants::ONE_HUNDRED,
     error::ContractError,
     state::{Config, CONFIG},
     validation_helpers::assert_sender_is_admin,
 };
-use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, StdResult, Uint128};
+use cosmwasm_std::{Addr, Decimal, DepsMut, MessageInfo, Response, StdResult};
 
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
     fee_collector: Option<Addr>,
-    fee_percent: Option<Uint128>,
+    fee_percent: Option<Decimal>,
     staking_router_address: Option<Addr>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
 
-    if fee_percent.is_some() && fee_percent.unwrap() > ONE_HUNDRED {
+    if fee_percent.is_some() && fee_percent.unwrap() > Decimal::percent(100) {
         return Err(ContractError::CustomError {
             val: "fee_percent must be less than 100".to_string(),
         });

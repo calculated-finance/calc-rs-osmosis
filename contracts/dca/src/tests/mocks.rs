@@ -8,8 +8,8 @@ use base::vaults::vault::{Destination, PositionType};
 use cosmwasm_schema::cw_serde;
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
-    to_binary, Addr, BankMsg, Binary, Coin, Decimal256, Empty, Env, Event, MessageInfo, Response,
-    StdResult, Uint128, Uint256, Uint64,
+    to_binary, Addr, BankMsg, Binary, Coin, Decimal, Decimal256, Empty, Env, Event, MessageInfo,
+    Response, StdResult, Uint128, Uint256, Uint64,
 };
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
 use kujira::denom::Denom;
@@ -36,7 +36,7 @@ pub struct MockApp {
     pub dca_contract_address: Addr,
     pub fin_contract_address: Addr,
     pub vault_ids: HashMap<String, Uint128>,
-    pub fee_percent: Uint128,
+    pub fee_percent: Decimal,
 }
 
 impl MockApp {
@@ -75,7 +75,7 @@ impl MockApp {
             &InstantiateMsg {
                 admin: Addr::unchecked(ADMIN),
                 fee_collector: Addr::unchecked(ADMIN),
-                fee_percent: ONE + ONE,
+                fee_percent: Decimal::from_str("0.015").unwrap(),
                 staking_router_address: Addr::unchecked("staking-router"),
             },
             "dca",
@@ -148,7 +148,7 @@ impl MockApp {
             dca_contract_address,
             fin_contract_address,
             vault_ids: HashMap::new(),
-            fee_percent: ONE + ONE,
+            fee_percent: Decimal::from_str("0.015").unwrap(),
         }
     }
 

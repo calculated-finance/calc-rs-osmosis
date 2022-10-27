@@ -1,4 +1,3 @@
-use crate::constants::ONE_HUNDRED;
 use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::{
@@ -6,6 +5,7 @@ use crate::state::{
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
+use base::helpers::math_helpers::checked_mul;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
@@ -67,10 +67,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             let config = CONFIG.load(deps.storage)?;
 
             let execution_fee = Coin::new(
-                (coin_received
-                    .amount
-                    .checked_multiply_ratio(config.fee_percent, ONE_HUNDRED)?)
-                .into(),
+                checked_mul(coin_received.amount, config.fee_percent)?.into(),
                 &coin_received.denom,
             );
 
@@ -85,25 +82,20 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             let total_to_redistribute = coin_received.amount - execution_fee.amount;
 
             vault.destinations.iter().for_each(|destination| {
-                let amount = total_to_redistribute
-                    .checked_multiply_ratio(
-                        destination.allocation.atomics(),
-                        Uint128::new(10)
-                            .checked_pow(destination.allocation.decimal_places())
-                            .unwrap(),
-                    )
-                    .unwrap();
+                let amount = checked_mul(total_to_redistribute, destination.allocation)
+                    .ok()
+                    .expect("amount to be distributed should be valid");
 
                 match destination.action {
                     PostExecutionAction::Send => messages.push(CosmosMsg::Bank(BankMsg::Send {
                         to_address: destination.address.to_string(),
-                        amount: vec![Coin::new(amount.u128(), &coin_received.denom)],
+                        amount: vec![Coin::new(amount.into(), &coin_received.denom)],
                     })),
                     PostExecutionAction::ZDelegate => {
                         // authz delegations use funds from the users wallet so send back to user
                         messages.push(CosmosMsg::Bank(BankMsg::Send {
                             to_address: vault.owner.to_string(),
-                            amount: vec![Coin::new(amount.u128(), &coin_received.denom)],
+                            amount: vec![Coin::new(amount.into(), &coin_received.denom)],
                         }));
                         sub_msgs.push(SubMsg::reply_always(
                             CosmosMsg::Wasm(WasmMsg::Execute {

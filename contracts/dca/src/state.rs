@@ -8,6 +8,7 @@ use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
+use cosmwasm_std::Decimal;
 use cosmwasm_std::StdResult;
 use cosmwasm_std::Storage;
 use cosmwasm_std::Uint128;
@@ -29,7 +30,7 @@ pub struct Cache {
 pub struct Config {
     pub admin: Addr,
     pub fee_collector: Addr,
-    pub fee_percent: Uint128,
+    pub fee_percent: Decimal,
     pub staking_router_address: Addr,
 }
 

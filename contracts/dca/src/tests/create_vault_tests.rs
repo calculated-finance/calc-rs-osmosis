@@ -511,6 +511,7 @@ fn with_price_trigger_twice_for_user_should_succeed() {
         vault_deposit,
     );
 }
+
 #[test]
 fn with_time_trigger_should_create_vault() {
     let user_address = Addr::unchecked(USER);
@@ -740,7 +741,7 @@ fn with_time_trigger_should_publish_funds_deposited_event() {
                 amount: Coin::new(vault_deposit.into(), DENOM_UKUJI),
             },
         )
-        .build(1)],
+        .build(2)],
     );
 }
 
