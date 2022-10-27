@@ -194,10 +194,14 @@ pub fn assert_destination_allocations_add_up_to_one(
     Ok(())
 }
 
-pub fn assert_page_limit_is_valid(limit: Option<u8>) -> Result<(), ContractError> {
-    if limit.unwrap_or(30) > 30 {
+pub fn assert_page_limit_is_valid(
+    storage: &dyn Storage,
+    limit: Option<u16>,
+) -> Result<(), ContractError> {
+    let config = CONFIG.load(storage)?;
+    if limit.unwrap_or(30) > config.page_limit {
         return Err(ContractError::CustomError {
-            val: String::from("limit cannot be greater than 30."),
+            val: format!("limit cannot be greater than {:?}.", config.page_limit),
         });
     }
 

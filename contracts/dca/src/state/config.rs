@@ -8,6 +8,7 @@ pub struct Config {
     pub fee_collector: Addr,
     pub fee_percent: Decimal,
     pub staking_router_address: Addr,
+    pub page_limit: u16,
 }
 
 pub const CONFIG: Item<Config> = Item::new("config_v2");

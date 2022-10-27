@@ -2,6 +2,8 @@ use base::events::event::{Event, EventBuilder};
 use cosmwasm_std::{StdResult, Storage};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, MultiIndex};
 
+use super::state_helpers::fetch_and_increment_counter;
+
 const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v2");
 
 pub struct EventIndexes<'a> {
@@ -24,12 +26,6 @@ pub fn event_store<'a>() -> IndexedMap<'a, u64, Event, EventIndexes<'a>> {
         ),
     };
     IndexedMap::new("events_v6", indexes)
-}
-
-fn fetch_and_increment_counter(store: &mut dyn Storage, counter: Item<u64>) -> StdResult<u64> {
-    let id = counter.may_load(store)?.unwrap_or_default() + 1;
-    counter.save(store, &id)?;
-    Ok(id)
 }
 
 pub fn create_event(store: &mut dyn Storage, event_builder: EventBuilder) -> StdResult<u64> {

@@ -46,7 +46,7 @@ pub fn get_vaults_by_address(
     address: Addr,
     status: Option<VaultStatus>,
     start_after: Option<u128>,
-    limit: Option<u8>,
+    limit: Option<u16>,
 ) -> StdResult<Vec<Vault>> {
     let partition = match status {
         Some(status) => vault_store()

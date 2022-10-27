@@ -7,9 +7,9 @@ use cw_storage_plus::Bound;
 pub fn get_events(
     deps: Deps,
     start_after: Option<u64>,
-    limit: Option<u8>,
+    limit: Option<u16>,
 ) -> StdResult<EventsResponse> {
-    assert_page_limit_is_valid(limit)?;
+    assert_page_limit_is_valid(deps.storage, limit)?;
 
     let events = event_store()
         .range(
@@ -18,7 +18,7 @@ pub fn get_events(
             None,
             cosmwasm_std::Order::Ascending,
         )
-        .take(limit.unwrap_or(30u8) as usize)
+        .take(limit.unwrap_or(30) as usize)
         .map(|result| result.unwrap().1)
         .collect::<Vec<Event>>();
 

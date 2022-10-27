@@ -13,6 +13,7 @@ pub struct InstantiateMsg {
     pub fee_collector: Addr,
     pub fee_percent: Decimal,
     pub staking_router_address: Addr,
+    pub page_limit: u16,
 }
 
 #[cw_serde]
@@ -21,6 +22,7 @@ pub struct MigrateMsg {
     pub fee_collector: Addr,
     pub fee_percent: Decimal,
     pub staking_router_address: Addr,
+    pub page_limit: u16,
 }
 
 #[cw_serde]
@@ -61,6 +63,7 @@ pub enum ExecuteMsg {
         fee_collector: Option<Addr>,
         fee_percent: Option<Decimal>,
         staking_router_address: Option<Addr>,
+        page_limit: Option<u16>,
     },
     UpdateVault {
         address: Addr,
@@ -85,14 +88,14 @@ pub enum QueryMsg {
         address: Addr,
         status: Option<VaultStatus>,
         start_after: Option<u128>,
-        limit: Option<u8>,
+        limit: Option<u16>,
     },
     #[returns(EventsResponse)]
     GetEventsByResourceId { resource_id: Uint128 },
     #[returns(EventsResponse)]
     GetEvents {
         start_after: Option<u64>,
-        limit: Option<u8>,
+        limit: Option<u16>,
     },
 }
 

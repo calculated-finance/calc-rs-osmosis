@@ -11,6 +11,7 @@ pub fn update_config(
     fee_collector: Option<Addr>,
     fee_percent: Option<Decimal>,
     staking_router_address: Option<Addr>,
+    page_limit: Option<u16>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
 
@@ -32,6 +33,10 @@ pub fn update_config(
             deps.api
                 .addr_validate(&staking_router_address.to_string())?;
             config.staking_router_address = staking_router_address;
+        }
+
+        if let Some(page_limit) = page_limit {
+            config.page_limit = page_limit;
         }
 
         Ok(config)

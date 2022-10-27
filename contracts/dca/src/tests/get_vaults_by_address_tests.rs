@@ -221,14 +221,14 @@ fn with_invalid_limit_should_fail() {
                 address: user_address.clone(),
                 status: None,
                 start_after: None,
-                limit: Some(50),
+                limit: Some(1001),
             },
         )
         .unwrap_err();
 
     assert!(vaults_response
         .to_string()
-        .contains("limit cannot be greater than 30."))
+        .contains("limit cannot be greater than 1000."))
 }
 
 #[test]

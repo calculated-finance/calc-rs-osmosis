@@ -58,6 +58,7 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
         fee_collector: msg.fee_collector,
         fee_percent: msg.fee_percent,
         staking_router_address: msg.staking_router_address,
+        page_limit: msg.page_limit,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -81,6 +82,7 @@ pub fn instantiate(
         fee_collector: msg.fee_collector,
         fee_percent: msg.fee_percent,
         staking_router_address: msg.staking_router_address,
+        page_limit: msg.page_limit,
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -140,12 +142,14 @@ pub fn execute(
             fee_collector,
             fee_percent,
             staking_router_address,
+            page_limit,
         } => update_config(
             deps,
             info,
             fee_collector,
             fee_percent,
             staking_router_address,
+            page_limit,
         ),
         ExecuteMsg::UpdateVault {
             address,
