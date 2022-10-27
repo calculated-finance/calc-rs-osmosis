@@ -1,6 +1,6 @@
 use crate::{
-    error::ContractError, state::update_vault, validation_helpers::asset_sender_is_vault_owner,
-    vault::Vault,
+    error::ContractError, state::vaults::update_vault,
+    validation_helpers::asset_sender_is_vault_owner, vault::Vault,
 };
 use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, StdError, StdResult, Uint128};
 

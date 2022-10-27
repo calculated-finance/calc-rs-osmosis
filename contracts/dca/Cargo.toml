@@ -22,13 +22,13 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-base = { path = "../../packages/base"}
+base = { path = "../../packages/base" }
 cosmwasm-std = "1.0.0"
 cosmwasm-storage = "1.1.1"
 cw-storage-plus = "0.15.0"
 cw2 = "0.15.0"
 enum-as-inner = "0.5.1"
-fin-helpers = { path = "../../packages/fin-helpers"}
+fin-helpers = { path = "../../packages/fin-helpers" }
 kujira = "0.7.16"
 schemars = "0.8.10"
 serde = { version = "1.0.144", default-features = false, features = ["derive"] }

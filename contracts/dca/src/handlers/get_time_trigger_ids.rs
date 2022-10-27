@@ -1,4 +1,4 @@
-use crate::{msg::TriggerIdsResponse, state::TRIGGER_IDS_BY_TARGET_TIME};
+use crate::{msg::TriggerIdsResponse, state::triggers::TRIGGER_IDS_BY_TARGET_TIME};
 use cosmwasm_std::{Deps, Env, Order, StdResult, Uint128};
 use cw_storage_plus::Bound;
 

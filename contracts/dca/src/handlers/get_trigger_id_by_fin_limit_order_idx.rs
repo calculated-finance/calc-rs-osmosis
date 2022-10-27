@@ -1,5 +1,4 @@
-use crate::msg::TriggerIdResponse;
-use crate::state::TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX;
+use crate::{msg::TriggerIdResponse, state::triggers::TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::Uint128;
 use cosmwasm_std::{Deps, StdResult};

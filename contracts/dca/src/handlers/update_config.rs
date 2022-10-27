@@ -1,6 +1,6 @@
 use crate::{
     error::ContractError,
-    state::{Config, CONFIG},
+    state::config::{Config, CONFIG},
     validation_helpers::assert_sender_is_admin,
 };
 use cosmwasm_std::{Addr, Decimal, DepsMut, MessageInfo, Response, StdResult};

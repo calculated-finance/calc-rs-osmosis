@@ -1,6 +1,10 @@
 use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
-use crate::state::{create_event, save_trigger, save_vault, Cache, CACHE, PAIRS};
+use crate::state::cache::{Cache, CACHE};
+use crate::state::events::create_event;
+use crate::state::pairs::PAIRS;
+use crate::state::triggers::save_trigger;
+use crate::state::vaults::save_vault;
 use crate::validation_helpers::{
     assert_address_is_valid, assert_denom_is_bond_denom, assert_denom_matches_pair_denom,
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,

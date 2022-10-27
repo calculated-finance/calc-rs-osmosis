@@ -1,6 +1,10 @@
 use crate::{
     error::ContractError,
-    state::{delete_trigger, get_vault, update_vault, CACHE, LIMIT_ORDER_CACHE},
+    state::{
+        cache::{CACHE, LIMIT_ORDER_CACHE},
+        triggers::delete_trigger,
+        vaults::{get_vault, update_vault},
+    },
     vault::Vault,
 };
 use base::vaults::vault::VaultStatus;

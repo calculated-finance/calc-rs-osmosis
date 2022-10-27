@@ -1,4 +1,4 @@
-use crate::state::get_vaults_by_address as fetch_vaults_by_address;
+use crate::state::vaults::get_vaults_by_address as fetch_vaults_by_address;
 use crate::{msg::VaultsResponse, validation_helpers::assert_page_limit_is_valid};
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{Addr, Deps, StdResult};

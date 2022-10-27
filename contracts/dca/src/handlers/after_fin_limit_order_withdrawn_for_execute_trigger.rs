@@ -1,9 +1,10 @@
 use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
-use crate::state::{
-    create_event, delete_trigger, get_vault, save_trigger, update_vault, CACHE, CONFIG,
-    LIMIT_ORDER_CACHE,
-};
+use crate::state::cache::{CACHE, LIMIT_ORDER_CACHE};
+use crate::state::config::CONFIG;
+use crate::state::events::create_event;
+use crate::state::triggers::{delete_trigger, save_trigger};
+use crate::state::vaults::{get_vault, update_vault};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::math_helpers::checked_mul;

@@ -21,9 +21,10 @@ use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::update_config::update_config;
 use crate::handlers::update_vault_label::update_vault_label;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::state::{
-    clear_triggers, clear_vaults, event_store, Config, CONFIG, EVENT_COUNTER, VAULT_COUNTER,
-};
+use crate::state::config::{Config, CONFIG};
+use crate::state::events::clear_events;
+use crate::state::triggers::clear_triggers;
+use crate::state::vaults::clear_vaults;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
@@ -44,9 +45,7 @@ pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 6;
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     clear_vaults(deps.storage);
     clear_triggers(deps.storage);
-    event_store().clear(deps.storage);
-    VAULT_COUNTER.remove(deps.storage);
-    EVENT_COUNTER.remove(deps.storage);
+    clear_events(deps.storage);
     CONFIG.remove(deps.storage);
 
     deps.api.addr_validate(&msg.admin.to_string())?;

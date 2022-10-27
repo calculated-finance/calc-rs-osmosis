@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::CONFIG;
+use crate::state::config::CONFIG;
 use crate::vault::Vault;
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use base::{pair::Pair, vaults::vault::PositionType};

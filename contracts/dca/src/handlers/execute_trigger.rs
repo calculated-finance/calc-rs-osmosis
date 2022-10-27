@@ -2,10 +2,10 @@ use crate::contract::{
     AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID,
 };
 use crate::error::ContractError;
-use crate::state::{
-    create_event, get_trigger, get_vault, update_vault, Cache, LimitOrderCache, CACHE,
-    LIMIT_ORDER_CACHE,
-};
+use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
+use crate::state::events::create_event;
+use crate::state::triggers::get_trigger;
+use crate::state::vaults::{get_vault, update_vault};
 use crate::validation_helpers::assert_target_time_is_in_past;
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};

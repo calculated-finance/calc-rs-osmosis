@@ -1,4 +1,5 @@
-use crate::{msg::EventsResponse, state::event_store};
+use crate::msg::EventsResponse;
+use crate::state::events::event_store;
 use base::events::event::Event;
 use cosmwasm_std::{Deps, Order, StdResult, Uint128};
 

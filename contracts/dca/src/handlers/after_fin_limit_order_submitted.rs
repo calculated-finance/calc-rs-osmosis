@@ -1,5 +1,6 @@
 use crate::error::ContractError;
-use crate::state::{delete_trigger, get_trigger, save_trigger, CACHE};
+use crate::state::cache::CACHE;
+use crate::state::triggers::{delete_trigger, get_trigger, save_trigger};
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 #[cfg(not(feature = "library"))]

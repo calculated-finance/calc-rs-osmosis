@@ -1,4 +1,4 @@
-use crate::{msg::PairsResponse, state::PAIRS};
+use crate::{msg::PairsResponse, state::pairs::PAIRS};
 use base::pair::Pair;
 use cosmwasm_std::{Deps, Order, StdResult};
 
