@@ -4,7 +4,7 @@ use base::{
     vaults::vault::{Destination, PositionType, VaultStatus},
 };
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Decimal256, Timestamp, Uint128};
+use cosmwasm_std::{coin, Addr, Coin, Decimal256, Timestamp, Uint128};
 
 #[cw_serde]
 pub struct Vault {
@@ -22,6 +22,8 @@ pub struct Vault {
     pub price_threshold: Option<Decimal256>,
     pub time_interval: TimeInterval,
     pub started_at: Option<Timestamp>,
+    pub swapped_amount: Coin,
+    pub received_amount: Coin,
 }
 
 impl Vault {
@@ -124,13 +126,27 @@ impl VaultBuilder {
             destinations: self.destinations,
             status: self.status,
             balance: self.balance,
-            pair: self.pair,
+            pair: self.pair.clone(),
             swap_amount: self.swap_amount,
-            position_type: self.position_type,
+            position_type: self.position_type.clone(),
             slippage_tolerance: self.slippage_tolerance,
             price_threshold: self.price_threshold,
             time_interval: self.time_interval,
             started_at: self.started_at,
+            swapped_amount: coin(
+                0,
+                match self.position_type {
+                    PositionType::Enter => self.pair.quote_denom.clone(),
+                    PositionType::Exit => self.pair.base_denom.clone(),
+                },
+            ),
+            received_amount: coin(
+                0,
+                match self.position_type {
+                    PositionType::Enter => self.pair.base_denom,
+                    PositionType::Exit => self.pair.quote_denom,
+                },
+            ),
         }
     }
 }

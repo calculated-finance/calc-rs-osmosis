@@ -7,6 +7,7 @@ use crate::state::triggers::{delete_trigger, get_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
+use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
@@ -128,6 +129,12 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                             if existing_vault.is_empty() {
                                 existing_vault.status = VaultStatus::Inactive;
                             }
+
+                            existing_vault.swapped_amount =
+                                add_to_coin(existing_vault.swapped_amount, coin_sent.amount)?;
+
+                            existing_vault.received_amount =
+                                add_to_coin(existing_vault.received_amount, total_to_redistribute)?;
 
                             Ok(existing_vault)
                         }
