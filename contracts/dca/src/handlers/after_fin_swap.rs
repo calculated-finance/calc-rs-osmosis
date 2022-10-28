@@ -15,7 +15,6 @@ use base::vaults::vault::{PositionType, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
-use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
@@ -126,7 +125,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                             existing_vault.balance.amount -=
                                 existing_vault.get_swap_amount().amount;
 
-                            if existing_vault.low_funds() {
+                            if existing_vault.is_empty() {
                                 existing_vault.status = VaultStatus::Inactive;
                             }
 
@@ -178,19 +177,37 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         cosmwasm_std::SubMsgResult::Err(e) => {
+            let execution_skipped_reason = ExecutionSkippedReason::from_fin_swap_error(e);
+
+            if execution_skipped_reason == ExecutionSkippedReason::InsufficientFunds {
+                update_vault(
+                    deps.storage,
+                    vault.id.into(),
+                    |existing_vault| -> StdResult<Vault> {
+                        match existing_vault {
+                            Some(mut existing_vault) => {
+                                existing_vault.status = VaultStatus::Inactive;
+                                Ok(existing_vault)
+                            }
+                            None => Err(StdError::NotFound {
+                                kind: format!(
+                                    "vault for address: {} with id: {}",
+                                    vault.owner.clone(),
+                                    vault.id
+                                ),
+                            }),
+                        }
+                    },
+                )?;
+            }
+
             create_event(
                 deps.storage,
                 EventBuilder::new(
                     vault.id,
                     env.block.to_owned(),
                     EventData::DCAVaultExecutionSkipped {
-                        reason: if e.contains(ERROR_SWAP_SLIPPAGE) {
-                            ExecutionSkippedReason::SlippageToleranceExceeded
-                        } else if e.contains(ERROR_SWAP_INSUFFICIENT_FUNDS) {
-                            ExecutionSkippedReason::InsufficientFunds
-                        } else {
-                            ExecutionSkippedReason::UnknownFailure
-                        },
+                        reason: execution_skipped_reason.clone(),
                     },
                 ),
             )?;

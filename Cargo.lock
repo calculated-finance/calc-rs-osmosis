@@ -26,6 +26,7 @@ dependencies = [
  "cw-storage-plus",
  "cw2",
  "enum-as-inner",
+ "fin-helpers",
  "schemars",
  "serde",
  "thiserror",

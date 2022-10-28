@@ -7,13 +7,12 @@ use crate::state::events::create_event;
 use crate::state::triggers::get_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::validation_helpers::assert_target_time_is_in_past;
-use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{PositionType, VaultStatus};
+use cosmwasm_std::StdError;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
-use cosmwasm_std::{StdError, StdResult};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
 use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
@@ -67,28 +66,6 @@ pub fn execute_trigger(
     match trigger.configuration {
         TriggerConfiguration::Time { target_time } => {
             assert_target_time_is_in_past(env.block.time, target_time)?;
-
-            if vault.is_active() && vault.low_funds() {
-                update_vault(
-                    deps.storage,
-                    vault.id.into(),
-                    |existing_vault| -> StdResult<Vault> {
-                        match existing_vault {
-                            Some(mut existing_vault) => {
-                                existing_vault.status = VaultStatus::Inactive;
-                                Ok(existing_vault)
-                            }
-                            None => Err(StdError::NotFound {
-                                kind: format!(
-                                    "vault for address: {} with id: {}",
-                                    vault.owner.clone(),
-                                    vault.id
-                                ),
-                            }),
-                        }
-                    },
-                )?;
-            }
 
             if let Some(price_threshold) = vault.price_threshold {
                 // dca in with price ceiling
