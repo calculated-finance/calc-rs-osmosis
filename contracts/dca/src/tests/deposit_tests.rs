@@ -137,6 +137,83 @@ fn when_vault_is_active_should_create_event() {
 }
 
 #[test]
+fn with_multiple_assets_should_fail() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let swap_amount = ONE;
+    let vault_deposit = TEN;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_unfilled_fin_limit_price_trigger(
+            &user_address,
+            None,
+            Coin::new(user_balance.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::Deposit {
+                address: user_address.clone(),
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+            },
+            &[
+                Coin::new(vault_deposit.into(), DENOM_UKUJI),
+                Coin::new(vault_deposit.into(), DENOM_UTEST),
+            ],
+        )
+        .unwrap_err();
+
+    println!("{:?}", response.root_cause());
+
+    assert_eq!(
+        response.root_cause().to_string(),
+        "Error: received 2 denoms but required exactly 1"
+    );
+}
+
+#[test]
+fn with_mismatched_denom_should_fail() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let swap_amount = ONE;
+    let vault_deposit = TEN;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_unfilled_fin_limit_price_trigger(
+            &user_address,
+            None,
+            Coin::new(user_balance.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::Deposit {
+                address: user_address.clone(),
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+            },
+            &[Coin::new(vault_deposit.into(), DENOM_UTEST)],
+        )
+        .unwrap_err();
+
+    println!("{:?}", response.root_cause());
+
+    assert_eq!(
+        response.root_cause().to_string(),
+        "Error: received asset with denom: utest, but needed ukuji"
+    );
+}
+
+#[test]
 fn when_vault_is_cancelled_should_fail() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
