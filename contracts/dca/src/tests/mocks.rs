@@ -26,11 +26,6 @@ pub const ADMIN: &str = "admin";
 pub const DENOM_UKUJI: &str = "ukuji";
 pub const DENOM_UTEST: &str = "utest";
 
-pub struct VaultId {
-    pub address: Addr,
-    pub vault_id: Uint128,
-}
-
 pub struct MockApp {
     pub app: App,
     pub dca_contract_address: Addr,
@@ -518,15 +513,15 @@ fn retract_partially_filled_order_handler(info: MessageInfo) -> StdResult<Respon
         }))
 }
 
-fn default_book_response() -> StdResult<Binary> {
-    book_response(
+fn default_book_response_handler() -> StdResult<Binary> {
+    book_response_handler(
         String::from(DENOM_UTEST),
         Decimal256::from_str("1")?,
         Decimal256::from_str("1")?,
     )
 }
 
-fn book_response(
+fn book_response_handler(
     quote_denom: String,
     base_price: Decimal256,
     quote_price: Decimal256,
@@ -624,8 +619,38 @@ pub fn fin_contract_unfilled_limit_order() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Book {
                     limit: _,
                     offset: _,
-                } => default_book_response(),
+                } => default_book_response_handler(),
                 FINQueryMsg::Order { order_idx: _ } => unfilled_order_response(env),
+                _ => default_query_response(),
+            }
+        },
+    );
+    Box::new(contract)
+}
+
+pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
+    let contract = ContractWrapper::new(
+        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
+            match msg {
+                FINExecuteMsg::SubmitOrder { price: _ } => default_submit_order_handler(),
+                FINExecuteMsg::RetractOrder {
+                    order_idx: _,
+                    amount: _,
+                } => retract_partially_filled_order_handler(info),
+                FINExecuteMsg::WithdrawOrders { order_idxs } => {
+                    withdraw_partially_filled_order_handler(info, order_idxs)
+                }
+                _ => Ok(Response::default()),
+            }
+        },
+        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
+        |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
+            match msg {
+                FINQueryMsg::Book {
+                    limit: _,
+                    offset: _,
+                } => default_book_response_handler(),
+                FINQueryMsg::Order { order_idx: _ } => partially_filled_order_response(env),
                 _ => default_query_response(),
             }
         },
@@ -660,8 +685,35 @@ pub fn fin_contract_filled_limit_order() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Book {
                     limit: _,
                     offset: _,
-                } => default_book_response(),
+                } => default_book_response_handler(),
                 FINQueryMsg::Order { order_idx: _ } => filled_order_response(env),
+                _ => default_query_response(),
+            }
+        },
+    );
+    Box::new(contract)
+}
+
+pub fn fin_contract_pass_slippage_tolerance() -> Box<dyn Contract<Empty>> {
+    let contract = ContractWrapper::new(
+        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
+            match msg {
+                FINExecuteMsg::Swap {
+                    belief_price: _,
+                    max_spread: _,
+                    to: _,
+                    offer_asset: _,
+                } => default_swap_handler(info),
+                _ => Ok(Response::default()),
+            }
+        },
+        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
+        |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
+            match msg {
+                FINQueryMsg::Book {
+                    limit: _,
+                    offset: _,
+                } => default_book_response_handler(),
                 _ => default_query_response(),
             }
         },
@@ -690,37 +742,7 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Book {
                     limit: _,
                     offset: _,
-                } => default_book_response(),
-                _ => default_query_response(),
-            }
-        },
-    );
-    Box::new(contract)
-}
-
-pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
-    let contract = ContractWrapper::new(
-        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
-            match msg {
-                FINExecuteMsg::SubmitOrder { price: _ } => default_submit_order_handler(),
-                FINExecuteMsg::RetractOrder {
-                    order_idx: _,
-                    amount: _,
-                } => retract_partially_filled_order_handler(info),
-                FINExecuteMsg::WithdrawOrders { order_idxs } => {
-                    withdraw_partially_filled_order_handler(info, order_idxs)
-                }
-                _ => Ok(Response::default()),
-            }
-        },
-        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
-            match msg {
-                FINQueryMsg::Book {
-                    limit: _,
-                    offset: _,
-                } => default_book_response(),
-                FINQueryMsg::Order { order_idx: _ } => partially_filled_order_response(env),
+                } => default_book_response_handler(),
                 _ => default_query_response(),
             }
         },
