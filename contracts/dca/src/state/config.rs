@@ -11,4 +11,4 @@ pub struct Config {
     pub page_limit: u16,
 }
 
-pub const CONFIG: Item<Config> = Item::new("config_v2");
+pub const CONFIG: Item<Config> = Item::new("config_v3");

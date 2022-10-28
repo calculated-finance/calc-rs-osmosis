@@ -6,7 +6,7 @@ use crate::vault::{Vault, VaultBuilder};
 
 use super::state_helpers::fetch_and_increment_counter;
 
-const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v2");
+const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v7");
 
 struct VaultIndexes<'a> {
     pub owner: UniqueIndex<'a, (Addr, u128), Vault, u128>,
@@ -22,13 +22,13 @@ impl<'a> IndexList<Vault> for VaultIndexes<'a> {
 
 fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
-        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v5__owner"),
+        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v7__owner"),
         owner_status: UniqueIndex::new(
             |v| (v.owner.clone(), v.status.clone() as u8, v.id.into()),
-            "vaults_v5__owner_status",
+            "vaults_v7__owner_status",
         ),
     };
-    IndexedMap::new("vaults_v5", indexes)
+    IndexedMap::new("vaults_v7", indexes)
 }
 
 pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdResult<Vault> {
