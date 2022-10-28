@@ -24,7 +24,7 @@ fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
         owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v5__owner"),
         owner_status: UniqueIndex::new(
-            |v| (v.owner.clone(), v.status as u8, v.id.into()),
+            |v| (v.owner.clone(), v.status.clone() as u8, v.id.into()),
             "vaults_v5__owner_status",
         ),
     };
