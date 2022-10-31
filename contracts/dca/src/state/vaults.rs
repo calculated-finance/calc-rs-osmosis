@@ -1,26 +1,95 @@
-use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, StdResult, Storage, Uint128};
+use base::{
+    pair::Pair,
+    triggers::trigger::TimeInterval,
+    vaults::vault::{Destination, PositionType, VaultStatus},
+};
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::{Addr, Coin, Decimal256, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, Item, UniqueIndex};
 
 use crate::vault::{Vault, VaultBuilder};
 
-use super::state_helpers::fetch_and_increment_counter;
+use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter};
 
 const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v7");
 
-struct VaultIndexes<'a> {
-    pub owner: UniqueIndex<'a, (Addr, u128), Vault, u128>,
-    pub owner_status: UniqueIndex<'a, (Addr, u8, u128), Vault, u128>,
+#[cw_serde]
+struct VaultData {
+    pub id: Uint128,
+    pub created_at: Timestamp,
+    pub owner: Addr,
+    pub label: Option<String>,
+    pub destinations: Vec<Destination>,
+    pub status: VaultStatus,
+    pub balance: Coin,
+    pub pair_address: Addr,
+    pub swap_amount: Uint128,
+    pub position_type: Option<PositionType>,
+    pub slippage_tolerance: Option<Decimal256>,
+    pub price_threshold: Option<Decimal256>,
+    pub time_interval: TimeInterval,
+    pub started_at: Option<Timestamp>,
+    pub swapped_amount: Coin,
+    pub received_amount: Coin,
 }
 
-impl<'a> IndexList<Vault> for VaultIndexes<'a> {
-    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<Vault>> + '_> {
-        let v: Vec<&dyn Index<Vault>> = vec![&self.owner, &self.owner_status];
+impl From<Vault> for VaultData {
+    fn from(vault: Vault) -> Self {
+        Self {
+            id: vault.id,
+            created_at: vault.created_at,
+            owner: vault.owner,
+            label: vault.label,
+            destinations: vault.destinations,
+            status: vault.status,
+            balance: vault.balance,
+            pair_address: vault.pair.address,
+            swap_amount: vault.swap_amount,
+            position_type: vault.position_type,
+            slippage_tolerance: vault.slippage_tolerance,
+            price_threshold: vault.price_threshold,
+            time_interval: vault.time_interval,
+            started_at: vault.started_at,
+            swapped_amount: vault.swapped_amount,
+            received_amount: vault.received_amount,
+        }
+    }
+}
+
+fn vault_from(data: &VaultData, pair: Pair) -> Vault {
+    Vault {
+        id: data.id,
+        created_at: data.created_at,
+        owner: data.owner.clone(),
+        label: data.label.clone(),
+        destinations: data.destinations.clone(),
+        status: data.status.clone(),
+        balance: data.balance.clone(),
+        pair,
+        swap_amount: data.swap_amount,
+        position_type: data.position_type.clone(),
+        slippage_tolerance: data.slippage_tolerance,
+        price_threshold: data.price_threshold,
+        time_interval: data.time_interval.clone(),
+        started_at: data.started_at,
+        swapped_amount: data.swapped_amount.clone(),
+        received_amount: data.received_amount.clone(),
+    }
+}
+
+struct VaultIndexes<'a> {
+    pub owner: UniqueIndex<'a, (Addr, u128), VaultData, u128>,
+    pub owner_status: UniqueIndex<'a, (Addr, u8, u128), VaultData, u128>,
+}
+
+impl<'a> IndexList<VaultData> for VaultIndexes<'a> {
+    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<VaultData>> + '_> {
+        let v: Vec<&dyn Index<VaultData>> = vec![&self.owner, &self.owner_status];
         Box::new(v.into_iter())
     }
 }
 
-fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
+fn vault_store<'a>() -> IndexedMap<'a, u128, VaultData, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
         owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v7__owner"),
         owner_status: UniqueIndex::new(
@@ -33,12 +102,16 @@ fn vault_store<'a>() -> IndexedMap<'a, u128, Vault, VaultIndexes<'a>> {
 
 pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdResult<Vault> {
     let vault = vault_builder.build(fetch_and_increment_counter(store, VAULT_COUNTER)?.into());
-    vault_store().save(store, vault.id.into(), &vault)?;
+    vault_store().save(store, vault.id.into(), &vault.clone().into())?;
     Ok(vault)
 }
 
 pub fn get_vault(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vault> {
-    vault_store().load(store, vault_id.into())
+    let data = vault_store().load(store, vault_id.into())?;
+    Ok(vault_from(
+        &data,
+        PAIRS.load(store, data.pair_address.clone())?,
+    ))
 }
 
 pub fn get_vaults_by_address(
@@ -64,7 +137,16 @@ pub fn get_vaults_by_address(
             cosmwasm_std::Order::Ascending,
         )
         .take(limit.unwrap_or(30) as usize)
-        .map(|result| result.expect("a vault stored by id").1)
+        .map(|result| {
+            let (_, data) =
+                result.expect(format!("a vault with id after {:?}", start_after).as_str());
+            vault_from(
+                &data,
+                PAIRS
+                    .load(store, data.pair_address.clone())
+                    .expect(format!("a pair for pair address {:?}", data.pair_address).as_str()),
+            )
+        })
         .collect::<Vec<Vault>>())
 }
 
@@ -72,7 +154,16 @@ pub fn update_vault<T>(store: &mut dyn Storage, vault_id: Uint128, update_fn: T)
 where
     T: FnOnce(Option<Vault>) -> StdResult<Vault>,
 {
-    vault_store().update(store, vault_id.into(), update_fn)
+    let old_data = vault_store().load(store, vault_id.into())?;
+    let old_vault = vault_from(&old_data, PAIRS.load(store, old_data.pair_address.clone())?);
+    let new_vault = update_fn(Some(old_vault.clone()))?;
+    vault_store().replace(
+        store,
+        vault_id.into(),
+        Some(&new_vault.clone().into()),
+        Some(&old_data),
+    )?;
+    Ok(new_vault)
 }
 
 pub fn clear_vaults(store: &mut dyn Storage) {
