@@ -1,11 +1,11 @@
 use crate::{
     error::ContractError,
-    state::config::{Config, CONFIG},
+    state::config::{get_config, update_config, Config},
     validation_helpers::assert_sender_is_admin,
 };
-use cosmwasm_std::{Addr, Decimal, DepsMut, MessageInfo, Response, StdResult};
+use cosmwasm_std::{Addr, Decimal, DepsMut, MessageInfo, Response};
 
-pub fn update_config(
+pub fn update_config_handler(
     deps: DepsMut,
     info: MessageInfo,
     fee_collector: Option<Addr>,
@@ -14,33 +14,19 @@ pub fn update_config(
     page_limit: Option<u16>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
+    let existing_config = get_config(deps.storage)?;
 
-    if fee_percent.is_some() && fee_percent.unwrap() > Decimal::percent(100) {
-        return Err(ContractError::CustomError {
-            val: "fee_percent must be less than 100".to_string(),
-        });
-    }
-
-    let config = CONFIG.update(deps.storage, |mut config| -> StdResult<Config> {
-        if let Some(fee_collector) = fee_collector {
-            deps.api.addr_validate(&fee_collector.to_string())?;
-            config.fee_collector = fee_collector;
-        }
-        if let Some(fee_percent) = fee_percent {
-            config.fee_percent = fee_percent
-        }
-        if let Some(staking_router_address) = staking_router_address {
-            deps.api
-                .addr_validate(&staking_router_address.to_string())?;
-            config.staking_router_address = staking_router_address;
-        }
-
-        if let Some(page_limit) = page_limit {
-            config.page_limit = page_limit;
-        }
-
-        Ok(config)
-    })?;
+    let config = update_config(
+        deps.storage,
+        Config {
+            admin: existing_config.admin,
+            fee_collector: fee_collector.unwrap_or(existing_config.fee_collector),
+            fee_percent: fee_percent.unwrap_or(existing_config.fee_percent),
+            staking_router_address: staking_router_address
+                .unwrap_or(existing_config.staking_router_address),
+            page_limit: page_limit.unwrap_or(existing_config.page_limit),
+        },
+    )?;
 
     Ok(Response::default()
         .add_attribute("method", "update_config")

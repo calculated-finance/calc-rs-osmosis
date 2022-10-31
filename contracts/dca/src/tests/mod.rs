@@ -27,3 +27,6 @@ pub mod get_vaults_by_address_tests;
 
 #[cfg(test)]
 pub mod deposit_tests;
+
+#[cfg(test)]
+pub mod update_config_tests;

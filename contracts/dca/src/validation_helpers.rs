@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::config::CONFIG;
+use crate::state::config::get_config;
 use crate::vault::Vault;
 use base::pair::Pair;
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
@@ -18,7 +18,7 @@ pub fn assert_sender_is_admin(
     storage: &mut dyn Storage,
     sender: Addr,
 ) -> Result<(), ContractError> {
-    let config = CONFIG.load(storage)?;
+    let config = get_config(storage)?;
     if sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
@@ -37,7 +37,7 @@ pub fn assert_sender_is_admin_or_vault_owner(
     vault_owner: Addr,
     sender: Addr,
 ) -> Result<(), ContractError> {
-    let config = CONFIG.load(storage)?;
+    let config = get_config(storage)?;
     if sender != config.admin && sender != vault_owner {
         return Err(ContractError::Unauthorized {});
     }
@@ -206,7 +206,7 @@ pub fn assert_page_limit_is_valid(
     storage: &dyn Storage,
     limit: Option<u16>,
 ) -> Result<(), ContractError> {
-    let config = CONFIG.load(storage)?;
+    let config = get_config(storage)?;
     if limit.unwrap_or(30) > config.page_limit {
         return Err(ContractError::CustomError {
             val: format!("limit cannot be greater than {:?}.", config.page_limit),

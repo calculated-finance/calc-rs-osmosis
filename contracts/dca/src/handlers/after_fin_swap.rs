@@ -1,7 +1,7 @@
 use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::cache::CACHE;
-use crate::state::config::CONFIG;
+use crate::state::config::get_config;
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, get_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
@@ -66,7 +66,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 }
             };
 
-            let config = CONFIG.load(deps.storage)?;
+            let config = get_config(deps.storage)?;
 
             let execution_fee = Coin::new(
                 checked_mul(coin_received.amount, config.fee_percent)?.into(),

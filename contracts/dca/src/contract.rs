@@ -18,10 +18,10 @@ use crate::handlers::get_time_trigger_ids::get_time_trigger_ids;
 use crate::handlers::get_trigger_id_by_fin_limit_order_idx::get_trigger_id_by_fin_limit_order_idx;
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
-use crate::handlers::update_config::update_config;
+use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_vault_label::update_vault_label;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::state::config::{Config, CONFIG};
+use crate::state::config::{clear_config, update_config, Config};
 use crate::state::events::clear_events;
 use crate::state::triggers::clear_triggers;
 use crate::state::vaults::clear_vaults;
@@ -46,22 +46,24 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     clear_vaults(deps.storage);
     clear_triggers(deps.storage);
     clear_events(deps.storage);
-    CONFIG.remove(deps.storage);
+    clear_config(deps.storage);
 
     deps.api.addr_validate(&msg.admin.to_string())?;
     deps.api.addr_validate(&msg.fee_collector.to_string())?;
     deps.api
         .addr_validate(&msg.staking_router_address.to_string())?;
 
-    let config = Config {
-        admin: msg.admin,
-        fee_collector: msg.fee_collector,
-        fee_percent: msg.fee_percent,
-        staking_router_address: msg.staking_router_address,
-        page_limit: msg.page_limit,
-    };
+    update_config(
+        deps.storage,
+        Config {
+            admin: msg.admin,
+            fee_collector: msg.fee_collector,
+            fee_percent: msg.fee_percent,
+            staking_router_address: msg.staking_router_address,
+            page_limit: msg.page_limit,
+        },
+    )?;
 
-    CONFIG.save(deps.storage, &config)?;
     Ok(Response::default())
 }
 
@@ -77,16 +79,18 @@ pub fn instantiate(
     deps.api
         .addr_validate(&msg.staking_router_address.to_string())?;
 
-    let config = Config {
-        admin: msg.admin.clone(),
-        fee_collector: msg.fee_collector,
-        fee_percent: msg.fee_percent,
-        staking_router_address: msg.staking_router_address,
-        page_limit: msg.page_limit,
-    };
+    update_config(
+        deps.storage,
+        Config {
+            admin: msg.admin.clone(),
+            fee_collector: msg.fee_collector,
+            fee_percent: msg.fee_percent,
+            staking_router_address: msg.staking_router_address,
+            page_limit: msg.page_limit,
+        },
+    )?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    CONFIG.save(deps.storage, &config)?;
 
     Ok(Response::new()
         .add_attribute("method", "instantiate")
@@ -143,7 +147,7 @@ pub fn execute(
             fee_percent,
             staking_router_address,
             page_limit,
-        } => update_config(
+        } => update_config_handler(
             deps,
             info,
             fee_collector,
