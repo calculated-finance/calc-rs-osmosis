@@ -1,100 +1,66 @@
-# CosmWasm Starter Pack
+# Staking Router
 
-This is a template to build smart contracts in Rust to run inside a
-[Cosmos SDK](https://github.com/cosmos/cosmos-sdk) module on all chains that enable it.
-To understand the framework better, please read the overview in the
-[cosmwasm repo](https://github.com/CosmWasm/cosmwasm/blob/master/README.md),
-and dig into the [cosmwasm docs](https://www.cosmwasm.com).
-This assumes you understand the theory and just want to get coding.
+## Overview
 
-## Creating a new repo from template
+The staking router uses the cosmos sdk authz module to create delegation messages on behalf of a user. Operations relating to the creation of these messages are prepending with the letter "Z" to denote the use of the authZ module.
 
-Assuming you have a recent version of rust and cargo (v1.58.1+) installed
-(via [rustup](https://rustup.rs/)),
-then the following should get you a new repo to start a contract:
+This contract can only be called by addresses known as `allowed_z_callers` which are saved to this contracts storage and referenced at run time.
 
-Install [cargo-generate](https://github.com/ashleygwilliams/cargo-generate) and cargo-run-script.
-Unless you did that before, run this line now:
+By only allowing `allowed_z_delegators` to call this contract, we can control when these delegation messages are created. It is the intent that this contract will be called by other CALC contracts upon the completion of some action.
 
-```sh
-cargo install cargo-generate --features vendored-openssl
-cargo install cargo-run-script
-```
+## ZCallers & ZDelegate
 
-Now, use it to create your new contract.
-Go to the folder in which you want to place it and run:
+### Z Delegate
 
+A delegation message will be sent on a users behalf by supplying the users `Addr`, a validators `Addr`, the name of the denomination to delegate and the amount of that denomination to delegate
 
-**Latest**
+Z delegate assumes that the user for which the delegate message is being created for has granted authz permission to this contract to send delegate messages on their behalf. If this is not true, the message simply fails.
 
-```sh
-cargo generate --git https://github.com/CosmWasm/cw-template.git --name PROJECT_NAME
-````
+#### Validation
 
-For cloning minimal code repo:
+- no validation is needed for the delegator address because invalid addresses will fail
+- no validation is needed for the validator address because invalid addresses will fail 
 
-```sh
-cargo generate --git https://github.com/CosmWasm/cw-template.git --name PROJECT_NAME -d minimal=true
-```
+#### Domain Logic
 
-**Older Version**
+- create a delegate message where `delegator_address`, `validator_address`, `denomn` and `amount` are all passed in from the ZDelegate call
+- wrap the delegate message in an `exec` message so that it will be executed using the authz module & supply this contracts address given as the `grantee`
 
-Pass version as branch flag:
+#### Assertions
 
-```sh
-cargo generate --git https://github.com/CosmWasm/cw-template.git --branch <version> --name PROJECT_NAME
-````
+- function can only be called by an allowed z caller stored in `config`
+- delegator addresses which have not given permission to this contract to create delegate messages on their behalf will result in a failed z delegation call
 
-Example:
+### Add Allowed Z Caller
 
-```sh
-cargo generate --git https://github.com/CosmWasm/cw-template.git --branch 0.16 --name PROJECT_NAME
-```
+Allowed z callers are manually added by supplying an `Addr`
 
-You will now have a new folder called `PROJECT_NAME` (I hope you changed that to something else)
-containing a simple working contract and build system that you can customize.
+#### Validation
 
-## Create a Repo
+- no validation is needed because invalid address can not make calls to this contract
 
-After generating, you have a initialized local git repo, but no commits, and no remote.
-Go to a server (eg. github) and create a new upstream repo (called `YOUR-GIT-URL` below).
-Then run the following:
+#### Domain Logic
 
-```sh
-# this is needed to create a valid Cargo.lock file (see below)
-cargo check
-git branch -M main
-git add .
-git commit -m 'Initial Commit'
-git remote add origin YOUR-GIT-URL
-git push -u origin main
-```
+- if the `allowed_z_caller` already exists in `config` do nothing
+- if the `allowed_z_caller` does not exist in the `config` add it to the list
 
-## CI Support
+#### Assertions
 
-We have template configurations for both [GitHub Actions](.github/workflows/Basic.yml)
-and [Circle CI](.circleci/config.yml) in the generated project, so you can
-get up and running with CI right away.
+- function can only be called by the admin storage in `config`
 
-One note is that the CI runs all `cargo` commands
-with `--locked` to ensure it uses the exact same versions as you have locally. This also means
-you must have an up-to-date `Cargo.lock` file, which is not auto-generated.
-The first time you set up the project (or after adding any dep), you should ensure the
-`Cargo.lock` file is updated, so the CI will test properly. This can be done simply by
-running `cargo check` or `cargo unit-test`.
+### Remove Allowed Z Caller
 
-## Using your project
+Allowed z callers are manually removed by supplying an `Addr`
 
-Once you have your custom repo, you should check out [Developing](./Developing.md) to explain
-more on how to run tests and develop code. Or go through the
-[online tutorial](https://docs.cosmwasm.com/) to get a better feel
-of how to develop.
+#### Validation
 
-[Publishing](./Publishing.md) contains useful information on how to publish your contract
-to the world, once you are ready to deploy it on a running blockchain. And
-[Importing](./Importing.md) contains information about pulling in other contracts or crates
-that have been published.
+- no validation is needed because invalid address can not make calls to this contract
 
-Please replace this README file with information about your specific project. You can keep
-the `Developing.md` and `Publishing.md` files as useful referenced, but please set some
-proper description in the README.
+#### Domain Logic
+
+- if the `allowed_z_caller` exists in `config` remove it
+- if the `allowed_z_caller` does not exist in the `config` do nothing
+
+#### Assertions
+
+- function can only be called by the admin storage in `config`
