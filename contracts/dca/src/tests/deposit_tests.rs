@@ -209,7 +209,7 @@ fn with_mismatched_denom_should_fail() {
 
     assert_eq!(
         response.root_cause().to_string(),
-        "Error: received asset with denom: utest, but needed ukuji"
+        "Error: received asset with denom utest, but needed ukuji"
     );
 }
 

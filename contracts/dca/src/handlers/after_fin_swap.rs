@@ -39,7 +39,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             let base_amount = wasm_trade_event["base_amount"].parse::<u128>().unwrap();
             let quote_amount = wasm_trade_event["quote_amount"].parse::<u128>().unwrap();
 
-            let (coin_sent, coin_received) = match vault.position_type {
+            let (coin_sent, coin_received) = match vault.get_position_type() {
                 PositionType::Enter => {
                     let sent = Coin {
                         denom: vault.get_swap_denom(),

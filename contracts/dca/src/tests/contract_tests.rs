@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use base::triggers::trigger::TimeInterval;
-use base::vaults::vault::PositionType;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{attr, from_binary, Addr, Coin, Decimal, Uint128, Uint64};
 
@@ -396,7 +395,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
         label: Some("label".to_string()),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
+        position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
@@ -477,7 +476,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
         label: Some("label".to_string()),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
+        position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
@@ -553,7 +552,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         label: Some("label".to_string()),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
+        position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
@@ -581,7 +580,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         label: Some("label".to_string()),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
+        position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
@@ -661,7 +660,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
         label: Some("label".to_string()),
         destinations: None,
         pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
-        position_type: PositionType::Enter,
+        position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,

@@ -1,8 +1,8 @@
 use crate::error::ContractError;
 use crate::state::config::CONFIG;
 use crate::vault::Vault;
+use base::pair::Pair;
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
-use base::{pair::Pair, vaults::vault::PositionType};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Storage, Timestamp, Uint128};
 
 pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {
@@ -68,35 +68,34 @@ pub fn assert_swap_amount_is_less_than_or_equal_to_balance(
     Ok(())
 }
 
-pub fn assert_denom_matches_pair_denom(
+pub fn assert_send_denom_is_in_pair_denoms(
     pair: Pair,
-    funds: Vec<Coin>,
-    position_type: PositionType,
+    send_denom: String,
 ) -> Result<(), ContractError> {
-    match position_type {
-        PositionType::Enter => {
-            if funds[0].denom.clone() != pair.quote_denom {
-                return Err(ContractError::CustomError {
-                    val: format!(
-                        "received asset with denom: {}, but needed {}",
-                        funds[0].denom, pair.quote_denom
-                    ),
-                });
-            }
-            Ok(())
-        }
-        PositionType::Exit => {
-            if funds[0].denom.clone() != pair.base_denom {
-                return Err(ContractError::CustomError {
-                    val: format!(
-                        "received asset with denom: {}, but needed {}",
-                        funds[0].denom, pair.base_denom
-                    ),
-                });
-            }
-            Ok(())
-        }
+    if send_denom != pair.base_denom && send_denom != pair.quote_denom {
+        return Err(ContractError::CustomError {
+            val: format!(
+                "send denom {} does not match pair base denom {} or quote denom {}",
+                send_denom, pair.base_denom, pair.quote_denom
+            ),
+        });
     }
+    Ok(())
+}
+
+pub fn assert_deposited_denom_matches_send_denom(
+    deposit_denom: String,
+    send_denom: String,
+) -> Result<(), ContractError> {
+    if deposit_denom != send_denom {
+        return Err(ContractError::CustomError {
+            val: format!(
+                "received asset with denom {}, but needed {}",
+                deposit_denom, send_denom
+            ),
+        });
+    }
+    Ok(())
 }
 
 pub fn assert_target_start_time_is_in_future(
@@ -131,7 +130,6 @@ pub fn assert_destinations_limit_is_not_breached(
             val: String::from("no more than 10 destinations can be provided"),
         });
     };
-
     Ok(())
 }
 
@@ -145,7 +143,6 @@ pub fn assert_destination_send_addresses_are_valid(
     {
         assert_address_is_valid(deps, destination.address.clone(), "destination".to_string())?;
     }
-
     Ok(())
 }
 
@@ -159,7 +156,19 @@ pub fn assert_destination_validator_addresses_are_valid(
     {
         assert_validator_is_valid(deps, destination.address.to_string())?;
     }
+    Ok(())
+}
 
+pub fn assert_delegation_denom_is_stakeable(
+    destinations: &[Destination],
+    receive_denom: String,
+) -> Result<(), ContractError> {
+    if destinations
+        .iter()
+        .any(|d| d.action == PostExecutionAction::ZDelegate)
+    {
+        assert_denom_is_bond_denom(receive_denom)?;
+    }
     Ok(())
 }
 
@@ -190,7 +199,6 @@ pub fn assert_destination_allocations_add_up_to_one(
             val: String::from("destination allocations must add up to 1"),
         });
     }
-
     Ok(())
 }
 
@@ -204,7 +212,6 @@ pub fn assert_page_limit_is_valid(
             val: format!("limit cannot be greater than {:?}.", config.page_limit),
         });
     }
-
     Ok(())
 }
 

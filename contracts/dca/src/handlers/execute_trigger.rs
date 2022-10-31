@@ -25,7 +25,9 @@ pub fn execute_trigger(
     let trigger = get_trigger(deps.storage, trigger_id.into())?;
     let vault = get_vault(deps.storage, trigger.vault_id.into())?;
 
-    let current_price = match vault.position_type {
+    let position_type = vault.get_position_type();
+
+    let current_price = match position_type {
         PositionType::Enter => query_base_price(deps.querier, vault.pair.address.clone()),
         PositionType::Exit => query_quote_price(deps.querier, vault.pair.address.clone()),
     };
@@ -55,7 +57,7 @@ pub fn execute_trigger(
             EventData::DCAVaultExecutionTriggered {
                 base_denom: vault.pair.base_denom.clone(),
                 quote_denom: vault.pair.quote_denom.clone(),
-                position_type: vault.position_type.clone(),
+                position_type: position_type.clone(),
                 asset_price: current_price.clone(),
             },
         ),
@@ -69,7 +71,7 @@ pub fn execute_trigger(
 
             if let Some(price_threshold) = vault.price_threshold {
                 // dca in with price ceiling
-                if vault.position_type == PositionType::Enter && current_price > price_threshold {
+                if position_type == PositionType::Enter && current_price > price_threshold {
                     create_event(
                         deps.storage,
                         EventBuilder::new(
@@ -85,7 +87,7 @@ pub fn execute_trigger(
                     return Ok(response);
                 }
                 // dca out with price floor
-                if vault.position_type == PositionType::Exit && current_price < price_threshold {
+                if position_type == PositionType::Exit && current_price < price_threshold {
                     create_event(
                         deps.storage,
                         EventBuilder::new(

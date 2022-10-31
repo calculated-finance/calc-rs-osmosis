@@ -3,7 +3,7 @@ use crate::{
     constants::{ONE, TEN},
     msg::{ExecuteMsg, QueryMsg, TriggerIdsResponse},
 };
-use base::{triggers::trigger::TimeInterval, vaults::vault::PositionType};
+use base::triggers::trigger::TimeInterval;
 use cosmwasm_std::{Addr, Coin, Uint64};
 use cw_multi_test::Executor;
 
@@ -29,7 +29,7 @@ fn should_return_active_triggers_only() {
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
-                position_type: PositionType::Enter,
+                position_type: None,
                 slippage_tolerance: None,
                 swap_amount,
                 time_interval: TimeInterval::Hourly,

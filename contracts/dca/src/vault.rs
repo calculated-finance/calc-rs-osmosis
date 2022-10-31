@@ -17,7 +17,7 @@ pub struct Vault {
     pub balance: Coin,
     pub pair: Pair,
     pub swap_amount: Uint128,
-    pub position_type: PositionType,
+    pub position_type: Option<PositionType>,
     pub slippage_tolerance: Option<Decimal256>,
     pub price_threshold: Option<Decimal256>,
     pub time_interval: TimeInterval,
@@ -27,15 +27,19 @@ pub struct Vault {
 }
 
 impl Vault {
-    pub fn get_swap_denom(&self) -> String {
-        if self.position_type.to_owned() == PositionType::Enter {
-            return self.pair.quote_denom.clone();
+    pub fn get_position_type(&self) -> PositionType {
+        match self.balance.denom == self.pair.quote_denom {
+            true => PositionType::Enter,
+            false => PositionType::Exit,
         }
-        self.pair.base_denom.clone()
+    }
+
+    pub fn get_swap_denom(&self) -> String {
+        self.balance.denom.clone()
     }
 
     pub fn get_receive_denom(&self) -> String {
-        if self.position_type.to_owned() == PositionType::Enter {
+        if self.balance.denom == self.pair.quote_denom {
             return self.pair.base_denom.clone();
         }
         self.pair.quote_denom.clone()
@@ -77,7 +81,7 @@ pub struct VaultBuilder {
     pub balance: Coin,
     pub pair: Pair,
     pub swap_amount: Uint128,
-    pub position_type: PositionType,
+    pub position_type: Option<PositionType>,
     pub slippage_tolerance: Option<Decimal256>,
     pub price_threshold: Option<Decimal256>,
     pub time_interval: TimeInterval,
@@ -94,7 +98,7 @@ impl VaultBuilder {
         balance: Coin,
         pair: Pair,
         swap_amount: Uint128,
-        position_type: PositionType,
+        position_type: Option<PositionType>,
         slippage_tolerance: Option<Decimal256>,
         price_threshold: Option<Decimal256>,
         time_interval: TimeInterval,
@@ -125,26 +129,20 @@ impl VaultBuilder {
             label: self.label,
             destinations: self.destinations,
             status: self.status,
-            balance: self.balance,
+            balance: self.balance.clone(),
             pair: self.pair.clone(),
             swap_amount: self.swap_amount,
-            position_type: self.position_type.clone(),
+            position_type: self.position_type,
             slippage_tolerance: self.slippage_tolerance,
             price_threshold: self.price_threshold,
             time_interval: self.time_interval,
             started_at: self.started_at,
-            swapped_amount: coin(
-                0,
-                match self.position_type {
-                    PositionType::Enter => self.pair.quote_denom.clone(),
-                    PositionType::Exit => self.pair.base_denom.clone(),
-                },
-            ),
+            swapped_amount: coin(0, self.balance.denom.clone()),
             received_amount: coin(
                 0,
-                match self.position_type {
-                    PositionType::Enter => self.pair.base_denom,
-                    PositionType::Exit => self.pair.quote_denom,
+                match self.balance.denom == self.pair.quote_denom {
+                    true => self.pair.base_denom,
+                    false => self.pair.quote_denom,
                 },
             ),
         }

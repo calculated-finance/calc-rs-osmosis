@@ -6,11 +6,11 @@ use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
 use crate::validation_helpers::{
-    assert_address_is_valid, assert_denom_is_bond_denom, assert_denom_matches_pair_denom,
+    assert_address_is_valid, assert_delegation_denom_is_stakeable,
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
     assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
-    assert_exactly_one_asset, assert_swap_amount_is_less_than_or_equal_to_balance,
-    assert_target_start_time_is_in_future,
+    assert_exactly_one_asset, assert_send_denom_is_in_pair_denoms,
+    assert_swap_amount_is_less_than_or_equal_to_balance, assert_target_start_time_is_in_future,
 };
 use crate::vault::{Vault, VaultBuilder};
 use base::events::event::{EventBuilder, EventData};
@@ -29,7 +29,7 @@ pub fn create_vault(
     label: Option<String>,
     mut destinations: Vec<Destination>,
     pair_address: Addr,
-    position_type: PositionType,
+    position_type: Option<PositionType>,
     slippage_tolerance: Option<Decimal256>,
     price_threshold: Option<Decimal256>,
     swap_amount: Uint128,
@@ -64,23 +64,17 @@ pub fn create_vault(
     deps.api.addr_validate(&pair_address.to_string())?;
     let pair = PAIRS.load(deps.storage, pair_address)?;
 
-    assert_denom_matches_pair_denom(pair.clone(), info.funds.clone(), position_type.clone())?;
+    let send_denom = info.funds[0].denom.clone();
 
-    // if there is atleast one zdelegate action assert denom can be bonded
-    if destinations
-        .iter()
-        .find(|destination| destination.action == PostExecutionAction::ZDelegate)
-        .is_some()
-    {
-        match position_type {
-            PositionType::Enter => {
-                assert_denom_is_bond_denom(pair.base_denom.clone())?;
-            }
-            PositionType::Exit => {
-                assert_denom_is_bond_denom(pair.quote_denom.clone())?;
-            }
-        }
-    }
+    assert_send_denom_is_in_pair_denoms(pair.clone(), send_denom.clone())?;
+
+    let receive_denom = if send_denom == pair.quote_denom {
+        pair.base_denom.clone()
+    } else {
+        pair.quote_denom.clone()
+    };
+
+    assert_delegation_denom_is_stakeable(&destinations, receive_denom)?;
 
     let vault_builder = VaultBuilder {
         owner,

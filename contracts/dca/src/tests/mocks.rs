@@ -4,7 +4,7 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
 use crate::vault::Vault;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
-use base::vaults::vault::{Destination, PositionType};
+use base::vaults::vault::Destination;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
@@ -194,7 +194,7 @@ impl MockApp {
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
-                    position_type: PositionType::Enter,
+                    position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
                     time_interval: TimeInterval::Hourly,
@@ -235,7 +235,7 @@ impl MockApp {
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
-                    position_type: PositionType::Enter,
+                    position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
                     time_interval: TimeInterval::Hourly,
@@ -293,7 +293,7 @@ impl MockApp {
                     label: Some("label".to_string()),
                     destinations: None,
                     pair_address: self.fin_contract_address.clone(),
-                    position_type: PositionType::Enter,
+                    position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
                     time_interval: TimeInterval::Hourly,
@@ -359,7 +359,7 @@ impl MockApp {
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
-                    position_type: PositionType::Enter,
+                    position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
                     time_interval: TimeInterval::Hourly,

@@ -5,7 +5,6 @@ use crate::{
 };
 use base::{
     helpers::message_helpers::get_flat_map_for_event_type, triggers::trigger::TimeInterval,
-    vaults::vault::PositionType,
 };
 use cosmwasm_std::{Addr, Coin, Decimal256, Uint128};
 use cw_multi_test::Executor;
@@ -34,7 +33,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
-                position_type: PositionType::Enter,
+                position_type: None,
                 slippage_tolerance: None,
                 swap_amount,
                 time_interval: TimeInterval::Hourly,

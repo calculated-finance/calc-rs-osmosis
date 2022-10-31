@@ -40,7 +40,7 @@ pub enum ExecuteMsg {
         label: Option<String>,
         destinations: Option<Vec<Destination>>,
         pair_address: Addr,
-        position_type: PositionType,
+        position_type: Option<PositionType>,
         slippage_tolerance: Option<Decimal256>,
         price_threshold: Option<Decimal256>,
         swap_amount: Uint128,
