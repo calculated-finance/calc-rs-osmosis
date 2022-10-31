@@ -13,7 +13,7 @@ use crate::tests::mocks::{
 };
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::math_helpers::checked_mul;
-use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};
+use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128};
 use cw_multi_test::Executor;
 
@@ -252,7 +252,6 @@ fn for_filled_fin_limit_order_trigger_should_publish_events() {
                 EventData::DCAVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
-                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
@@ -833,7 +832,6 @@ fn for_ready_time_trigger_should_create_events() {
                 EventData::DCAVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
-                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
@@ -1051,7 +1049,6 @@ fn for_ready_time_trigger_within_price_threshold_should_succeed() {
                 EventData::DCAVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
-                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
@@ -1145,7 +1142,6 @@ fn for_ready_time_trigger_outside_of_price_threshold_should_skip_execution() {
                 EventData::DCAVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
-                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
@@ -1717,7 +1713,6 @@ fn until_vault_is_empty_should_create_events() {
                 EventData::DCAVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
-                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )
@@ -1738,7 +1733,6 @@ fn until_vault_is_empty_should_create_events() {
                 EventData::DCAVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
-                    position_type: PositionType::Enter,
                     asset_price: Decimal256::from_str("1.0").unwrap(),
                 },
             )

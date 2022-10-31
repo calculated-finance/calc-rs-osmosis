@@ -1,7 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{BlockInfo, Coin, Decimal256, Timestamp, Uint128};
 
-use crate::vaults::vault::PositionType;
 use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
 
 #[cw_serde]
@@ -33,7 +32,6 @@ pub enum EventData {
     DCAVaultExecutionTriggered {
         base_denom: String,
         quote_denom: String,
-        position_type: PositionType,
         asset_price: Decimal256,
     },
     DCAVaultExecutionCompleted {
