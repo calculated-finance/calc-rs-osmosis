@@ -7,7 +7,7 @@ use crate::tests::mocks::{
 use crate::vault::VaultDto;
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
-use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};
+use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
 use cw_multi_test::Executor;
 
@@ -118,7 +118,7 @@ fn with_one_vault_should_return_proper_vault_data() {
             created_at: mock.app.block_info().time,
             status: VaultStatus::Scheduled,
             balance: Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
-            position_type: PositionType::Enter,
+            position_type: None,
             time_interval: TimeInterval::Hourly,
             slippage_tolerance: None,
             swap_amount,

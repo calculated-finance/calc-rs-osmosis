@@ -160,7 +160,7 @@ pub struct VaultDto {
     pub balance: Coin,
     pub pair: Pair,
     pub swap_amount: Uint128,
-    pub position_type: PositionType,
+    pub position_type: Option<PositionType>,
     pub slippage_tolerance: Option<Decimal256>,
     pub price_threshold: Option<Decimal256>,
     pub time_interval: TimeInterval,
