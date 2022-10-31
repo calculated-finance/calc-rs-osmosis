@@ -1,6 +1,6 @@
 use base::{
     pair::Pair,
-    triggers::trigger::TimeInterval,
+    triggers::trigger::{TimeInterval, TriggerConfiguration},
     vaults::vault::{Destination, PositionType, VaultStatus},
 };
 use cosmwasm_schema::cw_serde;
@@ -147,6 +147,51 @@ impl VaultBuilder {
                     PositionType::Exit => self.pair.quote_denom,
                 },
             ),
+        }
+    }
+}
+
+#[cw_serde]
+pub struct VaultDto {
+    pub id: Uint128,
+    pub created_at: Timestamp,
+    pub owner: Addr,
+    pub label: Option<String>,
+    pub destinations: Vec<Destination>,
+    pub status: VaultStatus,
+    pub balance: Coin,
+    pub pair: Pair,
+    pub swap_amount: Uint128,
+    pub position_type: PositionType,
+    pub slippage_tolerance: Option<Decimal256>,
+    pub price_threshold: Option<Decimal256>,
+    pub time_interval: TimeInterval,
+    pub started_at: Option<Timestamp>,
+    pub swapped_amount: Coin,
+    pub received_amount: Coin,
+    pub trigger: Option<TriggerConfiguration>,
+}
+
+impl VaultDto {
+    pub fn from_vault(vault: &Vault, trigger: Option<TriggerConfiguration>) -> VaultDto {
+        VaultDto {
+            id: vault.id,
+            created_at: vault.created_at,
+            owner: vault.owner.clone(),
+            label: vault.label.clone(),
+            destinations: vault.destinations.clone(),
+            status: vault.status.clone(),
+            balance: vault.balance.clone(),
+            pair: vault.pair.clone(),
+            swap_amount: vault.swap_amount,
+            position_type: vault.position_type.clone(),
+            slippage_tolerance: vault.slippage_tolerance,
+            price_threshold: vault.price_threshold,
+            time_interval: vault.time_interval.clone(),
+            started_at: vault.started_at,
+            swapped_amount: vault.swapped_amount.clone(),
+            received_amount: vault.received_amount.clone(),
+            trigger,
         }
     }
 }
