@@ -30,3 +30,6 @@ pub mod deposit_tests;
 
 #[cfg(test)]
 pub mod update_config_tests;
+
+#[cfg(test)]
+pub mod after_fin_swap_tests;

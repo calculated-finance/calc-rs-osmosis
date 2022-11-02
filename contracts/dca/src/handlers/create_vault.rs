@@ -21,8 +21,10 @@ use cosmwasm_std::{Addr, Decimal, Decimal256};
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_limit_order_sub_msg;
 
+use super::execute_trigger::execute_trigger;
+
 pub fn create_vault(
-    deps: DepsMut,
+    mut deps: DepsMut,
     env: Env,
     info: &MessageInfo,
     owner: Addr,
@@ -94,6 +96,14 @@ pub fn create_vault(
 
     let vault = save_vault(deps.storage, vault_builder)?;
 
+    CACHE.save(
+        deps.storage,
+        &Cache {
+            vault_id: vault.id.clone(),
+            owner: vault.owner.clone(),
+        },
+    )?;
+
     create_event(
         deps.storage,
         EventBuilder::new(vault.id, env.block.clone(), EventData::DCAVaultCreated),
@@ -110,11 +120,33 @@ pub fn create_vault(
         ),
     )?;
 
+    let response = Response::new()
+        .add_attribute("method", "create_vault")
+        .add_attribute("owner", vault.owner.to_string())
+        .add_attribute("vault_id", vault.id);
+
     match (target_start_time_utc_seconds, target_price) {
         (None, None) | (Some(_), None) => {
-            create_time_trigger(deps, env, vault, target_start_time_utc_seconds)
+            let response = create_time_trigger(
+                &mut deps,
+                &env,
+                &vault,
+                target_start_time_utc_seconds,
+                &response,
+            )
+            .expect("time trigger created");
+
+            if target_start_time_utc_seconds.is_none() {
+                return Ok(
+                    execute_trigger(deps, env, vault.id, response).expect("time trigger executed")
+                );
+            }
+
+            Ok(response)
         }
-        (None, Some(_)) => create_fin_limit_order_trigger(deps, vault, target_price.unwrap()),
+        (None, Some(_)) => {
+            create_fin_limit_order_trigger(deps, vault, target_price.unwrap(), response)
+        }
         (Some(_), Some(_)) => Err(ContractError::CustomError {
             val: String::from(
                 "cannot provide both a target_start_time_utc_seconds and a target_price",
@@ -124,10 +156,11 @@ pub fn create_vault(
 }
 
 fn create_time_trigger(
-    deps: DepsMut,
-    env: Env,
-    vault: Vault,
+    deps: &mut DepsMut,
+    env: &Env,
+    vault: &Vault,
     target_start_time_utc_seconds: Option<Uint64>,
+    response: &Response,
 ) -> Result<Response, ContractError> {
     let target_time: Timestamp = match target_start_time_utc_seconds {
         Some(time) => Timestamp::from_seconds(time.u64()),
@@ -142,16 +175,14 @@ fn create_time_trigger(
         },
     )?;
 
-    Ok(Response::new()
-        .add_attribute("method", "create_vault")
-        .add_attribute("owner", vault.owner.to_string())
-        .add_attribute("vault_id", vault.id))
+    Ok(response.to_owned())
 }
 
 fn create_fin_limit_order_trigger(
     deps: DepsMut,
     vault: Vault,
     target_price: Decimal256,
+    response: Response,
 ) -> Result<Response, ContractError> {
     save_trigger(
         deps.storage,
@@ -164,14 +195,6 @@ fn create_fin_limit_order_trigger(
         },
     )?;
 
-    CACHE.save(
-        deps.storage,
-        &Cache {
-            vault_id: vault.id.clone(),
-            owner: vault.owner.clone(),
-        },
-    )?;
-
     let fin_limit_order_sub_msg = create_limit_order_sub_msg(
         vault.pair.address.clone(),
         target_price,
@@ -179,9 +202,5 @@ fn create_fin_limit_order_trigger(
         AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID,
     );
 
-    Ok(Response::new()
-        .add_attribute("method", "create_vault")
-        .add_attribute("owner", vault.owner)
-        .add_attribute("vault_id", vault.id)
-        .add_submessage(fin_limit_order_sub_msg))
+    Ok(response.add_submessage(fin_limit_order_sub_msg))
 }

@@ -10,7 +10,7 @@ use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
-use crate::handlers::execute_trigger::execute_trigger;
+use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
@@ -140,7 +140,7 @@ pub fn execute(
             target_price,
         ),
         ExecuteMsg::CancelVault { address, vault_id } => cancel_vault(deps, env, address, vault_id),
-        ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger(deps, env, trigger_id),
+        ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),
         ExecuteMsg::Deposit { address, vault_id } => deposit(deps, env, info, address, vault_id),
         ExecuteMsg::UpdateConfig {
             fee_collector,

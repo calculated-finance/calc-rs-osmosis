@@ -1,7 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{BlockInfo, Coin, Decimal256, Timestamp, Uint128};
 
-use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE};
+use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE_EXCEEDED};
 
 #[cw_serde]
 pub enum ExecutionSkippedReason {
@@ -13,7 +13,7 @@ pub enum ExecutionSkippedReason {
 
 impl ExecutionSkippedReason {
     pub fn from_fin_swap_error(e: String) -> Self {
-        if e.contains(ERROR_SWAP_SLIPPAGE) {
+        if e.contains(ERROR_SWAP_SLIPPAGE_EXCEEDED) {
             ExecutionSkippedReason::SlippageToleranceExceeded
         } else if e.contains(ERROR_SWAP_INSUFFICIENT_FUNDS) {
             ExecutionSkippedReason::InsufficientFunds

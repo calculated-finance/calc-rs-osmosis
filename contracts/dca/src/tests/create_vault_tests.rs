@@ -1,5 +1,5 @@
 use crate::constants::{ONE, ONE_THOUSAND, TEN};
-use crate::msg::{ExecuteMsg, QueryMsg, TriggerIdsResponse, VaultResponse};
+use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
 use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
 };
@@ -8,6 +8,7 @@ use crate::tests::mocks::{
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
+use base::helpers::math_helpers::checked_mul;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
@@ -15,6 +16,8 @@ use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128, Uint64};
 use cw_multi_test::Executor;
 use std::str::FromStr;
+
+use super::mocks::{fin_contract_fail_slippage_tolerance, fin_contract_pass_slippage_tolerance};
 
 #[test]
 fn with_price_trigger_should_update_address_balances() {
@@ -473,6 +476,391 @@ fn with_price_trigger_twice_for_user_should_succeed() {
 }
 
 #[test]
+fn with_immediate_time_trigger_should_update_address_balances() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_pass_slippage_tolerance()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance),
+            (&user_address, DENOM_UTEST, Uint128::new(0)),
+            (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+        ],
+    );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                price_threshold: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: None,
+                target_price: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    let fee_amount = checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
+            (&user_address, DENOM_UTEST, swap_amount - fee_amount),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + user_balance - swap_amount,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (
+                &mock.fin_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + swap_amount,
+            ),
+            (
+                &mock.fin_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND - swap_amount,
+            ),
+        ],
+    );
+}
+
+#[test]
+fn with_immediate_time_trigger_should_update_vault_balance() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_pass_slippage_tolerance()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                price_threshold: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: None,
+                target_price: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    assert_vault_balance(
+        &mock,
+        &mock.dca_contract_address,
+        user_address,
+        Uint128::new(1),
+        vault_deposit - swap_amount,
+    );
+}
+
+#[test]
+fn with_immediate_time_trigger_should_create_active_vault() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_pass_slippage_tolerance()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                price_threshold: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: None,
+                target_price: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::new(1);
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault {
+                vault_id,
+                address: user_address.clone(),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        vault_response.vault,
+        Vault {
+            price_threshold: None,
+            label: Some("label".to_string()),
+            id: vault_id,
+            owner: user_address.clone(),
+            destinations: vec![Destination {
+                address: user_address.clone(),
+                allocation: Decimal::percent(100),
+                action: PostExecutionAction::Send
+            }],
+            created_at: mock.app.block_info().time,
+            status: VaultStatus::Active,
+            position_type: None,
+            time_interval: TimeInterval::Hourly,
+            balance: Coin::new(
+                (vault_deposit - swap_amount).into(),
+                DENOM_UKUJI.to_string()
+            ),
+            slippage_tolerance: None,
+            swap_amount,
+            pair: Pair {
+                address: mock.fin_contract_address.clone(),
+                base_denom: DENOM_UTEST.to_string(),
+                quote_denom: DENOM_UKUJI.to_string(),
+            },
+            started_at: Some(mock.app.block_info().time),
+            swapped_amount: Coin::new(swap_amount.into(), DENOM_UKUJI.to_string()),
+            received_amount: Coin::new(
+                (swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap()).into(),
+                DENOM_UTEST.to_string()
+            ),
+            trigger: Some(TriggerConfiguration::Time {
+                target_time: mock
+                    .app
+                    .block_info()
+                    .time
+                    .plus_seconds(60 * 60)
+                    .minus_nanos(mock.app.block_info().time.subsec_nanos()),
+            })
+        }
+    );
+}
+
+#[test]
+fn with_immediate_time_trigger_should_publish_events() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_pass_slippage_tolerance()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                price_threshold: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: None,
+                target_price: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::new(1);
+
+    assert_events_published(
+        &mock,
+        vault_id,
+        &[
+            EventBuilder::new(vault_id, mock.app.block_info(), EventData::DCAVaultCreated).build(1),
+            EventBuilder::new(
+                vault_id,
+                mock.app.block_info(),
+                EventData::DCAVaultFundsDeposited {
+                    amount: Coin::new(vault_deposit.into(), DENOM_UKUJI),
+                },
+            )
+            .build(2),
+            EventBuilder::new(
+                vault_id,
+                mock.app.block_info(),
+                EventData::DCAVaultExecutionTriggered {
+                    base_denom: DENOM_UTEST.to_string(),
+                    quote_denom: DENOM_UKUJI.to_string(),
+                    asset_price: Decimal256::from_str("1.0").unwrap(),
+                },
+            )
+            .build(3),
+            EventBuilder::new(
+                vault_id,
+                mock.app.block_info(),
+                EventData::DCAVaultExecutionCompleted {
+                    sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
+                    received: Coin::new(swap_amount.into(), DENOM_UTEST),
+                    fee: Coin::new(
+                        (checked_mul(swap_amount, mock.fee_percent).ok().unwrap()).into(),
+                        DENOM_UTEST,
+                    ),
+                },
+            )
+            .build(4),
+        ],
+    );
+}
+
+#[test]
+fn with_immediate_time_trigger_and_slippage_failure_should_update_address_balances() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_fail_slippage_tolerance()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance),
+            (&user_address, DENOM_UTEST, Uint128::new(0)),
+            (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+        ],
+    );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                price_threshold: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: None,
+                target_price: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
+            (&user_address, DENOM_UTEST, Uint128::zero()),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit,
+            ),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+        ],
+    );
+}
+
+#[test]
+fn with_immediate_time_trigger_and_slippage_failure_should_update_vault_balance() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_fail_slippage_tolerance()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                price_threshold: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: None,
+                target_price: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    assert_vault_balance(
+        &mock,
+        &mock.dca_contract_address,
+        user_address,
+        Uint128::new(1),
+        vault_deposit,
+    );
+}
+
+#[test]
 fn with_time_trigger_should_create_vault() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
@@ -803,67 +1191,6 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
 }
 
 #[test]
-fn with_time_trigger_with_no_target_time_should_succeed() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN * Uint128::new(2);
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UKUJI,
-    );
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                price_threshold: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pair_address: mock.fin_contract_address.clone(),
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_price: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
-        )
-        .unwrap();
-
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
-            (&user_address, DENOM_UTEST, Uint128::new(0)),
-            (
-                &mock.dca_contract_address,
-                DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit,
-            ),
-            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
-        ],
-    );
-
-    let get_all_time_triggers_response: TriggerIdsResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds {},
-        )
-        .unwrap();
-
-    assert_eq!(get_all_time_triggers_response.trigger_ids.len(), 1);
-}
-
-#[test]
 fn with_time_trigger_with_target_time_in_the_past_should_fail() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
@@ -906,7 +1233,7 @@ fn with_time_trigger_with_target_time_in_the_past_should_fail() {
 }
 
 #[test]
-fn with_mulitple_destinations_should_succeed() {
+fn with_multiple_destinations_should_succeed() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
     let vault_deposit = TEN;
@@ -941,7 +1268,9 @@ fn with_mulitple_destinations_should_succeed() {
                 slippage_tolerance: None,
                 swap_amount,
                 time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
+                target_start_time_utc_seconds: Some(
+                    (mock.app.block_info().time.seconds() + 10).into(),
+                ),
                 target_price: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
@@ -986,7 +1315,12 @@ fn with_mulitple_destinations_should_succeed() {
             swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
             received_amount: Coin::new(0, DENOM_UTEST.to_string()),
             trigger: Some(TriggerConfiguration::Time {
-                target_time: mock.app.block_info().time
+                target_time: mock
+                    .app
+                    .block_info()
+                    .time
+                    .plus_seconds(10)
+                    .minus_nanos(mock.app.block_info().time.subsec_nanos())
             }),
         }
     );

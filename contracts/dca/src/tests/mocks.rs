@@ -9,9 +9,10 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal, Decimal256, Empty, Env, Event, MessageInfo,
-    Response, StdResult, Uint128, Uint256, Uint64,
+    Response, StdError, StdResult, Uint128, Uint256, Uint64,
 };
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
+use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 use kujira::denom::Denom;
 use kujira::fin::{
     BookResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg, OrderResponse,
@@ -596,31 +597,20 @@ pub fn fin_contract_unfilled_limit_order() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
             match msg {
-                FINExecuteMsg::Swap {
-                    belief_price: _,
-                    max_spread: _,
-                    to: _,
-                    offer_asset: _,
-                } => default_swap_handler(info),
-                FINExecuteMsg::SubmitOrder { price: _ } => default_submit_order_handler(),
+                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
+                FINExecuteMsg::SubmitOrder { .. } => default_submit_order_handler(),
                 FINExecuteMsg::WithdrawOrders { order_idxs } => {
                     withdraw_filled_order_handler(info, order_idxs)
                 }
-                FINExecuteMsg::RetractOrder {
-                    order_idx: _,
-                    amount: _,
-                } => default_retract_order_handler(info),
+                FINExecuteMsg::RetractOrder { .. } => default_retract_order_handler(info),
                 _ => Ok(Response::default()),
             }
         },
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
-                FINQueryMsg::Book {
-                    limit: _,
-                    offset: _,
-                } => default_book_response_handler(),
-                FINQueryMsg::Order { order_idx: _ } => unfilled_order_response(env),
+                FINQueryMsg::Book { .. } => default_book_response_handler(),
+                FINQueryMsg::Order { .. } => unfilled_order_response(env),
                 _ => default_query_response(),
             }
         },
@@ -632,11 +622,8 @@ pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
             match msg {
-                FINExecuteMsg::SubmitOrder { price: _ } => default_submit_order_handler(),
-                FINExecuteMsg::RetractOrder {
-                    order_idx: _,
-                    amount: _,
-                } => retract_partially_filled_order_handler(info),
+                FINExecuteMsg::SubmitOrder { .. } => default_submit_order_handler(),
+                FINExecuteMsg::RetractOrder { .. } => retract_partially_filled_order_handler(info),
                 FINExecuteMsg::WithdrawOrders { order_idxs } => {
                     withdraw_partially_filled_order_handler(info, order_idxs)
                 }
@@ -646,11 +633,8 @@ pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
-                FINQueryMsg::Book {
-                    limit: _,
-                    offset: _,
-                } => default_book_response_handler(),
-                FINQueryMsg::Order { order_idx: _ } => partially_filled_order_response(env),
+                FINQueryMsg::Book { .. } => default_book_response_handler(),
+                FINQueryMsg::Order { .. } => partially_filled_order_response(env),
                 _ => default_query_response(),
             }
         },
@@ -662,31 +646,20 @@ pub fn fin_contract_filled_limit_order() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
             match msg {
-                FINExecuteMsg::Swap {
-                    belief_price: _,
-                    max_spread: _,
-                    to: _,
-                    offer_asset: _,
-                } => default_swap_handler(info),
-                FINExecuteMsg::SubmitOrder { price: _ } => default_submit_order_handler(),
+                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
+                FINExecuteMsg::SubmitOrder { .. } => default_submit_order_handler(),
                 FINExecuteMsg::WithdrawOrders { order_idxs } => {
                     withdraw_filled_order_handler(info, order_idxs)
                 }
-                FINExecuteMsg::RetractOrder {
-                    order_idx: _,
-                    amount: _,
-                } => default_retract_order_handler(info),
+                FINExecuteMsg::RetractOrder { .. } => default_retract_order_handler(info),
                 _ => Ok(Response::default()),
             }
         },
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
-                FINQueryMsg::Book {
-                    limit: _,
-                    offset: _,
-                } => default_book_response_handler(),
-                FINQueryMsg::Order { order_idx: _ } => filled_order_response(env),
+                FINQueryMsg::Book { .. } => default_book_response_handler(),
+                FINQueryMsg::Order { .. } => filled_order_response(env),
                 _ => default_query_response(),
             }
         },
@@ -698,22 +671,14 @@ pub fn fin_contract_pass_slippage_tolerance() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
             match msg {
-                FINExecuteMsg::Swap {
-                    belief_price: _,
-                    max_spread: _,
-                    to: _,
-                    offer_asset: _,
-                } => default_swap_handler(info),
+                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
                 _ => Ok(Response::default()),
             }
         },
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
-                FINQueryMsg::Book {
-                    limit: _,
-                    offset: _,
-                } => default_book_response_handler(),
+                FINQueryMsg::Book { .. } => default_book_response_handler(),
                 _ => default_query_response(),
             }
         },
@@ -725,13 +690,11 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         |_, _, _, msg: FINExecuteMsg| -> StdResult<Response> {
             match msg {
-                FINExecuteMsg::Swap {
-                    belief_price: _,
-                    max_spread: _,
-                    offer_asset: _,
-                    to: _,
-                } => Err(cosmwasm_std::StdError::GenericErr {
-                    msg: String::from("Max spread exceeded 0.992445703493862134"),
+                FINExecuteMsg::Swap { .. } => Err(StdError::GenericErr {
+                    msg: format!(
+                        "Error: code: ({:?}), msg: Max spread exceeded 0.992445703493862134",
+                        ERROR_SWAP_SLIPPAGE_EXCEEDED
+                    ),
                 }),
                 _ => Ok(Response::default()),
             }
@@ -739,10 +702,7 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
         |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
-                FINQueryMsg::Book {
-                    limit: _,
-                    offset: _,
-                } => default_book_response_handler(),
+                FINQueryMsg::Book { .. } => default_book_response_handler(),
                 _ => default_query_response(),
             }
         },

@@ -16,10 +16,20 @@ use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
 use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
 
+pub fn execute_trigger_handler(
+    deps: DepsMut,
+    env: Env,
+    trigger_id: Uint128,
+) -> Result<Response, ContractError> {
+    let response = Response::new().add_attribute("method", "execute_trigger");
+    Ok(execute_trigger(deps, env, trigger_id, response)?)
+}
+
 pub fn execute_trigger(
     deps: DepsMut,
     env: Env,
     vault_id: Uint128,
+    response: Response,
 ) -> Result<Response, ContractError> {
     let vault = get_vault(deps.storage, vault_id.into())?;
 
@@ -60,8 +70,6 @@ pub fn execute_trigger(
         ),
     )?;
 
-    let response = Response::new().add_attribute("method", "execute_trigger");
-
     match vault
         .trigger
         .clone()
@@ -85,7 +93,7 @@ pub fn execute_trigger(
                             },
                         ),
                     )?;
-                    return Ok(response);
+                    return Ok(response.to_owned());
                 }
                 // dca out with price floor
                 if position_type == PositionType::Exit && current_price < price_threshold {
@@ -101,7 +109,7 @@ pub fn execute_trigger(
                             },
                         ),
                     )?;
-                    return Ok(response);
+                    return Ok(response.to_owned());
                 }
             };
 

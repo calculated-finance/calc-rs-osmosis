@@ -13,7 +13,7 @@ use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PositionType, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, WasmMsg};
+use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
@@ -29,7 +29,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
     delete_trigger(deps.storage, vault.id)?;
 
     match reply.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => {
+        SubMsgResult::Ok(_) => {
             let fin_swap_response = reply.result.into_result().unwrap();
 
             let wasm_trade_event =
@@ -185,7 +185,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
             attributes.push(Attribute::new("status", "success"));
         }
-        cosmwasm_std::SubMsgResult::Err(e) => {
+        SubMsgResult::Err(e) => {
             let execution_skipped_reason = ExecutionSkippedReason::from_fin_swap_error(e);
 
             if execution_skipped_reason == ExecutionSkippedReason::InsufficientFunds {
