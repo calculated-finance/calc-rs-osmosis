@@ -2,7 +2,7 @@ use crate::contract::AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
 use crate::state::events::create_event;
-use crate::state::triggers::{delete_trigger, get_trigger};
+use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::validation_helpers::{
     assert_sender_is_admin_or_vault_owner, assert_vault_is_not_cancelled,
@@ -34,9 +34,11 @@ pub fn cancel_vault(
         EventBuilder::new(vault.id, env.block, EventData::DCAVaultCancelled),
     )?;
 
-    let trigger = get_trigger(deps.storage, vault_id.into())?;
-
-    match trigger.configuration {
+    match vault
+        .trigger
+        .clone()
+        .expect(format!("trigger for vault id {:?}", vault.id).as_str())
+    {
         TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, vault),
         TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
             cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), vault)

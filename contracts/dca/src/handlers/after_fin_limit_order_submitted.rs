@@ -23,7 +23,9 @@ pub fn after_fin_limit_order_submitted(
 
             let cache = CACHE.load(deps.storage)?;
 
-            let trigger = get_trigger(deps.storage, cache.vault_id)?;
+            let trigger = get_trigger(deps.storage, cache.vault_id)?
+                .expect(format!("fin limit order trigger for vault {:?}", cache.vault_id).as_str());
+
             delete_trigger(deps.storage, cache.vault_id)?;
 
             match trigger.configuration {
@@ -39,9 +41,7 @@ pub fn after_fin_limit_order_submitted(
                         },
                     )?;
                 }
-                TriggerConfiguration::Time { .. } => {
-                    panic!("should be a fin limit order trigger")
-                }
+                _ => panic!("should be a fin limit order trigger"),
             }
 
             Ok(Response::new()

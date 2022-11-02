@@ -4,7 +4,6 @@ use crate::contract::{
 use crate::error::ContractError;
 use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
 use crate::state::events::create_event;
-use crate::state::triggers::get_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::validation_helpers::assert_target_time_is_in_past;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
@@ -20,10 +19,9 @@ use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_
 pub fn execute_trigger(
     deps: DepsMut,
     env: Env,
-    trigger_id: Uint128,
+    vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    let trigger = get_trigger(deps.storage, trigger_id.into())?;
-    let vault = get_vault(deps.storage, trigger.vault_id.into())?;
+    let vault = get_vault(deps.storage, vault_id.into())?;
 
     let position_type = vault.get_position_type();
 
@@ -64,7 +62,11 @@ pub fn execute_trigger(
 
     let response = Response::new().add_attribute("method", "execute_trigger");
 
-    match trigger.configuration {
+    match vault
+        .trigger
+        .clone()
+        .expect(format!("trigger for vault id {:?}", vault.id).as_str())
+    {
         TriggerConfiguration::Time { target_time } => {
             assert_target_time_is_in_past(env.block.time, target_time)?;
 

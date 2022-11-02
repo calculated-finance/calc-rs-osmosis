@@ -145,35 +145,13 @@ fn with_price_trigger_should_create_vault() {
         )
         .unwrap();
 
+    assert_eq!(vault_response.vault.id, Uint128::one());
     assert_eq!(
-        vault_response.vault,
-        Vault {
-            price_threshold: None,
-            label: Some("label".to_string()),
-            id: Uint128::new(1),
-            owner: user_address.clone(),
-            destinations: vec![Destination {
-                address: user_address.clone(),
-                allocation: Decimal::percent(100),
-                action: PostExecutionAction::Send
-            }],
-            created_at: mock.app.block_info().time,
-            status: VaultStatus::Scheduled,
-            balance: Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
-            position_type: None,
-            time_interval: TimeInterval::Hourly,
-            slippage_tolerance: None,
-            swap_amount,
-            pair: Pair {
-                address: mock.fin_contract_address.clone(),
-                base_denom: DENOM_UTEST.to_string(),
-                quote_denom: DENOM_UKUJI.to_string(),
-            },
-            started_at: None,
-            swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
-            received_amount: Coin::new(0, DENOM_UTEST.to_string()),
-        }
+        vault_response.vault.balance,
+        Coin::new(vault_deposit.into(), DENOM_UKUJI)
     );
+    assert_eq!(vault_response.vault.swap_amount, swap_amount);
+    assert_eq!(vault_response.vault.pair.address, mock.fin_contract_address);
 }
 
 #[test]
@@ -227,7 +205,7 @@ fn with_price_trigger_should_create_trigger() {
         )
         .unwrap();
 
-    match vault_response.trigger.unwrap().configuration {
+    match vault_response.vault.trigger.unwrap() {
         TriggerConfiguration::FINLimitOrder {
             target_price,
             order_idx,
@@ -383,35 +361,13 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
         )
         .unwrap();
 
+    assert_eq!(vault_response.vault.id, Uint128::new(2));
     assert_eq!(
-        vault_response.vault,
-        Vault {
-            price_threshold: None,
-            label: Some("label".to_string()),
-            id: Uint128::new(2),
-            owner: user_address.clone(),
-            destinations: vec![Destination {
-                address: user_address.clone(),
-                allocation: Decimal::percent(100),
-                action: PostExecutionAction::Send
-            }],
-            created_at: mock.app.block_info().time,
-            status: VaultStatus::Scheduled,
-            position_type: None,
-            time_interval: TimeInterval::Hourly,
-            slippage_tolerance: None,
-            balance: Coin::new(vault_deposit.into(), DENOM_UKUJI),
-            swap_amount,
-            pair: Pair {
-                address: mock.fin_contract_address.clone(),
-                base_denom: DENOM_UTEST.to_string(),
-                quote_denom: DENOM_UKUJI.to_string(),
-            },
-            started_at: None,
-            swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
-            received_amount: Coin::new(0, DENOM_UTEST.to_string()),
-        }
+        vault_response.vault.balance,
+        Coin::new(vault_deposit.into(), DENOM_UKUJI)
     );
+    assert_eq!(vault_response.vault.swap_amount, swap_amount);
+    assert_eq!(vault_response.vault.pair.address, mock.fin_contract_address);
 }
 
 #[test]
@@ -592,6 +548,9 @@ fn with_time_trigger_should_create_vault() {
             started_at: None,
             swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
             received_amount: Coin::new(0, DENOM_UTEST.to_string()),
+            trigger: Some(TriggerConfiguration::Time {
+                target_time: target_start_time.minus_nanos(target_start_time.subsec_nanos()),
+            })
         }
     );
 }
@@ -836,6 +795,9 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             started_at: None,
             swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
             received_amount: Coin::new(0, DENOM_UTEST.to_string()),
+            trigger: Some(TriggerConfiguration::Time {
+                target_time: target_start_time.minus_nanos(target_start_time.subsec_nanos()),
+            }),
         }
     );
 }
@@ -1023,6 +985,9 @@ fn with_mulitple_destinations_should_succeed() {
             started_at: None,
             swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
             received_amount: Coin::new(0, DENOM_UTEST.to_string()),
+            trigger: Some(TriggerConfiguration::Time {
+                target_time: mock.app.block_info().time
+            }),
         }
     );
 }

@@ -43,8 +43,8 @@ pub fn save_trigger(store: &mut dyn Storage, trigger: Trigger) -> StdResult<Uint
     Ok(trigger.vault_id)
 }
 
-pub fn get_trigger(store: &dyn Storage, vault_id: Uint128) -> StdResult<Trigger> {
-    TRIGGERS.load(store, vault_id.into())
+pub fn get_trigger(store: &dyn Storage, vault_id: Uint128) -> StdResult<Option<Trigger>> {
+    TRIGGERS.may_load(store, vault_id.into())
 }
 
 pub fn delete_trigger(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<Uint128> {

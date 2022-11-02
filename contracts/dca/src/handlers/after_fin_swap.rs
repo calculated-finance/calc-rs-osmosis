@@ -3,7 +3,7 @@ use crate::error::ContractError;
 use crate::state::cache::CACHE;
 use crate::state::config::get_config;
 use crate::state::events::create_event;
-use crate::state::triggers::{delete_trigger, get_trigger, save_trigger};
+use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
@@ -21,7 +21,6 @@ use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
     let vault = get_vault(deps.storage, cache.vault_id.into())?;
-    let trigger = get_trigger(deps.storage, vault.id.into())?;
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
@@ -149,7 +148,10 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 },
             )?;
 
-            match trigger.configuration {
+            match vault
+                .trigger
+                .expect(format!("trigger for vault id {:?}", vault.id).as_str())
+            {
                 TriggerConfiguration::Time { target_time } => {
                     save_trigger(
                         deps.storage,
@@ -221,7 +223,10 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
             attributes.push(Attribute::new("status", "skipped"));
 
-            match trigger.configuration {
+            match vault
+                .trigger
+                .expect(format!("trigger for vault id {:?}", vault.id).as_str())
+            {
                 TriggerConfiguration::Time { target_time } => {
                     save_trigger(
                         deps.storage,

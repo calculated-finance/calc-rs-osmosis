@@ -4,7 +4,7 @@ use crate::tests::mocks::{
     fin_contract_filled_limit_order, fin_contract_pass_slippage_tolerance, MockApp, ADMIN,
     DENOM_UKUJI, DENOM_UTEST, USER,
 };
-use crate::vault::VaultDto;
+use crate::vault::Vault;
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
@@ -105,7 +105,7 @@ fn with_one_vault_should_return_proper_vault_data() {
 
     assert_eq!(
         vaults_response.vaults.first().unwrap(),
-        &VaultDto {
+        &Vault {
             price_threshold: None,
             label: Some("label".to_string()),
             id: Uint128::new(1),

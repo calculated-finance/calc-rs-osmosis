@@ -68,9 +68,9 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
             &mock.dca_contract_address,
             &QueryMsg::GetTriggerIdByFinLimitOrderIdx {
                 order_idx: vault_response
+                    .vault
                     .trigger
                     .unwrap()
-                    .configuration
                     .into_fin_limit_order()
                     .unwrap()
                     .1
