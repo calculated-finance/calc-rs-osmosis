@@ -11,7 +11,7 @@ pub struct Config {
     pub page_limit: u16,
 }
 
-const CONFIG: Item<Config> = Item::new("config_v3");
+const CONFIG: Item<Config> = Item::new("config_v4");
 
 pub fn get_config(store: &dyn Storage) -> StdResult<Config> {
     CONFIG.load(store)

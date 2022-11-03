@@ -15,6 +15,6 @@ pub struct LimitOrderCache {
     pub filled: Uint128,
 }
 
-pub const CACHE: Item<Cache> = Item::new("cache_v3");
+pub const CACHE: Item<Cache> = Item::new("cache_v4");
 
-pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cache_v3");
+pub const LIMIT_ORDER_CACHE: Item<LimitOrderCache> = Item::new("limit_order_cache_v4");

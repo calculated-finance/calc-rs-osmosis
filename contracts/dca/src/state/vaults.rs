@@ -11,7 +11,7 @@ use crate::vault::{Vault, VaultBuilder};
 
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
 
-const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v7");
+const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v8");
 
 #[cw_serde]
 struct VaultDTO {
@@ -92,13 +92,13 @@ impl<'a> IndexList<VaultDTO> for VaultIndexes<'a> {
 
 fn vault_store<'a>() -> IndexedMap<'a, u128, VaultDTO, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
-        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v7__owner"),
+        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v8__owner"),
         owner_status: UniqueIndex::new(
             |v| (v.owner.clone(), v.status.clone() as u8, v.id.into()),
-            "vaults_v7__owner_status",
+            "vaults_v8__owner_status",
         ),
     };
-    IndexedMap::new("vaults_v7", indexes)
+    IndexedMap::new("vaults_v8", indexes)
 }
 
 pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdResult<Vault> {
