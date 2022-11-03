@@ -1,4 +1,4 @@
-use crate::{msg::VaultResponse, state::vaults::get_vault as fetch_vault};
+use crate::{msg::VaultResponse, state::{vaults::get_vault as fetch_vault, triggers::get_trigger}};
 use cosmwasm_std::{Addr, Deps, StdError, StdResult, Uint128};
 
 pub fn get_vault(deps: Deps, address: Addr, vault_id: Uint128) -> StdResult<VaultResponse> {
@@ -10,5 +10,5 @@ pub fn get_vault(deps: Deps, address: Addr, vault_id: Uint128) -> StdResult<Vaul
         });
     }
 
-    Ok(VaultResponse { vault })
+    Ok(VaultResponse { vault: vault.clone(), trigger: get_trigger(deps.storage, vault.id.into() )? })
 }
