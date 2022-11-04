@@ -16,6 +16,7 @@ use base::vaults::vault::{PositionType, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
+use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
@@ -150,7 +151,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
             match vault
                 .trigger
-                .expect(format!("trigger for vault id {:?}", vault.id).as_str())
+                .expect(format!("trigger for vault id {}", vault.id).as_str())
             {
                 TriggerConfiguration::Time { target_time } => {
                     save_trigger(
@@ -186,9 +187,13 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         SubMsgResult::Err(e) => {
-            let execution_skipped_reason = ExecutionSkippedReason::from_fin_swap_error(e);
+            let execution_skipped_reason = if e.contains(ERROR_SWAP_SLIPPAGE_EXCEEDED) {
+                ExecutionSkippedReason::SlippageToleranceExceeded
+            } else {
+                ExecutionSkippedReason::UnknownFailure
+            };
 
-            if execution_skipped_reason == ExecutionSkippedReason::InsufficientFunds {
+            if execution_skipped_reason != ExecutionSkippedReason::SlippageToleranceExceeded {
                 update_vault(
                     deps.storage,
                     vault.id.into(),
@@ -225,7 +230,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
             match vault
                 .trigger
-                .expect(format!("trigger for vault id {:?}", vault.id).as_str())
+                .expect(format!("trigger for vault id {}", vault.id).as_str())
             {
                 TriggerConfiguration::Time { target_time } => {
                     save_trigger(

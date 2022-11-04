@@ -8,7 +8,7 @@ use cosmwasm_std::{
     testing::{mock_dependencies, mock_env},
     Addr, Coin, DepsMut, Env, Reply, SubMsgResult, Timestamp, Uint128,
 };
-use fin_helpers::codes::{ERROR_SWAP_INSUFFICIENT_FUNDS, ERROR_SWAP_SLIPPAGE_EXCEEDED};
+use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 
 use crate::{
     contract::AFTER_FIN_SWAP_REPLY_ID,
@@ -24,7 +24,7 @@ use crate::{
     vault::VaultBuilder,
 };
 
-fn setup(deps: DepsMut, env: Env) {
+fn setup_vault_with_funds(deps: DepsMut, env: Env) {
     let pair = Pair {
         address: Addr::unchecked("pair"),
         base_denom: "base".to_string(),
@@ -70,7 +70,60 @@ fn setup(deps: DepsMut, env: Env) {
         .save(
             deps.storage,
             &Cache {
-                vault_id: Uint128::new(1),
+                vault_id: vault.id,
+                owner: Addr::unchecked("owner"),
+            },
+        )
+        .unwrap();
+}
+
+fn setup_vault_with_low_funds(deps: DepsMut, env: Env) {
+    let pair = Pair {
+        address: Addr::unchecked("pair"),
+        base_denom: "base".to_string(),
+        quote_denom: "quote".to_string(),
+    };
+
+    PAIRS
+        .save(deps.storage, pair.address.clone(), &pair)
+        .unwrap();
+
+    let vault = save_vault(
+        deps.storage,
+        VaultBuilder {
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            created_at: env.block.time.clone(),
+            status: VaultStatus::Active,
+            pair,
+            swap_amount: Uint128::new(100),
+            position_type: None,
+            slippage_tolerance: None,
+            price_threshold: None,
+            balance: Coin::new(Uint128::new(10).into(), "base"),
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+        },
+    )
+    .unwrap();
+
+    save_trigger(
+        deps.storage,
+        Trigger {
+            vault_id: vault.id,
+            configuration: TriggerConfiguration::Time {
+                target_time: env.block.time,
+            },
+        },
+    )
+    .unwrap();
+
+    CACHE
+        .save(
+            deps.storage,
+            &Cache {
+                vault_id: vault.id,
                 owner: Addr::unchecked("owner"),
             },
         )
@@ -78,15 +131,15 @@ fn setup(deps: DepsMut, env: Env) {
 }
 
 #[test]
-fn with_insufficient_funds_publishes_insufficient_funds_event() {
+fn with_insufficient_funds_publishes_unknown_failure_event() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup(deps.as_mut(), env.clone());
+    setup_vault_with_low_funds(deps.as_mut(), env.clone());
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_INSUFFICIENT_FUNDS.to_string()),
+        result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
     after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
@@ -102,7 +155,7 @@ fn with_insufficient_funds_publishes_insufficient_funds_event() {
             vault_id,
             env.block.clone(),
             EventData::DCAVaultExecutionSkipped {
-                reason: ExecutionSkippedReason::InsufficientFunds
+                reason: ExecutionSkippedReason::UnknownFailure
             }
         )
         .build(1)
@@ -114,12 +167,12 @@ fn with_insufficient_funds_makes_vault_inactive() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup(deps.as_mut(), env.clone());
+    setup_vault_with_low_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_INSUFFICIENT_FUNDS.to_string()),
+        result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
     after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
@@ -134,19 +187,19 @@ fn with_insufficient_funds_does_not_reduce_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup(deps.as_mut(), env.clone());
+    setup_vault_with_low_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_INSUFFICIENT_FUNDS.to_string()),
+        result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
     after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
-    assert_eq!(vault.balance, Coin::new(Uint128::new(1000).into(), "base"));
+    assert_eq!(vault.balance, Coin::new(Uint128::new(10).into(), "base"));
 }
 
 #[test]
@@ -154,12 +207,12 @@ fn with_insufficient_funds_creates_a_new_time_trigger() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup(deps.as_mut(), env.clone());
+    setup_vault_with_low_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_INSUFFICIENT_FUNDS.to_string()),
+        result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
     after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
@@ -179,7 +232,7 @@ fn with_slippage_failure_creates_a_new_time_trigger() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup(deps.as_mut(), env.clone());
+    setup_vault_with_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {
@@ -204,7 +257,7 @@ fn with_slippage_failure_publishes_execution_failed_event() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup(deps.as_mut(), env.clone());
+    setup_vault_with_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {
@@ -235,7 +288,7 @@ fn with_slippage_failure_funds_leaves_vault_active() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup(deps.as_mut(), env.clone());
+    setup_vault_with_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {
@@ -255,7 +308,7 @@ fn with_slippage_failure_does_not_reduce_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup(deps.as_mut(), env.clone());
+    setup_vault_with_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {

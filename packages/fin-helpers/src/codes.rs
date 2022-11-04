@@ -1,2 +1,1 @@
-pub const ERROR_SWAP_SLIPPAGE_EXCEEDED: &str = "5";
-pub const ERROR_SWAP_INSUFFICIENT_FUNDS: &str = "10";
+pub const ERROR_SWAP_SLIPPAGE_EXCEEDED: &str = "Max spread exceeded";

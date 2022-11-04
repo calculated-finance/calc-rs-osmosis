@@ -148,7 +148,7 @@ pub fn get_vaults_by_address(
                     .load(store, data.pair_address.clone())
                     .expect(format!("a pair for pair address {:?}", data.pair_address).as_str()),
                 get_trigger(store, data.id.into())
-                    .expect(format!("a trigger for vault id {:?}", data.id).as_str())
+                    .expect(format!("a trigger for vault id {}", data.id).as_str())
                     .map(|t| t.configuration),
             )
         })

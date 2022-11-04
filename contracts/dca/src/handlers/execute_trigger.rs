@@ -73,7 +73,7 @@ pub fn execute_trigger(
     match vault
         .trigger
         .clone()
-        .expect(format!("trigger for vault id {:?}", vault.id).as_str())
+        .expect(format!("trigger for vault id {}", vault.id).as_str())
     {
         TriggerConfiguration::Time { target_time } => {
             assert_target_time_is_in_past(env.block.time, target_time)?;

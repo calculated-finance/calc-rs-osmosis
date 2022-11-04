@@ -12,7 +12,6 @@ use cosmwasm_std::{
     Response, StdError, StdResult, Uint128, Uint256, Uint64,
 };
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
-use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 use kujira::denom::Denom;
 use kujira::fin::{
     BookResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg, OrderResponse,
@@ -691,10 +690,7 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
         |_, _, _, msg: FINExecuteMsg| -> StdResult<Response> {
             match msg {
                 FINExecuteMsg::Swap { .. } => Err(StdError::GenericErr {
-                    msg: format!(
-                        "Error: code: ({:?}), msg: Max spread exceeded 0.992445703493862134",
-                        ERROR_SWAP_SLIPPAGE_EXCEEDED
-                    ),
+                    msg: "Max spread exceeded 0.992445703493862134".to_string(),
                 }),
                 _ => Ok(Response::default()),
             }

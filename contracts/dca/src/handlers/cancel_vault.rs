@@ -37,7 +37,7 @@ pub fn cancel_vault(
     match vault
         .trigger
         .clone()
-        .expect(format!("trigger for vault id {:?}", vault.id).as_str())
+        .expect(format!("trigger for vault id {}", vault.id).as_str())
     {
         TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, vault),
         TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
