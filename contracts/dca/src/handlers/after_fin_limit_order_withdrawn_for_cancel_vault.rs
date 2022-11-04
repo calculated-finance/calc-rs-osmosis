@@ -10,7 +10,7 @@ use crate::{
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response};
-use cosmwasm_std::{CosmosMsg, StdError, StdResult, Uint128};
+use cosmwasm_std::{CosmosMsg, StdError, StdResult, SubMsgResult, Uint128};
 
 pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
     deps: DepsMut,
@@ -20,7 +20,7 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
     let cache = CACHE.load(deps.storage)?;
     let vault = get_vault(deps.storage, cache.vault_id.into())?;
     match reply.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => {
+        SubMsgResult::Ok(_) => {
             let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
 
             // send assets from partially filled order to owner
@@ -64,7 +64,7 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
 
             Ok(response)
         }
-        cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
+        SubMsgResult::Err(e) => Err(ContractError::CustomError {
             val: format!(
                 "failed to withdraw fin limit order for vault id: {} - {}",
                 vault.id, e

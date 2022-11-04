@@ -28,7 +28,7 @@ pub fn create_withdraw_limit_order_sub_msg(
         order_idxs: Some(vec![order_idx]),
     };
 
-    SubMsg::reply_always(
+    SubMsg::reply_on_success(
         CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: pair_address.to_string(),
             msg: to_binary(&fin_withdraw_order_msg).unwrap(),
@@ -48,7 +48,7 @@ pub fn create_retract_order_sub_msg(
         amount: None,
     };
 
-    SubMsg::reply_always(
+    SubMsg::reply_on_success(
         CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: pair_address.to_string(),
             msg: to_binary(&fin_retract_order_msg).unwrap(),

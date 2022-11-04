@@ -10,7 +10,7 @@ use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_eve
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response, Uint128};
-use cosmwasm_std::{CosmosMsg, StdError, StdResult};
+use cosmwasm_std::{CosmosMsg, StdError, StdResult, SubMsgResult};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 
 pub fn after_fin_limit_order_retracted(
@@ -23,7 +23,7 @@ pub fn after_fin_limit_order_retracted(
     let mut response = Response::new().add_attribute("method", "fin_limit_order_retracted");
 
     match reply.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => {
+        SubMsgResult::Ok(_) => {
             let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
 
             let fin_retract_order_response = reply.result.into_result().unwrap();
@@ -102,7 +102,7 @@ pub fn after_fin_limit_order_retracted(
                 Ok(response.add_attribute("withdraw_required", "false"))
             }
         }
-        cosmwasm_std::SubMsgResult::Err(e) => Err(ContractError::CustomError {
+        SubMsgResult::Err(e) => Err(ContractError::CustomError {
             val: format!(
                 "failed to retract fin limit order for vault id: {} - {}",
                 vault.id, e
