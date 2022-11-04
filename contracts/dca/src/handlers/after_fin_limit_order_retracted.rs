@@ -2,6 +2,7 @@ use crate::contract::AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::cache::{CACHE, LIMIT_ORDER_CACHE};
 use crate::state::events::create_event;
+use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
@@ -95,6 +96,8 @@ pub fn after_fin_limit_order_retracted(
                         }
                     },
                 )?;
+
+                delete_trigger(deps.storage, vault.id)?;
 
                 Ok(response.add_attribute("withdraw_required", "false"))
             }
