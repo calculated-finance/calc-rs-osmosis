@@ -55,7 +55,7 @@ pub fn create_vault(
 
     if destinations.is_empty() {
         destinations.push(Destination {
-            address: info.sender.clone(),
+            address: owner.clone(),
             allocation: Decimal::percent(100),
             action: PostExecutionAction::Send,
         });

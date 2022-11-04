@@ -1626,6 +1626,11 @@ fn with_passed_in_owner_should_succeed() {
         .unwrap();
 
     assert_eq!(vault_response.vault.owner, owner);
+    assert_eq!(vault_response.vault.destinations.len(), 1);
+    assert_eq!(
+        vault_response.vault.destinations.first().unwrap().address,
+        owner
+    );
 }
 
 #[test]
