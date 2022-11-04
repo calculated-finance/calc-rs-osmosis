@@ -39,11 +39,6 @@ pub fn after_fin_limit_order_retracted(
                     .parse::<Uint128>()
                     .unwrap();
 
-            create_event(
-                deps.storage,
-                EventBuilder::new(vault.id, env.block, EventData::DCAVaultCancelled),
-            )?;
-
             // if the entire amount isnt retracted, order was partially filled need to send the partially filled assets to user
             if amount_retracted != limit_order_cache.original_offer_amount {
                 let retracted_balance = Coin {
