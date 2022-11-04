@@ -51,7 +51,6 @@ fn when_vault_has_unfilled_fin_limit_order_trigger_should_update_address_balance
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
             &[],
@@ -91,7 +90,6 @@ fn when_vault_has_unfilled_fin_limit_order_trigger_should_publish_events() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
             &[],
@@ -132,7 +130,6 @@ fn when_vault_has_unfilled_fin_limit_order_trigger_should_cancel_vault() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
             &[],
@@ -176,7 +173,6 @@ fn when_vault_has_unfilled_fin_limit_order_trigger_should_empty_vault_balance() 
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
             &[],
@@ -245,10 +241,7 @@ fn when_vault_has_partially_filled_price_trigger_should_update_address_balances(
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();
@@ -291,10 +284,7 @@ fn when_vault_has_partially_filled_price_trigger_should_publish_events() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();
@@ -332,10 +322,7 @@ fn when_vault_has_partially_filled_price_trigger_should_empty_vault_balance() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();
@@ -376,10 +363,7 @@ fn when_vault_has_partially_filled_price_trigger_should_cancel_vault() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();
@@ -438,10 +422,7 @@ fn when_vault_has_time_trigger_should_update_address_balances() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();
@@ -481,10 +462,7 @@ fn when_vault_has_time_trigger_should_publish_events() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();
@@ -523,10 +501,7 @@ fn when_vault_has_time_trigger_should_cancel_vault() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();
@@ -568,10 +543,7 @@ fn when_vault_has_time_trigger_should_empty_vault_balance() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();
@@ -611,7 +583,6 @@ fn on_already_cancelled_vault_should_fail() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
             &[],
@@ -624,7 +595,6 @@ fn on_already_cancelled_vault_should_fail() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
             },
             &[],
@@ -635,4 +605,34 @@ fn on_already_cancelled_vault_should_fail() {
         .root_cause()
         .to_string()
         .contains("Error: vault is already cancelled"));
+}
+
+#[test]
+fn for_vault_with_different_onwer_should_fail() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_unfilled_fin_limit_price_trigger(
+            &user_address,
+            None,
+            Coin::new(user_balance.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked("not-the-owner"),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault {
+                vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
+            },
+            &[],
+        )
+        .unwrap_err();
+
+    assert_eq!(response.root_cause().to_string(), "Unauthorized");
 }

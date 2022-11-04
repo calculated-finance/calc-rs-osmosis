@@ -292,10 +292,7 @@ fn when_vault_is_cancelled_should_fail() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &ExecuteMsg::CancelVault { vault_id },
             &[],
         )
         .unwrap();

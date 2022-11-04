@@ -139,7 +139,7 @@ pub fn execute(
             target_start_time_utc_seconds,
             target_price,
         ),
-        ExecuteMsg::CancelVault { address, vault_id } => cancel_vault(deps, env, address, vault_id),
+        ExecuteMsg::CancelVault { vault_id } => cancel_vault(deps, env, info, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),
         ExecuteMsg::Deposit { address, vault_id } => deposit(deps, env, info, address, vault_id),
         ExecuteMsg::UpdateConfig {

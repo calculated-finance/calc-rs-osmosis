@@ -53,7 +53,6 @@ pub enum ExecuteMsg {
         vault_id: Uint128,
     },
     CancelVault {
-        address: Addr,
         vault_id: Uint128,
     },
     ExecuteTrigger {

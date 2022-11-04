@@ -1,11 +1,9 @@
 use crate::contract::AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::cache::{CACHE, LIMIT_ORDER_CACHE};
-use crate::state::events::create_event;
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::vault::Vault;
-use base::events::event::{EventBuilder, EventData};
 use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
@@ -15,7 +13,7 @@ use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 
 pub fn after_fin_limit_order_retracted(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;

@@ -11,22 +11,21 @@ use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Coin, CosmosMsg, Env, StdError, StdResult};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
+use cosmwasm_std::{Coin, CosmosMsg, Env, MessageInfo, StdError, StdResult};
 use fin_helpers::limit_orders::create_retract_order_sub_msg;
 use fin_helpers::queries::query_order_details;
 
 pub fn cancel_vault(
     deps: DepsMut,
     env: Env,
-    address: Addr,
+    info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    deps.api.addr_validate(&address.to_string())?;
     let vault = get_vault(deps.storage, vault_id)?;
 
-    assert_sender_is_admin_or_vault_owner(deps.storage, vault.owner.clone(), address.clone())?;
+    assert_sender_is_admin_or_vault_owner(deps.storage, vault.owner.clone(), info.sender.clone())?;
     assert_vault_is_not_cancelled(&vault)?;
 
     create_event(

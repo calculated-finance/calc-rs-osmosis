@@ -420,7 +420,6 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
     .unwrap();
 
     let cancel_vault_execute_message = ExecuteMsg::CancelVault {
-        address: Addr::unchecked(VALID_ADDRESS_THREE),
         vault_id: Uint128::new(1),
     };
 
