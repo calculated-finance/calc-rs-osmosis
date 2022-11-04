@@ -211,6 +211,17 @@ pub fn assert_destination_allocations_add_up_to_one(
     Ok(())
 }
 
+pub fn assert_no_destination_allocations_are_zero(
+    destinations: &[Destination],
+) -> Result<(), ContractError> {
+    if destinations.iter().any(|d| d.allocation.is_zero()) {
+        return Err(ContractError::CustomError {
+            val: String::from("all destination allocations must be greater than 0"),
+        });
+    }
+    Ok(())
+}
+
 pub fn assert_page_limit_is_valid(
     storage: &dyn Storage,
     limit: Option<u16>,

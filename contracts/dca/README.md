@@ -35,6 +35,7 @@ Vaults are created by users via the CALC frontend application.
 - destinations of type `PostExecutionAction::Send` must have valid bech32 addresses
 - destinations of type `PostExecutionAction::ZDelegate` must have valid validator addresses
 - the sum of all destination allocations must == 1.0
+- all destination allocations must be > 0.0
 - the submitted `pair_address` must be a valid bech32 address
 - the submitted `pair_address` must match an existing pair stored in the contract
 - the submitted `pair_address.quote_denom` must match the denom of the funds included in the message

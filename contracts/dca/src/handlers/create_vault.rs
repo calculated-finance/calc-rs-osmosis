@@ -9,9 +9,9 @@ use crate::validation_helpers::{
     assert_address_is_valid, assert_delegation_denom_is_stakeable,
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
     assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
-    assert_exactly_one_asset, assert_send_denom_is_in_pair_denoms,
-    assert_swap_amount_is_less_than_or_equal_to_balance, assert_swap_amount_is_not_zero,
-    assert_target_start_time_is_in_future,
+    assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
+    assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_less_than_or_equal_to_balance,
+    assert_swap_amount_is_not_zero, assert_target_start_time_is_in_future,
 };
 use crate::vault::{Vault, VaultBuilder};
 use base::events::event::{EventBuilder, EventData};
@@ -63,6 +63,7 @@ pub fn create_vault(
 
     assert_destination_send_addresses_are_valid(deps.as_ref(), &destinations)?;
     assert_destination_validator_addresses_are_valid(deps.as_ref(), &destinations)?;
+    assert_no_destination_allocations_are_zero(&destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
     deps.api.addr_validate(&pair_address.to_string())?;

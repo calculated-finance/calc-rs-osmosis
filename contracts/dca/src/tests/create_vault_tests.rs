@@ -4,7 +4,7 @@ use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
 };
 use crate::tests::mocks::{
-    fin_contract_unfilled_limit_order, MockApp, DENOM_UKUJI, DENOM_UTEST, USER,
+    fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
@@ -1525,6 +1525,57 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
     assert_eq!(
         response.root_cause().to_string(),
         "Error: destination allocations must add up to 1"
+    );
+}
+
+#[test]
+fn with_destination_allocation_equal_to_zero_should_fail() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                price_threshold: None,
+                label: Some("label".to_string()),
+                destinations: Some(vec![
+                    Destination {
+                        address: Addr::unchecked(USER),
+                        allocation: Decimal::percent(0),
+                        action: PostExecutionAction::Send,
+                    },
+                    Destination {
+                        address: Addr::unchecked(ADMIN),
+                        allocation: Decimal::percent(100),
+                        action: PostExecutionAction::Send,
+                    },
+                ]),
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: None,
+                target_price: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        response.root_cause().to_string(),
+        "Error: all destination allocations must be greater than 0"
     );
 }
 
