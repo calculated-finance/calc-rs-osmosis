@@ -118,7 +118,6 @@ fn with_one_vault_should_return_proper_vault_data() {
             created_at: mock.app.block_info().time,
             status: VaultStatus::Scheduled,
             balance: Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
-            position_type: None,
             time_interval: TimeInterval::Hourly,
             slippage_tolerance: None,
             swap_amount,
