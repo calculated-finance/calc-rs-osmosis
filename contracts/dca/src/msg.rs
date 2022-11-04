@@ -117,7 +117,7 @@ pub struct TriggerIdsResponse {
 #[cw_serde]
 pub struct VaultResponse {
     pub vault: Vault,
-    pub trigger: Option<Trigger>
+    pub trigger: Option<Trigger>,
 }
 
 #[cw_serde]

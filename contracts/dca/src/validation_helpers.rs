@@ -68,6 +68,15 @@ pub fn assert_swap_amount_is_less_than_or_equal_to_balance(
     Ok(())
 }
 
+pub fn assert_swap_amount_is_not_zero(swap_amount: Uint128) -> Result<(), ContractError> {
+    if swap_amount.is_zero() {
+        return Err(ContractError::CustomError {
+            val: String::from("swap amount must be greater than 0"),
+        });
+    }
+    Ok(())
+}
+
 pub fn assert_send_denom_is_in_pair_denoms(
     pair: Pair,
     send_denom: String,
