@@ -20,10 +20,17 @@ pub fn update_config_handler(
         deps.storage,
         Config {
             admin: existing_config.admin,
-            fee_collector: fee_collector.unwrap_or(existing_config.fee_collector),
+            fee_collector: deps.api.addr_validate(
+                &fee_collector
+                    .unwrap_or(existing_config.fee_collector)
+                    .to_string(),
+            )?,
             fee_percent: fee_percent.unwrap_or(existing_config.fee_percent),
-            staking_router_address: staking_router_address
-                .unwrap_or(existing_config.staking_router_address),
+            staking_router_address: deps.api.addr_validate(
+                &staking_router_address
+                    .unwrap_or(existing_config.staking_router_address)
+                    .to_string(),
+            )?,
             page_limit: page_limit.unwrap_or(existing_config.page_limit),
         },
     )?;
