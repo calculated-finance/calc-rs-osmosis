@@ -383,6 +383,87 @@ impl MockApp {
         self
     }
 
+    pub fn with_active_vault(
+        mut self,
+        owner: &Addr,
+        destinations: Option<Vec<Destination>>,
+        balance: Coin,
+        swap_amount: Uint128,
+        label: &str,
+        price_threshold: Option<Decimal256>,
+    ) -> MockApp {
+        let response = self
+            .app
+            .execute_contract(
+                owner.clone(),
+                self.dca_contract_address.clone(),
+                &ExecuteMsg::CreateVault {
+                    owner: None,
+                    price_threshold,
+                    label: Some("label".to_string()),
+                    destinations,
+                    pair_address: self.fin_contract_address.clone(),
+                    position_type: None,
+                    slippage_tolerance: None,
+                    swap_amount,
+                    time_interval: TimeInterval::Hourly,
+                    target_start_time_utc_seconds: None,
+                    target_price: None,
+                },
+                &vec![balance],
+            )
+            .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
+        );
+
+        self
+    }
+
+    pub fn with_inactive_vault(
+        mut self,
+        owner: &Addr,
+        destinations: Option<Vec<Destination>>,
+        label: &str,
+    ) -> MockApp {
+        let response = self
+            .app
+            .execute_contract(
+                owner.clone(),
+                self.dca_contract_address.clone(),
+                &ExecuteMsg::CreateVault {
+                    owner: None,
+                    price_threshold: None,
+                    label: Some("label".to_string()),
+                    destinations,
+                    pair_address: self.fin_contract_address.clone(),
+                    position_type: None,
+                    slippage_tolerance: None,
+                    swap_amount: Uint128::new(100),
+                    time_interval: TimeInterval::Hourly,
+                    target_start_time_utc_seconds: None,
+                    target_price: None,
+                },
+                &vec![Coin::new(100, DENOM_UKUJI)],
+            )
+            .unwrap();
+
+        self.vault_ids.insert(
+            String::from(label),
+            Uint128::from_str(
+                &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+            )
+            .unwrap(),
+        );
+
+        self
+    }
+
     pub fn elapse_time(&mut self, seconds: u64) {
         self.app.update_block(|mut block_info| {
             block_info.time = block_info.time.plus_seconds(seconds);

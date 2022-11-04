@@ -44,7 +44,7 @@ pub fn deposit(
             match existing_vault {
                 Some(mut existing_vault) => {
                     existing_vault.balance.amount += info.funds[0].amount;
-                    if !existing_vault.low_funds() {
+                    if !existing_vault.is_scheduled() {
                         existing_vault.status = VaultStatus::Active
                     }
                     Ok(existing_vault)
