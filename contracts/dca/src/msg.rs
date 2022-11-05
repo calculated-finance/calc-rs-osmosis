@@ -81,7 +81,7 @@ pub enum QueryMsg {
     #[returns(TriggerIdResponse)]
     GetTriggerIdByFinLimitOrderIdx { order_idx: Uint128 },
     #[returns(VaultResponse)]
-    GetVault { address: Addr, vault_id: Uint128 },
+    GetVault { vault_id: Uint128 },
     #[returns(VaultsResponse)]
     GetVaultsByAddress {
         address: Addr,

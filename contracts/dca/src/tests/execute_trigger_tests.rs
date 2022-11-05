@@ -63,10 +63,7 @@ fn for_filled_fin_limit_order_trigger_should_update_address_balances() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
+            &&QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -121,10 +118,7 @@ fn for_filled_fin_limit_order_trigger_should_update_vault_balance() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
+            &&QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -182,10 +176,7 @@ fn for_filled_fin_limit_order_trigger_should_update_vault_stats() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
+            &&QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -224,10 +215,7 @@ fn for_filled_fin_limit_order_trigger_should_publish_events() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
+            &&QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -293,10 +281,7 @@ fn for_filled_fin_limit_order_trigger_should_delete_existing_fin_limit_order_tri
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
+            &&QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -352,10 +337,7 @@ fn for_filled_fin_limit_order_trigger_should_create_new_time_trigger() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
+            &&QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -462,7 +444,6 @@ fn for_partially_filled_limit_order_should_return_error() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -531,7 +512,6 @@ fn for_partially_filled_limit_order_should_not_change_address_balances() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -594,7 +574,6 @@ fn for_partially_filled_limit_order_should_not_change_vault_balance() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -772,7 +751,6 @@ fn for_ready_time_trigger_should_update_vault_stats() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("time").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -1360,7 +1338,6 @@ fn until_vault_is_empty_should_update_address_balances() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -1439,7 +1416,6 @@ fn until_vault_is_empty_should_update_vault_balance() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -1506,7 +1482,6 @@ fn until_vault_is_empty_should_update_vault_status() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -1548,7 +1523,6 @@ fn until_vault_is_empty_should_update_vault_status() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -1582,7 +1556,6 @@ fn until_vault_is_empty_should_update_vault_stats() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -1624,7 +1597,6 @@ fn until_vault_is_empty_should_update_vault_stats() {
             &mock.dca_contract_address,
             &&QueryMsg::GetVault {
                 vault_id: mock.vault_ids.get("fin").unwrap().to_owned(),
-                address: user_address.clone(),
             },
         )
         .unwrap();
@@ -1676,10 +1648,7 @@ fn until_vault_is_empty_should_create_events() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &&QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
+            &&QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 

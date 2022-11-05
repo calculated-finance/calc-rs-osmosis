@@ -143,10 +143,7 @@ fn when_vault_has_unfilled_fin_limit_order_trigger_should_cancel_vault() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -186,10 +183,7 @@ fn when_vault_has_unfilled_fin_limit_order_trigger_should_empty_vault_balance() 
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -332,10 +326,7 @@ fn when_vault_has_partially_filled_price_trigger_should_empty_vault_balance() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -373,10 +364,7 @@ fn when_vault_has_partially_filled_price_trigger_should_cancel_vault() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -511,10 +499,7 @@ fn when_vault_has_time_trigger_should_cancel_vault() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 
@@ -553,10 +538,7 @@ fn when_vault_has_time_trigger_should_empty_vault_balance() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetVault {
-                address: user_address.clone(),
-                vault_id,
-            },
+            &QueryMsg::GetVault { vault_id },
         )
         .unwrap();
 

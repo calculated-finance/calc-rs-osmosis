@@ -139,13 +139,7 @@ fn with_price_trigger_should_create_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(vault_response.vault.id, Uint128::one());
@@ -199,13 +193,7 @@ fn with_price_trigger_should_create_trigger() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     match vault_response.vault.trigger.unwrap() {
@@ -355,13 +343,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(vault_response.vault.id, Uint128::new(2));
@@ -627,13 +609,7 @@ fn with_immediate_time_trigger_should_create_active_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(
@@ -899,13 +875,7 @@ fn with_time_trigger_should_create_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(
@@ -1145,13 +1115,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(
@@ -1279,13 +1243,7 @@ fn with_multiple_destinations_should_succeed() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(
@@ -1671,7 +1629,6 @@ fn with_passed_in_owner_should_succeed() {
             &mock.dca_contract_address,
             &QueryMsg::GetVault {
                 vault_id: Uint128::new(1),
-                address: owner.clone(),
             },
         )
         .unwrap();

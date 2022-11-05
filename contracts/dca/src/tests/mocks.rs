@@ -472,7 +472,7 @@ impl MockApp {
         });
     }
 
-    pub fn get_vault_by_label(&self, label: &str, address: Addr) -> Vault {
+    pub fn get_vault_by_label(&self, label: &str) -> Vault {
         let vault_id = self.vault_ids.get(label).unwrap();
         let vault_response: VaultResponse = self
             .app
@@ -481,7 +481,6 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &QueryMsg::GetVault {
                     vault_id: vault_id.to_owned(),
-                    address,
                 },
             )
             .unwrap();

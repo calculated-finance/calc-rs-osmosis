@@ -174,13 +174,7 @@ fn when_vault_is_scheduled_should_not_change_status() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(vault_response.vault.status, VaultStatus::Scheduled);
@@ -220,13 +214,7 @@ fn when_vault_is_active_should_not_change_status() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(vault_response.vault.status, VaultStatus::Active);
@@ -258,13 +246,7 @@ fn when_vault_is_inactive_should_change_status() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     assert_eq!(vault_response.vault.status, VaultStatus::Active);

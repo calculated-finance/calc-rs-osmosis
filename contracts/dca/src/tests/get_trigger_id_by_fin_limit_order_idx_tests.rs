@@ -52,13 +52,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: user_address.clone(),
-            },
-        )
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     let trigger_id_response: TriggerIdResponse = mock

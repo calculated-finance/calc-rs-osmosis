@@ -501,7 +501,6 @@ fn get_active_vault_by_address_and_id_should_succeed() {
 
     let get_vault_query_message = QueryMsg::GetVault {
         vault_id: Uint128::new(1),
-        address: Addr::unchecked(VALID_ADDRESS_THREE),
     };
 
     let binary = query(deps.as_ref(), env, get_vault_query_message).unwrap();

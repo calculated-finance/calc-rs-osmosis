@@ -204,7 +204,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             start_after,
             limit,
         )?),
-        QueryMsg::GetVault { vault_id, address } => to_binary(&get_vault(deps, address, vault_id)?),
+        QueryMsg::GetVault { vault_id } => to_binary(&get_vault(deps, vault_id)?),
         QueryMsg::GetEventsByResourceId { resource_id } => {
             to_binary(&get_events_by_resource_id(deps, resource_id)?)
         }

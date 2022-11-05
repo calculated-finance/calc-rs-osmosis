@@ -1,8 +1,5 @@
 use super::mocks::MockApp;
-use crate::{
-    msg::{EventsResponse, QueryMsg, VaultResponse},
-    vault::Vault,
-};
+use crate::msg::{EventsResponse, QueryMsg, VaultResponse};
 use base::events::event::Event;
 use cosmwasm_std::{Addr, Uint128};
 
@@ -18,19 +15,6 @@ pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str,
                 denom
             );
         })
-}
-
-pub fn assert_vault_eq(mock: &MockApp, address: Addr, vault_id: Uint128, expected_vault: Vault) {
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault { vault_id, address },
-        )
-        .unwrap();
-
-    assert_eq!(vault_response.vault, expected_vault);
 }
 
 pub fn assert_events_published(mock: &MockApp, resource_id: Uint128, expected_events: &[Event]) {
@@ -63,13 +47,7 @@ pub fn assert_vault_balance(
     let vault_response: VaultResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(
-            contract_address,
-            &QueryMsg::GetVault {
-                vault_id,
-                address: address.clone(),
-            },
-        )
+        .query_wasm_smart(contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
     let vault = &vault_response.vault;
