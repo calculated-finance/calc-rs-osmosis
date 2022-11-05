@@ -47,7 +47,7 @@ fn should_return_active_triggers_only() {
         .wrap()
         .query_wasm_smart(
             mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds {},
+            &QueryMsg::GetTimeTriggerIds { limit: None },
         )
         .unwrap();
 
@@ -60,7 +60,7 @@ fn should_return_active_triggers_only() {
         .wrap()
         .query_wasm_smart(
             mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds {},
+            &QueryMsg::GetTimeTriggerIds { limit: None },
         )
         .unwrap();
 

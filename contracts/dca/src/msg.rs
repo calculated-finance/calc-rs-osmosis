@@ -77,7 +77,7 @@ pub enum QueryMsg {
     #[returns(PairsResponse)]
     GetPairs {},
     #[returns(TriggerIdsResponse)]
-    GetTimeTriggerIds {},
+    GetTimeTriggerIds { limit: Option<u16> },
     #[returns(TriggerIdResponse)]
     GetTriggerIdByFinLimitOrderIdx { order_idx: Uint128 },
     #[returns(VaultResponse)]

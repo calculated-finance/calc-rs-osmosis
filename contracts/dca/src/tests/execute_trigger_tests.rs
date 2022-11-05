@@ -359,7 +359,7 @@ fn for_filled_fin_limit_order_trigger_should_create_new_time_trigger() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds {},
+            &QueryMsg::GetTimeTriggerIds { limit: None },
         )
         .unwrap();
 
@@ -915,7 +915,7 @@ fn for_ready_time_trigger_should_create_new_time_trigger() {
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address.clone(),
-            &QueryMsg::GetTimeTriggerIds {},
+            &QueryMsg::GetTimeTriggerIds { limit: None },
         )
         .unwrap();
 
@@ -1358,7 +1358,10 @@ fn until_vault_is_empty_should_update_address_balances() {
     let time_triggers: TriggerIdsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggerIds {})
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetTimeTriggerIds { limit: None },
+        )
         .unwrap();
 
     mock.app
@@ -1436,7 +1439,10 @@ fn until_vault_is_empty_should_update_vault_balance() {
     let time_triggers: TriggerIdsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggerIds {})
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetTimeTriggerIds { limit: None },
+        )
         .unwrap();
 
     mock.app
@@ -1502,7 +1508,10 @@ fn until_vault_is_empty_should_update_vault_status() {
     let time_triggers: TriggerIdsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggerIds {})
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetTimeTriggerIds { limit: None },
+        )
         .unwrap();
 
     mock.app
@@ -1576,7 +1585,10 @@ fn until_vault_is_empty_should_update_vault_stats() {
     let time_triggers: TriggerIdsResponse = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetTimeTriggerIds {})
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &QueryMsg::GetTimeTriggerIds { limit: None },
+        )
         .unwrap();
 
     mock.app
