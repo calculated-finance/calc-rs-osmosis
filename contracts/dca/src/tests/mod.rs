@@ -32,6 +32,9 @@ pub mod deposit_tests;
 pub mod update_config_tests;
 
 #[cfg(test)]
+pub mod after_fin_limit_order_retracted_tests;
+
+#[cfg(test)]
 pub mod after_fin_swap_tests;
 
 #[cfg(test)]

@@ -89,6 +89,7 @@ fn cancel_fin_limit_order_trigger(
         query_order_details(deps.querier, vault.pair.address.clone(), order_idx);
 
     let limit_order_cache = LimitOrderCache {
+        order_idx,
         offer_amount,
         original_offer_amount,
         filled,

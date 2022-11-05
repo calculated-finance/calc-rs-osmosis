@@ -10,6 +10,7 @@ pub struct Cache {
 
 #[cw_serde]
 pub struct LimitOrderCache {
+    pub order_idx: Uint128,
     pub offer_amount: Uint128,
     pub original_offer_amount: Uint128,
     pub filled: Uint128,

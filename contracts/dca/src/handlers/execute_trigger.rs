@@ -139,37 +139,44 @@ pub fn execute_trigger(
             Ok(response.add_submessage(fin_swap_msg))
         }
         TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
-            let (offer_amount, original_offer_amount, filled) =
-                query_order_details(deps.querier, vault.pair.address.clone(), order_idx.unwrap());
+            if let Some(order_idx) = order_idx {
+                let (offer_amount, original_offer_amount, filled) =
+                    query_order_details(deps.querier, vault.pair.address.clone(), order_idx);
 
-            let limit_order_cache = LimitOrderCache {
-                offer_amount,
-                original_offer_amount,
-                filled,
-            };
+                let limit_order_cache = LimitOrderCache {
+                    order_idx,
+                    offer_amount,
+                    original_offer_amount,
+                    filled,
+                };
 
-            LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
+                LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
 
-            if offer_amount != Uint128::zero() {
+                if offer_amount != Uint128::zero() {
+                    return Err(ContractError::CustomError {
+                        val: String::from("fin limit order has not been completely filled"),
+                    });
+                }
+
+                let fin_withdraw_sub_msg = create_withdraw_limit_order_sub_msg(
+                    vault.pair.address,
+                    order_idx,
+                    AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
+                );
+
+                let cache: Cache = Cache {
+                    vault_id: vault.id,
+                    owner: vault.owner.clone(),
+                };
+
+                CACHE.save(deps.storage, &cache)?;
+
+                return Ok(response.add_submessage(fin_withdraw_sub_msg));
+            } else {
                 return Err(ContractError::CustomError {
-                    val: String::from("fin limit order has not been completely filled"),
+                    val: String::from("fin limit order has not been created"),
                 });
             }
-
-            let fin_withdraw_sub_msg = create_withdraw_limit_order_sub_msg(
-                vault.pair.address,
-                order_idx.unwrap(),
-                AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
-            );
-
-            let cache: Cache = Cache {
-                vault_id: vault.id,
-                owner: vault.owner.clone(),
-            };
-
-            CACHE.save(deps.storage, &cache)?;
-
-            Ok(response.add_submessage(fin_withdraw_sub_msg))
         }
     }
 }

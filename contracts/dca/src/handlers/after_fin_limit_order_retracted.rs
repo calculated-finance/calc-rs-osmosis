@@ -39,22 +39,22 @@ pub fn after_fin_limit_order_retracted(
 
             // if the entire amount isnt retracted, order was partially filled need to send the partially filled assets to user
             if amount_retracted != limit_order_cache.original_offer_amount {
-                let retracted_balance = Coin {
+                let unswapped_balance = Coin {
                     denom: vault.get_swap_denom().clone(),
-                    amount: vault.balance.amount - (vault.swap_amount - amount_retracted),
+                    amount: vault.balance.amount - vault.get_swap_amount().amount
+                        + amount_retracted,
                 };
 
-                // i dont think its possible for this to be zero
-                if retracted_balance.amount.gt(&Uint128::zero()) {
+                if unswapped_balance.amount.gt(&Uint128::zero()) {
                     response = response.add_message(CosmosMsg::Bank(BankMsg::Send {
                         to_address: vault.owner.to_string(),
-                        amount: vec![retracted_balance.clone()],
+                        amount: vec![unswapped_balance.clone()],
                     }));
                 }
 
                 let fin_withdraw_sub_msg = create_withdraw_limit_order_sub_msg(
                     vault.pair.address.clone(),
-                    vault.id,
+                    limit_order_cache.order_idx,
                     AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID,
                 );
 
