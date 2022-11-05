@@ -684,6 +684,8 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
 
     let get_all_events_by_resource_id_query_message = QueryMsg::GetEventsByResourceId {
         resource_id: Uint128::new(1),
+        start_after: None,
+        limit: None,
     };
     let binary = query(
         deps.as_ref(),
@@ -720,6 +722,8 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
 
     let get_all_events_by_resource_id_query_message = QueryMsg::GetEventsByResourceId {
         resource_id: Uint128::new(1),
+        start_after: None,
+        limit: None,
     };
 
     let response: EventsResponse = from_binary(

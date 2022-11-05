@@ -33,3 +33,6 @@ pub mod update_config_tests;
 
 #[cfg(test)]
 pub mod after_fin_swap_tests;
+
+#[cfg(test)]
+pub mod get_events_by_resource_id_tests;

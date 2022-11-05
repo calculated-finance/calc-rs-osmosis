@@ -5,7 +5,7 @@ use base::{
     vaults::vault::VaultStatus,
 };
 use cosmwasm_std::{
-    testing::{mock_dependencies, mock_env},
+    testing::{mock_dependencies, mock_env, mock_info},
     Addr, Coin, DepsMut, Env, Reply, SubMsgResult, Timestamp, Uint128,
 };
 use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
@@ -21,6 +21,7 @@ use crate::{
         triggers::{get_trigger, save_trigger},
         vaults::{get_vault, save_vault},
     },
+    tests::{helpers::instantiate_contract, mocks::ADMIN},
     vault::VaultBuilder,
 };
 
@@ -134,7 +135,7 @@ fn setup_vault_with_low_funds(deps: DepsMut, env: Env) {
 fn with_insufficient_funds_publishes_unknown_failure_event() {
     let mut deps = mock_dependencies();
     let env = mock_env();
-
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
     setup_vault_with_low_funds(deps.as_mut(), env.clone());
 
     let reply = Reply {
@@ -146,7 +147,7 @@ fn with_insufficient_funds_publishes_unknown_failure_event() {
 
     let vault_id = Uint128::one();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault_id)
+    let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
         .unwrap()
         .events;
 
@@ -166,7 +167,7 @@ fn with_insufficient_funds_publishes_unknown_failure_event() {
 fn with_insufficient_funds_makes_vault_inactive() {
     let mut deps = mock_dependencies();
     let env = mock_env();
-
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
     setup_vault_with_low_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
@@ -256,7 +257,7 @@ fn with_slippage_failure_creates_a_new_time_trigger() {
 fn with_slippage_failure_publishes_execution_failed_event() {
     let mut deps = mock_dependencies();
     let env = mock_env();
-
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
     setup_vault_with_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
@@ -267,7 +268,7 @@ fn with_slippage_failure_publishes_execution_failed_event() {
 
     after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault_id)
+    let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
         .unwrap()
         .events;
 

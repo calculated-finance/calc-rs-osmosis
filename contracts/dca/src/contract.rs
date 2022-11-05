@@ -205,9 +205,16 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             limit,
         )?),
         QueryMsg::GetVault { vault_id } => to_binary(&get_vault(deps, vault_id)?),
-        QueryMsg::GetEventsByResourceId { resource_id } => {
-            to_binary(&get_events_by_resource_id(deps, resource_id)?)
-        }
+        QueryMsg::GetEventsByResourceId {
+            resource_id,
+            start_after,
+            limit,
+        } => to_binary(&get_events_by_resource_id(
+            deps,
+            resource_id,
+            start_after,
+            limit,
+        )?),
         QueryMsg::GetEvents { start_after, limit } => {
             to_binary(&get_events(deps, start_after, limit)?)
         }

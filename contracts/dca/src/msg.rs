@@ -90,7 +90,11 @@ pub enum QueryMsg {
         limit: Option<u16>,
     },
     #[returns(EventsResponse)]
-    GetEventsByResourceId { resource_id: Uint128 },
+    GetEventsByResourceId {
+        resource_id: Uint128,
+        start_after: Option<u64>,
+        limit: Option<u16>,
+    },
     #[returns(EventsResponse)]
     GetEvents {
         start_after: Option<u64>,

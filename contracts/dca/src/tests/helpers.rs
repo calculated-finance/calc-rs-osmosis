@@ -1,7 +1,25 @@
-use super::mocks::MockApp;
-use crate::msg::{EventsResponse, QueryMsg, VaultResponse};
+use std::str::FromStr;
+
+use super::mocks::{MockApp, ADMIN};
+use crate::{
+    contract::instantiate,
+    msg::{EventsResponse, InstantiateMsg, QueryMsg, VaultResponse},
+};
 use base::events::event::Event;
-use cosmwasm_std::{Addr, Uint128};
+use cosmwasm_std::{Addr, Decimal, DepsMut, Env, MessageInfo, Uint128};
+
+pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
+    let instantiate_message = InstantiateMsg {
+        admin: Addr::unchecked(ADMIN),
+        fee_collector: Addr::unchecked(ADMIN),
+        fee_percent: Decimal::from_str("0.015").unwrap(),
+        staking_router_address: Addr::unchecked(ADMIN),
+        page_limit: 1000,
+    };
+
+    let _instantiate_result =
+        instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
+}
 
 pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {
     address_balances
@@ -23,7 +41,11 @@ pub fn assert_events_published(mock: &MockApp, resource_id: Uint128, expected_ev
         .wrap()
         .query_wasm_smart(
             &mock.dca_contract_address,
-            &QueryMsg::GetEventsByResourceId { resource_id },
+            &QueryMsg::GetEventsByResourceId {
+                resource_id,
+                start_after: None,
+                limit: None,
+            },
         )
         .unwrap();
 
