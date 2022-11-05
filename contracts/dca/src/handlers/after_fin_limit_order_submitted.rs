@@ -1,11 +1,10 @@
 use crate::error::ContractError;
 use crate::state::cache::CACHE;
 use crate::state::triggers::{delete_trigger, get_trigger, save_trigger};
-use base::helpers::message_helpers::get_flat_map_for_event_type;
+use base::helpers::message_helpers::get_attribute_in_event;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Reply, Response, Uint128};
-use std::str::FromStr;
 
 pub fn after_fin_limit_order_submitted(
     deps: DepsMut,
@@ -15,11 +14,10 @@ pub fn after_fin_limit_order_submitted(
         cosmwasm_std::SubMsgResult::Ok(_) => {
             let fin_submit_order_response = reply.result.into_result().unwrap();
 
-            let order_idx = Uint128::from_str(
-                &get_flat_map_for_event_type(&fin_submit_order_response.events, "wasm").unwrap()
-                    ["order_idx"],
-            )
-            .unwrap();
+            let order_idx =
+                get_attribute_in_event(&fin_submit_order_response.events, "wasm", "order_idx")?
+                    .parse::<Uint128>()
+                    .expect("returned order_idx should be a valid Uint128");
 
             let cache = CACHE.load(deps.storage)?;
 

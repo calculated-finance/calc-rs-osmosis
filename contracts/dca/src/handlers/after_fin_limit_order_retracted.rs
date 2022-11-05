@@ -4,7 +4,7 @@ use crate::state::cache::{CACHE, LIMIT_ORDER_CACHE};
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::vault::Vault;
-use base::helpers::message_helpers::{find_first_attribute_by_key, find_first_event_by_type};
+use base::helpers::message_helpers::get_attribute_in_event;
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response, Uint128};
@@ -26,16 +26,10 @@ pub fn after_fin_limit_order_retracted(
 
             let fin_retract_order_response = reply.result.into_result().unwrap();
 
-            let wasm_trade_event =
-                find_first_event_by_type(&fin_retract_order_response.events, "wasm").unwrap();
-
-            // if this parse method works look to refactor
             let amount_retracted =
-                find_first_attribute_by_key(&wasm_trade_event.attributes, "amount")
-                    .unwrap()
-                    .value
+                get_attribute_in_event(&fin_retract_order_response.events, "wasm", "amount")?
                     .parse::<Uint128>()
-                    .unwrap();
+                    .expect("returned amount should be a valid u128");
 
             // if the entire amount isnt retracted, order was partially filled need to send the partially filled assets to user
             if amount_retracted != limit_order_cache.original_offer_amount {

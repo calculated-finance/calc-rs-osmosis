@@ -1,4 +1,4 @@
-use cosmwasm_std::{Attribute, Coin, Event, Uint128};
+use cosmwasm_std::{Coin, Event, StdError, StdResult, Uint128};
 use std::collections::HashMap;
 
 use crate::ContractError;
@@ -34,30 +34,23 @@ pub fn get_flat_map_for_event_type(
         })
 }
 
-pub fn find_first_event_by_type(
+pub fn get_attribute_in_event(
     events: &[Event],
-    target_type: &str,
-) -> Result<Event, ContractError> {
-    return events
-        .iter()
-        .find(|event| event.ty == target_type)
-        .map(|event| event.to_owned())
-        .ok_or_else(|| ContractError::CustomError {
-            val: format!("could not find event with type: {}", &target_type),
-        });
-}
+    event_type: &str,
+    attribute_key: &str,
+) -> StdResult<String> {
+    let events_with_type = events.iter().filter(|event| event.ty == event_type);
 
-pub fn find_first_attribute_by_key(
-    attributes: &[Attribute],
-    target_key: &str,
-) -> Result<Attribute, ContractError> {
-    return attributes
-        .iter()
-        .find(|attribute| attribute.key == target_key)
-        .map(|attribute| attribute.to_owned())
-        .ok_or_else(|| ContractError::CustomError {
-            val: format!("could not find attribute with key: {}", target_key),
-        });
+    let attribute = events_with_type
+        .into_iter()
+        .flat_map(|event| event.attributes.iter())
+        .find(|attribute| attribute.key == attribute_key)
+        .ok_or(StdError::generic_err(format!(
+            "unable to find {} attribute in {} event",
+            attribute_key, event_type
+        )))?;
+
+    Ok(attribute.value.clone())
 }
 
 #[cfg(test)]
@@ -65,93 +58,130 @@ mod tests {
     use super::*;
 
     #[test]
-    fn find_first_event_by_type_finds_event_successfully() {
-        let mock_event = Event::new("mock-event");
-        let mock_wasm_trade_event = Event::new("wasm-trade");
-        let events = vec![mock_event, mock_wasm_trade_event];
-        let result = find_first_event_by_type(&events, "wasm-trade").unwrap();
+    fn get_flat_map_for_event_type_finds_event_successfully() {
+        let result = get_flat_map_for_event_type(
+            &vec![Event::new("mock-event"), Event::new("wasm-trade")],
+            "wasm-trade",
+        )
+        .unwrap();
 
-        assert_eq!(result.ty, "wasm-trade");
+        assert_eq!(result, HashMap::new());
     }
 
     #[test]
-    fn find_first_event_by_type_given_two_matching_events_finds_first_event_successfully() {
-        let mock_wasm_trade_event_one = Event::new("wasm-trade").add_attribute("index", "1");
-        let mock_wasm_trade_event_two = Event::new("wasm-trade").add_attribute("index", "2");
-
-        let events = vec![mock_wasm_trade_event_one, mock_wasm_trade_event_two];
-        let result = find_first_event_by_type(&events, "wasm-trade").unwrap();
-
-        assert_eq!(result.ty, "wasm-trade");
-
-        assert_eq!(result.attributes[0].value, "1")
-    }
-
-    #[test]
-    fn find_first_event_by_type_given_no_matching_events_should_fail() {
-        let mock_wasm_trade_event = vec![Event::new("not-wasm-trade")];
-        let result = find_first_event_by_type(&mock_wasm_trade_event, "wasm-trade").unwrap_err();
+    fn get_flat_map_for_event_type_uses_later_values_in_result_conflicts() {
+        let result = get_flat_map_for_event_type(
+            &vec![
+                Event::new("wasm-trade").add_attribute("index", "1"),
+                Event::new("wasm-trade").add_attribute("index", "2"),
+            ],
+            "wasm-trade",
+        )
+        .unwrap();
 
         assert_eq!(
-            result.to_string(),
-            "Custom Error val: \"could not find event with type: wasm-trade\""
+            result,
+            HashMap::from([("index".to_string(), "2".to_string())])
         );
     }
 
     #[test]
-    fn find_first_event_by_type_given_no_events_should_fail() {
-        let empty: Vec<Event> = Vec::new();
-        let result = find_first_event_by_type(&empty, "wasm-trade").unwrap_err();
+    fn get_flat_map_for_event_type_with_no_matching_event_type_should_return_empty_map() {
+        let result =
+            get_flat_map_for_event_type(&vec![Event::new("not-wasm-trade")], "wasm-trade").unwrap();
+
+        assert_eq!(result, HashMap::new());
+    }
+
+    #[test]
+    fn get_flat_map_for_event_type_with_no_events_should_return_empty_map() {
+        let result = get_flat_map_for_event_type(&vec![], "wasm-trade").unwrap();
+
+        assert_eq!(result, HashMap::new());
+    }
+
+    #[test]
+    fn get_flat_map_for_event_type_should_combine_events() {
+        let result = get_flat_map_for_event_type(
+            &vec![
+                Event::new("wasm-trade").add_attribute("amount", "1"),
+                Event::new("wasm-trade").add_attribute("index", "2"),
+            ],
+            "wasm-trade",
+        )
+        .unwrap();
 
         assert_eq!(
-            result.to_string(),
-            "Custom Error val: \"could not find event with type: wasm-trade\""
+            result,
+            HashMap::from([
+                ("amount".to_string(), "1".to_string()),
+                ("index".to_string(), "2".to_string())
+            ])
         );
     }
 
     #[test]
-    fn find_first_attribute_by_key_finds_attribute_successfully() {
-        let mock_attribute_one = Attribute::new("test-one", "value");
-        let mock_attribute_two = Attribute::new("test-two", "value");
-        let attributes = vec![mock_attribute_one, mock_attribute_two];
-        let result = find_first_attribute_by_key(&attributes, "test-one").unwrap();
+    fn get_attribute_in_event_finds_value_succesfully() {
+        let result = get_attribute_in_event(
+            &vec![Event::new("wasm-trade").add_attribute("index", "1")],
+            "wasm-trade",
+            "index",
+        )
+        .unwrap();
 
-        assert_eq!(result.key, "test-one");
+        assert_eq!(result, "1");
     }
 
     #[test]
-    fn find_first_attribute_by_key_given_two_matching_attributes_finds_first_attribute_successfully(
-    ) {
-        let mock_attribute_one = Attribute::new("test", "1");
-        let mock_attribute_two = Attribute::new("test", "2");
-        let attributes = vec![mock_attribute_one, mock_attribute_two];
-        let result = find_first_attribute_by_key(&attributes, "test").unwrap();
+    fn get_attribute_in_event_finds_last_value_succesfully() {
+        let result = get_attribute_in_event(
+            &vec![
+                Event::new("wasm-trade").add_attribute("index", "1"),
+                Event::new("wasm-trade").add_attribute("index", "2"),
+            ],
+            "wasm-trade",
+            "index",
+        )
+        .unwrap();
 
-        assert_eq!(result.key, "test");
-
-        assert_eq!(result.value, "1");
+        assert_eq!(result, "1");
     }
 
     #[test]
-    fn find_first_attribute_by_key_given_no_matching_attributes_should_fail() {
-        let mock_attribute_one = Attribute::new("mock", "value");
-        let attributes = vec![mock_attribute_one];
-        let result = find_first_attribute_by_key(&attributes, "test-one").unwrap_err();
+    fn get_attribute_in_event_with_no_matching_event_type_should_return_error() {
+        let result = get_attribute_in_event(
+            &vec![Event::new("not-wasm-trade").add_attribute("index", "1")],
+            "wasm-trade",
+            "index",
+        );
 
         assert_eq!(
-            result.to_string(),
-            "Custom Error val: \"could not find attribute with key: test-one\""
+            result.unwrap_err().to_string(),
+            "Generic error: unable to find index attribute in wasm-trade event"
         );
     }
 
     #[test]
-    fn find_first_attribute_by_key_given_no_attributes_should_fail() {
-        let attributes: Vec<Attribute> = Vec::new();
-        let result = find_first_attribute_by_key(&attributes, "test-one").unwrap_err();
+    fn get_attribute_in_event_with_no_matching_attribute_should_return_error() {
+        let result = get_attribute_in_event(
+            &vec![Event::new("wasm-trade").add_attribute("not-index", "1")],
+            "wasm-trade",
+            "index",
+        );
 
         assert_eq!(
-            result.to_string(),
-            "Custom Error val: \"could not find attribute with key: test-one\""
+            result.unwrap_err().to_string(),
+            "Generic error: unable to find index attribute in wasm-trade event"
+        );
+    }
+
+    #[test]
+    fn get_attribute_in_event_with_no_events_should_return_error() {
+        let result = get_attribute_in_event(&vec![], "wasm-trade", "index");
+
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Generic error: unable to find index attribute in wasm-trade event"
         );
     }
 

@@ -4,7 +4,7 @@ use crate::state::events::create_event;
 use crate::state::vaults::get_vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::message_helpers::{
-    find_first_attribute_by_key, find_first_event_by_type, get_coin_from_display_formatted_coin,
+    get_attribute_in_event, get_coin_from_display_formatted_coin,
 };
 use cosmwasm_std::SubMsgResult;
 #[cfg(not(feature = "library"))]
@@ -21,20 +21,12 @@ pub fn after_z_delegation(
     match reply.result {
         SubMsgResult::Ok(_) => {
             let z_delegate_response = reply.result.into_result().unwrap();
-            let z_delegate_event =
-                find_first_event_by_type(&z_delegate_response.events, "delegate").unwrap();
 
             let validator_address =
-                find_first_attribute_by_key(&z_delegate_event.attributes, "validator")
-                    .unwrap()
-                    .value
-                    .clone();
+                get_attribute_in_event(&z_delegate_response.events, "delegate", "validator")?;
 
             let display_formatted_coin =
-                find_first_attribute_by_key(&z_delegate_event.attributes, "amount")
-                    .unwrap()
-                    .value
-                    .clone();
+                get_attribute_in_event(&z_delegate_response.events, "delegate", "amount")?;
 
             let delegation_amount = get_coin_from_display_formatted_coin(display_formatted_coin);
 
