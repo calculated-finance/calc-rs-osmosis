@@ -22,7 +22,7 @@ use crate::{
         vaults::{get_vault, save_vault},
     },
     tests::{helpers::instantiate_contract, mocks::ADMIN},
-    vault::VaultBuilder,
+    types::vault::VaultBuilder,
 };
 
 fn setup_vault_with_funds(deps: DepsMut, env: Env) {

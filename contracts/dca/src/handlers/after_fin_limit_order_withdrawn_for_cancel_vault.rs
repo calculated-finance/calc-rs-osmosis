@@ -5,7 +5,7 @@ use crate::{
         triggers::delete_trigger,
         vaults::{get_vault, update_vault},
     },
-    vault::Vault,
+    types::vault::Vault,
 };
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]

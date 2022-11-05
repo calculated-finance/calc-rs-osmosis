@@ -6,7 +6,7 @@ use crate::tests::helpers::{
 use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
-use crate::vault::Vault;
+use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::math_helpers::checked_mul;
 use base::helpers::message_helpers::get_flat_map_for_event_type;

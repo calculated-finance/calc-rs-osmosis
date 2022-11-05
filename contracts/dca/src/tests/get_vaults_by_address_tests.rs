@@ -4,7 +4,7 @@ use crate::tests::mocks::{
     fin_contract_filled_limit_order, fin_contract_pass_slippage_tolerance, MockApp, ADMIN,
     DENOM_UKUJI, DENOM_UTEST, USER,
 };
-use crate::vault::Vault;
+use crate::types::vault::Vault;
 use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};

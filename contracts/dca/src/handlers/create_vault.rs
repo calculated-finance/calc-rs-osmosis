@@ -5,6 +5,7 @@ use crate::state::events::create_event;
 use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
+use crate::types::vault::{Vault, VaultBuilder};
 use crate::validation_helpers::{
     assert_address_is_valid, assert_delegation_denom_is_stakeable,
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
@@ -13,7 +14,6 @@ use crate::validation_helpers::{
     assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_less_than_or_equal_to_balance,
     assert_swap_amount_is_not_zero, assert_target_start_time_is_in_future,
 };
-use crate::vault::{Vault, VaultBuilder};
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};

@@ -5,7 +5,7 @@ use crate::state::config::get_config;
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
-use crate::vault::Vault;
+use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;

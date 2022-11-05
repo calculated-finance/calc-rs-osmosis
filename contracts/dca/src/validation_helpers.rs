@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::state::config::get_config;
-use crate::vault::Vault;
+use crate::types::vault::Vault;
 use base::pair::Pair;
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Storage, Timestamp, Uint128};

@@ -10,7 +10,7 @@ use crate::{
         triggers::save_trigger,
         vaults::save_vault,
     },
-    vault::{Vault, VaultBuilder},
+    types::vault::{Vault, VaultBuilder},
 };
 use base::{
     pair::Pair,

@@ -4,10 +4,10 @@ use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
 use crate::state::events::create_event;
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
+use crate::types::vault::Vault;
 use crate::validation_helpers::{
     assert_sender_is_admin_or_vault_owner, assert_vault_is_not_cancelled,
 };
-use crate::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;

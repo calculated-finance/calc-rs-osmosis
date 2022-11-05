@@ -5,7 +5,7 @@ use base::vaults::vault::{Destination, PositionType, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Decimal, Decimal256, Uint128, Uint64};
 
-use crate::vault::Vault;
+use crate::types::vault::Vault;
 
 #[cw_serde]
 pub struct InstantiateMsg {

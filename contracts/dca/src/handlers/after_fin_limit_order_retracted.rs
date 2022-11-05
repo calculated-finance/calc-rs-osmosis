@@ -3,7 +3,7 @@ use crate::error::ContractError;
 use crate::state::cache::{CACHE, LIMIT_ORDER_CACHE};
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
-use crate::vault::Vault;
+use crate::types::vault::Vault;
 use base::helpers::message_helpers::get_attribute_in_event;
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]

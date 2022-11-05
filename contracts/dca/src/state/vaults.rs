@@ -7,7 +7,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal256, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, Item, UniqueIndex};
 
-use crate::vault::{Vault, VaultBuilder};
+use crate::types::vault::{Vault, VaultBuilder};
 
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
 
