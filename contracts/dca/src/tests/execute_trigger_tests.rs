@@ -1147,6 +1147,62 @@ fn for_ready_time_trigger_outside_of_price_threshold_should_skip_execution() {
 }
 
 #[test]
+fn for_ready_time_trigger_outside_of_price_threshold_should_set_new_time_trigger() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_time_trigger(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "time",
+            Some(Decimal256::from_str("0.9").unwrap()),
+        );
+
+    mock.elapse_time(10);
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::ExecuteTrigger {
+                trigger_id: Uint128::new(1),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let get_time_trigger_ids_response: TriggerIdsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address.clone(),
+            &QueryMsg::GetTimeTriggerIds { limit: None },
+        )
+        .unwrap();
+
+    assert_eq!(get_time_trigger_ids_response.trigger_ids.len(), 0);
+
+    mock.elapse_time(3700);
+
+    let get_time_trigger_ids_response: TriggerIdsResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address.clone(),
+            &QueryMsg::GetTimeTriggerIds { limit: None },
+        )
+        .unwrap();
+
+    assert_eq!(get_time_trigger_ids_response.trigger_ids.len(), 1);
+}
+
+#[test]
 fn for_ready_time_trigger_when_slippage_exceeds_limit_should_skip_execution() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;

@@ -4,10 +4,12 @@ use crate::contract::{
 use crate::error::ContractError;
 use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
 use crate::state::events::create_event;
+use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
 use crate::validation_helpers::assert_target_time_is_in_past;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
-use base::triggers::trigger::TriggerConfiguration;
+use base::helpers::time_helpers::get_next_target_time;
+use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PositionType, VaultStatus};
 use cosmwasm_std::StdError;
 #[cfg(not(feature = "library"))]
@@ -79,8 +81,12 @@ pub fn execute_trigger(
             assert_target_time_is_in_past(env.block.time, target_time)?;
 
             if let Some(price_threshold) = vault.price_threshold {
-                // dca in with price ceiling
-                if position_type == PositionType::Enter && current_price > price_threshold {
+                let price_threshold_exceeded = match position_type {
+                    PositionType::Enter => current_price > price_threshold,
+                    PositionType::Exit => current_price < price_threshold,
+                };
+
+                if price_threshold_exceeded {
                     create_event(
                         deps.storage,
                         EventBuilder::new(
@@ -93,22 +99,23 @@ pub fn execute_trigger(
                             },
                         ),
                     )?;
-                    return Ok(response.to_owned());
-                }
-                // dca out with price floor
-                if position_type == PositionType::Exit && current_price < price_threshold {
-                    create_event(
+
+                    delete_trigger(deps.storage, vault.id)?;
+
+                    save_trigger(
                         deps.storage,
-                        EventBuilder::new(
-                            vault.id,
-                            env.block.to_owned(),
-                            EventData::DCAVaultExecutionSkipped {
-                                reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                                    price: current_price,
-                                },
+                        Trigger {
+                            vault_id: vault.id,
+                            configuration: TriggerConfiguration::Time {
+                                target_time: get_next_target_time(
+                                    env.block.time,
+                                    target_time,
+                                    vault.time_interval.clone(),
+                                ),
                             },
-                        ),
+                        },
                     )?;
+
                     return Ok(response.to_owned());
                 }
             };
