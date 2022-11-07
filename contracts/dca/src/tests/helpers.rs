@@ -4,9 +4,21 @@ use super::mocks::{MockApp, ADMIN};
 use crate::{
     contract::instantiate,
     msg::{EventsResponse, InstantiateMsg, QueryMsg, VaultResponse},
+    state::{
+        cache::{Cache, CACHE},
+        pairs::PAIRS,
+        triggers::save_trigger,
+        vaults::save_vault,
+    },
+    types::vault::{Vault, VaultBuilder},
 };
-use base::events::event::Event;
-use cosmwasm_std::{Addr, Decimal, DepsMut, Env, MessageInfo, Uint128};
+use base::{
+    events::event::Event,
+    pair::Pair,
+    triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration},
+    vaults::vault::{Destination, PostExecutionAction, VaultStatus},
+};
+use cosmwasm_std::{Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Uint128};
 
 pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
     let instantiate_message = InstantiateMsg {
@@ -19,6 +31,128 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
 
     let _instantiate_result =
         instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
+}
+
+pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
+    let pair = Pair {
+        address: Addr::unchecked("pair"),
+        base_denom: "base".to_string(),
+        quote_denom: "quote".to_string(),
+    };
+
+    PAIRS
+        .save(deps.storage, pair.address.clone(), &pair)
+        .unwrap();
+
+    let owner = Addr::unchecked("owner");
+
+    let vault = save_vault(
+        deps.storage,
+        VaultBuilder {
+            owner: owner.clone(),
+            label: None,
+            destinations: vec![Destination {
+                address: owner,
+                allocation: Decimal::percent(100),
+                action: PostExecutionAction::Send,
+            }],
+            created_at: env.block.time.clone(),
+            status: VaultStatus::Active,
+            pair,
+            swap_amount: Uint128::new(100),
+            position_type: None,
+            slippage_tolerance: None,
+            price_threshold: None,
+            balance: Coin::new(Uint128::new(1000).into(), "base"),
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+        },
+    )
+    .unwrap();
+
+    save_trigger(
+        deps.storage,
+        Trigger {
+            vault_id: vault.id,
+            configuration: TriggerConfiguration::Time {
+                target_time: env.block.time,
+            },
+        },
+    )
+    .unwrap();
+
+    CACHE
+        .save(
+            deps.storage,
+            &Cache {
+                vault_id: vault.id,
+                owner: Addr::unchecked("owner"),
+            },
+        )
+        .unwrap();
+
+    vault
+}
+
+pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
+    let pair = Pair {
+        address: Addr::unchecked("pair"),
+        base_denom: "base".to_string(),
+        quote_denom: "quote".to_string(),
+    };
+
+    PAIRS
+        .save(deps.storage, pair.address.clone(), &pair)
+        .unwrap();
+
+    let owner = Addr::unchecked("owner");
+
+    let vault = save_vault(
+        deps.storage,
+        VaultBuilder {
+            owner: owner.clone(),
+            label: None,
+            destinations: vec![Destination {
+                address: owner,
+                allocation: Decimal::percent(100),
+                action: PostExecutionAction::Send,
+            }],
+            created_at: env.block.time.clone(),
+            status: VaultStatus::Active,
+            pair,
+            swap_amount: Uint128::new(100),
+            position_type: None,
+            slippage_tolerance: None,
+            price_threshold: None,
+            balance: Coin::new(Uint128::new(10).into(), "base"),
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+        },
+    )
+    .unwrap();
+
+    save_trigger(
+        deps.storage,
+        Trigger {
+            vault_id: vault.id,
+            configuration: TriggerConfiguration::Time {
+                target_time: env.block.time,
+            },
+        },
+    )
+    .unwrap();
+
+    CACHE
+        .save(
+            deps.storage,
+            &Cache {
+                vault_id: vault.id,
+                owner: Addr::unchecked("owner"),
+            },
+        )
+        .unwrap();
+
+    vault
 }
 
 pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {

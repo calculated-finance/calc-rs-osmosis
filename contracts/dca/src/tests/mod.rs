@@ -39,3 +39,6 @@ pub mod after_fin_swap_tests;
 
 #[cfg(test)]
 pub mod get_events_by_resource_id_tests;
+
+#[cfg(test)]
+pub mod after_fin_limit_order_withdrawn_for_cancel_vault_tests;
