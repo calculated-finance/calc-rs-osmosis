@@ -7,7 +7,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal256, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, Item, UniqueIndex};
 
-use crate::types::vault::{Vault, VaultBuilder};
+use crate::types::{vault::Vault, vault_builder::VaultBuilder};
 
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
 
@@ -25,7 +25,7 @@ struct VaultDTO {
     pub pair_address: Addr,
     pub swap_amount: Uint128,
     pub slippage_tolerance: Option<Decimal256>,
-    pub price_threshold: Option<Decimal256>,
+    pub minimum_receive_amount: Option<Uint128>,
     pub time_interval: TimeInterval,
     pub started_at: Option<Timestamp>,
     pub swapped_amount: Coin,
@@ -45,7 +45,7 @@ impl From<Vault> for VaultDTO {
             pair_address: vault.pair.address,
             swap_amount: vault.swap_amount,
             slippage_tolerance: vault.slippage_tolerance,
-            price_threshold: vault.price_threshold,
+            minimum_receive_amount: vault.minimum_receive_amount,
             time_interval: vault.time_interval,
             started_at: vault.started_at,
             swapped_amount: vault.swapped_amount,
@@ -66,7 +66,7 @@ fn vault_from(data: &VaultDTO, pair: Pair, trigger: Option<TriggerConfiguration>
         pair,
         swap_amount: data.swap_amount,
         slippage_tolerance: data.slippage_tolerance,
-        price_threshold: data.price_threshold,
+        minimum_receive_amount: data.minimum_receive_amount,
         time_interval: data.time_interval.clone(),
         started_at: data.started_at,
         swapped_amount: data.swapped_amount.clone(),

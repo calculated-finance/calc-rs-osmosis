@@ -37,11 +37,6 @@ pub fn execute_trigger(
 
     let position_type = vault.get_position_type();
 
-    let current_price = match position_type {
-        PositionType::Enter => query_base_price(deps.querier, vault.pair.address.clone()),
-        PositionType::Exit => query_quote_price(deps.querier, vault.pair.address.clone()),
-    };
-
     if vault.is_scheduled() {
         update_vault(deps.storage, vault.id, |stored_value| match stored_value {
             Some(mut existing_vault) => {
@@ -59,6 +54,11 @@ pub fn execute_trigger(
         })?;
     }
 
+    let current_fin_price = match position_type {
+        PositionType::Enter => query_base_price(deps.querier, vault.pair.address.clone()),
+        PositionType::Exit => query_quote_price(deps.querier, vault.pair.address.clone()),
+    };
+
     create_event(
         deps.storage,
         EventBuilder::new(
@@ -67,7 +67,7 @@ pub fn execute_trigger(
             EventData::DCAVaultExecutionTriggered {
                 base_denom: vault.pair.base_denom.clone(),
                 quote_denom: vault.pair.quote_denom.clone(),
-                asset_price: current_price.clone(),
+                asset_price: current_fin_price.clone(),
             },
         ),
     )?;
@@ -80,50 +80,43 @@ pub fn execute_trigger(
         TriggerConfiguration::Time { target_time } => {
             assert_target_time_is_in_past(env.block.time, target_time)?;
 
-            if let Some(price_threshold) = vault.price_threshold {
-                let price_threshold_exceeded = match position_type {
-                    PositionType::Enter => current_price > price_threshold,
-                    PositionType::Exit => current_price < price_threshold,
-                };
-
-                if price_threshold_exceeded {
-                    create_event(
-                        deps.storage,
-                        EventBuilder::new(
-                            vault.id,
-                            env.block.to_owned(),
-                            EventData::DCAVaultExecutionSkipped {
-                                reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                                    price: current_price,
-                                },
-                            },
-                        ),
-                    )?;
-
-                    delete_trigger(deps.storage, vault.id)?;
-
-                    save_trigger(
-                        deps.storage,
-                        Trigger {
-                            vault_id: vault.id,
-                            configuration: TriggerConfiguration::Time {
-                                target_time: get_next_target_time(
-                                    env.block.time,
-                                    target_time,
-                                    vault.time_interval.clone(),
-                                ),
+            if vault.price_threshold_exceeded(current_fin_price) {
+                create_event(
+                    deps.storage,
+                    EventBuilder::new(
+                        vault.id,
+                        env.block.to_owned(),
+                        EventData::DCAVaultExecutionSkipped {
+                            reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                                price: current_fin_price,
                             },
                         },
-                    )?;
+                    ),
+                )?;
 
-                    return Ok(response.to_owned());
-                }
+                delete_trigger(deps.storage, vault.id)?;
+
+                save_trigger(
+                    deps.storage,
+                    Trigger {
+                        vault_id: vault.id,
+                        configuration: TriggerConfiguration::Time {
+                            target_time: get_next_target_time(
+                                env.block.time,
+                                target_time,
+                                vault.time_interval.clone(),
+                            ),
+                        },
+                    },
+                )?;
+
+                return Ok(response.to_owned());
             };
 
             let fin_swap_msg = match vault.slippage_tolerance {
                 Some(tolerance) => create_fin_swap_with_slippage(
                     vault.pair.address.clone(),
-                    current_price,
+                    current_fin_price,
                     tolerance,
                     vault.get_swap_amount(),
                     AFTER_FIN_SWAP_REPLY_ID,

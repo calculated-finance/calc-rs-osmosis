@@ -106,7 +106,7 @@ fn with_one_vault_should_return_proper_vault_data() {
     assert_eq!(
         vaults_response.vaults.first().unwrap(),
         &Vault {
-            price_threshold: None,
+            minimum_receive_amount: None,
             label: Some("label".to_string()),
             id: Uint128::new(1),
             owner: user_address.clone(),

@@ -996,7 +996,7 @@ fn for_ready_time_trigger_within_price_threshold_should_succeed() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            Some(Decimal256::from_str("1.5").unwrap()),
+            Some(Uint128::new(99)),
         );
 
     mock.elapse_time(10);
@@ -1046,7 +1046,7 @@ fn for_ready_time_trigger_within_price_threshold_should_succeed() {
 }
 
 #[test]
-fn for_ready_time_trigger_outside_of_price_threshold_should_skip_execution() {
+fn for_ready_time_trigger_for_fin_buy_less_than_minimum_receive_amount_should_skip_execution() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
     let vault_deposit = TEN;
@@ -1060,7 +1060,7 @@ fn for_ready_time_trigger_outside_of_price_threshold_should_skip_execution() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            Some(Decimal256::from_str("0.9").unwrap()),
+            Some(ONE + Uint128::one()),
         );
 
     assert_address_balances(
@@ -1129,7 +1129,7 @@ fn for_ready_time_trigger_outside_of_price_threshold_should_skip_execution() {
                 mock.app.block_info(),
                 EventData::DCAVaultExecutionSkipped {
                     reason: base::events::event::ExecutionSkippedReason::PriceThresholdExceeded {
-                        price: Decimal256::from_str("1").unwrap(),
+                        price: Decimal256::from_str("1.0").unwrap(),
                     },
                 },
             )
@@ -1147,7 +1147,76 @@ fn for_ready_time_trigger_outside_of_price_threshold_should_skip_execution() {
 }
 
 #[test]
-fn for_ready_time_trigger_outside_of_price_threshold_should_set_new_time_trigger() {
+fn for_ready_time_trigger_for_fin_sell_less_than_minimum_receive_amount_should_skip_execution() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UTEST)
+        .with_vault_with_time_trigger(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UTEST),
+            swap_amount,
+            "time",
+            Some(ONE + Uint128::one()),
+        );
+
+    let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
+
+    mock.elapse_time(10);
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::ExecuteTrigger {
+                trigger_id: Uint128::new(1),
+            },
+            &[],
+        )
+        .unwrap();
+
+    assert_events_published(
+        &mock,
+        vault_id,
+        &[
+            EventBuilder::new(
+                vault_id,
+                mock.app.block_info(),
+                EventData::DCAVaultExecutionTriggered {
+                    base_denom: DENOM_UTEST.to_string(),
+                    quote_denom: DENOM_UKUJI.to_string(),
+                    asset_price: Decimal256::from_str("1.0").unwrap(),
+                },
+            )
+            .build(3),
+            EventBuilder::new(
+                vault_id,
+                mock.app.block_info(),
+                EventData::DCAVaultExecutionSkipped {
+                    reason: base::events::event::ExecutionSkippedReason::PriceThresholdExceeded {
+                        price: Decimal256::from_str("1.0").unwrap(),
+                    },
+                },
+            )
+            .build(4),
+        ],
+    );
+
+    assert_vault_balance(
+        &mock,
+        &mock.dca_contract_address,
+        user_address,
+        Uint128::new(1),
+        TEN,
+    );
+}
+
+#[test]
+fn for_ready_time_trigger_for_less_than_minimum_receive_amount_should_set_new_time_trigger() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
     let vault_deposit = TEN;
@@ -1161,7 +1230,7 @@ fn for_ready_time_trigger_outside_of_price_threshold_should_set_new_time_trigger
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
-            Some(Decimal256::from_str("0.9").unwrap()),
+            Some(ONE + Uint128::one()),
         );
 
     mock.elapse_time(10);

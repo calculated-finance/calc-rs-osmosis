@@ -10,7 +10,7 @@ use crate::{
         triggers::save_trigger,
         vaults::save_vault,
     },
-    types::vault::{Vault, VaultBuilder},
+    types::{vault::Vault, vault_builder::VaultBuilder},
 };
 use base::{
     events::event::Event,
@@ -62,7 +62,7 @@ pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
             swap_amount: Uint128::new(100),
             position_type: None,
             slippage_tolerance: None,
-            price_threshold: None,
+            minimum_receive_amount: None,
             balance: Coin::new(Uint128::new(1000).into(), "base"),
             time_interval: TimeInterval::Daily,
             started_at: None,
@@ -123,7 +123,7 @@ pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
             swap_amount: Uint128::new(100),
             position_type: None,
             slippage_tolerance: None,
-            price_threshold: None,
+            minimum_receive_amount: None,
             balance: Coin::new(Uint128::new(10).into(), "base"),
             time_interval: TimeInterval::Daily,
             started_at: None,

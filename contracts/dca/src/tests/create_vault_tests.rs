@@ -49,7 +49,7 @@ fn with_price_trigger_should_update_address_balances() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -116,7 +116,7 @@ fn with_price_trigger_should_create_vault() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -170,7 +170,7 @@ fn with_price_trigger_should_create_trigger() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -225,7 +225,7 @@ fn with_price_trigger_should_publish_vault_created_event() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -266,7 +266,7 @@ fn with_price_trigger_should_publish_funds_deposited_event() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -320,7 +320,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -398,7 +398,7 @@ fn with_price_trigger_twice_for_user_should_succeed() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -487,7 +487,7 @@ fn with_immediate_time_trigger_should_update_address_balances() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -547,7 +547,7 @@ fn with_immediate_time_trigger_should_update_vault_balance() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -589,7 +589,7 @@ fn with_immediate_time_trigger_should_create_active_vault() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -615,7 +615,7 @@ fn with_immediate_time_trigger_should_create_active_vault() {
     assert_eq!(
         vault_response.vault,
         Vault {
-            price_threshold: None,
+            minimum_receive_amount: None,
             label: Some("label".to_string()),
             id: vault_id,
             owner: user_address.clone(),
@@ -674,7 +674,7 @@ fn with_immediate_time_trigger_should_publish_events() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -761,7 +761,7 @@ fn with_immediate_time_trigger_and_slippage_failure_should_update_address_balanc
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -811,7 +811,7 @@ fn with_immediate_time_trigger_and_slippage_failure_should_update_vault_balance(
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -855,7 +855,7 @@ fn with_time_trigger_should_create_vault() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -881,7 +881,7 @@ fn with_time_trigger_should_create_vault() {
     assert_eq!(
         vault_response.vault,
         Vault {
-            price_threshold: None,
+            minimum_receive_amount: None,
             label: Some("label".to_string()),
             id: Uint128::new(1),
             owner: user_address.clone(),
@@ -943,7 +943,7 @@ fn with_time_trigger_should_update_address_balances() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -993,7 +993,7 @@ fn with_time_trigger_should_publish_vault_created_event() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -1035,7 +1035,7 @@ fn with_time_trigger_should_publish_funds_deposited_event() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -1092,7 +1092,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -1121,7 +1121,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
     assert_eq!(
         vault_response.vault,
         Vault {
-            price_threshold: None,
+            minimum_receive_amount: None,
             label: Some("label".to_string()),
             id: Uint128::new(2),
             destinations: vec![Destination {
@@ -1170,7 +1170,7 @@ fn with_time_trigger_with_target_time_in_the_past_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -1221,7 +1221,7 @@ fn with_multiple_destinations_should_succeed() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: Some(destinations.clone()),
                 pair_address: mock.fin_contract_address.clone(),
@@ -1249,7 +1249,7 @@ fn with_multiple_destinations_should_succeed() {
     assert_eq!(
         vault_response.vault,
         Vault {
-            price_threshold: None,
+            minimum_receive_amount: None,
             label: Some("label".to_string()),
             id: Uint128::new(1),
             owner: user_address.clone(),
@@ -1299,7 +1299,7 @@ fn with_price_and_time_trigger_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -1340,7 +1340,7 @@ fn with_no_assets_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -1378,7 +1378,7 @@ fn with_multiple_assets_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -1421,7 +1421,7 @@ fn with_non_existent_pair_address_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: Addr::unchecked("not-a-pair-address".to_string()),
@@ -1461,7 +1461,7 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: Some(vec![Destination {
                     address: Addr::unchecked(USER),
@@ -1505,7 +1505,7 @@ fn with_destination_allocation_equal_to_zero_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: Some(vec![
                     Destination {
@@ -1566,7 +1566,7 @@ fn with_more_than_10_destination_allocations_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: Some(destinations),
                 pair_address: mock.fin_contract_address.clone(),
@@ -1607,7 +1607,7 @@ fn with_passed_in_owner_should_succeed() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: Some(owner.clone()),
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
@@ -1660,7 +1660,7 @@ fn with_swap_amount_equal_to_zero_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: Some(vec![Destination {
                     address: Addr::unchecked(USER),

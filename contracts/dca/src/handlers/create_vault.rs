@@ -5,7 +5,8 @@ use crate::state::events::create_event;
 use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
-use crate::types::vault::{Vault, VaultBuilder};
+use crate::types::vault::Vault;
+use crate::types::vault_builder::VaultBuilder;
 use crate::validation_helpers::{
     assert_address_is_valid, assert_delegation_denom_is_stakeable,
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
@@ -34,7 +35,7 @@ pub fn create_vault(
     pair_address: Addr,
     position_type: Option<PositionType>,
     slippage_tolerance: Option<Decimal256>,
-    price_threshold: Option<Decimal256>,
+    minimum_receive_amount: Option<Uint128>,
     swap_amount: Uint128,
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
@@ -91,7 +92,7 @@ pub fn create_vault(
         swap_amount,
         position_type,
         slippage_tolerance,
-        price_threshold,
+        minimum_receive_amount,
         balance: info.funds[0].clone(),
         time_interval: time_interval.clone(),
         started_at: None,

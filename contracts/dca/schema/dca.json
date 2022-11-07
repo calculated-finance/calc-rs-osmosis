@@ -1,6 +1,6 @@
 {
   "contract_name": "dca",
-  "contract_version": "0.8.0",
+  "contract_version": "0.9.0",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -127,6 +127,16 @@
                   "null"
                 ]
               },
+              "minimum_receive_amount": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Uint128"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "owner": {
                 "anyOf": [
                   {
@@ -144,16 +154,6 @@
                 "anyOf": [
                   {
                     "$ref": "#/definitions/PositionType"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "price_threshold": {
-                "anyOf": [
-                  {
-                    "$ref": "#/definitions/Decimal256"
                   },
                   {
                     "type": "null"
@@ -236,13 +236,9 @@
           "cancel_vault": {
             "type": "object",
             "required": [
-              "address",
               "vault_id"
             ],
             "properties": {
-              "address": {
-                "$ref": "#/definitions/Addr"
-              },
               "vault_id": {
                 "$ref": "#/definitions/Uint128"
               }
@@ -408,9 +404,12 @@
       "TimeInterval": {
         "type": "string",
         "enum": [
+          "half_hourly",
           "hourly",
+          "half_daily",
           "daily",
           "weekly",
+          "fortnightly",
           "monthly"
         ]
       },
@@ -449,6 +448,16 @@
         "properties": {
           "get_time_trigger_ids": {
             "type": "object",
+            "properties": {
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint16",
+                "minimum": 0.0
+              }
+            },
             "additionalProperties": false
           }
         },
@@ -484,13 +493,9 @@
           "get_vault": {
             "type": "object",
             "required": [
-              "address",
               "vault_id"
             ],
             "properties": {
-              "address": {
-                "$ref": "#/definitions/Addr"
-              },
               "vault_id": {
                 "$ref": "#/definitions/Uint128"
               }
@@ -559,8 +564,24 @@
               "resource_id"
             ],
             "properties": {
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint16",
+                "minimum": 0.0
+              },
               "resource_id": {
                 "$ref": "#/definitions/Uint128"
+              },
+              "start_after": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
               }
             },
             "additionalProperties": false
@@ -834,7 +855,6 @@
               "type": "string",
               "enum": [
                 "slippage_tolerance_exceeded",
-                "insufficient_funds",
                 "unknown_failure"
               ]
             },
@@ -1090,7 +1110,6 @@
               "type": "string",
               "enum": [
                 "slippage_tolerance_exceeded",
-                "insufficient_funds",
                 "unknown_failure"
               ]
             },
@@ -1229,16 +1248,6 @@
         "vault"
       ],
       "properties": {
-        "trigger": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Trigger"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "vault": {
           "$ref": "#/definitions/Vault"
         }
@@ -1312,13 +1321,6 @@
           },
           "additionalProperties": false
         },
-        "PositionType": {
-          "type": "string",
-          "enum": [
-            "enter",
-            "exit"
-          ]
-        },
         "PostExecutionAction": {
           "type": "string",
           "enum": [
@@ -1329,9 +1331,12 @@
         "TimeInterval": {
           "type": "string",
           "enum": [
+            "half_hourly",
             "hourly",
+            "half_daily",
             "daily",
             "weekly",
+            "fortnightly",
             "monthly"
           ]
         },
@@ -1342,22 +1347,6 @@
               "$ref": "#/definitions/Uint64"
             }
           ]
-        },
-        "Trigger": {
-          "type": "object",
-          "required": [
-            "configuration",
-            "vault_id"
-          ],
-          "properties": {
-            "configuration": {
-              "$ref": "#/definitions/TriggerConfiguration"
-            },
-            "vault_id": {
-              "$ref": "#/definitions/Uint128"
-            }
-          },
-          "additionalProperties": false
         },
         "TriggerConfiguration": {
           "oneOf": [
@@ -1460,31 +1449,21 @@
                 "null"
               ]
             },
+            "minimum_receive_amount": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "owner": {
               "$ref": "#/definitions/Addr"
             },
             "pair": {
               "$ref": "#/definitions/Pair"
-            },
-            "position_type": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/PositionType"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "price_threshold": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Decimal256"
-                },
-                {
-                  "type": "null"
-                }
-              ]
             },
             "received_amount": {
               "$ref": "#/definitions/Coin"
@@ -1629,13 +1608,6 @@
           },
           "additionalProperties": false
         },
-        "PositionType": {
-          "type": "string",
-          "enum": [
-            "enter",
-            "exit"
-          ]
-        },
         "PostExecutionAction": {
           "type": "string",
           "enum": [
@@ -1646,9 +1618,12 @@
         "TimeInterval": {
           "type": "string",
           "enum": [
+            "half_hourly",
             "hourly",
+            "half_daily",
             "daily",
             "weekly",
+            "fortnightly",
             "monthly"
           ]
         },
@@ -1761,31 +1736,21 @@
                 "null"
               ]
             },
+            "minimum_receive_amount": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "owner": {
               "$ref": "#/definitions/Addr"
             },
             "pair": {
               "$ref": "#/definitions/Pair"
-            },
-            "position_type": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/PositionType"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "price_threshold": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Decimal256"
-                },
-                {
-                  "type": "null"
-                }
-              ]
             },
             "received_amount": {
               "$ref": "#/definitions/Coin"

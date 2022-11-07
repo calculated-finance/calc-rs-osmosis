@@ -190,7 +190,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     owner: None,
-                    price_threshold: None,
+                    minimum_receive_amount: None,
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
@@ -231,7 +231,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     owner: None,
-                    price_threshold: None,
+                    minimum_receive_amount: None,
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
@@ -289,7 +289,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     owner: None,
-                    price_threshold: None,
+                    minimum_receive_amount: None,
                     label: Some("label".to_string()),
                     destinations: None,
                     pair_address: self.fin_contract_address.clone(),
@@ -346,7 +346,7 @@ impl MockApp {
         balance: Coin,
         swap_amount: Uint128,
         label: &str,
-        price_threshold: Option<Decimal256>,
+        minimum_receive_amount: Option<Uint128>,
     ) -> MockApp {
         let response = self
             .app
@@ -355,7 +355,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     owner: None,
-                    price_threshold,
+                    minimum_receive_amount: minimum_receive_amount,
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
@@ -390,7 +390,7 @@ impl MockApp {
         balance: Coin,
         swap_amount: Uint128,
         label: &str,
-        price_threshold: Option<Decimal256>,
+        minimum_receive_amount: Option<Uint128>,
     ) -> MockApp {
         let response = self
             .app
@@ -399,7 +399,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     owner: None,
-                    price_threshold,
+                    minimum_receive_amount: minimum_receive_amount,
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
@@ -438,7 +438,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     owner: None,
-                    price_threshold: None,
+                    minimum_receive_amount: None,
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),

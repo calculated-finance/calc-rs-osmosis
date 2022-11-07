@@ -25,7 +25,7 @@ fn should_return_active_triggers_only() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::CreateVault {
                 owner: None,
-                price_threshold: None,
+                minimum_receive_amount: None,
                 label: Some("label".to_string()),
                 destinations: None,
                 pair_address: mock.fin_contract_address.clone(),
