@@ -20,90 +20,50 @@ pub fn get_next_target_time(
     let last_execution_time =
         Utc.timestamp(last_execution_timestamp.seconds().try_into().unwrap(), 0);
 
-    let next_time = get_next_time(last_execution_time, interval.clone());
+    let mut next_execution_time = get_next_time(last_execution_time, &interval);
 
-    if current_time.ge(&next_time) {
-        match interval {
-            TimeInterval::Monthly => {
-                let next = recover_monthly_interval(current_time, last_execution_time);
-                return Timestamp::from_seconds(next.timestamp().try_into().unwrap());
-            }
-            TimeInterval::Weekly => {
-                let next = recover_weekly_interval(current_time, last_execution_time);
-                return Timestamp::from_seconds(next.timestamp().try_into().unwrap());
-            }
-            TimeInterval::Daily => {
-                let next = recover_daily_interval(current_time, last_execution_time);
-                return Timestamp::from_seconds(next.timestamp().try_into().unwrap());
-            }
-            TimeInterval::Hourly => {
-                let next = recover_hourly_interval(current_time, last_execution_time);
-                return Timestamp::from_seconds(next.timestamp().try_into().unwrap());
+    match interval {
+        TimeInterval::Monthly => {
+            while next_execution_time.le(&current_time) {
+                next_execution_time = get_next_time(next_execution_time, &interval);
             }
         }
-    } else {
-        return Timestamp::from_seconds(next_time.timestamp().try_into().unwrap());
+        _ => {
+            let interval_duration_in_seconds =
+                get_duration(last_execution_time, &interval).num_seconds();
+
+            let increments_until_future_execution_date = (current_time - last_execution_time)
+                .num_seconds()
+                .checked_div(interval_duration_in_seconds)
+                .expect("should be a valid timestamp")
+                + 1;
+
+            next_execution_time = last_execution_time
+                + get_duration(last_execution_time, &interval)
+                    * increments_until_future_execution_date as i32;
+        }
     }
+
+    Timestamp::from_seconds(next_execution_time.timestamp().try_into().unwrap())
 }
 
-fn get_next_time(previous: DateTime<Utc>, interval: TimeInterval) -> DateTime<Utc> {
+fn get_duration(previous: DateTime<Utc>, interval: &TimeInterval) -> Duration {
     match interval {
-        TimeInterval::Monthly => shift_months(previous, 1),
-        TimeInterval::Weekly => previous + Duration::days(7),
-        TimeInterval::Daily => previous + Duration::days(1),
-        TimeInterval::Hourly => previous + Duration::hours(1),
+        TimeInterval::HalfHourly => Duration::minutes(30),
+        TimeInterval::Hourly => Duration::hours(1),
+        TimeInterval::HalfDaily => Duration::hours(12),
+        TimeInterval::Daily => Duration::days(1),
+        TimeInterval::Weekly => Duration::days(7),
+        TimeInterval::Fortnightly => Duration::days(14),
+        TimeInterval::Monthly => shift_months(previous, 1) - previous,
     }
 }
 
-fn recover_monthly_interval(
-    current_time: DateTime<Utc>,
-    last_execution_time: DateTime<Utc>,
-) -> DateTime<Utc> {
-    let mut new_time = last_execution_time.clone();
-    while current_time.ge(&new_time) {
-        new_time = shift_months(new_time, 1);
-    }
-
-    return new_time;
+fn get_next_time(previous: DateTime<Utc>, interval: &TimeInterval) -> DateTime<Utc> {
+    previous + get_duration(previous, interval)
 }
 
-fn recover_weekly_interval(
-    current_time: DateTime<Utc>,
-    last_execution_time: DateTime<Utc>,
-) -> DateTime<Utc> {
-    let mut new_time = last_execution_time.clone();
-    while current_time.ge(&new_time) {
-        new_time += Duration::days(7)
-    }
-
-    return new_time;
-}
-
-fn recover_daily_interval(
-    current_time: DateTime<Utc>,
-    last_execution_time: DateTime<Utc>,
-) -> DateTime<Utc> {
-    let mut new_time = last_execution_time.clone();
-    while current_time.ge(&new_time) {
-        new_time += Duration::days(1)
-    }
-
-    return new_time;
-}
-
-fn recover_hourly_interval(
-    current_time: DateTime<Utc>,
-    last_execution_time: DateTime<Utc>,
-) -> DateTime<Utc> {
-    let mut new_time = last_execution_time.clone();
-    while current_time.ge(&new_time) {
-        new_time += Duration::hours(1)
-    }
-
-    return new_time;
-}
-
-fn shift_months<D: Datelike>(date: D, months: i32) -> D {
+fn shift_months(date: DateTime<Utc>, months: i32) -> DateTime<Utc> {
     let mut year = date.year() + (date.month() as i32 + months) / 12;
     let mut month = (date.month() as i32 + months) % 12;
     let mut day = date.day();
@@ -115,7 +75,7 @@ fn shift_months<D: Datelike>(date: D, months: i32) -> D {
 
     day = normalise_day(year, month as u32, day);
 
-    // This is slow but guaranteed to succeed (short of interger overflow)
+    // This is slow but guaranteed to succeed (short of integer overflow)
     if day <= 28 {
         date.with_day(day)
             .unwrap()
@@ -157,331 +117,283 @@ mod tests {
 
     use super::*;
 
-    // system is ok
-    // get next time monthly
-    // get execution time that is in future
-    #[test]
-    fn get_next_execution_time_monthly_should_get_next_month() {
-        // current time is 15 days since last execution - so in expected time frame
-        let mock_current_time = Utc.ymd(2022, 1, 15).and_hms(1, 0, 1);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
+    pub fn assert_expected_next_execution_time(
+        last_execution_time: DateTime<Utc>,
+        current_time: DateTime<Utc>,
+        interval: TimeInterval,
+        expected_next_execution_time: DateTime<Utc>,
+    ) -> () {
+        let current_timestamp =
+            Timestamp::from_seconds(current_time.timestamp().try_into().unwrap());
+        let last_execution_timestamp =
+            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
 
+        let next_execution_time = get_next_target_time(
+            current_timestamp,
+            last_execution_timestamp,
+            interval.try_into().unwrap(),
+        );
+
+        assert_eq!(
+            next_execution_time.seconds(),
+            expected_next_execution_time.timestamp() as u64
+        );
+    }
+
+    fn assert_expected_next_execution_times(
+        interval: &TimeInterval,
+        last_execution_time: DateTime<Utc>,
+        scenarios: Vec<(DateTime<Utc>, DateTime<Utc>)>,
+    ) -> () {
+        for (current_time, expected_next_execution_time) in scenarios {
+            assert_expected_next_execution_time(
+                last_execution_time.to_owned(),
+                current_time.to_owned(),
+                interval.to_owned(),
+                expected_next_execution_time.to_owned(),
+            );
+        }
+    }
+
+    #[test]
+    fn assert_monthly_next_execution_times() {
         let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
+        let scenarios = vec![
+            (last_execution_time, shift_months(last_execution_time, 1)),
+            (
+                last_execution_time + Duration::seconds(1),
+                shift_months(last_execution_time, 1),
+            ),
+            (
+                shift_months(last_execution_time, 1) - Duration::seconds(1),
+                shift_months(last_execution_time, 1),
+            ),
+            (
+                shift_months(last_execution_time, 1),
+                shift_months(last_execution_time, 2),
+            ),
+            (
+                shift_months(last_execution_time, 1) + Duration::seconds(1),
+                shift_months(last_execution_time, 2),
+            ),
+            (
+                shift_months(last_execution_time, 33),
+                shift_months(last_execution_time, 34),
+            ),
+        ];
 
-        let expected_next_execution_time = Utc.ymd(2022, 2, 1).and_hms(1, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Monthly,
+        assert_expected_next_execution_times(
+            &TimeInterval::Monthly,
+            last_execution_time,
+            scenarios,
         );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
     }
 
     #[test]
-    fn get_next_execution_time_monthly_from_late_last_execution_should_get_next_month() {
-        // current time is 1 month and 5 days since last execution - so need to find next possible time
-        let mock_current_time = Utc.ymd(2022, 2, 15).and_hms(1, 0, 0);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
+    fn assert_fortnightly_next_execution_times() {
         let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
+        let scenarios = vec![
+            (
+                last_execution_time,
+                last_execution_time + Duration::weeks(2),
+            ),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::weeks(2),
+            ),
+            (
+                last_execution_time + Duration::weeks(2) - Duration::seconds(1),
+                last_execution_time + Duration::weeks(2),
+            ),
+            (
+                last_execution_time + Duration::weeks(2),
+                last_execution_time + Duration::weeks(4),
+            ),
+            (
+                last_execution_time + Duration::weeks(2) + Duration::seconds(1),
+                last_execution_time + Duration::weeks(4),
+            ),
+            (
+                last_execution_time + Duration::weeks(33),
+                last_execution_time + Duration::weeks(34),
+            ),
+        ];
 
-        let expected_next_execution_time = Utc.ymd(2022, 3, 1).and_hms(1, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Monthly,
+        assert_expected_next_execution_times(
+            &TimeInterval::Fortnightly,
+            last_execution_time,
+            scenarios,
         );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
     }
 
     #[test]
-    fn get_next_execution_time_monthly_from_late_last_execution_should_get_today() {
-        // current time is 2 months and 23 hours since last execution - so need to find next possible time
-        let mock_current_time = Utc.ymd(2022, 3, 1).and_hms(1, 0, 0);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(2, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
-
-        let expected_next_execution_time = Utc.ymd(2022, 3, 1).and_hms(2, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Monthly,
-        );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
-    }
-
-    #[test]
-    fn get_next_execution_time_weekly_should_get_next_week() {
-        // current time is 4 days since last execution - so in expected time frame
-        let mock_current_time = Utc.ymd(2022, 1, 5).and_hms(1, 0, 1);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
+    fn assert_weekly_next_execution_times() {
         let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
+        let scenarios = vec![
+            (
+                last_execution_time,
+                last_execution_time + Duration::weeks(1),
+            ),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::weeks(1),
+            ),
+            (
+                last_execution_time + Duration::weeks(1) - Duration::seconds(1),
+                last_execution_time + Duration::weeks(1),
+            ),
+            (
+                last_execution_time + Duration::weeks(1),
+                last_execution_time + Duration::weeks(2),
+            ),
+            (
+                last_execution_time + Duration::weeks(1) + Duration::seconds(1),
+                last_execution_time + Duration::weeks(2),
+            ),
+            (
+                last_execution_time + Duration::weeks(33),
+                last_execution_time + Duration::weeks(34),
+            ),
+        ];
 
-        let expected_next_execution_time = Utc.ymd(2022, 1, 8).and_hms(1, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Weekly,
-        );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
+        assert_expected_next_execution_times(&TimeInterval::Weekly, last_execution_time, scenarios);
     }
 
     #[test]
-    fn get_next_execution_time_weekly_from_late_last_execution_should_get_next_week() {
-        // current time 8 days since last execution - so need to find next possible time
-        let mock_current_time = Utc.ymd(2022, 1, 9).and_hms(1, 0, 0);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
+    fn assert_daily_next_execution_times() {
         let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
+        let scenarios = vec![
+            (last_execution_time, last_execution_time + Duration::days(1)),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::days(1),
+            ),
+            (
+                last_execution_time + Duration::days(1) - Duration::seconds(1),
+                last_execution_time + Duration::days(1),
+            ),
+            (
+                last_execution_time + Duration::days(1),
+                last_execution_time + Duration::days(2),
+            ),
+            (
+                last_execution_time + Duration::days(1) + Duration::seconds(1),
+                last_execution_time + Duration::days(2),
+            ),
+            (
+                last_execution_time + Duration::days(33),
+                last_execution_time + Duration::days(34),
+            ),
+        ];
 
-        let expected_next_execution_time = Utc.ymd(2022, 1, 15).and_hms(1, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Weekly,
-        );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
+        assert_expected_next_execution_times(&TimeInterval::Daily, last_execution_time, scenarios);
     }
 
     #[test]
-    fn get_next_execution_time_weekly_from_late_last_execution_should_get_today() {
-        // current time is 13 days and 23 hours since last execution - so need to find next possible time
-        let mock_current_time = Utc.ymd(2022, 1, 15).and_hms(1, 0, 0);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(2, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
-
-        let expected_next_execution_time = Utc.ymd(2022, 1, 15).and_hms(2, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Weekly,
-        );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
-    }
-
-    #[test]
-    fn get_next_execution_time_daily_should_get_next_day() {
-        // current time is 12 hours since last execution = so in expected time frame
-        let mock_current_time = Utc.ymd(2022, 1, 1).and_hms(12, 0, 1);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
+    fn assert_half_daily_next_execution_times() {
         let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
+        let scenarios = vec![
+            (
+                last_execution_time,
+                last_execution_time + Duration::hours(12),
+            ),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::hours(12),
+            ),
+            (
+                last_execution_time + Duration::hours(12) - Duration::seconds(1),
+                last_execution_time + Duration::hours(12),
+            ),
+            (
+                last_execution_time + Duration::hours(12),
+                last_execution_time + Duration::hours(24),
+            ),
+            (
+                last_execution_time + Duration::hours(12) + Duration::seconds(1),
+                last_execution_time + Duration::hours(24),
+            ),
+            (
+                last_execution_time + Duration::hours(33),
+                last_execution_time + Duration::hours(36),
+            ),
+        ];
 
-        let expected_next_execution_time = Utc.ymd(2022, 1, 2).and_hms(1, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Daily,
+        assert_expected_next_execution_times(
+            &TimeInterval::HalfDaily,
+            last_execution_time,
+            scenarios,
         );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
     }
 
     #[test]
-    fn get_next_execution_time_daily_from_late_last_execution_should_get_next_day() {
-        // current time 8 days since last execution - so need to find next possible time
-        let mock_current_time = Utc.ymd(2022, 1, 9).and_hms(1, 0, 0);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
+    fn assert_hourly_next_execution_times() {
         let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
+        let scenarios = vec![
+            (
+                last_execution_time,
+                last_execution_time + Duration::hours(1),
+            ),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::hours(1),
+            ),
+            (
+                last_execution_time + Duration::hours(1) - Duration::seconds(1),
+                last_execution_time + Duration::hours(1),
+            ),
+            (
+                last_execution_time + Duration::hours(1),
+                last_execution_time + Duration::hours(2),
+            ),
+            (
+                last_execution_time + Duration::hours(1) + Duration::seconds(1),
+                last_execution_time + Duration::hours(2),
+            ),
+            (
+                last_execution_time + Duration::hours(33),
+                last_execution_time + Duration::hours(34),
+            ),
+        ];
 
-        let expected_next_execution_time = Utc.ymd(2022, 1, 10).and_hms(1, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Daily,
-        );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
+        assert_expected_next_execution_times(&TimeInterval::Hourly, last_execution_time, scenarios);
     }
 
     #[test]
-    fn get_next_execution_time_daily_from_late_last_execution_should_get_today() {
-        // current time is 13 days and 23 hours since last execution - so need to find next possible time
-        let mock_current_time = Utc.ymd(2022, 1, 15).and_hms(1, 0, 0);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(2, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
-
-        let expected_next_execution_time = Utc.ymd(2022, 1, 15).and_hms(2, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Daily,
-        );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
-    }
-
-    #[test]
-    fn get_next_execution_time_hourly_should_get_next_hour() {
-        // current time is 30 minutes since last execution - so in expected time frame
-        let mock_current_time = Utc.ymd(2022, 1, 1).and_hms(1, 30, 1);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
+    fn assert_half_hourly_next_execution_times() {
         let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
+        let scenarios = vec![
+            (
+                last_execution_time,
+                last_execution_time + Duration::minutes(30),
+            ),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::minutes(30),
+            ),
+            (
+                last_execution_time + Duration::minutes(30) - Duration::seconds(1),
+                last_execution_time + Duration::minutes(30),
+            ),
+            (
+                last_execution_time + Duration::minutes(30),
+                last_execution_time + Duration::minutes(60),
+            ),
+            (
+                last_execution_time + Duration::minutes(30) + Duration::seconds(1),
+                last_execution_time + Duration::minutes(60),
+            ),
+            (
+                last_execution_time + Duration::minutes(333),
+                last_execution_time + Duration::minutes(360),
+            ),
+        ];
 
-        let expected_next_execution_time = Utc.ymd(2022, 1, 1).and_hms(2, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Hourly,
+        assert_expected_next_execution_times(
+            &TimeInterval::HalfHourly,
+            last_execution_time,
+            scenarios,
         );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
-    }
-
-    #[test]
-    fn get_next_execution_time_hourly_from_late_last_execution_should_get_next_hour() {
-        // current time 8 days since last execution - so need to find next possible time
-        let mock_current_time = Utc.ymd(2022, 1, 9).and_hms(1, 0, 0);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
-
-        let expected_next_execution_time = Utc.ymd(2022, 1, 9).and_hms(2, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Hourly,
-        );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
-    }
-
-    #[test]
-    fn get_next_execution_time_hourly_from_late_last_execution_should_get_today() {
-        // current time is 13 days and 23 hours since last execution - so need to find next possible time
-        let mock_current_time = Utc.ymd(2022, 1, 15).and_hms(1, 58, 0);
-        let mock_current_timestamp =
-            Timestamp::from_seconds(mock_current_time.timestamp().try_into().unwrap());
-
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(2, 0, 0);
-        let last_execution_timestamp =
-            Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
-
-        let expected_next_execution_time = Utc.ymd(2022, 1, 15).and_hms(2, 0, 0);
-        let expected_next_execution_timestamp =
-            Timestamp::from_seconds(expected_next_execution_time.timestamp().try_into().unwrap());
-
-        let actual_next_execution_time = get_next_target_time(
-            mock_current_timestamp,
-            last_execution_timestamp,
-            TimeInterval::Hourly,
-        );
-
-        assert_eq!(
-            expected_next_execution_timestamp,
-            actual_next_execution_time
-        )
     }
 
     #[test]
@@ -523,7 +435,7 @@ mod tests {
 
         let expected_time = Utc.ymd(2022, 6, 1).and_hms(10, 0, 0);
 
-        let result = get_next_time(current_time, TimeInterval::Monthly);
+        let result = get_next_time(current_time, &TimeInterval::Monthly);
 
         assert_eq!(result.timestamp(), expected_time.timestamp());
     }
@@ -534,7 +446,7 @@ mod tests {
 
         let expected_time = Utc.ymd(2022, 5, 8).and_hms(10, 0, 0);
 
-        let result = get_next_time(current_time, TimeInterval::Weekly);
+        let result = get_next_time(current_time, &TimeInterval::Weekly);
 
         assert_eq!(result.timestamp(), expected_time.timestamp());
     }
@@ -545,7 +457,7 @@ mod tests {
 
         let expected_time = Utc.ymd(2022, 10, 6).and_hms(10, 0, 0);
 
-        let result = get_next_time(current_time, TimeInterval::Weekly);
+        let result = get_next_time(current_time, &TimeInterval::Weekly);
 
         assert_eq!(result.timestamp(), expected_time.timestamp());
     }
@@ -556,7 +468,7 @@ mod tests {
 
         let expected_time = Utc.ymd(2022, 9, 2).and_hms(10, 0, 0);
 
-        let result = get_next_time(current_time, TimeInterval::Daily);
+        let result = get_next_time(current_time, &TimeInterval::Daily);
 
         assert_eq!(result.timestamp(), expected_time.timestamp());
     }
@@ -567,7 +479,7 @@ mod tests {
 
         let expected_time = Utc.ymd(2022, 10, 1).and_hms(10, 0, 0);
 
-        let result = get_next_time(current_time, TimeInterval::Daily);
+        let result = get_next_time(current_time, &TimeInterval::Daily);
 
         assert_eq!(result.timestamp(), expected_time.timestamp());
     }
@@ -578,7 +490,7 @@ mod tests {
 
         let expected_time = Utc.ymd(2022, 10, 1).and_hms(11, 0, 0);
 
-        let result = get_next_time(current_time, TimeInterval::Hourly);
+        let result = get_next_time(current_time, &TimeInterval::Hourly);
 
         assert_eq!(result.timestamp(), expected_time.timestamp());
     }
@@ -589,7 +501,7 @@ mod tests {
 
         let expected_time = Utc.ymd(2022, 10, 2).and_hms(0, 0, 0);
 
-        let result = get_next_time(current_time, TimeInterval::Hourly);
+        let result = get_next_time(current_time, &TimeInterval::Hourly);
 
         assert_eq!(result.timestamp(), expected_time.timestamp());
     }
