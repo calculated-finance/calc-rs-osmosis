@@ -12,7 +12,7 @@ pub struct Config {
     pub paused: bool,
 }
 
-const CONFIG: Item<Config> = Item::new("config_v4");
+const CONFIG: Item<Config> = Item::new("config_v5");
 
 pub fn get_config(store: &dyn Storage) -> StdResult<Config> {
     CONFIG.load(store)
