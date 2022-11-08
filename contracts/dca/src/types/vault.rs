@@ -5,6 +5,7 @@ use base::{
 };
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal256, Timestamp, Uint128};
+use kujira::precision::{Precise, Precision};
 
 #[cw_serde]
 pub struct Vault {
@@ -56,10 +57,12 @@ impl Vault {
     }
 
     pub fn get_target_price(&self, minimum_receive_amount: Uint128) -> Decimal256 {
-        match self.get_position_type() {
+        let exact_target_price = match self.get_position_type() {
             PositionType::Enter => Decimal256::from_ratio(self.swap_amount, minimum_receive_amount),
             PositionType::Exit => Decimal256::from_ratio(minimum_receive_amount, self.swap_amount),
-        }
+        };
+
+        exact_target_price.round(&Precision::DecimalPlaces(3))
     }
 
     pub fn price_threshold_exceeded(&self, price: Decimal256) -> bool {
@@ -192,6 +195,76 @@ mod price_threshold_exceeded_tests {
             swap_amount,
             slippage_tolerance: None,
             minimum_receive_amount: Some(minimum_receive_amount),
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            swapped_amount: coin(
+                0,
+                match position_type {
+                    PositionType::Enter => "quote",
+                    PositionType::Exit => "base",
+                },
+            ),
+            received_amount: coin(
+                0,
+                match position_type {
+                    PositionType::Enter => "base",
+                    PositionType::Exit => "quote",
+                },
+            ),
+            trigger: None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod get_target_price_tests {
+    use super::*;
+    use cosmwasm_std::coin;
+
+    #[test]
+    fn should_be_correct_when_buying_on_fin() {
+        let vault = vault_with(Uint128::new(100), PositionType::Enter);
+        assert_eq!(vault.get_target_price(Uint128::new(20)).to_string(), "5");
+    }
+
+    #[test]
+    fn should_be_correct_when_selling_on_fin() {
+        let vault = vault_with(Uint128::new(100), PositionType::Exit);
+        assert_eq!(vault.get_target_price(Uint128::new(20)).to_string(), "0.2");
+    }
+
+    #[test]
+    fn should_truncate_price_to_three_decimal_places() {
+        let vault = vault_with(Uint128::new(30), PositionType::Exit);
+        assert_eq!(
+            vault.get_target_price(Uint128::new(10)).to_string(),
+            "0.333"
+        );
+    }
+
+    fn vault_with(swap_amount: Uint128, position_type: PositionType) -> Vault {
+        Vault {
+            id: Uint128::new(1),
+            created_at: Timestamp::from_seconds(0),
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            balance: coin(
+                1000,
+                match position_type {
+                    PositionType::Enter => "quote",
+                    PositionType::Exit => "base",
+                },
+            ),
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            swap_amount,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
             time_interval: TimeInterval::Daily,
             started_at: None,
             swapped_amount: coin(
