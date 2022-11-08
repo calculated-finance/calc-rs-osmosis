@@ -3,7 +3,7 @@ use std::str::FromStr;
 use base::{
     helpers::message_helpers::get_flat_map_for_event_type, triggers::trigger::TimeInterval,
 };
-use cosmwasm_std::{Addr, Coin, Decimal256, Uint128};
+use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
 use crate::{
@@ -39,7 +39,7 @@ fn should_succeed() {
                 slippage_tolerance: None,
                 swap_amount,
                 time_interval: TimeInterval::Daily,
-                target_price: Some(Decimal256::from_str("1.0").unwrap()),
+                target_receive_amount: None,
                 target_start_time_utc_seconds: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
@@ -100,7 +100,7 @@ fn cancelled_vault_should_fail() {
                 slippage_tolerance: None,
                 swap_amount,
                 time_interval: TimeInterval::Daily,
-                target_price: Some(Decimal256::from_str("1.0").unwrap()),
+                target_receive_amount: None,
                 target_start_time_utc_seconds: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
@@ -133,7 +133,7 @@ fn cancelled_vault_should_fail() {
                 vault_id,
                 label: None,
             },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+            &vec![],
         )
         .unwrap_err();
 

@@ -36,7 +36,7 @@ fn should_return_active_triggers_only() {
                 target_start_time_utc_seconds: Some(Uint64::from(
                     mock.app.block_info().time.seconds() + 100,
                 )),
-                target_price: None,
+                target_receive_amount: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )

@@ -410,7 +410,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
-        target_price: None,
+        target_receive_amount: None,
         minimum_receive_amount: None,
     };
 
@@ -491,7 +491,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
-        target_price: None,
+        target_receive_amount: None,
         minimum_receive_amount: None,
     };
 
@@ -567,7 +567,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
-        target_price: None,
+        target_receive_amount: None,
         minimum_receive_amount: None,
     };
 
@@ -595,7 +595,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
-        target_price: None,
+        target_receive_amount: None,
         minimum_receive_amount: None,
     };
 
@@ -676,7 +676,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
         swap_amount: Uint128::new(30),
         time_interval: TimeInterval::Daily,
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
-        target_price: None,
+        target_receive_amount: None,
         minimum_receive_amount: None,
     };
 

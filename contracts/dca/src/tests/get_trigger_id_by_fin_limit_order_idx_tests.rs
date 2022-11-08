@@ -6,7 +6,7 @@ use crate::{
 use base::{
     helpers::message_helpers::get_flat_map_for_event_type, triggers::trigger::TimeInterval,
 };
-use cosmwasm_std::{Addr, Coin, Decimal256, Uint128};
+use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 use std::str::FromStr;
 
@@ -37,7 +37,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
                 slippage_tolerance: None,
                 swap_amount,
                 time_interval: TimeInterval::Hourly,
-                target_price: Some(Decimal256::from_str("1.0").unwrap()),
+                target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],

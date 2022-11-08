@@ -39,8 +39,9 @@ Vaults are created by users via the CALC frontend application.
 - the submitted `pair_address` must be a valid bech32 address
 - the submitted `pair_address` must match an existing pair stored in the contract
 - the submitted `pair_address.quote_denom` must match the denom of the funds included in the message
-- at least one of `target_start_time_utc_seconds` and `target_price` must be `None`
+- at least one of `target_start_time_utc_seconds` and `target_receive_amount` must be `None`
 - if `target_start_time_utc_seconds` is `Some`, it must be set to some timestamp in the future
+- if `target_receive_amount` is `Some`, it must be greater than or equal to `minimum_receive_amount`
 
 #### Domain Logic
 

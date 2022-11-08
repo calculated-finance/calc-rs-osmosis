@@ -199,7 +199,7 @@ impl MockApp {
                     slippage_tolerance: None,
                     swap_amount,
                     time_interval: TimeInterval::Hourly,
-                    target_price: Some(Decimal256::from_str("1.0").unwrap()),
+                    target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
                 },
                 &vec![balance],
@@ -240,7 +240,7 @@ impl MockApp {
                     slippage_tolerance: None,
                     swap_amount,
                     time_interval: TimeInterval::Hourly,
-                    target_price: Some(Decimal256::from_str("1.0").unwrap()),
+                    target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
                 },
                 &vec![balance],
@@ -298,7 +298,7 @@ impl MockApp {
                     slippage_tolerance: None,
                     swap_amount,
                     time_interval: TimeInterval::Hourly,
-                    target_price: Some(Decimal256::from_str("1.0").unwrap()),
+                    target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
                 },
                 &vec![balance],
@@ -367,7 +367,7 @@ impl MockApp {
                     target_start_time_utc_seconds: Some(Uint64::from(
                         self.app.block_info().time.plus_seconds(2).seconds(),
                     )),
-                    target_price: None,
+                    target_receive_amount: None,
                 },
                 &vec![balance],
             )
@@ -409,7 +409,7 @@ impl MockApp {
                     swap_amount,
                     time_interval: TimeInterval::Hourly,
                     target_start_time_utc_seconds: None,
-                    target_price: None,
+                    target_receive_amount: None,
                 },
                 &vec![balance],
             )
@@ -448,7 +448,7 @@ impl MockApp {
                     swap_amount: Uint128::new(100),
                     time_interval: TimeInterval::Hourly,
                     target_start_time_utc_seconds: None,
-                    target_price: None,
+                    target_receive_amount: None,
                 },
                 &vec![Coin::new(100, DENOM_UKUJI)],
             )
