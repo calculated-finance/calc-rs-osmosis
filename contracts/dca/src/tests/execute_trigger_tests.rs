@@ -1859,3 +1859,63 @@ fn until_vault_is_empty_should_create_events() {
         ],
     );
 }
+
+#[test]
+fn when_contract_is_paused_should_fail() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_filled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_filled_fin_limit_price_trigger(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "fin",
+        );
+
+    let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &&QueryMsg::GetVault { vault_id },
+        )
+        .unwrap();
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::UpdateConfig {
+                fee_collector: Some(Addr::unchecked(ADMIN)),
+                fee_percent: Some(Decimal::from_str("0.015").unwrap()),
+                staking_router_address: None,
+                page_limit: None,
+                paused: Some(true),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::ExecuteTrigger {
+                trigger_id: vault_response.vault.id,
+            },
+            &[],
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        "Error: contract is paused",
+        response.root_cause().to_string()
+    )
+}

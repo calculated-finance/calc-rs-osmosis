@@ -12,6 +12,7 @@ pub fn update_config_handler(
     fee_percent: Option<Decimal>,
     staking_router_address: Option<Addr>,
     page_limit: Option<u16>,
+    paused: Option<bool>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
     let existing_config = get_config(deps.storage)?;
@@ -32,6 +33,7 @@ pub fn update_config_handler(
                     .to_string(),
             )?,
             page_limit: page_limit.unwrap_or(existing_config.page_limit),
+            paused: paused.unwrap_or(existing_config.paused),
         },
     )?;
 

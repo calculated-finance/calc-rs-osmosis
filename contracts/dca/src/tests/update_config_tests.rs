@@ -20,6 +20,7 @@ fn update_fee_percent_with_valid_value_should_succeed() {
                 fee_percent: Some(Decimal::from_str("0.015").unwrap()),
                 staking_router_address: None,
                 page_limit: None,
+                paused: None,
             },
             &[],
         )
@@ -40,6 +41,7 @@ fn update_fee_percent_more_than_100_percent_should_fail() {
                 fee_percent: Some(Decimal::from_str("1.5").unwrap()),
                 staking_router_address: None,
                 page_limit: None,
+                paused: None,
             },
             &[],
         )

@@ -11,6 +11,7 @@
       "fee_collector",
       "fee_percent",
       "page_limit",
+      "paused",
       "staking_router_address"
     ],
     "properties": {
@@ -27,6 +28,9 @@
         "type": "integer",
         "format": "uint16",
         "minimum": 0.0
+      },
+      "paused": {
+        "type": "boolean"
       },
       "staking_router_address": {
         "$ref": "#/definitions/Addr"
@@ -305,6 +309,12 @@
                 ],
                 "format": "uint16",
                 "minimum": 0.0
+              },
+              "paused": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "staking_router_address": {
                 "anyOf": [

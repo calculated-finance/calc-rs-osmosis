@@ -14,6 +14,15 @@ pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {
     Ok(())
 }
 
+pub fn assert_contract_is_not_paused(storage: &mut dyn Storage) -> Result<(), ContractError> {
+    let config = get_config(storage)?;
+    if config.paused {
+        return Err(ContractError::CustomError {
+            val: "contract is paused".to_string(),
+        });
+    }
+    Ok(())
+}
 pub fn assert_sender_is_admin(
     storage: &mut dyn Storage,
     sender: Addr,

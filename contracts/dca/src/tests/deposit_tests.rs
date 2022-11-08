@@ -1,9 +1,11 @@
+use std::str::FromStr;
+
 use crate::constants::{ONE, ONE_HUNDRED, ONE_THOUSAND, TEN};
 use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
 use crate::tests::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, USER};
 use base::events::event::EventBuilder;
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Coin, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
 use cw_multi_test::Executor;
 
 use super::helpers::{assert_address_balances, assert_events_published, assert_vault_balance};
@@ -369,4 +371,57 @@ fn with_mismatched_denom_should_fail() {
         response.root_cause().to_string(),
         "Error: received asset with denom utest, but needed ukuji"
     );
+}
+
+#[test]
+fn when_contract_is_paused_should_fail() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE_HUNDRED;
+    let swap_amount = ONE;
+    let vault_deposit = TEN;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_time_trigger(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "vault",
+            None,
+        );
+
+    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::UpdateConfig {
+                fee_collector: Some(Addr::unchecked(ADMIN)),
+                fee_percent: Some(Decimal::from_str("0.015").unwrap()),
+                staking_router_address: None,
+                page_limit: None,
+                paused: Some(true),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::Deposit {
+                address: user_address.clone(),
+                vault_id,
+            },
+            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        "Error: contract is paused",
+        response.root_cause().to_string()
+    )
 }

@@ -73,6 +73,7 @@ impl MockApp {
                 fee_percent: Decimal::from_str("0.015").unwrap(),
                 staking_router_address: Addr::unchecked("staking-router"),
                 page_limit: 1000,
+                paused: false,
             },
             "dca",
         );

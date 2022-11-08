@@ -27,6 +27,7 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
         fee_percent: Decimal::from_str("0.015").unwrap(),
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
+        paused: false,
     };
 
     let _instantiate_result =

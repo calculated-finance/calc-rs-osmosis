@@ -6,7 +6,7 @@ use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
-use crate::validation_helpers::assert_target_time_is_in_past;
+use crate::validation_helpers::{assert_contract_is_not_paused, assert_target_time_is_in_past};
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
@@ -23,6 +23,7 @@ pub fn execute_trigger_handler(
     env: Env,
     trigger_id: Uint128,
 ) -> Result<Response, ContractError> {
+    assert_contract_is_not_paused(deps.storage)?;
     let response = Response::new().add_attribute("method", "execute_trigger");
     Ok(execute_trigger(deps, env, trigger_id, response)?)
 }

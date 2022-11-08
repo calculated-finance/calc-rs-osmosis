@@ -1684,3 +1684,70 @@ fn with_swap_amount_equal_to_zero_should_fail() {
         "Error: swap amount must be greater than 0"
     );
 }
+
+#[test]
+fn when_contract_is_paused_should_fail() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance),
+            (&user_address, DENOM_UTEST, Uint128::new(0)),
+            (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+        ],
+    );
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::UpdateConfig {
+                fee_collector: Some(Addr::unchecked(ADMIN)),
+                fee_percent: Some(Decimal::from_str("0.015").unwrap()),
+                staking_router_address: None,
+                page_limit: None,
+                paused: Some(true),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                minimum_receive_amount: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_price: Some(Decimal256::from_str("1.0").unwrap()),
+                target_start_time_utc_seconds: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        "Error: contract is paused",
+        response.root_cause().to_string()
+    )
+}

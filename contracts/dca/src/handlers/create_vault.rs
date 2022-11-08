@@ -8,7 +8,7 @@ use crate::state::vaults::save_vault;
 use crate::types::vault::Vault;
 use crate::types::vault_builder::VaultBuilder;
 use crate::validation_helpers::{
-    assert_address_is_valid, assert_delegation_denom_is_stakeable,
+    assert_address_is_valid, assert_contract_is_not_paused, assert_delegation_denom_is_stakeable,
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
     assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
     assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
@@ -41,6 +41,7 @@ pub fn create_vault(
     target_start_time_utc_seconds: Option<Uint64>,
     target_price: Option<Decimal256>,
 ) -> Result<Response, ContractError> {
+    assert_contract_is_not_paused(deps.storage)?;
     assert_address_is_valid(deps.as_ref(), owner.clone(), "owner".to_string())?;
     assert_exactly_one_asset(info.funds.clone())?;
     assert_swap_amount_is_not_zero(swap_amount)?;
