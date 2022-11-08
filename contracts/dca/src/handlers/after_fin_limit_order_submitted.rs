@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::state::cache::CACHE;
-use crate::state::triggers::{delete_trigger, get_trigger, save_trigger};
+use crate::state::triggers::{get_trigger, save_trigger};
 use base::helpers::message_helpers::get_attribute_in_event;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 #[cfg(not(feature = "library"))]
@@ -23,8 +23,6 @@ pub fn after_fin_limit_order_submitted(
 
             let trigger = get_trigger(deps.storage, cache.vault_id)?
                 .expect(format!("fin limit order trigger for vault {:?}", cache.vault_id).as_str());
-
-            delete_trigger(deps.storage, cache.vault_id)?;
 
             match trigger.configuration {
                 TriggerConfiguration::FINLimitOrder { target_price, .. } => {
