@@ -7,7 +7,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal256, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, Item, UniqueIndex};
 
-use crate::types::{vault::Vault, vault_builder::VaultBuilder};
+use crate::types::{price_delta_limit::PriceDeltaLimit, vault::Vault, vault_builder::VaultBuilder};
 
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
 
@@ -30,6 +30,7 @@ struct VaultDTO {
     pub started_at: Option<Timestamp>,
     pub swapped_amount: Coin,
     pub received_amount: Coin,
+    pub price_delta_limits: Vec<PriceDeltaLimit>,
 }
 
 impl From<Vault> for VaultDTO {
@@ -50,6 +51,7 @@ impl From<Vault> for VaultDTO {
             started_at: vault.started_at,
             swapped_amount: vault.swapped_amount,
             received_amount: vault.received_amount,
+            price_delta_limits: vec![],
         }
     }
 }
