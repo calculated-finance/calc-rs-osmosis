@@ -39,7 +39,7 @@ fn with_one_event_should_return_event() {
 
     create_event(
         &mut deps.storage,
-        EventBuilder::new(vault_id, env.block.clone(), EventData::DCAVaultCreated),
+        EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCreated {}),
     )
     .unwrap();
 
@@ -51,7 +51,7 @@ fn with_one_event_should_return_event() {
             resource_id: vault_id,
             timestamp: env.block.time,
             block_height: env.block.height,
-            data: EventData::DCAVaultCreated,
+            data: EventData::DcaVaultCreated {},
         }],
         None,
         None,
@@ -71,8 +71,8 @@ fn with_events_for_different_resources_should_return_one_event() {
     create_events(
         &mut deps.storage,
         vec![
-            EventBuilder::new(vault_id_1, env.block.clone(), EventData::DCAVaultCreated),
-            EventBuilder::new(vault_id_2, env.block.clone(), EventData::DCAVaultCreated),
+            EventBuilder::new(vault_id_1, env.block.clone(), EventData::DcaVaultCreated {}),
+            EventBuilder::new(vault_id_2, env.block.clone(), EventData::DcaVaultCreated {}),
         ],
     )
     .unwrap();
@@ -85,7 +85,7 @@ fn with_events_for_different_resources_should_return_one_event() {
             resource_id: vault_id_1,
             timestamp: env.block.time,
             block_height: env.block.height,
-            data: EventData::DCAVaultCreated,
+            data: EventData::DcaVaultCreated {},
         }],
         None,
         None,
@@ -104,11 +104,11 @@ fn with_two_events_should_return_events() {
     create_events(
         &mut deps.storage,
         vec![
-            EventBuilder::new(vault_id, env.block.clone(), EventData::DCAVaultCreated),
+            EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCreated {}),
             EventBuilder::new(
                 vault_id,
                 env.block.clone(),
-                EventData::DCAVaultFundsDeposited {
+                EventData::DcaVaultFundsDeposited {
                     amount: Coin::new(100, "ukuji".to_string()),
                 },
             ),
@@ -125,14 +125,14 @@ fn with_two_events_should_return_events() {
                 resource_id: vault_id,
                 timestamp: env.block.time,
                 block_height: env.block.height,
-                data: EventData::DCAVaultCreated,
+                data: EventData::DcaVaultCreated {},
             },
             Event {
                 id: 2,
                 resource_id: vault_id,
                 timestamp: env.block.time,
                 block_height: env.block.height,
-                data: EventData::DCAVaultFundsDeposited {
+                data: EventData::DcaVaultFundsDeposited {
                     amount: Coin::new(100, "ukuji".to_string()),
                 },
             },
@@ -154,11 +154,11 @@ fn with_start_after_should_return_later_events() {
     create_events(
         &mut deps.storage,
         vec![
-            EventBuilder::new(vault_id, env.block.clone(), EventData::DCAVaultCreated),
+            EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCreated {}),
             EventBuilder::new(
                 vault_id,
                 env.block.clone(),
-                EventData::DCAVaultFundsDeposited {
+                EventData::DcaVaultFundsDeposited {
                     amount: Coin::new(100, "ukuji".to_string()),
                 },
             ),
@@ -174,7 +174,7 @@ fn with_start_after_should_return_later_events() {
             resource_id: vault_id,
             timestamp: env.block.time,
             block_height: env.block.height,
-            data: EventData::DCAVaultFundsDeposited {
+            data: EventData::DcaVaultFundsDeposited {
                 amount: Coin::new(100, "ukuji".to_string()),
             },
         }],
@@ -195,11 +195,11 @@ fn with_limit_should_return_limited_events() {
     create_events(
         &mut deps.storage,
         vec![
-            EventBuilder::new(vault_id, env.block.clone(), EventData::DCAVaultCreated),
+            EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCreated {}),
             EventBuilder::new(
                 vault_id,
                 env.block.clone(),
-                EventData::DCAVaultFundsDeposited {
+                EventData::DcaVaultFundsDeposited {
                     amount: Coin::new(100, "ukuji".to_string()),
                 },
             ),
@@ -215,7 +215,7 @@ fn with_limit_should_return_limited_events() {
             resource_id: vault_id,
             timestamp: env.block.time,
             block_height: env.block.height,
-            data: EventData::DCAVaultCreated,
+            data: EventData::DcaVaultCreated {},
         }],
         None,
         Some(1),
@@ -234,15 +234,15 @@ fn with_start_after_and_limit_should_return_limited_later_events() {
     create_events(
         &mut deps.storage,
         vec![
-            EventBuilder::new(vault_id, env.block.clone(), EventData::DCAVaultCreated),
+            EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCreated {}),
             EventBuilder::new(
                 vault_id,
                 env.block.clone(),
-                EventData::DCAVaultFundsDeposited {
+                EventData::DcaVaultFundsDeposited {
                     amount: Coin::new(100, "ukuji".to_string()),
                 },
             ),
-            EventBuilder::new(vault_id, env.block.clone(), EventData::DCAVaultCancelled),
+            EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCancelled),
         ],
     )
     .unwrap();
@@ -255,7 +255,7 @@ fn with_start_after_and_limit_should_return_limited_later_events() {
             resource_id: vault_id,
             timestamp: env.block.time,
             block_height: env.block.height,
-            data: EventData::DCAVaultFundsDeposited {
+            data: EventData::DcaVaultFundsDeposited {
                 amount: Coin::new(100, "ukuji".to_string()),
             },
         }],

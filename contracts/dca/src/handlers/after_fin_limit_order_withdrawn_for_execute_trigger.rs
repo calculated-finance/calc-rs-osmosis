@@ -155,7 +155,7 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 EventBuilder::new(
                     vault.id,
                     env.block,
-                    EventData::DCAVaultExecutionCompleted {
+                    EventData::DcaVaultExecutionCompleted {
                         sent: Coin {
                             denom: vault.get_swap_denom().clone(),
                             amount: limit_order_cache.original_offer_amount,

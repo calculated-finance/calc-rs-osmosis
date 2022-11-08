@@ -190,7 +190,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 EventBuilder::new(
                     vault.id,
                     env.block,
-                    EventData::DCAVaultExecutionCompleted {
+                    EventData::DcaVaultExecutionCompleted {
                         sent: coin_sent.clone(),
                         received: coin_received.clone(),
                         fee: execution_fee,
@@ -234,7 +234,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 EventBuilder::new(
                     vault.id,
                     env.block.to_owned(),
-                    EventData::DCAVaultExecutionSkipped {
+                    EventData::DcaVaultExecutionSkipped {
                         reason: execution_skipped_reason.clone(),
                     },
                 ),

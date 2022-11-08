@@ -308,7 +308,7 @@ fn after_successful_withdrawal_creates_execution_completed_event() {
         &EventBuilder::new(
             vault.id,
             env.block,
-            EventData::DCAVaultExecutionCompleted {
+            EventData::DcaVaultExecutionCompleted {
                 sent: vault.get_swap_amount(),
                 received: Coin::new(
                     vault.get_swap_amount().amount.into(),

@@ -134,7 +134,7 @@ fn should_create_event() {
         &[EventBuilder::new(
             vault_id,
             mock.app.block_info(),
-            base::events::event::EventData::DCAVaultFundsDeposited {
+            base::events::event::EventData::DcaVaultFundsDeposited {
                 amount: Coin::new(TEN.into(), DENOM_UKUJI),
             },
         )

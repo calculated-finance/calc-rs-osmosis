@@ -66,7 +66,7 @@ pub fn deposit(
         EventBuilder::new(
             vault.id,
             env.block,
-            EventData::DCAVaultFundsDeposited {
+            EventData::DcaVaultFundsDeposited {
                 amount: info.funds[0].clone(),
             },
         ),

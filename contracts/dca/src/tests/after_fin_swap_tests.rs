@@ -188,7 +188,7 @@ fn with_insufficient_funds_publishes_unknown_failure_event() {
         &EventBuilder::new(
             vault_id,
             env.block.clone(),
-            EventData::DCAVaultExecutionSkipped {
+            EventData::DcaVaultExecutionSkipped {
                 reason: ExecutionSkippedReason::UnknownFailure
             }
         )
@@ -309,7 +309,7 @@ fn with_slippage_failure_publishes_execution_failed_event() {
         &EventBuilder::new(
             vault_id,
             env.block.clone(),
-            EventData::DCAVaultExecutionSkipped {
+            EventData::DcaVaultExecutionSkipped {
                 reason: ExecutionSkippedReason::SlippageToleranceExceeded
             }
         )

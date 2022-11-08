@@ -65,7 +65,7 @@ pub fn execute_trigger(
         EventBuilder::new(
             vault.id,
             env.block.to_owned(),
-            EventData::DCAVaultExecutionTriggered {
+            EventData::DcaVaultExecutionTriggered {
                 base_denom: vault.pair.base_denom.clone(),
                 quote_denom: vault.pair.quote_denom.clone(),
                 asset_price: current_fin_price.clone(),
@@ -87,7 +87,7 @@ pub fn execute_trigger(
                     EventBuilder::new(
                         vault.id,
                         env.block.to_owned(),
-                        EventData::DCAVaultExecutionSkipped {
+                        EventData::DcaVaultExecutionSkipped {
                             reason: ExecutionSkippedReason::PriceThresholdExceeded {
                                 price: current_fin_price,
                             },
@@ -139,7 +139,7 @@ pub fn execute_trigger(
 
             Ok(response.add_submessage(fin_swap_msg))
         }
-        TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
+        TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
             if let Some(order_idx) = order_idx {
                 let (offer_amount, original_offer_amount, filled) =
                     query_order_details(deps.querier, vault.pair.address.clone(), order_idx);

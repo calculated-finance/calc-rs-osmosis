@@ -10,25 +10,25 @@ pub enum ExecutionSkippedReason {
 
 #[cw_serde]
 pub enum EventData {
-    DCAVaultCreated,
-    DCAVaultFundsDeposited {
+    DcaVaultCreated {},
+    DcaVaultFundsDeposited {
         amount: Coin,
     },
-    DCAVaultExecutionTriggered {
+    DcaVaultExecutionTriggered {
         base_denom: String,
         quote_denom: String,
         asset_price: Decimal256,
     },
-    DCAVaultExecutionCompleted {
+    DcaVaultExecutionCompleted {
         sent: Coin,
         received: Coin,
         fee: Coin,
     },
-    DCAVaultExecutionSkipped {
+    DcaVaultExecutionSkipped {
         reason: ExecutionSkippedReason,
     },
-    DCAVaultCancelled,
-    DCAVaultZDelegationSucceeded {
+    DcaVaultCancelled,
+    DcaVaultZDelegationSucceeded {
         validator_address: String,
         delegation: Coin,
     },

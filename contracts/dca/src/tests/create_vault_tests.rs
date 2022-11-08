@@ -197,7 +197,7 @@ fn with_price_trigger_for_fin_buy_should_create_correct_trigger() {
         .unwrap();
 
     match vault_response.vault.trigger.unwrap() {
-        TriggerConfiguration::FINLimitOrder {
+        TriggerConfiguration::FinLimitOrder {
             target_price,
             order_idx,
         } => {
@@ -254,7 +254,7 @@ fn with_price_trigger_for_fin_sell_should_create_correct_trigger() {
         .unwrap();
 
     match vault_response.vault.trigger.unwrap() {
-        TriggerConfiguration::FINLimitOrder {
+        TriggerConfiguration::FinLimitOrder {
             target_price,
             order_idx,
         } => {
@@ -302,7 +302,12 @@ fn with_price_trigger_should_publish_vault_created_event() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::DCAVaultCreated).build(1)],
+        &[EventBuilder::new(
+            vault_id,
+            mock.app.block_info(),
+            EventData::DcaVaultCreated {},
+        )
+        .build(1)],
     );
 }
 
@@ -346,7 +351,7 @@ fn with_price_trigger_should_publish_funds_deposited_event() {
         &[EventBuilder::new(
             vault_id,
             mock.app.block_info(),
-            EventData::DCAVaultFundsDeposited {
+            EventData::DcaVaultFundsDeposited {
                 amount: Coin::new(vault_deposit.into(), DENOM_UKUJI),
             },
         )
@@ -502,7 +507,12 @@ fn with_price_trigger_twice_for_user_should_succeed() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::DCAVaultCreated).build(3)],
+        &[EventBuilder::new(
+            vault_id,
+            mock.app.block_info(),
+            EventData::DcaVaultCreated {},
+        )
+        .build(3)],
     );
 
     assert_vault_balance(
@@ -752,11 +762,16 @@ fn with_immediate_time_trigger_should_publish_events() {
         &mock,
         vault_id,
         &[
-            EventBuilder::new(vault_id, mock.app.block_info(), EventData::DCAVaultCreated).build(1),
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultFundsDeposited {
+                EventData::DcaVaultCreated {},
+            )
+            .build(1),
+            EventBuilder::new(
+                vault_id,
+                mock.app.block_info(),
+                EventData::DcaVaultFundsDeposited {
                     amount: Coin::new(vault_deposit.into(), DENOM_UKUJI),
                 },
             )
@@ -764,7 +779,7 @@ fn with_immediate_time_trigger_should_publish_events() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
+                EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
                     asset_price: Decimal256::from_str("1.0").unwrap(),
@@ -774,7 +789,7 @@ fn with_immediate_time_trigger_should_publish_events() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionCompleted {
+                EventData::DcaVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
                     received: Coin::new(swap_amount.into(), DENOM_UTEST),
                     fee: Coin::new(
@@ -1070,7 +1085,12 @@ fn with_time_trigger_should_publish_vault_created_event() {
     assert_events_published(
         &mock,
         vault_id,
-        &[EventBuilder::new(vault_id, mock.app.block_info(), EventData::DCAVaultCreated).build(1)],
+        &[EventBuilder::new(
+            vault_id,
+            mock.app.block_info(),
+            EventData::DcaVaultCreated {},
+        )
+        .build(1)],
     );
 }
 
@@ -1115,7 +1135,7 @@ fn with_time_trigger_should_publish_funds_deposited_event() {
         &[EventBuilder::new(
             vault_id,
             mock.app.block_info(),
-            EventData::DCAVaultFundsDeposited {
+            EventData::DcaVaultFundsDeposited {
                 amount: Coin::new(vault_deposit.into(), DENOM_UKUJI),
             },
         )

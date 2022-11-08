@@ -30,7 +30,7 @@ pub fn cancel_vault(
 
     create_event(
         deps.storage,
-        EventBuilder::new(vault.id, env.block, EventData::DCAVaultCancelled),
+        EventBuilder::new(vault.id, env.block, EventData::DcaVaultCancelled),
     )?;
 
     match vault
@@ -39,7 +39,7 @@ pub fn cancel_vault(
         .expect(format!("trigger for vault id {}", vault.id).as_str())
     {
         TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, vault),
-        TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
+        TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
             cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), vault)
         }
     }

@@ -30,7 +30,7 @@ pub fn save_trigger(store: &mut dyn Storage, trigger: Trigger) -> StdResult<Uint
                 }
             }
         }
-        TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
+        TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
             if order_idx.is_some() {
                 TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX.save(
                     store,
@@ -61,7 +61,7 @@ pub fn delete_trigger(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<U
                 TRIGGER_IDS_BY_TARGET_TIME.save(store, target_time.seconds(), &triggers)?;
             }
         }
-        TriggerConfiguration::FINLimitOrder { order_idx, .. } => {
+        TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
             if order_idx.is_some() {
                 TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX.remove(store, order_idx.unwrap().u128());
             }

@@ -117,7 +117,7 @@ pub fn create_vault(
 
     create_event(
         deps.storage,
-        EventBuilder::new(vault.id, env.block.clone(), EventData::DCAVaultCreated),
+        EventBuilder::new(vault.id, env.block.clone(), EventData::DcaVaultCreated {}),
     )?;
 
     create_event(
@@ -125,7 +125,7 @@ pub fn create_vault(
         EventBuilder::new(
             vault.id,
             env.block.clone(),
-            EventData::DCAVaultFundsDeposited {
+            EventData::DcaVaultFundsDeposited {
                 amount: info.funds[0].clone(),
             },
         ),
@@ -201,7 +201,7 @@ fn create_fin_limit_order_trigger(
         deps.storage,
         Trigger {
             vault_id: vault.id,
-            configuration: TriggerConfiguration::FINLimitOrder {
+            configuration: TriggerConfiguration::FinLimitOrder {
                 order_idx: None,
                 target_price,
             },

@@ -35,7 +35,7 @@ pub fn after_z_delegation(
                 EventBuilder::new(
                     vault.id,
                     env.block,
-                    EventData::DCAVaultZDelegationSucceeded {
+                    EventData::DcaVaultZDelegationSucceeded {
                         validator_address,
                         delegation: delegation_amount,
                     },

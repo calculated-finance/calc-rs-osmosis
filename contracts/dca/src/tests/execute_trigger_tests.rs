@@ -237,7 +237,7 @@ fn for_filled_fin_limit_order_trigger_should_publish_events() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
+                EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
                     asset_price: Decimal256::from_str("1.0").unwrap(),
@@ -247,7 +247,7 @@ fn for_filled_fin_limit_order_trigger_should_publish_events() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionCompleted {
+                EventData::DcaVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
                     received: Coin::new(swap_amount.into(), DENOM_UTEST),
                     fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
@@ -807,7 +807,7 @@ fn for_ready_time_trigger_should_create_events() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
+                EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
                     asset_price: Decimal256::from_str("1.0").unwrap(),
@@ -817,7 +817,7 @@ fn for_ready_time_trigger_should_create_events() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionCompleted {
+                EventData::DcaVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
                     received: Coin::new(swap_amount.into(), DENOM_UTEST),
                     fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
@@ -1024,7 +1024,7 @@ fn for_ready_time_trigger_within_price_threshold_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
+                EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
                     asset_price: Decimal256::from_str("1.0").unwrap(),
@@ -1034,7 +1034,7 @@ fn for_ready_time_trigger_within_price_threshold_should_succeed() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionCompleted {
+                EventData::DcaVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
                     received: Coin::new(swap_amount.into(), DENOM_UTEST),
                     fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
@@ -1117,7 +1117,7 @@ fn for_ready_time_trigger_for_fin_buy_less_than_minimum_receive_amount_should_sk
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
+                EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
                     asset_price: Decimal256::from_str("1.0").unwrap(),
@@ -1127,7 +1127,7 @@ fn for_ready_time_trigger_for_fin_buy_less_than_minimum_receive_amount_should_sk
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionSkipped {
+                EventData::DcaVaultExecutionSkipped {
                     reason: base::events::event::ExecutionSkippedReason::PriceThresholdExceeded {
                         price: Decimal256::from_str("1.0").unwrap(),
                     },
@@ -1186,7 +1186,7 @@ fn for_ready_time_trigger_for_fin_sell_less_than_minimum_receive_amount_should_s
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
+                EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
                     asset_price: Decimal256::from_str("1.0").unwrap(),
@@ -1196,7 +1196,7 @@ fn for_ready_time_trigger_for_fin_sell_less_than_minimum_receive_amount_should_s
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionSkipped {
+                EventData::DcaVaultExecutionSkipped {
                     reason: base::events::event::ExecutionSkippedReason::PriceThresholdExceeded {
                         price: Decimal256::from_str("1.0").unwrap(),
                     },
@@ -1816,7 +1816,7 @@ fn until_vault_is_empty_should_create_events() {
             EventBuilder::new(
                 vault_id,
                 initial_block_info.clone(),
-                EventData::DCAVaultExecutionTriggered {
+                EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
                     asset_price: Decimal256::from_str("1.0").unwrap(),
@@ -1826,7 +1826,7 @@ fn until_vault_is_empty_should_create_events() {
             EventBuilder::new(
                 vault_id,
                 initial_block_info.clone(),
-                EventData::DCAVaultExecutionCompleted {
+                EventData::DcaVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
                     received: Coin::new(swap_amount.into(), DENOM_UTEST),
                     fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
@@ -1836,7 +1836,7 @@ fn until_vault_is_empty_should_create_events() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionTriggered {
+                EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
                     asset_price: Decimal256::from_str("1.0").unwrap(),
@@ -1846,7 +1846,7 @@ fn until_vault_is_empty_should_create_events() {
             EventBuilder::new(
                 vault_id,
                 mock.app.block_info(),
-                EventData::DCAVaultExecutionCompleted {
+                EventData::DcaVaultExecutionCompleted {
                     sent: Coin::new(remaining_swap_amount.into(), DENOM_UKUJI),
                     received: Coin::new(remaining_swap_amount.into(), DENOM_UTEST),
                     fee: Coin::new(
