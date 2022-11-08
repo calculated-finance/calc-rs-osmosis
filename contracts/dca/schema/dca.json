@@ -177,10 +177,10 @@
               "swap_amount": {
                 "$ref": "#/definitions/Uint128"
               },
-              "target_price": {
+              "target_receive_amount": {
                 "anyOf": [
                   {
-                    "$ref": "#/definitions/Decimal256"
+                    "$ref": "#/definitions/Uint128"
                   },
                   {
                     "type": "null"
@@ -356,6 +356,52 @@
               },
               "vault_id": {
                 "$ref": "#/definitions/Uint128"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "add_custom_fee"
+        ],
+        "properties": {
+          "add_custom_fee": {
+            "type": "object",
+            "required": [
+              "denom",
+              "fee_percent"
+            ],
+            "properties": {
+              "denom": {
+                "type": "string"
+              },
+              "fee_percent": {
+                "$ref": "#/definitions/Decimal"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "remove_custom_fee"
+        ],
+        "properties": {
+          "remove_custom_fee": {
+            "type": "object",
+            "required": [
+              "denom"
+            ],
+            "properties": {
+              "denom": {
+                "type": "string"
               }
             },
             "additionalProperties": false
@@ -629,6 +675,19 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "get_custom_fees"
+        ],
+        "properties": {
+          "get_custom_fees": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ],
     "definitions": {
@@ -654,6 +713,39 @@
   "migrate": null,
   "sudo": null,
   "responses": {
+    "get_custom_fees": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomFeesResponse",
+      "type": "object",
+      "required": [
+        "custom_fees"
+      ],
+      "properties": {
+        "custom_fees": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/Decimal"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
+          }
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Decimal": {
+          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+          "type": "string"
+        }
+      }
+    },
     "get_events": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EventsResponse",
@@ -727,18 +819,30 @@
             {
               "type": "string",
               "enum": [
-                "d_c_a_vault_created",
-                "d_c_a_vault_cancelled",
+                "dca_vault_cancelled",
                 "d_c_a_vault_delegation_failed"
               ]
             },
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_funds_deposited"
+                "dca_vault_created"
               ],
               "properties": {
-                "d_c_a_vault_funds_deposited": {
+                "dca_vault_created": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "dca_vault_funds_deposited"
+              ],
+              "properties": {
+                "dca_vault_funds_deposited": {
                   "type": "object",
                   "required": [
                     "amount"
@@ -756,10 +860,10 @@
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_execution_triggered"
+                "dca_vault_execution_triggered"
               ],
               "properties": {
-                "d_c_a_vault_execution_triggered": {
+                "dca_vault_execution_triggered": {
                   "type": "object",
                   "required": [
                     "asset_price",
@@ -785,10 +889,10 @@
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_execution_completed"
+                "dca_vault_execution_completed"
               ],
               "properties": {
-                "d_c_a_vault_execution_completed": {
+                "dca_vault_execution_completed": {
                   "type": "object",
                   "required": [
                     "fee",
@@ -814,10 +918,10 @@
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_execution_skipped"
+                "dca_vault_execution_skipped"
               ],
               "properties": {
-                "d_c_a_vault_execution_skipped": {
+                "dca_vault_execution_skipped": {
                   "type": "object",
                   "required": [
                     "reason"
@@ -835,10 +939,10 @@
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_z_delegation_succeeded"
+                "dca_vault_z_delegation_succeeded"
               ],
               "properties": {
-                "d_c_a_vault_z_delegation_succeeded": {
+                "dca_vault_z_delegation_succeeded": {
                   "type": "object",
                   "required": [
                     "delegation",
@@ -982,18 +1086,30 @@
             {
               "type": "string",
               "enum": [
-                "d_c_a_vault_created",
-                "d_c_a_vault_cancelled",
+                "dca_vault_cancelled",
                 "d_c_a_vault_delegation_failed"
               ]
             },
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_funds_deposited"
+                "dca_vault_created"
               ],
               "properties": {
-                "d_c_a_vault_funds_deposited": {
+                "dca_vault_created": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "dca_vault_funds_deposited"
+              ],
+              "properties": {
+                "dca_vault_funds_deposited": {
                   "type": "object",
                   "required": [
                     "amount"
@@ -1011,10 +1127,10 @@
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_execution_triggered"
+                "dca_vault_execution_triggered"
               ],
               "properties": {
-                "d_c_a_vault_execution_triggered": {
+                "dca_vault_execution_triggered": {
                   "type": "object",
                   "required": [
                     "asset_price",
@@ -1040,10 +1156,10 @@
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_execution_completed"
+                "dca_vault_execution_completed"
               ],
               "properties": {
-                "d_c_a_vault_execution_completed": {
+                "dca_vault_execution_completed": {
                   "type": "object",
                   "required": [
                     "fee",
@@ -1069,10 +1185,10 @@
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_execution_skipped"
+                "dca_vault_execution_skipped"
               ],
               "properties": {
-                "d_c_a_vault_execution_skipped": {
+                "dca_vault_execution_skipped": {
                   "type": "object",
                   "required": [
                     "reason"
@@ -1090,10 +1206,10 @@
             {
               "type": "object",
               "required": [
-                "d_c_a_vault_z_delegation_succeeded"
+                "dca_vault_z_delegation_succeeded"
               ],
               "properties": {
-                "d_c_a_vault_z_delegation_succeeded": {
+                "dca_vault_z_delegation_succeeded": {
                   "type": "object",
                   "required": [
                     "delegation",
@@ -1384,10 +1500,10 @@
             {
               "type": "object",
               "required": [
-                "f_i_n_limit_order"
+                "fin_limit_order"
               ],
               "properties": {
-                "f_i_n_limit_order": {
+                "fin_limit_order": {
                   "type": "object",
                   "required": [
                     "target_price"
@@ -1671,10 +1787,10 @@
             {
               "type": "object",
               "required": [
-                "f_i_n_limit_order"
+                "fin_limit_order"
               ],
               "properties": {
-                "f_i_n_limit_order": {
+                "fin_limit_order": {
                   "type": "object",
                   "required": [
                     "target_price"
