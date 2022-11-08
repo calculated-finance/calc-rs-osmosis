@@ -1,7 +1,7 @@
 use crate::contract::AFTER_Z_DELEGATION_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::cache::{CACHE, LIMIT_ORDER_CACHE};
-use crate::state::config::get_config;
+use crate::state::config::{get_config, get_custom_fee};
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
@@ -16,6 +16,7 @@ use cosmwasm_std::{to_binary, CosmosMsg, Env, StdError, StdResult, SubMsg, Uint1
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response};
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
+use std::cmp::min;
 
 pub fn after_fin_limit_order_withdrawn_for_execute_vault(
     deps: DepsMut,
@@ -54,8 +55,20 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
 
             let config = get_config(deps.storage)?;
 
+            let fee_percent = match (
+                get_custom_fee(deps.storage, vault.get_swap_denom()),
+                get_custom_fee(deps.storage, vault.get_receive_denom()),
+            ) {
+                (Some(swap_denom_fee_percent), Some(receive_denom_fee_percent)) => {
+                    min(swap_denom_fee_percent, receive_denom_fee_percent)
+                }
+                (Some(swap_denom_fee_percent), None) => swap_denom_fee_percent,
+                (None, Some(receive_denom_fee_percent)) => receive_denom_fee_percent,
+                (None, None) => config.fee_percent,
+            };
+
             let execution_fee = Coin::new(
-                checked_mul(coin_received.amount, config.fee_percent)?.into(),
+                checked_mul(coin_received.amount, fee_percent)?.into(),
                 &coin_received.denom,
             );
 

@@ -55,7 +55,7 @@ pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
             destinations: vec![Destination {
                 address: owner,
                 allocation: Decimal::percent(100),
-                action: PostExecutionAction::Send,
+                action: PostExecutionAction::ZDelegate,
             }],
             created_at: env.block.time.clone(),
             status: VaultStatus::Active,

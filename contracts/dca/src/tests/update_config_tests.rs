@@ -49,6 +49,6 @@ fn update_fee_percent_more_than_100_percent_should_fail() {
 
     assert_eq!(
         error.root_cause().to_string(),
-        "Generic error: fee_percent must be less than 100% (i.e. 0.015)"
+        "Generic error: fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)"
     )
 }
