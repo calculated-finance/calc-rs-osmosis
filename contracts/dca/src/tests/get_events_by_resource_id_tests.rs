@@ -242,7 +242,7 @@ fn with_start_after_and_limit_should_return_limited_later_events() {
                     amount: Coin::new(100, "ukuji".to_string()),
                 },
             ),
-            EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCancelled),
+            EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCancelled {}),
         ],
     )
     .unwrap();

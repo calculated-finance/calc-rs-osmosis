@@ -104,7 +104,7 @@ fn when_vault_has_unfilled_fin_limit_order_trigger_should_publish_events() {
         &[EventBuilder::new(
             vault_id,
             mock.app.block_info(),
-            EventData::DcaVaultCancelled,
+            EventData::DcaVaultCancelled {},
         )
         .build(3)],
     );
@@ -289,7 +289,7 @@ fn when_vault_has_partially_filled_price_trigger_should_publish_events() {
         &[EventBuilder::new(
             vault_id,
             mock.app.block_info(),
-            EventData::DcaVaultCancelled,
+            EventData::DcaVaultCancelled {},
         )
         .build(3)],
     );
@@ -461,7 +461,7 @@ fn when_vault_has_time_trigger_should_publish_events() {
         &[EventBuilder::new(
             vault_id,
             mock.app.block_info(),
-            EventData::DcaVaultCancelled,
+            EventData::DcaVaultCancelled {},
         )
         .build(3)],
     );

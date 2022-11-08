@@ -817,13 +817,6 @@
         "EventData": {
           "oneOf": [
             {
-              "type": "string",
-              "enum": [
-                "dca_vault_cancelled",
-                "d_c_a_vault_delegation_failed"
-              ]
-            },
-            {
               "type": "object",
               "required": [
                 "dca_vault_created"
@@ -939,6 +932,19 @@
             {
               "type": "object",
               "required": [
+                "dca_vault_cancelled"
+              ],
+              "properties": {
+                "dca_vault_cancelled": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
                 "dca_vault_z_delegation_succeeded"
               ],
               "properties": {
@@ -956,6 +962,19 @@
                       "type": "string"
                     }
                   },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "dca_vault_delegation_failed"
+              ],
+              "properties": {
+                "dca_vault_delegation_failed": {
+                  "type": "object",
                   "additionalProperties": false
                 }
               },
@@ -1084,13 +1103,6 @@
         "EventData": {
           "oneOf": [
             {
-              "type": "string",
-              "enum": [
-                "dca_vault_cancelled",
-                "d_c_a_vault_delegation_failed"
-              ]
-            },
-            {
               "type": "object",
               "required": [
                 "dca_vault_created"
@@ -1206,6 +1218,19 @@
             {
               "type": "object",
               "required": [
+                "dca_vault_cancelled"
+              ],
+              "properties": {
+                "dca_vault_cancelled": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
                 "dca_vault_z_delegation_succeeded"
               ],
               "properties": {
@@ -1223,6 +1248,19 @@
                       "type": "string"
                     }
                   },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "dca_vault_delegation_failed"
+              ],
+              "properties": {
+                "dca_vault_delegation_failed": {
+                  "type": "object",
                   "additionalProperties": false
                 }
               },

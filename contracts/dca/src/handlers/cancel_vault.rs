@@ -30,7 +30,7 @@ pub fn cancel_vault(
 
     create_event(
         deps.storage,
-        EventBuilder::new(vault.id, env.block, EventData::DcaVaultCancelled),
+        EventBuilder::new(vault.id, env.block, EventData::DcaVaultCancelled {}),
     )?;
 
     match vault

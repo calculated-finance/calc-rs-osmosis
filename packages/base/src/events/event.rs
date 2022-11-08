@@ -27,12 +27,12 @@ pub enum EventData {
     DcaVaultExecutionSkipped {
         reason: ExecutionSkippedReason,
     },
-    DcaVaultCancelled,
+    DcaVaultCancelled {},
     DcaVaultZDelegationSucceeded {
         validator_address: String,
         delegation: Coin,
     },
-    DCAVaultDelegationFailed,
+    DcaVaultDelegationFailed {},
 }
 
 #[cw_serde]

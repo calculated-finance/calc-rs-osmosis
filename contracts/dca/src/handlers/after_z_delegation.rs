@@ -45,7 +45,7 @@ pub fn after_z_delegation(
         SubMsgResult::Err(_) => {
             create_event(
                 deps.storage,
-                EventBuilder::new(vault.id, env.block, EventData::DCAVaultDelegationFailed),
+                EventBuilder::new(vault.id, env.block, EventData::DcaVaultDelegationFailed {}),
             )?;
         }
     }
