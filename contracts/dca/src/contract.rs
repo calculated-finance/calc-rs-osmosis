@@ -19,6 +19,7 @@ use crate::handlers::get_pairs::get_pairs;
 use crate::handlers::get_time_trigger_ids::get_time_trigger_ids;
 use crate::handlers::get_trigger_id_by_fin_limit_order_idx::get_trigger_id_by_fin_limit_order_idx;
 use crate::handlers::get_vault::get_vault;
+use crate::handlers::get_vaults::get_vaults_handler;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::remove_custom_fee::remove_custom_fee_handler;
 use crate::handlers::update_config::update_config_handler;
@@ -204,6 +205,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::GetTriggerIdByFinLimitOrderIdx { order_idx } => {
             to_binary(&get_trigger_id_by_fin_limit_order_idx(deps, order_idx)?)
+        }
+        QueryMsg::GetVaults { start_after, limit } => {
+            to_binary(&get_vaults_handler(deps, start_after, limit)?)
         }
         QueryMsg::GetVaultsByAddress {
             address,

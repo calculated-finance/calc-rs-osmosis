@@ -152,6 +152,35 @@ pub fn get_vaults_by_address(
         .collect::<Vec<Vault>>())
 }
 
+pub fn get_vaults(
+    store: &dyn Storage,
+    start_after: Option<u128>,
+    limit: Option<u16>,
+) -> StdResult<Vec<Vault>> {
+    Ok(vault_store()
+        .range(
+            store,
+            start_after.map(|vault_id| Bound::exclusive(vault_id)),
+            None,
+            cosmwasm_std::Order::Ascending,
+        )
+        .take(limit.unwrap_or(30) as usize)
+        .map(|result| {
+            let (_, data) =
+                result.expect(format!("a vault with id after {:?}", start_after).as_str());
+            vault_from(
+                &data,
+                PAIRS
+                    .load(store, data.pair_address.clone())
+                    .expect(format!("a pair for pair address {:?}", data.pair_address).as_str()),
+                get_trigger(store, data.id.into())
+                    .expect(format!("a trigger for vault id {}", data.id).as_str())
+                    .map(|t| t.configuration),
+            )
+        })
+        .collect::<Vec<Vault>>())
+}
+
 pub fn update_vault<T>(store: &mut dyn Storage, vault_id: Uint128, update_fn: T) -> StdResult<Vault>
 where
     T: FnOnce(Option<Vault>) -> StdResult<Vault>,

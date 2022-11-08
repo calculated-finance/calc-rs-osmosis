@@ -54,3 +54,6 @@ pub mod create_custom_fee_tests;
 
 #[cfg(test)]
 pub mod remove_custom_fee_tests;
+
+#[cfg(test)]
+pub mod get_vaults_tests;
