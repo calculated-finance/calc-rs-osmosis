@@ -1,6 +1,8 @@
 use crate::{
-    error::ContractError, state::vaults::update_vault, types::vault::Vault,
-    validation_helpers::asset_sender_is_vault_owner,
+    error::ContractError,
+    state::vaults::{get_vault, update_vault},
+    types::vault::Vault,
+    validation_helpers::{assert_vault_is_not_cancelled, asset_sender_is_vault_owner},
 };
 use cosmwasm_std::{Addr, DepsMut, MessageInfo, Response, StdError, StdResult, Uint128};
 
@@ -11,6 +13,10 @@ pub fn update_vault_label(
     vault_id: Uint128,
     label: Option<String>,
 ) -> Result<Response, ContractError> {
+    let vault = get_vault(deps.storage, vault_id)?;
+
+    assert_vault_is_not_cancelled(&vault)?;
+
     let updated_vault = update_vault(
         deps.storage,
         vault_id.into(),
