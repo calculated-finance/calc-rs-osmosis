@@ -4,7 +4,14 @@ use cosmwasm_std::{BlockInfo, Coin, Decimal256, Timestamp, Uint128};
 #[cw_serde]
 pub enum ExecutionSkippedReason {
     SlippageToleranceExceeded,
-    PriceThresholdExceeded { price: Decimal256 },
+    PriceThresholdExceeded {
+        price: Decimal256,
+    },
+    PriceDeltaLimitExceeded {
+        duration_in_seconds: u64,
+        max_price_delta: Decimal256,
+        actual_price_delta: Decimal256,
+    },
     UnknownFailure,
 }
 
