@@ -46,31 +46,8 @@ pub const AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID: u64 = 5;
 pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 6;
 
 #[entry_point]
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
-    clear_vaults(deps.storage);
-    clear_triggers(deps.storage);
-    clear_events(deps.storage);
-    clear_config(deps.storage);
-
-    deps.api.addr_validate(&msg.admin.to_string())?;
-    deps.api.addr_validate(&msg.fee_collector.to_string())?;
-    deps.api
-        .addr_validate(&msg.staking_router_address.to_string())?;
-
-    update_config(
-        deps.storage,
-        Config {
-            admin: msg.admin,
-            fee_collector: msg.fee_collector,
-            swap_fee_percent: msg.swap_fee_percent,
-            delegation_fee_percent: msg.delegation_fee_percent,
-            staking_router_address: msg.staking_router_address,
-            page_limit: msg.page_limit,
-            paused: msg.paused,
-        },
-    )?;
-
-    Ok(Response::default())
+pub fn migrate(_: DepsMut, _: Env, _: MigrateMsg) -> Result<Response, ContractError> {
+    unimplemented!()
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

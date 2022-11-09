@@ -15,27 +15,8 @@ const CONTRACT_NAME: &str = "crates.io:staking-router";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
-    CONFIG.remove(deps.storage);
-
-    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    let config = Config {
-        admin: deps.api.addr_validate(&msg.admin.to_string())?,
-        allowed_z_callers: msg
-            .allowed_z_callers
-            .iter()
-            .map(|caller_address| {
-                deps.api.addr_validate(&caller_address.to_string()).expect(
-                    &format!("a valid address for allowed z caller {:?}", caller_address)
-                        .to_string(),
-                )
-            })
-            .collect(),
-    };
-
-    CONFIG.save(deps.storage, &config)?;
-
-    Ok(Response::default())
+pub fn migrate(_: DepsMut, _: Env, _: MigrateMsg) -> Result<Response, ContractError> {
+    unimplemented!()
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
