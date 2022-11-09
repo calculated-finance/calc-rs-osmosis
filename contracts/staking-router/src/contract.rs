@@ -20,8 +20,17 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     let config = Config {
-        admin: msg.admin,
-        allowed_z_callers: msg.allowed_z_callers,
+        admin: deps.api.addr_validate(&msg.admin.to_string())?,
+        allowed_z_callers: msg
+            .allowed_z_callers
+            .iter()
+            .map(|caller_address| {
+                deps.api.addr_validate(&caller_address.to_string()).expect(
+                    &format!("a valid address for allowed z caller {:?}", caller_address)
+                        .to_string(),
+                )
+            })
+            .collect(),
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -38,8 +47,17 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     let config = Config {
-        admin: msg.admin,
-        allowed_z_callers: msg.allowed_z_callers,
+        admin: deps.api.addr_validate(&msg.admin.to_string())?,
+        allowed_z_callers: msg
+            .allowed_z_callers
+            .iter()
+            .map(|caller_address| {
+                deps.api.addr_validate(&caller_address.to_string()).expect(
+                    &format!("a valid address for allowed z caller {:?}", caller_address)
+                        .to_string(),
+                )
+            })
+            .collect(),
     };
 
     CONFIG.save(deps.storage, &config)?;

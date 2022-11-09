@@ -44,5 +44,6 @@ pub fn update_config_handler(
         .add_attribute(
             "staking_router_address",
             config.staking_router_address.to_string(),
-        ))
+        )
+        .add_attribute("paused", config.paused.to_string()))
 }
