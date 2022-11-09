@@ -4,7 +4,7 @@ use cw_storage_plus::{Index, IndexList, IndexedMap, Item, UniqueIndex};
 
 use super::state_helpers::fetch_and_increment_counter;
 
-const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v9");
+const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v10");
 
 pub struct EventIndexes<'a> {
     pub resource_id: UniqueIndex<'a, (u128, u64), Event, u64>,
@@ -19,9 +19,9 @@ impl<'a> IndexList<Event> for EventIndexes<'a> {
 
 pub fn event_store<'a>() -> IndexedMap<'a, u64, Event, EventIndexes<'a>> {
     let indexes = EventIndexes {
-        resource_id: UniqueIndex::new(|e| (e.resource_id.into(), e.id), "events_v9__resource_id"),
+        resource_id: UniqueIndex::new(|e| (e.resource_id.into(), e.id), "events_v10__resource_id"),
     };
-    IndexedMap::new("events_v9", indexes)
+    IndexedMap::new("events_v10", indexes)
 }
 
 pub fn create_event(store: &mut dyn Storage, event_builder: EventBuilder) -> StdResult<u64> {
