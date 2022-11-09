@@ -1,6 +1,6 @@
 [package]
 name = "staking-router"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["aidan <aidan@calculated.fi>"]
 edition = "2021"
 
