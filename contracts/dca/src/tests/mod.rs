@@ -50,7 +50,7 @@ pub mod update_vault_label_tests;
 pub mod after_fin_limit_order_withdrawn_for_execute_vault_tests;
 
 #[cfg(test)]
-pub mod create_custom_fee_tests;
+pub mod create_custom_swap_fee_tests;
 
 #[cfg(test)]
 pub mod remove_custom_fee_tests;

@@ -4,7 +4,7 @@ use cosmwasm_std::DepsMut;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{MessageInfo, Response};
 
-pub fn remove_custom_fee_handler(
+pub fn remove_custom_swap_fee(
     deps: DepsMut,
     info: MessageInfo,
     denom: String,
@@ -14,6 +14,6 @@ pub fn remove_custom_fee_handler(
     remove_custom_fee(deps.storage, denom.clone());
 
     Ok(Response::new()
-        .add_attribute("method", "remove_custom_fee")
+        .add_attribute("method", "remove_custom_swap_fee")
         .add_attribute("denom", denom))
 }

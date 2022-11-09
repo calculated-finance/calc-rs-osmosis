@@ -9,7 +9,8 @@ pub fn update_config_handler(
     deps: DepsMut,
     info: MessageInfo,
     fee_collector: Option<Addr>,
-    fee_percent: Option<Decimal>,
+    swap_fee_percent: Option<Decimal>,
+    delegation_fee_percent: Option<Decimal>,
     staking_router_address: Option<Addr>,
     page_limit: Option<u16>,
     paused: Option<bool>,
@@ -26,7 +27,9 @@ pub fn update_config_handler(
                     .unwrap_or(existing_config.fee_collector)
                     .to_string(),
             )?,
-            fee_percent: fee_percent.unwrap_or(existing_config.fee_percent),
+            swap_fee_percent: swap_fee_percent.unwrap_or(existing_config.swap_fee_percent),
+            delegation_fee_percent: delegation_fee_percent
+                .unwrap_or(existing_config.delegation_fee_percent),
             staking_router_address: deps.api.addr_validate(
                 &staking_router_address
                     .unwrap_or(existing_config.staking_router_address)
@@ -39,8 +42,12 @@ pub fn update_config_handler(
 
     Ok(Response::default()
         .add_attribute("method", "update_config")
-        .add_attribute("fee_percent", config.fee_percent.to_string())
+        .add_attribute("swap_fee_percent", config.swap_fee_percent.to_string())
         .add_attribute("fee_collector", config.fee_collector.to_string())
+        .add_attribute(
+            "delegation_fee_percent",
+            config.delegation_fee_percent.to_string(),
+        )
         .add_attribute(
             "staking_router_address",
             config.staking_router_address.to_string(),

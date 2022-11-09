@@ -28,7 +28,7 @@ pub fn after_z_delegation(
             let display_formatted_coin =
                 get_attribute_in_event(&z_delegate_response.events, "delegate", "amount")?;
 
-            let delegation_amount = get_coin_from_display_formatted_coin(display_formatted_coin);
+            let delegation = get_coin_from_display_formatted_coin(display_formatted_coin);
 
             create_event(
                 deps.storage,
@@ -37,7 +37,7 @@ pub fn after_z_delegation(
                     env.block,
                     EventData::DcaVaultZDelegationSucceeded {
                         validator_address,
-                        delegation: delegation_amount,
+                        delegation,
                     },
                 ),
             )?;

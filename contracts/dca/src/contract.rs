@@ -1,5 +1,4 @@
 use crate::error::ContractError;
-use crate::handlers::add_custom_fee::create_custom_fee_handler;
 use crate::handlers::after_fin_limit_order_retracted::after_fin_limit_order_retracted;
 use crate::handlers::after_fin_limit_order_submitted::after_fin_limit_order_submitted;
 use crate::handlers::after_fin_limit_order_withdrawn_for_cancel_vault::after_fin_limit_order_withdrawn_for_cancel_vault;
@@ -7,12 +6,13 @@ use crate::handlers::after_fin_limit_order_withdrawn_for_execute_trigger::after_
 use crate::handlers::after_fin_swap::after_fin_swap;
 use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
+use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
 use crate::handlers::execute_trigger::execute_trigger_handler;
-use crate::handlers::get_custom_fees::get_custom_fees_handler;
+use crate::handlers::get_custom_swap_fees::get_custom_swap_fees;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
@@ -21,7 +21,7 @@ use crate::handlers::get_trigger_id_by_fin_limit_order_idx::get_trigger_id_by_fi
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults::get_vaults_handler;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
-use crate::handlers::remove_custom_fee::remove_custom_fee_handler;
+use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_vault_label::update_vault_label;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
@@ -62,7 +62,8 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
         Config {
             admin: msg.admin,
             fee_collector: msg.fee_collector,
-            fee_percent: msg.fee_percent,
+            swap_fee_percent: msg.swap_fee_percent,
+            delegation_fee_percent: msg.delegation_fee_percent,
             staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
             paused: msg.paused,
@@ -89,7 +90,8 @@ pub fn instantiate(
         Config {
             admin: msg.admin.clone(),
             fee_collector: msg.fee_collector,
-            fee_percent: msg.fee_percent,
+            swap_fee_percent: msg.swap_fee_percent,
+            delegation_fee_percent: msg.delegation_fee_percent,
             staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
             paused: false,
@@ -150,7 +152,8 @@ pub fn execute(
         ExecuteMsg::Deposit { address, vault_id } => deposit(deps, env, info, address, vault_id),
         ExecuteMsg::UpdateConfig {
             fee_collector,
-            fee_percent,
+            swap_fee_percent,
+            delegation_fee_percent,
             staking_router_address,
             page_limit,
             paused,
@@ -158,7 +161,8 @@ pub fn execute(
             deps,
             info,
             fee_collector,
-            fee_percent,
+            swap_fee_percent,
+            delegation_fee_percent,
             staking_router_address,
             page_limit,
             paused,
@@ -168,10 +172,11 @@ pub fn execute(
             vault_id,
             label,
         } => update_vault_label(deps, info, address, vault_id, label),
-        ExecuteMsg::AddCustomFee { denom, fee_percent } => {
-            create_custom_fee_handler(deps, info, denom, fee_percent)
-        }
-        ExecuteMsg::RemoveCustomFee { denom } => remove_custom_fee_handler(deps, info, denom),
+        ExecuteMsg::CreateCustomSwapFee {
+            denom,
+            swap_fee_percent,
+        } => create_custom_swap_fee(deps, info, denom, swap_fee_percent),
+        ExecuteMsg::RemoveCustomSwapFee { denom } => remove_custom_swap_fee(deps, info, denom),
     }
 }
 
@@ -235,6 +240,6 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetEvents { start_after, limit } => {
             to_binary(&get_events(deps, start_after, limit)?)
         }
-        QueryMsg::GetCustomFees {} => to_binary(&get_custom_fees_handler(deps)?),
+        QueryMsg::GetCustomSwapFees {} => to_binary(&get_custom_swap_fees(deps)?),
     }
 }

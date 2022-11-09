@@ -25,7 +25,8 @@ fn instantiation_with_valid_admin_address_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -51,7 +52,8 @@ fn instantiation_with_invalid_admin_address_should_fail() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(INVALID_ADDRESS),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -74,7 +76,8 @@ fn create_pair_with_valid_address_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -115,7 +118,8 @@ fn create_pair_that_already_exists_should_fail() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -171,7 +175,8 @@ fn create_pair_with_invalid_address_should_fail() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -207,7 +212,8 @@ fn create_pair_with_unauthorised_sender_should_fail() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -247,7 +253,8 @@ fn delete_pair_with_valid_address_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -298,7 +305,8 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -345,7 +353,8 @@ fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -373,7 +382,8 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -454,7 +464,8 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -530,7 +541,8 @@ fn get_all_active_vaults_by_address_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -639,7 +651,8 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
@@ -720,7 +733,8 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
         fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,

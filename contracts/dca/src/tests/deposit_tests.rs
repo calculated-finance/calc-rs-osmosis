@@ -398,7 +398,8 @@ fn when_contract_is_paused_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::UpdateConfig {
                 fee_collector: Some(Addr::unchecked(ADMIN)),
-                fee_percent: Some(Decimal::from_str("0.015").unwrap()),
+                swap_fee_percent: Some(Decimal::from_str("0.015").unwrap()),
+                delegation_fee_percent: Some(Decimal::from_str("0.0075").unwrap()),
                 staking_router_address: None,
                 page_limit: None,
                 paused: Some(true),

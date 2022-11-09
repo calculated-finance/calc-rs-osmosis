@@ -1,8 +1,8 @@
 use super::mocks::ADMIN;
 use crate::{
     handlers::{
-        add_custom_fee::create_custom_fee_handler, get_custom_fees::get_custom_fees_handler,
-        remove_custom_fee::remove_custom_fee_handler,
+        create_custom_swap_fee::create_custom_swap_fee, get_custom_swap_fees::get_custom_swap_fees,
+        remove_custom_swap_fee::remove_custom_swap_fee,
     },
     tests::helpers::instantiate_contract,
 };
@@ -21,7 +21,7 @@ fn remove_custom_fee_should_succeed() {
 
     let denom = "ukuji".to_string();
 
-    create_custom_fee_handler(
+    create_custom_swap_fee(
         deps.as_mut(),
         info.clone(),
         denom.clone(),
@@ -29,14 +29,14 @@ fn remove_custom_fee_should_succeed() {
     )
     .unwrap();
 
-    let custom_fees = get_custom_fees_handler(deps.as_ref()).unwrap();
+    let custom_fees = get_custom_swap_fees(deps.as_ref()).unwrap();
 
     assert_eq!(custom_fees.len(), 1);
     assert_eq!(custom_fees[0], (denom.clone(), Decimal::percent(1)));
 
-    remove_custom_fee_handler(deps.as_mut(), info, denom).unwrap();
+    remove_custom_swap_fee(deps.as_mut(), info, denom).unwrap();
 
-    let custom_fees = get_custom_fees_handler(deps.as_ref()).unwrap();
+    let custom_fees = get_custom_swap_fees(deps.as_ref()).unwrap();
 
     assert_eq!(custom_fees.len(), 0);
 }

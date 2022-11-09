@@ -6,7 +6,8 @@ use cw_storage_plus::{Item, Map};
 pub struct Config {
     pub admin: Addr,
     pub fee_collector: Addr,
-    pub fee_percent: Decimal,
+    pub swap_fee_percent: Decimal,
+    pub delegation_fee_percent: Decimal,
     pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
@@ -19,9 +20,15 @@ pub fn get_config(store: &dyn Storage) -> StdResult<Config> {
 }
 
 pub fn update_config(store: &mut dyn Storage, config: Config) -> StdResult<Config> {
-    if config.fee_percent > Decimal::percent(100) {
+    if config.swap_fee_percent > Decimal::percent(100) {
         return Err(StdError::generic_err(
-            "fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)",
+            "swap_fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)",
+        ));
+    }
+
+    if config.delegation_fee_percent > Decimal::percent(100) {
+        return Err(StdError::generic_err(
+            "delegation_fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)",
         ));
     }
 
@@ -38,15 +45,15 @@ const CUSTOM_FEES: Map<String, Decimal> = Map::new("fees_v1");
 pub fn create_custom_fee(
     storage: &mut dyn Storage,
     denom: String,
-    fee_percent: Decimal,
+    swap_fee_percent: Decimal,
 ) -> StdResult<()> {
-    if fee_percent > Decimal::percent(100) {
+    if swap_fee_percent > Decimal::percent(100) {
         return Err(StdError::generic_err(
-            "fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)",
+            "swap_fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)",
         ));
     }
 
-    CUSTOM_FEES.save(storage, denom, &fee_percent)
+    CUSTOM_FEES.save(storage, denom, &swap_fee_percent)
 }
 
 pub fn remove_custom_fee(storage: &mut dyn Storage, denom: String) {

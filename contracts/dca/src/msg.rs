@@ -11,7 +11,8 @@ use crate::types::vault::Vault;
 pub struct InstantiateMsg {
     pub admin: Addr,
     pub fee_collector: Addr,
-    pub fee_percent: Decimal,
+    pub swap_fee_percent: Decimal,
+    pub delegation_fee_percent: Decimal,
     pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
@@ -21,7 +22,8 @@ pub struct InstantiateMsg {
 pub struct MigrateMsg {
     pub admin: Addr,
     pub fee_collector: Addr,
-    pub fee_percent: Decimal,
+    pub swap_fee_percent: Decimal,
+    pub delegation_fee_percent: Decimal,
     pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
@@ -62,7 +64,8 @@ pub enum ExecuteMsg {
     },
     UpdateConfig {
         fee_collector: Option<Addr>,
-        fee_percent: Option<Decimal>,
+        swap_fee_percent: Option<Decimal>,
+        delegation_fee_percent: Option<Decimal>,
         staking_router_address: Option<Addr>,
         page_limit: Option<u16>,
         paused: Option<bool>,
@@ -72,11 +75,11 @@ pub enum ExecuteMsg {
         vault_id: Uint128,
         label: Option<String>,
     },
-    AddCustomFee {
+    CreateCustomSwapFee {
         denom: String,
-        fee_percent: Decimal,
+        swap_fee_percent: Decimal,
     },
-    RemoveCustomFee {
+    RemoveCustomSwapFee {
         denom: String,
     },
 }
@@ -116,7 +119,7 @@ pub enum QueryMsg {
         limit: Option<u16>,
     },
     #[returns(CustomFeesResponse)]
-    GetCustomFees {},
+    GetCustomSwapFees {},
 }
 
 #[cw_serde]

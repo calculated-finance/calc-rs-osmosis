@@ -65,7 +65,7 @@ fn after_succcesful_withdrawal_returns_funds_to_destination() {
     )
     .unwrap();
 
-    let fee = get_config(&deps.storage).unwrap().fee_percent * vault.get_swap_amount().amount;
+    let fee = get_config(&deps.storage).unwrap().swap_fee_percent * vault.get_swap_amount().amount;
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: vault.destinations.first().unwrap().address.to_string(),
@@ -110,7 +110,7 @@ fn after_succcesful_withdrawal_returns_fee_to_fee_collector() {
     .unwrap();
 
     let config = get_config(&deps.storage).unwrap();
-    let fee = config.fee_percent * vault.get_swap_amount().amount;
+    let fee = config.swap_fee_percent * vault.get_swap_amount().amount;
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collector.to_string(),
@@ -235,7 +235,7 @@ fn after_successful_withdrawal_creates_delegation_messages() {
     )
     .unwrap();
 
-    let fee = get_config(&deps.storage).unwrap().fee_percent * vault.get_swap_amount().amount;
+    let fee = get_config(&deps.storage).unwrap().swap_fee_percent * vault.get_swap_amount().amount;
 
     assert!(response.messages.contains(&SubMsg::reply_always(
         CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
@@ -300,7 +300,7 @@ fn after_successful_withdrawal_creates_execution_completed_event() {
     let config = get_config(&deps.storage).unwrap();
 
     let fee = Coin::new(
-        (config.fee_percent * vault.get_swap_amount().amount).into(),
+        (config.swap_fee_percent * vault.get_swap_amount().amount).into(),
         vault.get_receive_denom(),
     );
 

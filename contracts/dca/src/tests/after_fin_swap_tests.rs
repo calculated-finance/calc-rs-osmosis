@@ -2,8 +2,9 @@ use std::cmp::min;
 
 use base::{
     events::event::{EventBuilder, EventData, ExecutionSkippedReason},
+    helpers::math_helpers::checked_mul,
     triggers::trigger::TriggerConfiguration,
-    vaults::vault::VaultStatus,
+    vaults::vault::{PostExecutionAction, VaultStatus},
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
@@ -53,12 +54,30 @@ fn with_succcesful_swap_returns_funds_to_destination() {
     )
     .unwrap();
 
-    let fee = get_config(&deps.storage).unwrap().fee_percent * receive_amount;
+    let fee = get_config(&deps.storage).unwrap().swap_fee_percent * receive_amount;
+
+    let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
+
+    let automation_fees = vault
+        .destinations
+        .iter()
+        .filter(|d| d.action == PostExecutionAction::ZDelegate)
+        .fold(
+            Coin::new(0, vault.get_receive_denom()),
+            |mut accum, destination| {
+                let allocation_amount =
+                    checked_mul(receive_amount - fee, destination.allocation).unwrap();
+                let allocation_automation_fee =
+                    checked_mul(allocation_amount, automation_fee).unwrap();
+                accum.amount = accum.amount.checked_add(allocation_automation_fee).unwrap();
+                accum
+            },
+        );
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: vault.destinations.first().unwrap().address.to_string(),
         amount: vec![Coin::new(
-            (receive_amount - fee).into(),
+            (receive_amount - fee - automation_fees.amount).into(),
             vault.get_receive_denom()
         )]
     })));
@@ -89,7 +108,7 @@ fn with_succcesful_swap_returns_fee_to_fee_collector() {
     .unwrap();
 
     let config = get_config(&deps.storage).unwrap();
-    let fee = config.fee_percent * receive_amount;
+    let fee = config.swap_fee_percent * receive_amount;
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collector.to_string(),

@@ -24,7 +24,8 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
         fee_collector: Addr::unchecked(ADMIN),
-        fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,

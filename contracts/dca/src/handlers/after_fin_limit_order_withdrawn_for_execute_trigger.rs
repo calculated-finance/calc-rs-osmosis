@@ -64,7 +64,7 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 }
                 (Some(swap_denom_fee_percent), None) => swap_denom_fee_percent,
                 (None, Some(receive_denom_fee_percent)) => receive_denom_fee_percent,
-                (None, None) => config.fee_percent,
+                (None, None) => config.swap_fee_percent,
             };
 
             let execution_fee = Coin::new(
@@ -116,39 +116,71 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 }));
             }
 
+            let mut total_automation_fees = Uint128::zero();
+
             vault.destinations.iter().for_each(|destination| {
-                let amount = checked_mul(total_to_redistribute, destination.allocation)
+                let allocation_amount = checked_mul(total_to_redistribute, destination.allocation)
                     .ok()
                     .expect("amount to redistribute should be a value");
 
                 match destination.action {
                     PostExecutionAction::Send => messages.push(CosmosMsg::Bank(BankMsg::Send {
                         to_address: destination.address.to_string(),
-                        amount: vec![Coin::new(amount.into(), &coin_received.denom)],
+                        amount: vec![Coin::new(allocation_amount.into(), &coin_received.denom)],
                     })),
                     PostExecutionAction::ZDelegate => {
                         // authz delegations use funds from the users wallet so send back to user
-                        messages.push(CosmosMsg::Bank(BankMsg::Send {
-                            to_address: vault.owner.to_string(),
-                            amount: vec![Coin::new(amount.into(), &coin_received.denom)],
-                        }));
-                        sub_msgs.push(SubMsg::reply_always(
-                            CosmosMsg::Wasm(WasmMsg::Execute {
-                                contract_addr: config.staking_router_address.to_string(),
-                                msg: to_binary(&StakingRouterExecuteMsg::ZDelegate {
-                                    delegator_address: vault.owner.clone(),
-                                    validator_address: destination.address.clone(),
-                                    denom: vault.get_receive_denom(),
-                                    amount,
-                                })
-                                .unwrap(),
-                                funds: vec![],
-                            }),
-                            AFTER_Z_DELEGATION_REPLY_ID,
-                        ))
+                        let delegation_fee =
+                            checked_mul(allocation_amount, config.delegation_fee_percent)
+                                .expect("amount to be taken should be valid");
+
+                        total_automation_fees = total_automation_fees
+                            .checked_add(delegation_fee)
+                            .expect("amount to add should be valid")
+                            .into();
+
+                        let amount_to_delegate = Coin::new(
+                            allocation_amount
+                                .checked_sub(delegation_fee)
+                                .expect("amount to delegate should be valid")
+                                .into(),
+                            coin_received.denom.clone(),
+                        );
+
+                        if amount_to_delegate.amount.gt(&Uint128::zero()) {
+                            messages.push(CosmosMsg::Bank(BankMsg::Send {
+                                to_address: vault.owner.to_string(),
+                                amount: vec![amount_to_delegate.clone()],
+                            }));
+
+                            sub_msgs.push(SubMsg::reply_always(
+                                CosmosMsg::Wasm(WasmMsg::Execute {
+                                    contract_addr: config.staking_router_address.to_string(),
+                                    msg: to_binary(&StakingRouterExecuteMsg::ZDelegate {
+                                        delegator_address: vault.owner.clone(),
+                                        validator_address: destination.address.clone(),
+                                        denom: amount_to_delegate.denom.clone(),
+                                        amount: amount_to_delegate.amount.clone(),
+                                    })
+                                    .unwrap(),
+                                    funds: vec![],
+                                }),
+                                AFTER_Z_DELEGATION_REPLY_ID,
+                            ))
+                        }
                     }
                 }
             });
+
+            if total_automation_fees.gt(&Uint128::zero()) {
+                messages.push(CosmosMsg::Bank(BankMsg::Send {
+                    to_address: config.fee_collector.to_string(),
+                    amount: vec![Coin::new(
+                        total_automation_fees.into(),
+                        coin_received.denom.clone(),
+                    )],
+                }));
+            }
 
             create_event(
                 deps.storage,
