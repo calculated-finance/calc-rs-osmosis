@@ -68,7 +68,7 @@ pub fn instantiate(
             delegation_fee_percent: msg.delegation_fee_percent,
             staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
-            paused: false,
+            paused: msg.paused,
         },
     )?;
 
