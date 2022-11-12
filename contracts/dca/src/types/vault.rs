@@ -6,6 +6,7 @@ use base::{
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal256, Timestamp, Uint128};
 use kujira::precision::{Precise, Precision};
+use std::cmp::min;
 
 #[cw_serde]
 pub struct Vault {
@@ -67,11 +68,14 @@ impl Vault {
 
     pub fn price_threshold_exceeded(&self, price: Decimal256) -> bool {
         if let Some(minimum_receive_amount) = self.minimum_receive_amount {
+            let target_swap_amount_as_decimal =
+                Decimal256::from_ratio(self.swap_amount, Uint128::one());
+
             let receive_amount_at_price = match self.get_position_type() {
-                PositionType::Enter => Decimal256::from_ratio(self.swap_amount, Uint128::one())
+                PositionType::Enter => target_swap_amount_as_decimal
                     .checked_div(price)
                     .expect("current fin price should be > 0.0"),
-                PositionType::Exit => Decimal256::from_ratio(self.swap_amount, Uint128::one())
+                PositionType::Exit => target_swap_amount_as_decimal
                     .checked_mul(price)
                     .expect("expected receive amount should be valid"),
             };
@@ -83,6 +87,22 @@ impl Vault {
         }
 
         false
+    }
+
+    pub fn has_sufficient_funds(&self, fin_price: Decimal256) -> bool {
+        let swap_amount_as_decimal =
+            Decimal256::from_ratio(self.get_swap_amount().amount, Uint128::one());
+
+        let minimum_possible_receive_amount = min(
+            swap_amount_as_decimal
+                .checked_mul(fin_price)
+                .expect("minimum possible receive amount should be valid"),
+            swap_amount_as_decimal
+                .checked_div(fin_price)
+                .expect("minimum possible receive amount should be valid"),
+        );
+
+        minimum_possible_receive_amount >= Decimal256::one()
     }
 
     pub fn low_funds(&self) -> bool {
@@ -99,6 +119,68 @@ impl Vault {
 
     pub fn is_scheduled(&self) -> bool {
         self.status == VaultStatus::Scheduled
+    }
+}
+
+#[cfg(test)]
+mod has_sufficient_funds_tests {
+    use super::*;
+    use cosmwasm_std::coin;
+    use std::str::FromStr;
+
+    #[test]
+    fn should_return_false_when_vault_has_insufficient_swap_amount_with_inverted_fin_price() {
+        let vault = vault_with(Uint128::new(1));
+        assert!(!vault.has_sufficient_funds(Decimal256::from_str("0.99").unwrap()));
+    }
+
+    #[test]
+    fn should_return_true_when_vault_has_just_enough_swap_amount() {
+        let vault = vault_with(Uint128::new(1));
+        assert!(vault.has_sufficient_funds(Decimal256::from_str("1.0").unwrap()));
+    }
+
+    #[test]
+    fn should_return_false_when_vault_has_insufficient_swap_amount_with_fin_price() {
+        let vault = vault_with(Uint128::new(1));
+        assert!(!vault.has_sufficient_funds(Decimal256::from_str("1.01").unwrap()));
+    }
+
+    #[test]
+    fn should_return_true_when_vault_has_sufficient_swap_amount_with_inverted_fin_price() {
+        let vault = vault_with(Uint128::new(2));
+        assert!(vault.has_sufficient_funds(Decimal256::from_str("0.99").unwrap()));
+    }
+
+    #[test]
+    fn should_return_true_when_vault_has_sufficient_swap_amount_with_fin_price() {
+        let vault = vault_with(Uint128::new(2));
+        assert!(vault.has_sufficient_funds(Decimal256::from_str("1.01").unwrap()));
+    }
+
+    fn vault_with(swap_amount: Uint128) -> Vault {
+        Vault {
+            id: Uint128::new(1),
+            created_at: Timestamp::from_seconds(0),
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            balance: coin(1000, "quote"),
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            swap_amount,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            swapped_amount: coin(0, "quote"),
+            received_amount: coin(0, "base"),
+            trigger: None,
+        }
     }
 }
 

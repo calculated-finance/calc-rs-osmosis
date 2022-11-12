@@ -6,12 +6,13 @@ use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
+use crate::types::vault::Vault;
 use crate::validation_helpers::{assert_contract_is_not_paused, assert_target_time_is_in_past};
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PositionType, VaultStatus};
-use cosmwasm_std::{Decimal256, StdError};
+use cosmwasm_std::{Decimal256, StdError, StdResult};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
@@ -115,6 +116,41 @@ pub fn execute_trigger(
 
                 return Ok(response.to_owned());
             };
+
+            if !vault.has_sufficient_funds(belief_price) {
+                create_event(
+                    deps.storage,
+                    EventBuilder::new(
+                        vault.id,
+                        env.block.to_owned(),
+                        EventData::DcaVaultExecutionSkipped {
+                            reason: ExecutionSkippedReason::UnknownFailure,
+                        },
+                    ),
+                )?;
+
+                update_vault(
+                    deps.storage,
+                    vault.id.into(),
+                    |existing_vault| -> StdResult<Vault> {
+                        match existing_vault {
+                            Some(mut existing_vault) => {
+                                existing_vault.status = VaultStatus::Inactive;
+                                Ok(existing_vault)
+                            }
+                            None => Err(StdError::NotFound {
+                                kind: format!(
+                                    "vault for address: {} with id: {}",
+                                    vault.owner.clone(),
+                                    vault.id
+                                ),
+                            }),
+                        }
+                    },
+                )?;
+
+                return Ok(response.to_owned());
+            }
 
             let fin_swap_msg = match vault.slippage_tolerance {
                 Some(tolerance) => create_fin_swap_with_slippage(

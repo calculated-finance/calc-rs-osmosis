@@ -787,3 +787,26 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
     );
     Box::new(contract)
 }
+
+pub fn fin_contract_high_swap_price() -> Box<dyn Contract<Empty>> {
+    let contract = ContractWrapper::new(
+        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
+            match msg {
+                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
+                _ => Ok(Response::default()),
+            }
+        },
+        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
+        |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
+            match msg {
+                FINQueryMsg::Book { .. } => book_response_handler(
+                    String::from(DENOM_UTEST),
+                    Decimal256::from_str("9")?,
+                    Decimal256::from_str("11")?,
+                ),
+                _ => default_query_response(),
+            }
+        },
+    );
+    Box::new(contract)
+}

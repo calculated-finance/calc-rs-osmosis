@@ -18,7 +18,6 @@ use base::vaults::vault::{PositionType, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
-use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
@@ -231,42 +230,14 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
             attributes.push(Attribute::new("status", "success"));
         }
-        SubMsgResult::Err(e) => {
-            let execution_skipped_reason = if e.contains(ERROR_SWAP_SLIPPAGE_EXCEEDED) {
-                ExecutionSkippedReason::SlippageToleranceExceeded
-            } else {
-                ExecutionSkippedReason::UnknownFailure
-            };
-
-            if execution_skipped_reason != ExecutionSkippedReason::SlippageToleranceExceeded {
-                update_vault(
-                    deps.storage,
-                    vault.id.into(),
-                    |existing_vault| -> StdResult<Vault> {
-                        match existing_vault {
-                            Some(mut existing_vault) => {
-                                existing_vault.status = VaultStatus::Inactive;
-                                Ok(existing_vault)
-                            }
-                            None => Err(StdError::NotFound {
-                                kind: format!(
-                                    "vault for address: {} with id: {}",
-                                    vault.owner.clone(),
-                                    vault.id
-                                ),
-                            }),
-                        }
-                    },
-                )?;
-            }
-
+        SubMsgResult::Err(_) => {
             create_event(
                 deps.storage,
                 EventBuilder::new(
                     vault.id,
                     env.block.to_owned(),
                     EventData::DcaVaultExecutionSkipped {
-                        reason: execution_skipped_reason.clone(),
+                        reason: ExecutionSkippedReason::SlippageToleranceExceeded,
                     },
                 ),
             )?;

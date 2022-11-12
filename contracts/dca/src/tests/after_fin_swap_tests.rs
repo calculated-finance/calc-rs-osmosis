@@ -183,59 +183,6 @@ fn with_successful_swap_creates_a_new_time_trigger() {
 }
 
 #[test]
-fn with_insufficient_funds_publishes_unknown_failure_event() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
-
-    let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err("Generic failure".to_string()),
-    };
-
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
-
-    let vault_id = Uint128::one();
-
-    let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
-        .unwrap()
-        .events;
-
-    assert!(events.contains(
-        &EventBuilder::new(
-            vault_id,
-            env.block.clone(),
-            EventData::DcaVaultExecutionSkipped {
-                reason: ExecutionSkippedReason::UnknownFailure
-            }
-        )
-        .build(1)
-    ));
-}
-
-#[test]
-fn with_insufficient_funds_makes_vault_inactive() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-    setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
-
-    let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err("Generic failure".to_string()),
-    };
-
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
-
-    let vault = get_vault(&mut deps.storage, vault_id).unwrap();
-
-    assert_eq!(vault.status, VaultStatus::Inactive);
-}
-
-#[test]
 fn with_insufficient_funds_does_not_reduce_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
