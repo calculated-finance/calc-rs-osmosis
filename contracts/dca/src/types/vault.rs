@@ -135,9 +135,9 @@ mod has_sufficient_funds_tests {
     }
 
     #[test]
-    fn should_return_true_when_vault_has_just_enough_swap_amount() {
+    fn should_return_false_when_vault_has_just_enough_swap_amount() {
         let vault = vault_with(Uint128::new(1));
-        assert!(vault.has_sufficient_funds(Decimal256::from_str("1.0").unwrap()));
+        assert!(!vault.has_sufficient_funds(Decimal256::from_str("1.0").unwrap()));
     }
 
     #[test]
