@@ -102,7 +102,7 @@ impl Vault {
                 .expect("minimum possible receive amount should be valid"),
         );
 
-        minimum_possible_receive_amount >= Decimal256::one()
+        minimum_possible_receive_amount > Decimal256::one()
     }
 
     pub fn low_funds(&self) -> bool {
