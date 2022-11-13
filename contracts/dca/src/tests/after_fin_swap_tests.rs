@@ -13,6 +13,7 @@ use cosmwasm_std::{
 use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 
 use crate::{
+    constants::TEN,
     contract::AFTER_FIN_SWAP_REPLY_ID,
     handlers::{
         after_fin_swap::after_fin_swap, get_events_by_resource_id::get_events_by_resource_id,
@@ -25,6 +26,7 @@ use crate::{
     tests::{
         helpers::{
             instantiate_contract, setup_active_vault_with_funds, setup_active_vault_with_low_funds,
+            setup_active_vault_with_slippage_funds,
         },
         mocks::ADMIN,
     },
@@ -183,7 +185,7 @@ fn with_successful_swap_creates_a_new_time_trigger() {
 }
 
 #[test]
-fn with_insufficient_funds_does_not_reduce_vault_balance() {
+fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -203,7 +205,7 @@ fn with_insufficient_funds_does_not_reduce_vault_balance() {
 }
 
 #[test]
-fn with_insufficient_funds_creates_a_new_time_trigger() {
+fn with_failed_swap_and_insufficient_funds_does_not_create_a_new_time_trigger() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -218,13 +220,27 @@ fn with_insufficient_funds_creates_a_new_time_trigger() {
     after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
 
     let trigger = get_trigger(&mut deps.storage, vault_id).unwrap();
+    assert!(trigger.is_none());
+}
 
-    assert_eq!(
-        trigger.unwrap().configuration,
-        TriggerConfiguration::Time {
-            target_time: Timestamp::from_seconds(env.block.time.seconds() + 60 * 60 * 24)
-        }
-    );
+#[test]
+fn with_failed_swap_and_insufficient_funds_sets_vault_to_inactive() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let vault_id = Uint128::one();
+
+    let reply = Reply {
+        id: AFTER_FIN_SWAP_REPLY_ID,
+        result: SubMsgResult::Err("Generic failure".to_string()),
+    };
+
+    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
+
+    let vault = get_vault(&mut deps.storage, vault_id).unwrap();
+
+    assert_eq!(vault.status, VaultStatus::Inactive);
 }
 
 #[test]
@@ -257,7 +273,7 @@ fn with_slippage_failure_publishes_execution_failed_event() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-    setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    setup_active_vault_with_slippage_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {
@@ -284,11 +300,11 @@ fn with_slippage_failure_publishes_execution_failed_event() {
 }
 
 #[test]
-fn with_slippage_failure_funds_leaves_vault_active() {
+fn with_slippage_failure_leaves_vault_active() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    setup_active_vault_with_slippage_funds(deps.as_mut(), env.clone());
     let vault_id = Uint128::one();
 
     let reply = Reply {
@@ -320,7 +336,7 @@ fn with_slippage_failure_does_not_reduce_vault_balance() {
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
-    assert_eq!(vault.balance, Coin::new(Uint128::new(1000).into(), "base"));
+    assert_eq!(vault.balance, Coin::new(TEN.into(), "base"));
 }
 
 #[test]

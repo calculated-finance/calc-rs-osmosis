@@ -22,7 +22,7 @@ use base::{
     events::event::{EventBuilder, EventData},
     helpers::math_helpers::checked_mul,
     triggers::trigger::TriggerConfiguration,
-    vaults::vault::VaultStatus,
+    vaults::vault::{PostExecutionAction, VaultStatus},
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
@@ -67,10 +67,29 @@ fn after_succcesful_withdrawal_returns_funds_to_destination() {
 
     let fee = get_config(&deps.storage).unwrap().swap_fee_percent * vault.get_swap_amount().amount;
 
+    let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
+
+    let automation_fees = vault
+        .destinations
+        .iter()
+        .filter(|d| d.action == PostExecutionAction::ZDelegate)
+        .fold(
+            Coin::new(0, vault.get_receive_denom()),
+            |mut accum, destination| {
+                let allocation_amount =
+                    checked_mul(vault.get_swap_amount().amount - fee, destination.allocation)
+                        .unwrap();
+                let allocation_automation_fee =
+                    checked_mul(allocation_amount, automation_fee).unwrap();
+                accum.amount = accum.amount.checked_add(allocation_automation_fee).unwrap();
+                accum
+            },
+        );
+
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: vault.destinations.first().unwrap().address.to_string(),
         amount: vec![Coin::new(
-            (vault.get_swap_amount().amount - fee).into(),
+            (vault.get_swap_amount().amount - fee - automation_fees.amount).into(),
             vault.get_receive_denom()
         )]
     })));
@@ -237,6 +256,25 @@ fn after_successful_withdrawal_creates_delegation_messages() {
 
     let fee = get_config(&deps.storage).unwrap().swap_fee_percent * vault.get_swap_amount().amount;
 
+    let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
+
+    let automation_fees = vault
+        .destinations
+        .iter()
+        .filter(|d| d.action == PostExecutionAction::ZDelegate)
+        .fold(
+            Coin::new(0, vault.get_receive_denom()),
+            |mut accum, destination| {
+                let allocation_amount =
+                    checked_mul(vault.get_swap_amount().amount - fee, destination.allocation)
+                        .unwrap();
+                let allocation_automation_fee =
+                    checked_mul(allocation_amount, automation_fee).unwrap();
+                accum.amount = accum.amount.checked_add(allocation_automation_fee).unwrap();
+                accum
+            },
+        );
+
     assert!(response.messages.contains(&SubMsg::reply_always(
         CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
             contract_addr: get_config(&deps.storage)
@@ -248,7 +286,7 @@ fn after_successful_withdrawal_creates_delegation_messages() {
                 validator_address: vault.destinations[0].address.clone(),
                 denom: vault.get_receive_denom(),
                 amount: checked_mul(
-                    vault.get_swap_amount().amount - fee,
+                    vault.get_swap_amount().amount - fee - automation_fees.amount,
                     vault.destinations[0].allocation
                 )
                 .unwrap()

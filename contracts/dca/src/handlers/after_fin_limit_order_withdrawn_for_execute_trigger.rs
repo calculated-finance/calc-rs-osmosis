@@ -83,7 +83,7 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                             existing_vault.balance.amount -=
                                 limit_order_cache.original_offer_amount;
 
-                            if existing_vault.is_empty() {
+                            if !existing_vault.has_sufficient_funds() {
                                 existing_vault.status = VaultStatus::Inactive
                             }
 

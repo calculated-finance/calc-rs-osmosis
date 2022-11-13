@@ -446,12 +446,12 @@ impl MockApp {
                     pair_address: self.fin_contract_address.clone(),
                     position_type: None,
                     slippage_tolerance: None,
-                    swap_amount: Uint128::new(100),
+                    swap_amount: Uint128::new(50001),
                     time_interval: TimeInterval::Hourly,
                     target_start_time_utc_seconds: None,
                     target_receive_amount: None,
                 },
-                &vec![Coin::new(100, DENOM_UKUJI)],
+                &vec![Coin::new(100000, DENOM_UKUJI)],
             )
             .unwrap();
 

@@ -12,8 +12,7 @@ use crate::validation_helpers::{
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
     assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
     assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
-    assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_less_than_or_equal_to_balance,
-    assert_swap_amount_is_not_zero,
+    assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_greater_than_50000,
     assert_target_receive_amount_greater_than_or_equal_to_minimum_receive_amount,
     assert_target_start_time_is_in_future,
 };
@@ -46,8 +45,7 @@ pub fn create_vault(
     assert_contract_is_not_paused(deps.storage)?;
     assert_address_is_valid(deps.as_ref(), owner.clone(), "owner".to_string())?;
     assert_exactly_one_asset(info.funds.clone())?;
-    assert_swap_amount_is_not_zero(swap_amount)?;
-    assert_swap_amount_is_less_than_or_equal_to_balance(swap_amount, info.funds[0].clone())?;
+    assert_swap_amount_is_greater_than_50000(swap_amount)?;
     assert_destinations_limit_is_not_breached(&destinations)?;
     assert_target_receive_amount_greater_than_or_equal_to_minimum_receive_amount(
         minimum_receive_amount,

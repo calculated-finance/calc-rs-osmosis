@@ -1719,7 +1719,7 @@ fn with_passed_in_owner_should_succeed() {
 }
 
 #[test]
-fn with_swap_amount_equal_to_zero_should_fail() {
+fn with_swap_amount_less_than_50000_should_fail() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
     let vault_deposit = TEN;
@@ -1758,7 +1758,7 @@ fn with_swap_amount_equal_to_zero_should_fail() {
 
     assert_eq!(
         response.root_cause().to_string(),
-        "Error: swap amount must be greater than 0"
+        "Error: swap amount must be greater than 50000"
     );
 }
 

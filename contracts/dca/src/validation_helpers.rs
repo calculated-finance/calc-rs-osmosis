@@ -62,25 +62,10 @@ pub fn assert_vault_is_not_cancelled(vault: &Vault) -> Result<(), ContractError>
     Ok(())
 }
 
-pub fn assert_swap_amount_is_less_than_or_equal_to_balance(
-    swap_amount: Uint128,
-    starting_balance: Coin,
-) -> Result<(), ContractError> {
-    if starting_balance.amount < swap_amount {
+pub fn assert_swap_amount_is_greater_than_50000(swap_amount: Uint128) -> Result<(), ContractError> {
+    if swap_amount <= Uint128::from(50000u128) {
         return Err(ContractError::CustomError {
-            val: format!(
-                "swap amount of {} is less than the starting balance {}",
-                swap_amount, starting_balance.amount
-            ),
-        });
-    }
-    Ok(())
-}
-
-pub fn assert_swap_amount_is_not_zero(swap_amount: Uint128) -> Result<(), ContractError> {
-    if swap_amount.is_zero() {
-        return Err(ContractError::CustomError {
-            val: String::from("swap amount must be greater than 0"),
+            val: String::from("swap amount must be greater than 50000"),
         });
     }
     Ok(())

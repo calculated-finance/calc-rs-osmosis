@@ -170,7 +170,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                             existing_vault.balance.amount -=
                                 existing_vault.get_swap_amount().amount;
 
-                            if existing_vault.is_empty() {
+                            if !existing_vault.has_sufficient_funds() {
                                 existing_vault.status = VaultStatus::Inactive;
                             }
 
@@ -231,43 +231,75 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         SubMsgResult::Err(_) => {
-            create_event(
-                deps.storage,
-                EventBuilder::new(
-                    vault.id,
-                    env.block.to_owned(),
-                    EventData::DcaVaultExecutionSkipped {
-                        reason: ExecutionSkippedReason::SlippageToleranceExceeded,
+            if !vault.has_sufficient_funds() {
+                create_event(
+                    deps.storage,
+                    EventBuilder::new(
+                        vault.id,
+                        env.block.to_owned(),
+                        EventData::DcaVaultExecutionSkipped {
+                            reason: ExecutionSkippedReason::UnknownFailure,
+                        },
+                    ),
+                )?;
+
+                update_vault(
+                    deps.storage,
+                    vault.id.into(),
+                    |existing_vault| -> StdResult<Vault> {
+                        match existing_vault {
+                            Some(mut existing_vault) => {
+                                existing_vault.status = VaultStatus::Inactive;
+                                Ok(existing_vault)
+                            }
+                            None => Err(StdError::NotFound {
+                                kind: format!(
+                                    "vault for address: {} with id: {}",
+                                    vault.owner.clone(),
+                                    vault.id
+                                ),
+                            }),
+                        }
                     },
-                ),
-            )?;
+                )?;
+            } else {
+                create_event(
+                    deps.storage,
+                    EventBuilder::new(
+                        vault.id,
+                        env.block.to_owned(),
+                        EventData::DcaVaultExecutionSkipped {
+                            reason: ExecutionSkippedReason::SlippageToleranceExceeded,
+                        },
+                    ),
+                )?;
+
+                match vault
+                    .trigger
+                    .expect(format!("trigger for vault id {}", vault.id).as_str())
+                {
+                    TriggerConfiguration::Time { target_time } => {
+                        save_trigger(
+                            deps.storage,
+                            Trigger {
+                                vault_id: vault.id,
+                                configuration: TriggerConfiguration::Time {
+                                    target_time: get_next_target_time(
+                                        env.block.time,
+                                        target_time,
+                                        vault.time_interval,
+                                    ),
+                                },
+                            },
+                        )?;
+                    }
+                    _ => panic!("should be a time trigger"),
+                }
+            }
 
             attributes.push(Attribute::new("status", "skipped"));
-
-            match vault
-                .trigger
-                .expect(format!("trigger for vault id {}", vault.id).as_str())
-            {
-                TriggerConfiguration::Time { target_time } => {
-                    save_trigger(
-                        deps.storage,
-                        Trigger {
-                            vault_id: vault.id,
-                            configuration: TriggerConfiguration::Time {
-                                target_time: get_next_target_time(
-                                    env.block.time,
-                                    target_time,
-                                    vault.time_interval,
-                                ),
-                            },
-                        },
-                    )?;
-                }
-                _ => panic!("should be a time trigger"),
-            }
         }
-    };
-
+    }
     Ok(Response::new()
         .add_attribute("method", "fin_swap_completed")
         .add_attribute("owner", vault.owner.to_string())
