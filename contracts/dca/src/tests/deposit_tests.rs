@@ -5,7 +5,7 @@ use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
 use crate::tests::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, USER};
 use base::events::event::EventBuilder;
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128};
 use cw_multi_test::Executor;
 
 use super::helpers::{assert_address_balances, assert_events_published, assert_vault_balance};
@@ -223,6 +223,55 @@ fn when_vault_is_active_should_not_change_status() {
 }
 
 #[test]
+fn when_vault_is_active_should_not_execute_vault() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE_HUNDRED;
+    let swap_amount = ONE;
+    let vault_deposit = TEN;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_active_vault(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "vault",
+            None,
+        );
+
+    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+
+    let initial_vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .unwrap();
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::Deposit {
+                address: user_address.clone(),
+                vault_id,
+            },
+            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .unwrap();
+
+    assert_eq!(
+        vault_response.vault.balance.amount,
+        initial_vault_response.vault.balance.amount + vault_deposit
+    );
+}
+
+#[test]
 fn when_vault_is_inactive_should_change_status() {
     let user_address = Addr::unchecked(USER);
     let user_balance = ONE_HUNDRED;
@@ -252,6 +301,76 @@ fn when_vault_is_inactive_should_change_status() {
         .unwrap();
 
     assert_eq!(vault_response.vault.status, VaultStatus::Active);
+}
+
+#[test]
+fn when_vault_is_inactive_should_execute_vault() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE_HUNDRED;
+    let vault_deposit = TEN;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_inactive_vault(&user_address, None, "vault");
+
+    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::Deposit {
+                address: user_address.clone(),
+                vault_id,
+            },
+            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    assert_events_published(
+        &mock,
+        vault_id,
+        &[EventBuilder::new(
+            vault_id,
+            mock.app.block_info(),
+            base::events::event::EventData::DcaVaultExecutionTriggered {
+                base_denom: DENOM_UTEST.to_string(),
+                quote_denom: DENOM_UKUJI.to_string(),
+                asset_price: Decimal256::one(),
+            },
+        )
+        .build(3)],
+    );
+}
+
+#[test]
+fn when_vault_is_inactive_and_insufficient_funds_should_not_change_status() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE_HUNDRED;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_inactive_vault(&user_address, None, "vault");
+
+    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::Deposit {
+                address: user_address.clone(),
+                vault_id,
+            },
+            &[Coin::new(300, DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .unwrap();
+
+    assert_eq!(vault_response.vault.status, VaultStatus::Inactive);
 }
 
 #[test]

@@ -451,7 +451,7 @@ impl MockApp {
                     target_start_time_utc_seconds: None,
                     target_receive_amount: None,
                 },
-                &vec![Coin::new(100000, DENOM_UKUJI)],
+                &vec![Coin::new(1, DENOM_UKUJI)],
             )
             .unwrap();
 

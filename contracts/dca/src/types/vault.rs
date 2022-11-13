@@ -103,6 +103,10 @@ impl Vault {
     pub fn is_scheduled(&self) -> bool {
         self.status == VaultStatus::Scheduled
     }
+
+    pub fn is_inactive(&self) -> bool {
+        self.status == VaultStatus::Inactive
+    }
 }
 
 #[cfg(test)]

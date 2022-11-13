@@ -1,5 +1,6 @@
 use crate::error::ContractError;
 use crate::state::events::create_event;
+use crate::state::triggers::save_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::vault::Vault;
 use crate::validation_helpers::{
@@ -8,10 +9,13 @@ use crate::validation_helpers::{
 };
 use base::events::event::{EventBuilder, EventData};
 
+use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{Addr, Env, StdError, StdResult};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
+
+use super::execute_trigger::execute_trigger;
 
 pub fn deposit(
     deps: DepsMut,
@@ -25,6 +29,7 @@ pub fn deposit(
     assert_exactly_one_asset(info.funds.clone())?;
 
     let vault = get_vault(deps.storage, vault_id.into())?;
+    let vault_was_inactive = vault.is_inactive();
 
     if address != vault.owner {
         return Err(ContractError::CustomError {
@@ -65,12 +70,32 @@ pub fn deposit(
         deps.storage,
         EventBuilder::new(
             vault.id,
-            env.block,
+            env.block.clone(),
             EventData::DcaVaultFundsDeposited {
                 amount: info.funds[0].clone(),
             },
         ),
     )?;
 
-    Ok(Response::new().add_attribute("method", "deposit"))
+    let vault = get_vault(deps.storage, vault.id)?;
+
+    let response = Response::new().add_attribute("method", "deposit");
+
+    if vault.is_active() && vault_was_inactive {
+        save_trigger(
+            deps.storage,
+            Trigger {
+                vault_id,
+                configuration: TriggerConfiguration::Time {
+                    target_time: env.block.time.clone(),
+                },
+            },
+        )?;
+
+        return Ok(
+            execute_trigger(deps, env, vault.id, response.clone()).expect("time trigger executed")
+        );
+    };
+
+    Ok(response)
 }
