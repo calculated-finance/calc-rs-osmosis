@@ -1917,7 +1917,7 @@ fn when_contract_is_paused_should_fail() {
 fn for_vault_with_insufficient_balance_should_set_vault_status_to_inactive() {
     let user_address = Addr::unchecked(USER);
     let user_balance = ONE;
-    let vault_deposit = Uint128::one();
+    let vault_deposit = Uint128::from(50001u128);
     let swap_amount = Uint128::from(50001u128);
 
     let mut mock = MockApp::new(fin_contract_high_swap_price())

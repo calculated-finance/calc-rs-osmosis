@@ -33,21 +33,19 @@ pub fn cancel_vault(
         EventBuilder::new(vault.id, env.block, EventData::DcaVaultCancelled {}),
     )?;
 
-    match vault
-        .trigger
-        .clone()
-        .expect(format!("trigger for vault id {}", vault.id).as_str())
-    {
-        TriggerConfiguration::Time { .. } => cancel_time_trigger(deps, vault),
-        TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
+    match vault.trigger {
+        Some(TriggerConfiguration::Time { .. }) => {
+            delete_trigger(deps.storage, vault.id.into())?;
+            refund_vault_balance(deps, vault)
+        }
+        Some(TriggerConfiguration::FinLimitOrder { order_idx, .. }) => {
             cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), vault)
         }
+        None => refund_vault_balance(deps, vault),
     }
 }
 
-fn cancel_time_trigger(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
-    delete_trigger(deps.storage, vault.id.into())?;
-
+fn refund_vault_balance(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
     let mut response = Response::new()
         .add_attribute("method", "cancel_vault")
         .add_attribute("owner", vault.owner.to_string())

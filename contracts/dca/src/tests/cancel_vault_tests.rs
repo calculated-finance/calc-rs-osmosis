@@ -618,3 +618,93 @@ fn for_vault_with_different_onwer_should_fail() {
 
     assert_eq!(response.root_cause().to_string(), "Unauthorized");
 }
+
+#[test]
+fn when_vault_has_no_trigger_should_cancel_vault() {
+    let user_address = Addr::unchecked(USER);
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, TEN, DENOM_UKUJI)
+        .with_inactive_vault(&user_address, None, "fin");
+
+    let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault { vault_id },
+            &[],
+        )
+        .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address.clone(),
+            &QueryMsg::GetVault { vault_id },
+        )
+        .unwrap();
+
+    assert_eq!(vault_response.vault.status, VaultStatus::Cancelled);
+}
+
+#[test]
+fn when_vault_has_no_trigger_should_empty_vault_balance() {
+    let user_address = Addr::unchecked(USER);
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, TEN, DENOM_UKUJI)
+        .with_inactive_vault(&user_address, None, "fin");
+
+    let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault { vault_id },
+            &[],
+        )
+        .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address.clone(),
+            &QueryMsg::GetVault { vault_id },
+        )
+        .unwrap();
+
+    assert_eq!(vault_response.vault.balance.amount, Uint128::zero());
+}
+
+#[test]
+fn when_vault_has_no_trigger_should_publish_events() {
+    let user_address = Addr::unchecked(USER);
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, TEN, DENOM_UKUJI)
+        .with_inactive_vault(&user_address, None, "fin");
+
+    let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CancelVault { vault_id },
+            &[],
+        )
+        .unwrap();
+
+    assert_events_published(
+        &mock,
+        vault_id,
+        &[EventBuilder::new(
+            vault_id,
+            mock.app.block_info(),
+            EventData::DcaVaultCancelled {},
+        )
+        .build(3)],
+    );
+}

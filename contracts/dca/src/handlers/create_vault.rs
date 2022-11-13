@@ -92,7 +92,11 @@ pub fn create_vault(
         label,
         destinations,
         created_at: env.block.time,
-        status: VaultStatus::Scheduled,
+        status: if info.funds[0].amount.clone() <= Uint128::from(50000u128) {
+            VaultStatus::Inactive
+        } else {
+            VaultStatus::Scheduled
+        },
         pair,
         swap_amount,
         position_type,
@@ -133,6 +137,10 @@ pub fn create_vault(
         .add_attribute("method", "create_vault")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id);
+
+    if vault.is_inactive() {
+        return Ok(response);
+    }
 
     match (target_start_time_utc_seconds, target_receive_amount) {
         (None, None) | (Some(_), None) => {

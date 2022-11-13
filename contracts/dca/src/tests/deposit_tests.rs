@@ -338,7 +338,7 @@ fn when_vault_is_inactive_should_execute_vault() {
                 asset_price: Decimal256::one(),
             },
         )
-        .build(3)],
+        .build(4)],
     );
 }
 

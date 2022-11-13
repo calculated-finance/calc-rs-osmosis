@@ -1829,3 +1829,77 @@ fn when_contract_is_paused_should_fail() {
         response.root_cause().to_string()
     )
 }
+
+#[test]
+fn with_insufficient_funds_should_create_inactive_vault() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = Uint128::one();
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    let target_start_time = mock.app.block_info().time.plus_seconds(2);
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                minimum_receive_amount: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
+                target_receive_amount: None,
+            },
+            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::new(1);
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .unwrap();
+
+    assert_eq!(
+        vault_response.vault,
+        Vault {
+            minimum_receive_amount: None,
+            label: Some("label".to_string()),
+            id: Uint128::new(1),
+            owner: user_address.clone(),
+            destinations: vec![Destination {
+                address: user_address.clone(),
+                allocation: Decimal::percent(100),
+                action: PostExecutionAction::Send
+            }],
+            created_at: mock.app.block_info().time,
+            status: VaultStatus::Inactive,
+            time_interval: TimeInterval::Hourly,
+            balance: Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
+            slippage_tolerance: None,
+            swap_amount,
+            pair: Pair {
+                address: mock.fin_contract_address.clone(),
+                base_denom: DENOM_UTEST.to_string(),
+                quote_denom: DENOM_UKUJI.to_string(),
+            },
+            started_at: None,
+            swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
+            received_amount: Coin::new(0, DENOM_UTEST.to_string()),
+            trigger: None
+        }
+    );
+}
