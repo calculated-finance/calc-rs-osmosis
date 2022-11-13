@@ -185,6 +185,35 @@ fn with_successful_swap_creates_a_new_time_trigger() {
 }
 
 #[test]
+fn with_successful_swap_and_insufficient_remaining_funds_sets_vault_to_inactive() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let receive_amount = Uint128::new(234312312);
+
+    after_fin_swap(
+        deps.as_mut(),
+        env.clone(),
+        Reply {
+            id: AFTER_FIN_SWAP_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![Event::new("wasm-trade")
+                    .add_attribute("base_amount", vault.get_swap_amount().amount.to_string())
+                    .add_attribute("quote_amount", receive_amount.to_string())],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let vault = get_vault(&deps.storage, vault.id).unwrap();
+
+    assert_eq!(vault.status, VaultStatus::Inactive);
+}
+
+#[test]
 fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -244,7 +273,39 @@ fn with_failed_swap_and_insufficient_funds_sets_vault_to_inactive() {
 }
 
 #[test]
-fn with_slippage_failure_creates_a_new_time_trigger() {
+fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_failure() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let vault_id = Uint128::one();
+
+    let reply = Reply {
+        id: AFTER_FIN_SWAP_REPLY_ID,
+        result: SubMsgResult::Err("Generic failure".to_string()),
+    };
+
+    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
+
+    let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
+        .unwrap()
+        .events;
+
+    assert!(events.contains(
+        &EventBuilder::new(
+            vault_id,
+            env.block.clone(),
+            EventData::DcaVaultExecutionSkipped {
+                reason: ExecutionSkippedReason::UnknownFailure
+            }
+        )
+        .build(1)
+    ));
+}
+
+#[test]
+fn with_failed_swap_creates_a_new_time_trigger() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -269,7 +330,7 @@ fn with_slippage_failure_creates_a_new_time_trigger() {
 }
 
 #[test]
-fn with_slippage_failure_publishes_execution_failed_event() {
+fn with_failed_swap_publishes_skipped_event_with_slippage_failure() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
@@ -300,7 +361,7 @@ fn with_slippage_failure_publishes_execution_failed_event() {
 }
 
 #[test]
-fn with_slippage_failure_leaves_vault_active() {
+fn with_failed_swap_leaves_vault_active() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
@@ -320,7 +381,7 @@ fn with_slippage_failure_leaves_vault_active() {
 }
 
 #[test]
-fn with_slippage_failure_does_not_reduce_vault_balance() {
+fn with_failed_swap_does_not_reduce_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
