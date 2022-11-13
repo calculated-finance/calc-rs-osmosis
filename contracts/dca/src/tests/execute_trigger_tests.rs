@@ -332,21 +332,12 @@ fn for_filled_fin_limit_order_trigger_should_create_new_time_trigger() {
 
     let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
 
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &&QueryMsg::GetVault { vault_id },
-        )
-        .unwrap();
-
     mock.app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault_response.vault.id,
+                trigger_id: vault_id,
             },
             &[],
         )
@@ -364,6 +355,7 @@ fn for_filled_fin_limit_order_trigger_should_create_new_time_trigger() {
         .unwrap();
 
     assert_eq!(get_time_trigger_ids_response.trigger_ids.len(), 1);
+    assert_eq!(get_time_trigger_ids_response.trigger_ids[0], vault_id);
 }
 
 #[test]

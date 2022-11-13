@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use super::mocks::{MockApp, ADMIN};
 use crate::{
+    constants::{ONE, TEN},
     contract::instantiate,
     msg::{EventsResponse, InstantiateMsg, QueryMsg, VaultResponse},
     state::{
@@ -61,11 +62,11 @@ pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
             created_at: env.block.time.clone(),
             status: VaultStatus::Active,
             pair,
-            swap_amount: Uint128::new(100),
+            swap_amount: ONE,
             position_type: None,
             slippage_tolerance: None,
             minimum_receive_amount: None,
-            balance: Coin::new(Uint128::new(1000).into(), "base"),
+            balance: Coin::new(TEN.into(), "base"),
             time_interval: TimeInterval::Daily,
             started_at: None,
         },

@@ -58,7 +58,11 @@ pub fn delete_trigger(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<U
             if existing_triggers_at_time.is_some() {
                 let mut triggers = existing_triggers_at_time.unwrap();
                 triggers.retain(|&t| t != vault_id.into());
-                TRIGGER_IDS_BY_TARGET_TIME.save(store, target_time.seconds(), &triggers)?;
+                if triggers.is_empty() {
+                    TRIGGER_IDS_BY_TARGET_TIME.remove(store, target_time.seconds());
+                } else {
+                    TRIGGER_IDS_BY_TARGET_TIME.save(store, target_time.seconds(), &triggers)?;
+                }
             }
         }
         TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
@@ -74,4 +78,38 @@ pub fn clear_triggers(store: &mut dyn Storage) {
     TRIGGERS.clear(store);
     TRIGGER_IDS_BY_TARGET_TIME.clear(store);
     TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX.clear(store);
+}
+
+#[cfg(test)]
+mod remove_trigger_tests {
+    use cosmwasm_std::{testing::MockStorage, Timestamp};
+
+    use super::*;
+
+    #[test]
+    fn removes_timestamp_from_index_if_no_triggers_at_time() {
+        let mut store = MockStorage::new();
+        let target_time = Timestamp::from_seconds(100);
+
+        let trigger = Trigger {
+            vault_id: Uint128::from(1u128),
+            configuration: TriggerConfiguration::Time { target_time },
+        };
+
+        save_trigger(&mut store, trigger.clone()).unwrap();
+
+        let triggers_at_time = TRIGGER_IDS_BY_TARGET_TIME
+            .may_load(&store, target_time.seconds())
+            .unwrap();
+
+        assert_eq!(triggers_at_time.unwrap().len(), 1);
+
+        delete_trigger(&mut store, trigger.vault_id).unwrap();
+
+        let triggers_at_time = TRIGGER_IDS_BY_TARGET_TIME
+            .may_load(&store, target_time.seconds())
+            .unwrap();
+
+        assert!(triggers_at_time.is_none());
+    }
 }
