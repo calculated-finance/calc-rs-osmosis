@@ -26,9 +26,6 @@ use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_vault_label::update_vault_label;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::config::{update_config, Config};
-use crate::state::events::clear_events;
-use crate::state::triggers::clear_triggers;
-use crate::state::vaults::clear_vaults;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
@@ -48,9 +45,6 @@ pub const AFTER_BANK_SWAP_REPLY_ID: u64 = 7;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _: Env, _: MigrateMsg) -> Result<Response, ContractError> {
-    clear_vaults(deps.storage);
-    clear_triggers(deps.storage);
-    clear_events(deps.storage);
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new())
 }
