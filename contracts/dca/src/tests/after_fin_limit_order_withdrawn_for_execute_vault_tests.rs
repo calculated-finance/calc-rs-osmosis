@@ -1,6 +1,7 @@
 use crate::{
     contract::{
-        AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_Z_DELEGATION_REPLY_ID,
+        AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
+        AFTER_Z_DELEGATION_REPLY_ID,
     },
     handlers::{
         after_fin_limit_order_withdrawn_for_execute_trigger::after_fin_limit_order_withdrawn_for_execute_vault,
@@ -86,13 +87,16 @@ fn after_succcesful_withdrawal_returns_funds_to_destination() {
             },
         );
 
-    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: vault.destinations.first().unwrap().address.to_string(),
-        amount: vec![Coin::new(
-            (vault.get_swap_amount().amount - fee - automation_fees.amount).into(),
-            vault.get_receive_denom()
-        )]
-    })));
+    assert!(response.messages.contains(&SubMsg::reply_on_success(
+        BankMsg::Send {
+            to_address: vault.destinations.first().unwrap().address.to_string(),
+            amount: vec![Coin::new(
+                (vault.get_swap_amount().amount - fee - automation_fees.amount).into(),
+                vault.get_receive_denom()
+            )]
+        },
+        AFTER_BANK_SWAP_REPLY_ID
+    )));
 }
 
 #[test]

@@ -14,7 +14,7 @@ use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 
 use crate::{
     constants::TEN,
-    contract::AFTER_FIN_SWAP_REPLY_ID,
+    contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID},
     handlers::{
         after_fin_swap::after_fin_swap, get_events_by_resource_id::get_events_by_resource_id,
     },
@@ -39,7 +39,7 @@ fn with_succcesful_swap_returns_funds_to_destination() {
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
-    let receive_amount = Uint128::new(234312312);
+    let receive_amount = Uint128::new(10000);
 
     let response = after_fin_swap(
         deps.as_mut(),
@@ -76,13 +76,16 @@ fn with_succcesful_swap_returns_funds_to_destination() {
             },
         );
 
-    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: vault.destinations.first().unwrap().address.to_string(),
-        amount: vec![Coin::new(
-            (receive_amount - fee - automation_fees.amount).into(),
-            vault.get_receive_denom()
-        )]
-    })));
+    assert!(response.messages.contains(&SubMsg::reply_on_success(
+        BankMsg::Send {
+            to_address: vault.destinations.first().unwrap().address.to_string(),
+            amount: vec![Coin::new(
+                (receive_amount - fee - automation_fees.amount).into(),
+                vault.get_receive_denom(),
+            )],
+        },
+        AFTER_BANK_SWAP_REPLY_ID,
+    )));
 }
 
 #[test]

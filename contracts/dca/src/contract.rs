@@ -44,6 +44,7 @@ pub const AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID: u64 = 3;
 pub const AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID: u64 = 4;
 pub const AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID: u64 = 5;
 pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 6;
+pub const AFTER_BANK_SWAP_REPLY_ID: u64 = 7;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _: Env, _: MigrateMsg) -> Result<Response, ContractError> {
@@ -176,6 +177,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
         }
         AFTER_FIN_SWAP_REPLY_ID => after_fin_swap(deps, env, reply),
         AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
+        AFTER_BANK_SWAP_REPLY_ID => Ok(Response::new().add_attribute("method", "after_bank_swap")),
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),
         }),
