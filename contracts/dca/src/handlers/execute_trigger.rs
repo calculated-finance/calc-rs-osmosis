@@ -55,11 +55,9 @@ pub fn execute_trigger(
         })?;
     }
 
-    let belief_price = match position_type {
+    let fin_price = match position_type {
         PositionType::Enter => query_base_price(deps.querier, vault.pair.address.clone()),
-        PositionType::Exit => Decimal256::one()
-            .checked_div(query_quote_price(deps.querier, vault.pair.address.clone()))
-            .expect("should return a valid inverted price for fin sell"),
+        PositionType::Exit => query_quote_price(deps.querier, vault.pair.address.clone()),
     };
 
     create_event(
@@ -70,7 +68,7 @@ pub fn execute_trigger(
             EventData::DcaVaultExecutionTriggered {
                 base_denom: vault.pair.base_denom.clone(),
                 quote_denom: vault.pair.quote_denom.clone(),
-                asset_price: belief_price.clone(),
+                asset_price: fin_price.clone(),
             },
         ),
     )?;
@@ -83,7 +81,7 @@ pub fn execute_trigger(
         TriggerConfiguration::Time { target_time } => {
             assert_target_time_is_in_past(env.block.time, target_time)?;
 
-            if vault.price_threshold_exceeded(belief_price) {
+            if vault.price_threshold_exceeded(fin_price) {
                 create_event(
                     deps.storage,
                     EventBuilder::new(
@@ -91,7 +89,7 @@ pub fn execute_trigger(
                         env.block.to_owned(),
                         EventData::DcaVaultExecutionSkipped {
                             reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                                price: belief_price,
+                                price: fin_price,
                             },
                         },
                     ),
@@ -114,6 +112,13 @@ pub fn execute_trigger(
                 )?;
 
                 return Ok(response.to_owned());
+            };
+
+            let belief_price = match position_type {
+                PositionType::Enter => fin_price,
+                PositionType::Exit => Decimal256::one()
+                    .checked_div(fin_price)
+                    .expect("should return a valid inverted price for fin sell"),
             };
 
             let fin_swap_msg = match vault.slippage_tolerance {
