@@ -401,7 +401,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     owner: None,
-                    minimum_receive_amount: minimum_receive_amount,
+                    minimum_receive_amount,
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),
@@ -803,6 +803,29 @@ pub fn fin_contract_high_swap_price() -> Box<dyn Contract<Empty>> {
                     String::from(DENOM_UTEST),
                     Decimal256::from_str("9")?,
                     Decimal256::from_str("11")?,
+                ),
+                _ => default_query_response(),
+            }
+        },
+    );
+    Box::new(contract)
+}
+
+pub fn fin_contract_low_swap_price() -> Box<dyn Contract<Empty>> {
+    let contract = ContractWrapper::new(
+        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
+            match msg {
+                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
+                _ => Ok(Response::default()),
+            }
+        },
+        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
+        |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
+            match msg {
+                FINQueryMsg::Book { .. } => book_response_handler(
+                    String::from(DENOM_UTEST),
+                    Decimal256::from_str("0.6")?,
+                    Decimal256::from_str("0.9")?,
                 ),
                 _ => default_query_response(),
             }

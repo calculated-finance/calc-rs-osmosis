@@ -7,9 +7,9 @@ use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
 };
 use crate::tests::mocks::{
-    fin_contract_filled_limit_order, fin_contract_partially_filled_order,
-    fin_contract_pass_slippage_tolerance, fin_contract_unfilled_limit_order, MockApp, ADMIN,
-    DENOM_UKUJI, DENOM_UTEST, USER,
+    fin_contract_filled_limit_order, fin_contract_low_swap_price,
+    fin_contract_partially_filled_order, fin_contract_pass_slippage_tolerance,
+    fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::math_helpers::checked_mul;
@@ -1999,4 +1999,138 @@ fn for_vault_with_balance_less_than_minimum_swap_amount_should_fail() {
             vault_id
         )
     )
+}
+
+#[test]
+fn for_fin_buy_vault_with_exceeded_price_ceiling_should_skip_execution() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE;
+    let vault_deposit = Uint128::new(100000);
+    let swap_amount = Uint128::new(60000);
+
+    let mock = MockApp::new(fin_contract_high_swap_price())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_active_vault(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "time",
+            Some(swap_amount),
+        );
+
+    let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &&QueryMsg::GetVault { vault_id },
+        )
+        .unwrap();
+
+    assert_eq!(vault_response.vault.balance.amount, vault_deposit);
+}
+
+#[test]
+fn for_fin_buy_vault_with_non_exceeded_price_ceiling_should_execute() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE;
+    let vault_deposit = Uint128::new(100000);
+    let swap_amount = Uint128::new(60000);
+
+    let mock = MockApp::new(fin_contract_low_swap_price())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_active_vault(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "time",
+            Some(swap_amount),
+        );
+
+    let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &&QueryMsg::GetVault { vault_id },
+        )
+        .unwrap();
+
+    assert_eq!(
+        vault_response.vault.balance.amount,
+        vault_deposit - swap_amount
+    );
+}
+
+#[test]
+fn for_fin_sell_vault_with_exceeded_price_floor_should_skip_execution() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE;
+    let vault_deposit = Uint128::new(100000);
+    let swap_amount = Uint128::new(60000);
+
+    let mock = MockApp::new(fin_contract_low_swap_price())
+        .with_funds_for(&user_address, user_balance, DENOM_UTEST)
+        .with_active_vault(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UTEST),
+            swap_amount,
+            "time",
+            Some(swap_amount),
+        );
+
+    let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &&QueryMsg::GetVault { vault_id },
+        )
+        .unwrap();
+
+    assert_eq!(vault_response.vault.balance.amount, vault_deposit);
+}
+
+#[test]
+fn for_fin_sell_vault_with_non_exceeded_price_floor_should_execute() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE;
+    let vault_deposit = Uint128::new(100000);
+    let swap_amount = Uint128::new(60000);
+
+    let mock = MockApp::new(fin_contract_high_swap_price())
+        .with_funds_for(&user_address, user_balance, DENOM_UTEST)
+        .with_active_vault(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UTEST),
+            swap_amount,
+            "time",
+            Some(swap_amount),
+        );
+
+    let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &&QueryMsg::GetVault { vault_id },
+        )
+        .unwrap();
+
+    assert_eq!(
+        vault_response.vault.balance.amount,
+        vault_deposit - swap_amount
+    );
 }
