@@ -15,8 +15,9 @@ use crate::{
     tests::{
         helpers::{
             instantiate_contract, setup_active_vault_with_funds, setup_active_vault_with_low_funds,
+            setup_vault,
         },
-        mocks::ADMIN,
+        mocks::{ADMIN, DENOM_UKUJI},
     },
 };
 use base::{
@@ -238,6 +239,49 @@ fn after_successful_withdrawal_creates_a_new_time_trigger() {
             target_time: Timestamp::from_seconds(env.block.time.seconds() + 60 * 60 * 24)
         }
     );
+}
+
+#[test]
+fn after_successful_withdrawal_resulting_in_low_funds_does_not_create_a_new_time_trigger() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Coin::new(100000, DENOM_UKUJI),
+        Uint128::new(60000),
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: vault.get_swap_amount().amount,
+            },
+        )
+        .unwrap();
+
+    after_fin_limit_order_withdrawn_for_execute_vault(
+        deps.as_mut(),
+        env.clone(),
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(vault.trigger, None);
 }
 
 #[test]

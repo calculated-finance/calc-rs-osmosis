@@ -26,9 +26,9 @@ use crate::{
     tests::{
         helpers::{
             instantiate_contract, setup_active_vault_with_funds, setup_active_vault_with_low_funds,
-            setup_active_vault_with_slippage_funds,
+            setup_active_vault_with_slippage_funds, setup_vault,
         },
-        mocks::ADMIN,
+        mocks::{ADMIN, DENOM_UKUJI},
     },
 };
 
@@ -282,12 +282,18 @@ fn with_successful_swap_creates_a_new_time_trigger() {
 }
 
 #[test]
-fn with_successful_swap_and_insufficient_remaining_funds_sets_vault_to_inactive() {
+fn with_successful_swap_resulting_in_low_funds_sets_vault_to_inactive() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Coin::new(100000, DENOM_UKUJI),
+        Uint128::new(60000),
+    );
+
     let receive_amount = Uint128::new(234312312);
 
     after_fin_swap(
@@ -308,6 +314,41 @@ fn with_successful_swap_and_insufficient_remaining_funds_sets_vault_to_inactive(
     let vault = get_vault(&deps.storage, vault.id).unwrap();
 
     assert_eq!(vault.status, VaultStatus::Inactive);
+}
+
+#[test]
+fn with_successful_swap_resulting_in_low_funds_does_not_create_time_trigger() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Coin::new(100000, DENOM_UKUJI),
+        Uint128::new(60000),
+    );
+
+    let receive_amount = Uint128::new(234312312);
+
+    after_fin_swap(
+        deps.as_mut(),
+        env.clone(),
+        Reply {
+            id: AFTER_FIN_SWAP_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![Event::new("wasm-trade")
+                    .add_attribute("base_amount", vault.get_swap_amount().amount.to_string())
+                    .add_attribute("quote_amount", receive_amount.to_string())],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let vault = get_vault(&deps.storage, vault.id).unwrap();
+
+    assert_eq!(vault.trigger, None);
 }
 
 #[test]

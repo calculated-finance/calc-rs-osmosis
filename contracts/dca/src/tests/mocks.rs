@@ -357,7 +357,7 @@ impl MockApp {
                 self.dca_contract_address.clone(),
                 &ExecuteMsg::CreateVault {
                     owner: None,
-                    minimum_receive_amount: minimum_receive_amount,
+                    minimum_receive_amount,
                     label: Some("label".to_string()),
                     destinations,
                     pair_address: self.fin_contract_address.clone(),

@@ -73,6 +73,15 @@ pub fn execute_trigger(
         ),
     )?;
 
+    if vault.trigger.is_none() {
+        return Err(ContractError::CustomError {
+            val: format!(
+                "vault with id {} has no trigger attached, and is not available for execution",
+                vault.id
+            ),
+        });
+    }
+
     match vault
         .trigger
         .clone()

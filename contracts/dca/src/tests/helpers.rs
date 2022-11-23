@@ -25,18 +25,17 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
         fee_collector: Addr::unchecked(ADMIN),
-        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,
     };
 
-    let _instantiate_result =
-        instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
+    instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
 }
 
-pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
+pub fn setup_vault(deps: DepsMut, env: Env, balance: Coin, swap_amount: Uint128) -> Vault {
     let pair = Pair {
         address: Addr::unchecked("pair"),
         base_denom: "base".to_string(),
@@ -62,11 +61,11 @@ pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
             created_at: env.block.time.clone(),
             status: VaultStatus::Active,
             pair,
-            swap_amount: ONE,
+            swap_amount,
             position_type: None,
             slippage_tolerance: None,
             minimum_receive_amount: None,
-            balance: Coin::new(TEN.into(), "base"),
+            balance,
             time_interval: TimeInterval::Daily,
             started_at: None,
         },
@@ -95,128 +94,28 @@ pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
         .unwrap();
 
     vault
+}
+
+pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
+    setup_vault(deps, env, Coin::new(TEN.into(), "base"), ONE)
 }
 
 pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault {
-    let pair = Pair {
-        address: Addr::unchecked("pair"),
-        base_denom: "base".to_string(),
-        quote_denom: "quote".to_string(),
-    };
-
-    PAIRS
-        .save(deps.storage, pair.address.clone(), &pair)
-        .unwrap();
-
-    let owner = Addr::unchecked("owner");
-
-    let vault = save_vault(
-        deps.storage,
-        VaultBuilder {
-            owner: owner.clone(),
-            label: None,
-            destinations: vec![Destination {
-                address: owner,
-                allocation: Decimal::percent(100),
-                action: PostExecutionAction::Send,
-            }],
-            created_at: env.block.time.clone(),
-            status: VaultStatus::Active,
-            pair,
-            swap_amount: Uint128::new(500000),
-            position_type: None,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            balance: Coin::new(Uint128::new(500000).into(), "base"),
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-        },
+    setup_vault(
+        deps,
+        env,
+        Coin::new(Uint128::new(500000).into(), "base"),
+        Uint128::new(500000),
     )
-    .unwrap();
-
-    save_trigger(
-        deps.storage,
-        Trigger {
-            vault_id: vault.id,
-            configuration: TriggerConfiguration::Time {
-                target_time: env.block.time,
-            },
-        },
-    )
-    .unwrap();
-
-    CACHE
-        .save(
-            deps.storage,
-            &Cache {
-                vault_id: vault.id,
-                owner: Addr::unchecked("owner"),
-            },
-        )
-        .unwrap();
-
-    vault
 }
 
 pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
-    let pair = Pair {
-        address: Addr::unchecked("pair"),
-        base_denom: "base".to_string(),
-        quote_denom: "quote".to_string(),
-    };
-
-    PAIRS
-        .save(deps.storage, pair.address.clone(), &pair)
-        .unwrap();
-
-    let owner = Addr::unchecked("owner");
-
-    let vault = save_vault(
-        deps.storage,
-        VaultBuilder {
-            owner: owner.clone(),
-            label: None,
-            destinations: vec![Destination {
-                address: owner,
-                allocation: Decimal::percent(100),
-                action: PostExecutionAction::Send,
-            }],
-            created_at: env.block.time.clone(),
-            status: VaultStatus::Active,
-            pair,
-            swap_amount: Uint128::new(100),
-            position_type: None,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            balance: Coin::new(Uint128::new(10).into(), "base"),
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-        },
+    setup_vault(
+        deps,
+        env,
+        Coin::new(Uint128::new(10).into(), "base"),
+        Uint128::new(100),
     )
-    .unwrap();
-
-    save_trigger(
-        deps.storage,
-        Trigger {
-            vault_id: vault.id,
-            configuration: TriggerConfiguration::Time {
-                target_time: env.block.time,
-            },
-        },
-    )
-    .unwrap();
-
-    CACHE
-        .save(
-            deps.storage,
-            &Cache {
-                vault_id: vault.id,
-                owner: Addr::unchecked("owner"),
-            },
-        )
-        .unwrap();
-
-    vault
 }
 
 pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {

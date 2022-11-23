@@ -34,20 +34,6 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
 
             delete_trigger(deps.storage, vault.id)?;
 
-            save_trigger(
-                deps.storage,
-                Trigger {
-                    vault_id: vault.id,
-                    configuration: TriggerConfiguration::Time {
-                        target_time: get_next_target_time(
-                            env.block.time,
-                            env.block.time,
-                            vault.time_interval.clone(),
-                        ),
-                    },
-                },
-            )?;
-
             let coin_received = Coin {
                 denom: vault.get_receive_denom().clone(),
                 amount: limit_order_cache.filled,
@@ -144,7 +130,7 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 }
             });
 
-            update_vault(
+            let updated_vault = update_vault(
                 deps.storage,
                 vault.id.into(),
                 |stored_value: Option<Vault>| -> StdResult<Vault> {
@@ -177,6 +163,22 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                     }
                 },
             )?;
+
+            if updated_vault.is_active() {
+                save_trigger(
+                    deps.storage,
+                    Trigger {
+                        vault_id: vault.id,
+                        configuration: TriggerConfiguration::Time {
+                            target_time: get_next_target_time(
+                                env.block.time,
+                                env.block.time,
+                                vault.time_interval.clone(),
+                            ),
+                        },
+                    },
+                )?;
+            }
 
             create_event(
                 deps.storage,

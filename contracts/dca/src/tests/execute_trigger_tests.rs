@@ -1959,136 +1959,7 @@ fn for_vault_with_insufficient_balance_should_set_vault_status_to_inactive() {
 }
 
 #[test]
-fn for_vault_with_balance_less_than_minimum_swap_amount_should_update_vault_balance() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE;
-    let vault_deposit = Uint128::new(100000);
-    let swap_amount = Uint128::new(60000);
-
-    let mut mock = MockApp::new(fin_contract_high_swap_price())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
-        .with_active_vault(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
-            swap_amount,
-            "time",
-            None,
-        );
-
-    let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
-
-    let swap_amount_after_fee =
-        swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
-
-    let vault_deposit_after_fees =
-        vault_deposit - checked_mul(vault_deposit, mock.fee_percent).ok().unwrap();
-
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UKUJI, ONE - vault_deposit),
-            (&user_address, DENOM_UTEST, swap_amount_after_fee),
-            (
-                &mock.dca_contract_address,
-                DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit - swap_amount,
-            ),
-            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
-            (
-                &mock.fin_contract_address,
-                DENOM_UKUJI,
-                ONE_THOUSAND + swap_amount,
-            ),
-            (
-                &mock.fin_contract_address,
-                DENOM_UTEST,
-                ONE_THOUSAND - swap_amount,
-            ),
-        ],
-    );
-
-    mock.elapse_time(3601);
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault_id,
-            },
-            &[],
-        )
-        .unwrap();
-
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UKUJI, ONE - vault_deposit),
-            (&user_address, DENOM_UTEST, vault_deposit_after_fees),
-            (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
-            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
-            (
-                &mock.fin_contract_address,
-                DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit,
-            ),
-            (
-                &mock.fin_contract_address,
-                DENOM_UTEST,
-                ONE_THOUSAND - vault_deposit,
-            ),
-        ],
-    );
-}
-
-#[test]
-fn for_vault_with_balance_less_than_minimum_swap_amount_should_set_vault_to_inactive() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE;
-    let vault_deposit = Uint128::new(100000);
-    let swap_amount = Uint128::new(60000);
-
-    let mut mock = MockApp::new(fin_contract_high_swap_price())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
-        .with_active_vault(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
-            swap_amount,
-            "time",
-            None,
-        );
-
-    let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
-
-    mock.elapse_time(3601);
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault_id,
-            },
-            &[],
-        )
-        .unwrap();
-
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &&QueryMsg::GetVault { vault_id },
-        )
-        .unwrap();
-
-    assert_eq!(vault_response.vault.status, VaultStatus::Inactive);
-}
-
-#[test]
-fn for_vault_with_balance_less_than_minimum_swap_amount_should_publish_events() {
+fn for_vault_with_balance_less_than_minimum_swap_amount_should_fail() {
     let user_address = Addr::unchecked(USER);
     let user_balance = ONE;
     let vault_deposit = Uint128::new(100000);
@@ -2106,13 +1977,11 @@ fn for_vault_with_balance_less_than_minimum_swap_amount_should_publish_events() 
         );
 
     let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
-    let initial_block_info = mock.app.block_info();
-    let swap_amount_after_fee =
-        swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
 
     mock.elapse_time(3601);
 
-    mock.app
+    let response = mock
+        .app
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
@@ -2121,57 +1990,13 @@ fn for_vault_with_balance_less_than_minimum_swap_amount_should_publish_events() 
             },
             &[],
         )
-        .unwrap();
+        .unwrap_err();
 
-    assert_events_published(
-        &mock,
-        vault_id,
-        &[
-            EventBuilder::new(
-                vault_id,
-                initial_block_info.clone(),
-                EventData::DcaVaultExecutionTriggered {
-                    base_denom: DENOM_UTEST.to_string(),
-                    quote_denom: DENOM_UKUJI.to_string(),
-                    asset_price: Decimal256::from_str("1.0").unwrap(),
-                },
-            )
-            .build(3),
-            EventBuilder::new(
-                vault_id,
-                initial_block_info.clone(),
-                EventData::DcaVaultExecutionCompleted {
-                    sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
-                    received: Coin::new(swap_amount.into(), DENOM_UTEST),
-                    fee: Coin::new((swap_amount - swap_amount_after_fee).into(), DENOM_UTEST),
-                },
-            )
-            .build(4),
-            EventBuilder::new(
-                vault_id,
-                mock.app.block_info(),
-                EventData::DcaVaultExecutionTriggered {
-                    base_denom: DENOM_UTEST.to_string(),
-                    quote_denom: DENOM_UKUJI.to_string(),
-                    asset_price: Decimal256::from_str("1.0").unwrap(),
-                },
-            )
-            .build(5),
-            EventBuilder::new(
-                vault_id,
-                mock.app.block_info(),
-                EventData::DcaVaultExecutionCompleted {
-                    sent: Coin::new((vault_deposit - swap_amount).into(), DENOM_UKUJI),
-                    received: Coin::new((vault_deposit - swap_amount).into(), DENOM_UTEST),
-                    fee: Coin::new(
-                        checked_mul(vault_deposit - swap_amount, mock.fee_percent)
-                            .unwrap()
-                            .into(),
-                        DENOM_UTEST,
-                    ),
-                },
-            )
-            .build(6),
-        ],
-    );
+    assert_eq!(
+        response.root_cause().to_string(),
+        format!(
+            "Error: vault with id {} has no trigger attached, and is not available for execution",
+            vault_id
+        )
+    )
 }

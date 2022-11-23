@@ -158,7 +158,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 }
             });
 
-            update_vault(
+            let updated_vault = update_vault(
                 deps.storage,
                 vault.id.into(),
                 |stored_value: Option<Vault>| -> StdResult<Vault> {
@@ -190,26 +190,28 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 },
             )?;
 
-            match vault
-                .trigger
-                .expect(format!("trigger for vault id {}", vault.id).as_str())
-            {
-                TriggerConfiguration::Time { target_time } => {
-                    save_trigger(
-                        deps.storage,
-                        Trigger {
-                            vault_id: vault.id,
-                            configuration: TriggerConfiguration::Time {
-                                target_time: get_next_target_time(
-                                    env.block.time,
-                                    target_time,
-                                    vault.time_interval,
-                                ),
+            if updated_vault.is_active() {
+                match vault
+                    .trigger
+                    .expect(format!("trigger for vault id {}", vault.id).as_str())
+                {
+                    TriggerConfiguration::Time { target_time } => {
+                        save_trigger(
+                            deps.storage,
+                            Trigger {
+                                vault_id: vault.id,
+                                configuration: TriggerConfiguration::Time {
+                                    target_time: get_next_target_time(
+                                        env.block.time,
+                                        target_time,
+                                        vault.time_interval,
+                                    ),
+                                },
                             },
-                        },
-                    )?;
+                        )?;
+                    }
+                    _ => panic!("should be a time trigger"),
                 }
-                _ => panic!("should be a time trigger"),
             }
 
             create_event(
