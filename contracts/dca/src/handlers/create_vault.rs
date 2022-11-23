@@ -13,7 +13,6 @@ use crate::validation_helpers::{
     assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
     assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
     assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_greater_than_50000,
-    assert_target_receive_amount_greater_than_or_equal_to_minimum_receive_amount,
     assert_target_start_time_is_in_future,
 };
 use base::events::event::{EventBuilder, EventData};
@@ -47,10 +46,6 @@ pub fn create_vault(
     assert_exactly_one_asset(info.funds.clone())?;
     assert_swap_amount_is_greater_than_50000(swap_amount)?;
     assert_destinations_limit_is_not_breached(&destinations)?;
-    assert_target_receive_amount_greater_than_or_equal_to_minimum_receive_amount(
-        minimum_receive_amount,
-        target_receive_amount,
-    )?;
 
     if let Some(target_time) = target_start_time_utc_seconds {
         assert_target_start_time_is_in_future(
