@@ -158,7 +158,7 @@ pub fn execute_trigger(
         TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
             if let Some(order_idx) = order_idx {
                 let (offer_amount, original_offer_amount, filled) =
-                    query_order_details(deps.querier, vault.pair.address.clone(), order_idx);
+                    query_order_details(deps.querier, vault.pair.address.clone(), order_idx)?;
 
                 let limit_order_cache = LimitOrderCache {
                     order_idx,

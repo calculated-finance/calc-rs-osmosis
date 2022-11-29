@@ -183,7 +183,7 @@ pub fn assert_address_is_valid(
     match deps.api.addr_validate(&address.to_string()) {
         Ok(_) => Ok(()),
         Err(_) => Err(ContractError::CustomError {
-            val: format!("{:?} address {:?} is invalid", label, address),
+            val: format!("{} address {} is invalid", label, address),
         }),
     }
 }
@@ -223,7 +223,7 @@ pub fn assert_page_limit_is_valid(
     let config = get_config(storage)?;
     if limit.unwrap_or(30) > config.page_limit {
         return Err(ContractError::CustomError {
-            val: format!("limit cannot be greater than {:?}.", config.page_limit),
+            val: format!("limit cannot be greater than {}.", config.page_limit),
         });
     }
     Ok(())
@@ -233,10 +233,7 @@ pub fn assert_validator_is_valid(
     deps: Deps,
     validator_address: String,
 ) -> Result<(), ContractError> {
-    let validator = deps
-        .querier
-        .query_validator(validator_address.clone())
-        .unwrap();
+    let validator = deps.querier.query_validator(validator_address.clone()).ok();
 
     if validator.is_none() {
         return Err(ContractError::CustomError {
