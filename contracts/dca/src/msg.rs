@@ -74,6 +74,9 @@ pub enum ExecuteMsg {
     RemoveCustomSwapFee {
         denom: String,
     },
+    MigrateEvent {
+        limit: u64,
+    },
 }
 
 #[cw_serde]

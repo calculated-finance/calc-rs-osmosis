@@ -26,6 +26,7 @@ use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_vault_label::update_vault_label;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::config::{update_config, Config};
+use crate::state::events::migrate_previous_events;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
@@ -153,6 +154,9 @@ pub fn execute(
             swap_fee_percent,
         } => create_custom_swap_fee(deps, info, denom, swap_fee_percent),
         ExecuteMsg::RemoveCustomSwapFee { denom } => remove_custom_swap_fee(deps, info, denom),
+        ExecuteMsg::MigrateEvent { limit } => {
+            migrate_previous_events(deps.storage, &mut limit.clone())
+        }
     }
 }
 
