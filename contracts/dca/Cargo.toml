@@ -23,7 +23,6 @@ library = []
 
 [dependencies]
 base = { path = "../../packages/base" }
-bincode = "1.3.3"
 cosmwasm-std = "1.0.0"
 cosmwasm-storage = "1.1.1"
 cw-storage-plus = "0.15.0"
