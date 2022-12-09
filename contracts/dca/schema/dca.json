@@ -1,6 +1,6 @@
 {
   "contract_name": "dca",
-  "contract_version": "0.11.0",
+  "contract_version": "1.0.3",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -416,6 +416,29 @@
             "properties": {
               "denom": {
                 "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "migrate_event"
+        ],
+        "properties": {
+          "migrate_event": {
+            "type": "object",
+            "required": [
+              "limit"
+            ],
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
               }
             },
             "additionalProperties": false
@@ -1056,6 +1079,37 @@
                 }
               },
               "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "price_delta_limit_exceeded"
+              ],
+              "properties": {
+                "price_delta_limit_exceeded": {
+                  "type": "object",
+                  "required": [
+                    "actual_price_delta",
+                    "duration_in_seconds",
+                    "max_price_delta"
+                  ],
+                  "properties": {
+                    "actual_price_delta": {
+                      "$ref": "#/definitions/Decimal256"
+                    },
+                    "duration_in_seconds": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "minimum": 0.0
+                    },
+                    "max_price_delta": {
+                      "$ref": "#/definitions/Decimal256"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
             }
           ]
         },
@@ -1335,6 +1389,37 @@
                   ],
                   "properties": {
                     "price": {
+                      "$ref": "#/definitions/Decimal256"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "price_delta_limit_exceeded"
+              ],
+              "properties": {
+                "price_delta_limit_exceeded": {
+                  "type": "object",
+                  "required": [
+                    "actual_price_delta",
+                    "duration_in_seconds",
+                    "max_price_delta"
+                  ],
+                  "properties": {
+                    "actual_price_delta": {
+                      "$ref": "#/definitions/Decimal256"
+                    },
+                    "duration_in_seconds": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "minimum": 0.0
+                    },
+                    "max_price_delta": {
                       "$ref": "#/definitions/Decimal256"
                     }
                   },

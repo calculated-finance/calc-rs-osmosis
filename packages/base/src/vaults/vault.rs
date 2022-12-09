@@ -16,9 +16,22 @@ pub enum VaultStatus {
 }
 
 #[cw_serde]
+pub enum PostExecutionActionDeprecated {
+    Send,
+    ZDelegate,
+}
+
+#[cw_serde]
 pub enum PostExecutionAction {
     Send,
     ZDelegate,
+}
+
+#[cw_serde]
+pub struct DestinationDeprecated {
+    pub address: Addr,
+    pub allocation: Decimal,
+    pub action: PostExecutionActionDeprecated,
 }
 
 #[cw_serde]

@@ -1,11 +1,10 @@
+use super::vault::Vault;
 use base::{
     pair::Pair,
     triggers::trigger::TimeInterval,
     vaults::vault::{Destination, PositionType, VaultStatus},
 };
 use cosmwasm_std::{coin, Addr, Coin, Decimal256, Timestamp, Uint128};
-
-use super::vault::Vault;
 
 pub struct VaultBuilder {
     pub created_at: Timestamp,
