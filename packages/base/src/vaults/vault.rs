@@ -40,3 +40,29 @@ pub struct Destination {
     pub allocation: Decimal,
     pub action: PostExecutionAction,
 }
+
+impl From<Destination> for DestinationDeprecated {
+    fn from(destination: Destination) -> Self {
+        DestinationDeprecated {
+            address: destination.address,
+            allocation: destination.allocation,
+            action: match destination.action {
+                PostExecutionAction::Send => PostExecutionActionDeprecated::Send,
+                PostExecutionAction::ZDelegate => PostExecutionActionDeprecated::ZDelegate,
+            },
+        }
+    }
+}
+
+impl From<DestinationDeprecated> for Destination {
+    fn from(destination: DestinationDeprecated) -> Self {
+        Destination {
+            address: destination.address,
+            allocation: destination.allocation,
+            action: match destination.action {
+                PostExecutionActionDeprecated::Send => PostExecutionAction::Send,
+                PostExecutionActionDeprecated::ZDelegate => PostExecutionAction::ZDelegate,
+            },
+        }
+    }
+}

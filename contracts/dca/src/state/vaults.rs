@@ -3,10 +3,7 @@ use crate::types::{price_delta_limit::PriceDeltaLimit, vault::Vault, vault_build
 use base::{
     pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
-    vaults::vault::{
-        Destination, DestinationDeprecated, PostExecutionAction, PostExecutionActionDeprecated,
-        VaultStatus,
-    },
+    vaults::vault::{Destination, DestinationDeprecated, VaultStatus},
 };
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
@@ -70,14 +67,7 @@ fn vault_from(
             .destinations
             .clone()
             .into_iter()
-            .map(|destination| Destination {
-                address: destination.address,
-                allocation: destination.allocation,
-                action: match destination.action {
-                    PostExecutionActionDeprecated::Send => PostExecutionAction::Send,
-                    PostExecutionActionDeprecated::ZDelegate => PostExecutionAction::ZDelegate,
-                },
-            })
+            .map(|destination| destination.into())
             .collect(),
     );
     Vault {
@@ -253,4 +243,244 @@ where
 pub fn clear_vaults(store: &mut dyn Storage) {
     vault_store().clear(store);
     VAULT_COUNTER.remove(store)
+}
+
+#[cfg(test)]
+mod destination_store_tests {
+    use super::*;
+    use crate::types::vault_builder::VaultBuilder;
+    use base::{
+        pair::Pair,
+        triggers::trigger::TimeInterval,
+        vaults::vault::{Destination, PostExecutionAction, VaultStatus},
+    };
+    use cosmwasm_std::{
+        testing::{mock_dependencies, mock_env},
+        Addr, Coin, Decimal, Env, Uint128,
+    };
+
+    fn create_vault_builder(env: Env) -> VaultBuilder {
+        VaultBuilder::new(
+            env.block.time,
+            Addr::unchecked("owner"),
+            None,
+            vec![Destination {
+                address: Addr::unchecked("owner"),
+                allocation: Decimal::one(),
+                action: PostExecutionAction::Send,
+            }],
+            VaultStatus::Active,
+            Coin::new(1000u128, "ukuji".to_string()),
+            Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "demo".to_string(),
+                quote_denom: "ukuji".to_string(),
+            },
+            Uint128::new(100),
+            None,
+            None,
+            None,
+            TimeInterval::Daily,
+            None,
+        )
+    }
+
+    #[test]
+    fn saving_new_vault_stores_destinations() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let store = deps.as_mut().storage;
+
+        let vault_builder = create_vault_builder(env);
+        let vault = save_vault(store, vault_builder).unwrap();
+
+        let destinations: Vec<Destination> =
+            from_binary(&DESTINATIONS.load(store, vault.id.into()).unwrap()).unwrap();
+        assert_eq!(destinations, vault.destinations);
+        assert!(!destinations.is_empty());
+    }
+
+    #[test]
+    fn fetching_new_vault_returns_destinations() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let store = deps.as_mut().storage;
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "demo".to_string(),
+            quote_denom: "ukuji".to_string(),
+        };
+
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
+            .unwrap();
+
+        let vault_builder = create_vault_builder(env);
+        let vault = save_vault(store, vault_builder).unwrap();
+        let fetched_vault = get_vault(store, vault.id).unwrap();
+
+        assert_eq!(fetched_vault.destinations, vault.destinations);
+        assert!(!fetched_vault.destinations.is_empty());
+    }
+
+    #[test]
+    fn fetching_new_vault_after_update_returns_destinations() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let store = deps.as_mut().storage;
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "demo".to_string(),
+            quote_denom: "ukuji".to_string(),
+        };
+
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
+            .unwrap();
+
+        let vault_builder = create_vault_builder(env);
+        let vault = save_vault(store, vault_builder).unwrap();
+
+        update_vault(store, vault.id, |stored_vault| match stored_vault {
+            Some(mut vault) => {
+                vault.status = VaultStatus::Inactive;
+                Ok(vault)
+            }
+            None => panic!("Vault not found"),
+        })
+        .unwrap();
+
+        let fetched_vault = get_vault(store, vault.id).unwrap();
+        assert_eq!(fetched_vault.destinations, vault.destinations);
+        assert!(!fetched_vault.destinations.is_empty());
+    }
+
+    #[test]
+    fn fetching_old_vault_returns_destinations() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let store = deps.as_mut().storage;
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "demo".to_string(),
+            quote_denom: "ukuji".to_string(),
+        };
+
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
+            .unwrap();
+
+        let vault = create_vault_builder(env).build(Uint128::one());
+
+        let mut vault_dto: VaultDTO = vault.clone().into();
+        vault_dto.destinations = vault
+            .clone()
+            .destinations
+            .clone()
+            .into_iter()
+            .map(|d| d.into())
+            .collect();
+
+        vault_store()
+            .save(store, vault.id.into(), &vault_dto)
+            .unwrap();
+
+        let fetched_vault = get_vault(store, vault.id).unwrap();
+        assert_eq!(fetched_vault.destinations, vault.destinations);
+        assert!(!fetched_vault.destinations.is_empty());
+    }
+
+    #[test]
+    fn updating_old_vault_stores_destinations() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let store = deps.as_mut().storage;
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "demo".to_string(),
+            quote_denom: "ukuji".to_string(),
+        };
+
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
+            .unwrap();
+
+        let vault = create_vault_builder(env).build(Uint128::one());
+
+        let mut vault_dto: VaultDTO = vault.clone().into();
+        vault_dto.destinations = vault
+            .clone()
+            .destinations
+            .clone()
+            .into_iter()
+            .map(|d| d.into())
+            .collect();
+
+        vault_store()
+            .save(store, vault.id.into(), &vault_dto)
+            .unwrap();
+
+        update_vault(store, vault.id, |stored_vault| match stored_vault {
+            Some(mut vault) => {
+                vault.status = VaultStatus::Inactive;
+                Ok(vault)
+            }
+            None => panic!("Vault not found"),
+        })
+        .unwrap();
+
+        let destinations: Vec<Destination> =
+            from_binary(&DESTINATIONS.load(store, vault.id.into()).unwrap()).unwrap();
+        assert_eq!(destinations, vault.destinations);
+        assert!(!destinations.is_empty());
+    }
+
+    #[test]
+    fn fetching_old_vault_after_update_returns_destinations() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let store = deps.as_mut().storage;
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "demo".to_string(),
+            quote_denom: "ukuji".to_string(),
+        };
+
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
+            .unwrap();
+
+        let vault = create_vault_builder(env).build(Uint128::one());
+
+        let mut vault_dto: VaultDTO = vault.clone().into();
+        vault_dto.destinations = vault
+            .clone()
+            .destinations
+            .clone()
+            .into_iter()
+            .map(|d| d.into())
+            .collect();
+
+        vault_store()
+            .save(store, vault.id.into(), &vault_dto)
+            .unwrap();
+
+        update_vault(store, vault.id, |stored_vault| match stored_vault {
+            Some(mut vault) => {
+                vault.status = VaultStatus::Inactive;
+                Ok(vault)
+            }
+            None => panic!("Vault not found"),
+        })
+        .unwrap();
+
+        let fetched_vault = get_vault(store, vault.id).unwrap();
+        assert_eq!(fetched_vault.destinations, vault.destinations);
+        assert!(!fetched_vault.destinations.is_empty());
+    }
 }
