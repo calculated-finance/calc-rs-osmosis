@@ -5,6 +5,11 @@ then
   MONTH=$(date '+%m')
   DAY=$(date '+%d')
   echo "generating build hash..."
+  BUILD_ONCE_BEFORE_TRYING_TO_MATCH_REGEX=$(docker run --rm -v "$(pwd)":/code \
+    --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
+    --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+    cosmwasm/workspace-optimizer:0.12.9)
+    
   OUTPUT=$(docker run --rm -v "$(pwd)":/code \
     --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
     --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
