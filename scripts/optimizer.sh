@@ -62,7 +62,27 @@ then
       echo "failed to match any versions"
     fi
   fi
+elif [ $# -gt 0 ] && [ $1 = "--tag-manual" ]
+  then
+    YEAR=$(date '+%y')
+    MONTH=$(date '+%m')
+    DAY=$(date '+%d')
+    echo "generating build hash..."      
+    OUTPUT=$(docker run --rm -v "$(pwd)":/code \
+      --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
+      --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+      cosmwasm/workspace-optimizer:0.12.9)
 
+    regex='(.{65}) dca.wasm'
+    if [[ $OUTPUT =~ $regex ]]
+    then
+      BUILD_HASH=$(echo $BASH_REMATCH[1] | cut -c 1-7)
+      echo "build hash: $BUILD_HASH"
+
+      TAG=$2+$BUILD_HASH
+      git tag -a $TAG -m "testnet $DAY.$MONTH.$YEAR"
+      git push origin $TAG
+    fi
 else
   docker run --rm -v "$(pwd)":/code \
   --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
