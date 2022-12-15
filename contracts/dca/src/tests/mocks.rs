@@ -14,9 +14,10 @@ use cosmwasm_std::{
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
 use kujira::denom::Denom;
 use kujira::fin::{
-    BookResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg, OrderResponse,
-    PoolResponse, QueryMsg as FINQueryMsg,
+    BookResponse, ConfigResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg,
+    OrderResponse, PoolResponse, QueryMsg as FINQueryMsg,
 };
+use kujira::precision::Precision;
 use rand::Rng;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -692,6 +693,13 @@ pub fn fin_contract_unfilled_limit_order() -> Box<dyn Contract<Empty>> {
             match msg {
                 FINQueryMsg::Book { .. } => default_book_response_handler(),
                 FINQueryMsg::Order { .. } => unfilled_order_response(env),
+                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
+                    owner: Addr::unchecked(ADMIN),
+                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    price_precision: Precision::DecimalPlaces(3),
+                    decimal_delta: 0,
+                    is_bootstrapping: false,
+                }),
                 _ => default_query_response(),
             }
         },
@@ -716,6 +724,13 @@ pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
             match msg {
                 FINQueryMsg::Book { .. } => default_book_response_handler(),
                 FINQueryMsg::Order { .. } => partially_filled_order_response(env),
+                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
+                    owner: Addr::unchecked(ADMIN),
+                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    price_precision: Precision::DecimalPlaces(3),
+                    decimal_delta: 0,
+                    is_bootstrapping: false,
+                }),
                 _ => default_query_response(),
             }
         },
@@ -741,6 +756,13 @@ pub fn fin_contract_filled_limit_order() -> Box<dyn Contract<Empty>> {
             match msg {
                 FINQueryMsg::Book { .. } => default_book_response_handler(),
                 FINQueryMsg::Order { .. } => filled_order_response(env),
+                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
+                    owner: Addr::unchecked(ADMIN),
+                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    price_precision: Precision::DecimalPlaces(3),
+                    decimal_delta: 0,
+                    is_bootstrapping: false,
+                }),
                 _ => default_query_response(),
             }
         },
@@ -760,6 +782,13 @@ pub fn fin_contract_pass_slippage_tolerance() -> Box<dyn Contract<Empty>> {
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
                 FINQueryMsg::Book { .. } => default_book_response_handler(),
+                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
+                    owner: Addr::unchecked(ADMIN),
+                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    price_precision: Precision::DecimalPlaces(3),
+                    decimal_delta: 0,
+                    is_bootstrapping: false,
+                }),
                 _ => default_query_response(),
             }
         },
@@ -781,6 +810,13 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
                 FINQueryMsg::Book { .. } => default_book_response_handler(),
+                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
+                    owner: Addr::unchecked(ADMIN),
+                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    price_precision: Precision::DecimalPlaces(3),
+                    decimal_delta: 0,
+                    is_bootstrapping: false,
+                }),
                 _ => default_query_response(),
             }
         },
@@ -804,6 +840,13 @@ pub fn fin_contract_high_swap_price() -> Box<dyn Contract<Empty>> {
                     Decimal256::from_str("9")?,
                     Decimal256::from_str("11")?,
                 ),
+                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
+                    owner: Addr::unchecked(ADMIN),
+                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    price_precision: Precision::DecimalPlaces(3),
+                    decimal_delta: 0,
+                    is_bootstrapping: false,
+                }),
                 _ => default_query_response(),
             }
         },
@@ -827,6 +870,13 @@ pub fn fin_contract_low_swap_price() -> Box<dyn Contract<Empty>> {
                     Decimal256::from_str("0.6")?,
                     Decimal256::from_str("0.9")?,
                 ),
+                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
+                    owner: Addr::unchecked(ADMIN),
+                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    price_precision: Precision::DecimalPlaces(3),
+                    decimal_delta: 0,
+                    is_bootstrapping: false,
+                }),
                 _ => default_query_response(),
             }
         },

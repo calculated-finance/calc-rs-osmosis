@@ -22,6 +22,7 @@ use cosmwasm_std::{Addr, Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_limit_order_sub_msg;
+use fin_helpers::queries::query_pair_config;
 
 use super::execute_trigger::execute_trigger;
 
@@ -196,7 +197,13 @@ fn create_fin_limit_order_trigger(
     target_receive_amount: Uint128,
     response: Response,
 ) -> Result<Response, ContractError> {
-    let target_price = vault.get_target_price(target_receive_amount);
+    let pair_config = query_pair_config(deps.querier, vault.pair.address.clone())?;
+
+    let target_price = vault.get_target_price(
+        target_receive_amount,
+        pair_config.decimal_delta.unwrap_or(0),
+        pair_config.price_precision,
+    )?;
 
     save_trigger(
         deps.storage,

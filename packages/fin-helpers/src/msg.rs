@@ -1,4 +1,5 @@
 use cosmwasm_std::{Decimal256, Uint128, Uint256};
+use kujira::precision::Precision;
 use serde::{Deserialize, Serialize};
 // use serde instead of cw_serde so allow for deserialisation of unknown fields
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -18,4 +19,10 @@ pub struct FINOrderResponseWithoutDenom {
     pub offer_amount: Uint128,
     pub filled_amount: Uint128,
     pub original_offer_amount: Uint128,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct FINConfigResponse {
+    pub decimal_delta: Option<i8>,
+    pub price_precision: Precision
 }
