@@ -1,3 +1,4 @@
+// use super::execute_fin_swap::execute_fin_swap;
 use crate::contract::{
     AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID,
 };
@@ -10,13 +11,14 @@ use crate::validation_helpers::{assert_contract_is_not_paused, assert_target_tim
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
-use base::vaults::vault::{PositionType, VaultStatus};
-use cosmwasm_std::{Decimal256, StdError};
+use base::vaults::vault::VaultStatus;
+use cosmwasm_std::StdError;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
+use fin_helpers::position_type::PositionType;
 use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
-use fin_helpers::swaps::{create_fin_swap_with_slippage, create_fin_swap_without_slippage};
+use fin_helpers::swaps::create_fin_swap_message;
 
 pub fn execute_trigger_handler(
     deps: DepsMut,
@@ -123,28 +125,6 @@ pub fn execute_trigger(
                 return Ok(response.to_owned());
             };
 
-            let belief_price = match position_type {
-                PositionType::Enter => fin_price,
-                PositionType::Exit => Decimal256::one()
-                    .checked_div(fin_price)
-                    .expect("should return a valid inverted price for fin sell"),
-            };
-
-            let fin_swap_msg = match vault.slippage_tolerance {
-                Some(tolerance) => create_fin_swap_with_slippage(
-                    vault.pair.address.clone(),
-                    belief_price,
-                    tolerance,
-                    vault.get_swap_amount(),
-                    AFTER_FIN_SWAP_REPLY_ID,
-                ),
-                None => create_fin_swap_without_slippage(
-                    vault.pair.address.clone(),
-                    vault.get_swap_amount(),
-                    AFTER_FIN_SWAP_REPLY_ID,
-                ),
-            };
-
             CACHE.save(
                 deps.storage,
                 &Cache {
@@ -153,23 +133,32 @@ pub fn execute_trigger(
                 },
             )?;
 
-            Ok(response.add_submessage(fin_swap_msg))
+            return Ok(response.add_submessage(create_fin_swap_message(
+                deps.querier,
+                vault.pair.address.clone(),
+                vault.get_swap_amount(),
+                vault.get_position_type(),
+                vault.slippage_tolerance,
+                AFTER_FIN_SWAP_REPLY_ID,
+            )));
         }
         TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
             if let Some(order_idx) = order_idx {
-                let (offer_amount, original_offer_amount, filled) =
+                let limit_order_details =
                     query_order_details(deps.querier, vault.pair.address.clone(), order_idx)?;
 
                 let limit_order_cache = LimitOrderCache {
                     order_idx,
-                    offer_amount,
-                    original_offer_amount,
-                    filled,
+                    offer_amount: limit_order_details.offer_amount,
+                    original_offer_amount: limit_order_details.original_offer_amount,
+                    filled: limit_order_details.filled_amount,
+                    quote_price: limit_order_details.quote_price,
+                    created_at: limit_order_details.created_at,
                 };
 
                 LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;
 
-                if offer_amount != Uint128::zero() {
+                if limit_order_cache.offer_amount != Uint128::zero() {
                     return Err(ContractError::CustomError {
                         val: String::from("fin limit order has not been completely filled"),
                     });

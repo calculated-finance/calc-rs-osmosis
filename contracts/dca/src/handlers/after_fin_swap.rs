@@ -14,10 +14,11 @@ use base::helpers::math_helpers::checked_mul;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
-use base::vaults::vault::{PositionType, PostExecutionAction, VaultStatus};
+use base::vaults::vault::{PostExecutionAction, VaultStatus};
 use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
+use fin_helpers::position_type::PositionType;
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
@@ -210,7 +211,21 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                             },
                         )?;
                     }
-                    _ => panic!("should be a time trigger"),
+                    TriggerConfiguration::FinLimitOrder { .. } => {
+                        save_trigger(
+                            deps.storage,
+                            Trigger {
+                                vault_id: vault.id,
+                                configuration: TriggerConfiguration::Time {
+                                    target_time: get_next_target_time(
+                                        env.block.time,
+                                        env.block.time,
+                                        vault.time_interval,
+                                    ),
+                                },
+                            },
+                        )?;
+                    }
                 }
             }
 

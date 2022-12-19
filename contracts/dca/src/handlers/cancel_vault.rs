@@ -39,7 +39,12 @@ pub fn cancel_vault(
             refund_vault_balance(deps, vault)
         }
         Some(TriggerConfiguration::FinLimitOrder { order_idx, .. }) => {
-            cancel_fin_limit_order_trigger(deps, order_idx.unwrap(), vault)
+            cancel_fin_limit_order_trigger(
+                deps,
+                order_idx
+                    .expect(format!("order idx for price trigger for vault {}", vault.id).as_str()),
+                vault,
+            )
         }
         None => refund_vault_balance(deps, vault),
     }
@@ -83,14 +88,16 @@ fn cancel_fin_limit_order_trigger(
     order_idx: Uint128,
     vault: Vault,
 ) -> Result<Response, ContractError> {
-    let (offer_amount, original_offer_amount, filled) =
+    let limit_order_details =
         query_order_details(deps.querier, vault.pair.address.clone(), order_idx)?;
 
     let limit_order_cache = LimitOrderCache {
         order_idx,
-        offer_amount,
-        original_offer_amount,
-        filled,
+        offer_amount: limit_order_details.offer_amount,
+        original_offer_amount: limit_order_details.original_offer_amount,
+        filled: limit_order_details.filled_amount,
+        quote_price: limit_order_details.quote_price,
+        created_at: limit_order_details.created_at,
     };
 
     LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;

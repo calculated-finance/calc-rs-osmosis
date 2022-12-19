@@ -33,17 +33,9 @@ pub fn query_order_details(
     querier: QuerierWrapper,
     pair_address: Addr,
     order_idx: Uint128,
-) -> StdResult<(Uint128, Uint128, Uint128)> {
+) -> StdResult<FINOrderResponseWithoutDenom> {
     let fin_order_query_msg = FINQueryMsg::Order { order_idx };
-
-    let order_response: FINOrderResponseWithoutDenom =
-        querier.query_wasm_smart(pair_address, &fin_order_query_msg)?;
-
-    Ok((
-        order_response.offer_amount,
-        order_response.original_offer_amount,
-        order_response.filled_amount,
-    ))
+    Ok(querier.query_wasm_smart(pair_address, &fin_order_query_msg)?)
 }
 
 pub fn query_pair_config(querier: QuerierWrapper, pair_address: Addr) -> StdResult<FINConfigResponse> {

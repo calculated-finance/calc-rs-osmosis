@@ -1,13 +1,13 @@
 use crate::{
     error::ContractError,
     state::{
-        cache::{CACHE, LIMIT_ORDER_CACHE},
+        cache::CACHE,
         triggers::delete_trigger,
         vaults::{get_vault, update_vault},
     },
     types::vault::Vault,
 };
-use base::vaults::vault::VaultStatus;
+use base::{helpers::message_helpers::get_attribute_in_event, vaults::vault::VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response};
 use cosmwasm_std::{CosmosMsg, StdError, StdResult, SubMsgResult, Uint128};
@@ -21,23 +21,27 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
     let vault = get_vault(deps.storage, cache.vault_id.into())?;
     match reply.result {
         SubMsgResult::Ok(_) => {
-            let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
+            let withdraw_order_response = reply.result.into_result().unwrap();
 
-            // send assets from partially filled order to owner
-            let filled_amount = Coin {
+            let received_amount =
+                get_attribute_in_event(&withdraw_order_response.events, "transfer", "amount")?
+                    .trim_end_matches(&vault.get_receive_denom().to_string())
+                    .parse::<Uint128>()
+                    .expect("limit order withdrawn amount");
+
+            let coin_received = Coin {
                 denom: vault.get_receive_denom().clone(),
-                amount: limit_order_cache.filled,
+                amount: received_amount,
             };
 
             let mut response = Response::new()
                 .add_attribute("method", "fin_limit_order_withdrawn_for_cancel_vault");
 
-            // i dont think its possible for this to be zero
-            if filled_amount.amount.gt(&Uint128::zero()) {
+            if coin_received.amount.gt(&Uint128::zero()) {
                 response = response.add_message(CosmosMsg::Bank(BankMsg::Send {
                     to_address: vault.owner.to_string(),
-                    amount: vec![filled_amount.clone()],
-                }))
+                    amount: vec![coin_received],
+                }));
             }
 
             update_vault(

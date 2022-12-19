@@ -1,10 +1,11 @@
 use base::{
     pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
-    vaults::vault::{Destination, PositionType, VaultStatus},
+    vaults::vault::{Destination, VaultStatus},
 };
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal256, StdError, StdResult, Timestamp, Uint128};
+use fin_helpers::position_type::PositionType;
 use kujira::precision::{Precise, Precision};
 use std::str::FromStr;
 

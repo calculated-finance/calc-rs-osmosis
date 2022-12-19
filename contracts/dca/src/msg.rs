@@ -1,9 +1,10 @@
 use base::events::event::Event;
 use base::pair::Pair;
 use base::triggers::trigger::TimeInterval;
-use base::vaults::vault::{Destination, PositionType, VaultStatus};
+use base::vaults::vault::{Destination, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Decimal, Decimal256, Uint128, Uint64};
+use fin_helpers::position_type::PositionType;
 
 use crate::types::vault::Vault;
 
@@ -76,6 +77,10 @@ pub enum ExecuteMsg {
     },
     MigrateEvent {
         limit: u64,
+    },
+    SetFinLimitOrderTimestamp {},
+    MigratePriceTrigger {
+        vault_id: Uint128,
     },
 }
 

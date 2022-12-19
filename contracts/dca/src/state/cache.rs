@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Uint128};
+use cosmwasm_std::{Addr, Decimal256, Timestamp, Uint128};
 use cw_storage_plus::Item;
 
 #[cw_serde]
@@ -14,6 +14,8 @@ pub struct LimitOrderCache {
     pub offer_amount: Uint128,
     pub original_offer_amount: Uint128,
     pub filled: Uint128,
+    pub quote_price: Decimal256,
+    pub created_at: Timestamp,
 }
 
 pub const CACHE: Item<Cache> = Item::new("cache_v20");

@@ -10,13 +10,18 @@ use crate::{
         cache::{LimitOrderCache, LIMIT_ORDER_CACHE},
         triggers::get_trigger,
     },
-    tests::helpers::{setup_active_vault_with_funds, setup_active_vault_with_low_funds},
+    tests::{
+        helpers::{
+            instantiate_contract, setup_active_vault_with_funds, setup_active_vault_with_low_funds,
+        },
+        mocks::ADMIN,
+    },
 };
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{
-    testing::{mock_dependencies, mock_env},
-    to_binary, BankMsg, Coin, CosmosMsg, Event, Reply, SubMsg, SubMsgResponse, SubMsgResult,
-    Uint128, WasmMsg,
+    testing::{mock_dependencies, mock_env, mock_info},
+    to_binary, BankMsg, Coin, CosmosMsg, Decimal256, Event, Reply, SubMsg, SubMsgResponse,
+    SubMsgResult, Uint128, WasmMsg,
 };
 use kujira::fin::ExecuteMsg as FINExecuteMsg;
 
@@ -24,6 +29,7 @@ use kujira::fin::ExecuteMsg as FINExecuteMsg;
 fn with_unfilled_limit_order_should_return_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -35,6 +41,8 @@ fn with_unfilled_limit_order_should_return_vault_balance() {
                 offer_amount: vault.get_swap_amount().amount,
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: Uint128::zero(),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -64,6 +72,7 @@ fn with_unfilled_limit_order_should_return_vault_balance() {
 fn with_unfilled_limit_order_and_low_funds_should_return_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
@@ -75,6 +84,8 @@ fn with_unfilled_limit_order_and_low_funds_should_return_vault_balance() {
                 offer_amount: vault.get_swap_amount().amount,
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: Uint128::zero(),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -107,6 +118,7 @@ fn with_unfilled_limit_order_and_low_funds_should_return_vault_balance() {
 fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
@@ -118,6 +130,8 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
                 offer_amount: vault.get_swap_amount().amount,
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: Uint128::zero(),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -146,6 +160,7 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
 fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
@@ -157,6 +172,8 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled(
                 offer_amount: vault.get_swap_amount().amount,
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: Uint128::zero(),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -185,6 +202,7 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled(
 fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
@@ -196,6 +214,8 @@ fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
                 offer_amount: vault.get_swap_amount().amount,
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: Uint128::zero(),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -224,6 +244,7 @@ fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
 fn with_partially_filled_limit_order_should_return_vault_balance_minus_filled_amount() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -235,6 +256,8 @@ fn with_partially_filled_limit_order_should_return_vault_balance_minus_filled_am
                 offer_amount: vault.get_swap_amount().amount / Uint128::new(2),
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: vault.get_swap_amount().amount / Uint128::new(2),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -266,6 +289,7 @@ fn with_partially_filled_limit_order_should_return_vault_balance_minus_filled_am
 fn with_partially_filled_limit_order_should_return_withdraw_remainder() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
@@ -278,6 +302,8 @@ fn with_partially_filled_limit_order_should_return_withdraw_remainder() {
                 offer_amount: vault.get_swap_amount().amount / Uint128::new(2),
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: vault.get_swap_amount().amount / Uint128::new(2),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -314,6 +340,7 @@ fn with_partially_filled_limit_order_and_low_funds_should_return_vault_balance_m
 {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
@@ -325,6 +352,8 @@ fn with_partially_filled_limit_order_and_low_funds_should_return_vault_balance_m
                 offer_amount: vault.get_swap_amount().amount / Uint128::new(2),
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: vault.get_swap_amount().amount / Uint128::new(2),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -356,6 +385,7 @@ fn with_partially_filled_limit_order_and_low_funds_should_return_vault_balance_m
 fn with_partially_filled_limit_order_and_low_funds_should_withdraw_remainder() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
@@ -368,6 +398,8 @@ fn with_partially_filled_limit_order_and_low_funds_should_withdraw_remainder() {
                 offer_amount: vault.get_swap_amount().amount / Uint128::new(2),
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: vault.get_swap_amount().amount / Uint128::new(2),
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -403,6 +435,7 @@ fn with_partially_filled_limit_order_and_low_funds_should_withdraw_remainder() {
 fn with_filled_limit_order_should_return_vault_balance_minus_swap_amount() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -414,6 +447,8 @@ fn with_filled_limit_order_should_return_vault_balance_minus_swap_amount() {
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: vault.get_swap_amount().amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -445,6 +480,7 @@ fn with_filled_limit_order_should_return_vault_balance_minus_swap_amount() {
 fn with_filled_limit_order_should_withdraw_remainder() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
@@ -457,6 +493,8 @@ fn with_filled_limit_order_should_withdraw_remainder() {
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: vault.get_swap_amount().amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -491,6 +529,7 @@ fn with_filled_limit_order_should_withdraw_remainder() {
 fn with_filled_limit_order_and_low_funds_should_return_no_funds() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
@@ -503,6 +542,8 @@ fn with_filled_limit_order_and_low_funds_should_return_no_funds() {
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: vault.get_swap_amount().amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();
@@ -532,6 +573,7 @@ fn with_filled_limit_order_and_low_funds_should_return_no_funds() {
 fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
     let mut deps = mock_dependencies();
     let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
@@ -544,6 +586,8 @@ fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
                 filled: vault.get_swap_amount().amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
             },
         )
         .unwrap();

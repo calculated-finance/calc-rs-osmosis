@@ -1,10 +1,12 @@
+use crate::constants::TWO_MICRONS;
 use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::cache::{Cache, CACHE};
 use crate::state::events::create_event;
+use crate::state::fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP;
 use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
-use crate::state::vaults::save_vault;
+use crate::state::vaults::{save_vault, update_vault};
 use crate::types::vault::Vault;
 use crate::types::vault_builder::VaultBuilder;
 use crate::validation_helpers::{
@@ -17,11 +19,12 @@ use crate::validation_helpers::{
 };
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
-use base::vaults::vault::{Destination, PositionType, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{Addr, Decimal, Decimal256};
+use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
+use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, StdError};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
-use fin_helpers::limit_orders::create_limit_order_sub_msg;
+use fin_helpers::limit_orders::create_submit_order_sub_msg;
+use fin_helpers::position_type::PositionType;
 use fin_helpers::queries::query_pair_config;
 
 use super::execute_trigger::execute_trigger;
@@ -216,10 +219,31 @@ fn create_fin_limit_order_trigger(
         },
     )?;
 
-    let fin_limit_order_sub_msg = create_limit_order_sub_msg(
+    let fin_limit_order_change_timestamp =
+        FIN_LIMIT_ORDER_CHANGE_TIMESTAMP.may_load(deps.storage)?;
+
+    let is_new_fin_limit_order = fin_limit_order_change_timestamp.is_some();
+
+    if is_new_fin_limit_order {
+        update_vault(deps.storage, vault.id, |stored_vault| match stored_vault {
+            Some(mut stored_vault) => {
+                stored_vault.balance.amount -= TWO_MICRONS;
+                Ok(stored_vault)
+            }
+            None => Err(StdError::GenericErr {
+                msg: format!("Vault ({}) not found", vault.id).to_string(),
+            }),
+        })?;
+    }
+
+    let fin_limit_order_sub_msg = create_submit_order_sub_msg(
         vault.pair.address.clone(),
         target_price,
-        vault.get_swap_amount(),
+        if is_new_fin_limit_order {
+            Coin::new(TWO_MICRONS.into(), vault.get_swap_denom())
+        } else {
+            vault.get_swap_amount()
+        },
         AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID,
     );
 
