@@ -5,7 +5,7 @@ use base::{
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    Attribute, BankMsg, Coin, SubMsg, Uint128,
+    BankMsg, Coin, SubMsg, Uint128,
 };
 
 use crate::{
@@ -494,8 +494,5 @@ fn with_correct_received_amount_should_do_nothing() {
     )
     .unwrap();
 
-    assert!(response.attributes.contains(&Attribute {
-        key: "result".to_string(),
-        value: "no-op".to_string()
-    }));
+    assert!(response.messages.is_empty());
 }

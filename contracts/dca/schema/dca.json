@@ -1,6 +1,6 @@
 {
   "contract_name": "dca",
-  "contract_version": "1.1.3",
+  "contract_version": "1.2.0",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -445,12 +445,125 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "set_fin_limit_order_timestamp"
+        ],
+        "properties": {
+          "set_fin_limit_order_timestamp": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "migrate_price_trigger"
+        ],
+        "properties": {
+          "migrate_price_trigger": {
+            "type": "object",
+            "required": [
+              "vault_id"
+            ],
+            "properties": {
+              "vault_id": {
+                "$ref": "#/definitions/Uint128"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "fix_vault_amounts"
+        ],
+        "properties": {
+          "fix_vault_amounts": {
+            "type": "object",
+            "required": [
+              "expected_received_amount",
+              "expected_swapped_amount",
+              "vault_id"
+            ],
+            "properties": {
+              "expected_received_amount": {
+                "$ref": "#/definitions/Coin"
+              },
+              "expected_swapped_amount": {
+                "$ref": "#/definitions/Coin"
+              },
+              "vault_id": {
+                "$ref": "#/definitions/Uint128"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "fix_event_amounts"
+        ],
+        "properties": {
+          "fix_event_amounts": {
+            "type": "object",
+            "required": [
+              "event_id",
+              "expected_fee",
+              "expected_received",
+              "expected_sent"
+            ],
+            "properties": {
+              "event_id": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              },
+              "expected_fee": {
+                "$ref": "#/definitions/Coin"
+              },
+              "expected_received": {
+                "$ref": "#/definitions/Coin"
+              },
+              "expected_sent": {
+                "$ref": "#/definitions/Coin"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ],
     "definitions": {
       "Addr": {
         "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
         "type": "string"
+      },
+      "Coin": {
+        "type": "object",
+        "required": [
+          "amount",
+          "denom"
+        ],
+        "properties": {
+          "amount": {
+            "$ref": "#/definitions/Uint128"
+          },
+          "denom": {
+            "type": "string"
+          }
+        }
       },
       "Decimal": {
         "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
@@ -520,6 +633,19 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "QueryMsg",
     "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "get_config"
+        ],
+        "properties": {
+          "get_config": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
       {
         "type": "object",
         "required": [
@@ -756,6 +882,43 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "get_data_fixes_by_resource_id"
+        ],
+        "properties": {
+          "get_data_fixes_by_resource_id": {
+            "type": "object",
+            "required": [
+              "resource_id"
+            ],
+            "properties": {
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint16",
+                "minimum": 0.0
+              },
+              "resource_id": {
+                "$ref": "#/definitions/Uint128"
+              },
+              "start_after": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ],
     "definitions": {
@@ -781,6 +944,68 @@
   "migrate": null,
   "sudo": null,
   "responses": {
+    "get_config": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ConfigResponse",
+      "type": "object",
+      "required": [
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/Config"
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Addr": {
+          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
+        },
+        "Config": {
+          "type": "object",
+          "required": [
+            "admin",
+            "delegation_fee_percent",
+            "fee_collector",
+            "page_limit",
+            "paused",
+            "staking_router_address",
+            "swap_fee_percent"
+          ],
+          "properties": {
+            "admin": {
+              "$ref": "#/definitions/Addr"
+            },
+            "delegation_fee_percent": {
+              "$ref": "#/definitions/Decimal"
+            },
+            "fee_collector": {
+              "$ref": "#/definitions/Addr"
+            },
+            "page_limit": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0.0
+            },
+            "paused": {
+              "type": "boolean"
+            },
+            "staking_router_address": {
+              "$ref": "#/definitions/Addr"
+            },
+            "swap_fee_percent": {
+              "$ref": "#/definitions/Decimal"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Decimal": {
+          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+          "type": "string"
+        }
+      }
+    },
     "get_custom_swap_fees": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CustomFeesResponse",
@@ -810,6 +1035,166 @@
       "definitions": {
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+          "type": "string"
+        }
+      }
+    },
+    "get_data_fixes_by_resource_id": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DataFixesResponse",
+      "type": "object",
+      "required": [
+        "fixes"
+      ],
+      "properties": {
+        "fixes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DataFix"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Coin": {
+          "type": "object",
+          "required": [
+            "amount",
+            "denom"
+          ],
+          "properties": {
+            "amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "denom": {
+              "type": "string"
+            }
+          }
+        },
+        "DataFix": {
+          "type": "object",
+          "required": [
+            "block_height",
+            "data",
+            "id",
+            "resource_id",
+            "timestamp"
+          ],
+          "properties": {
+            "block_height": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "data": {
+              "$ref": "#/definitions/DataFixData"
+            },
+            "id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "resource_id": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "timestamp": {
+              "$ref": "#/definitions/Timestamp"
+            }
+          },
+          "additionalProperties": false
+        },
+        "DataFixData": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "vault_amounts"
+              ],
+              "properties": {
+                "vault_amounts": {
+                  "type": "object",
+                  "required": [
+                    "new_received",
+                    "new_swapped",
+                    "old_received",
+                    "old_swapped"
+                  ],
+                  "properties": {
+                    "new_received": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "new_swapped": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "old_received": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "old_swapped": {
+                      "$ref": "#/definitions/Coin"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "execution_completed_event_amounts"
+              ],
+              "properties": {
+                "execution_completed_event_amounts": {
+                  "type": "object",
+                  "required": [
+                    "new_fee",
+                    "new_received",
+                    "new_sent",
+                    "old_fee",
+                    "old_received",
+                    "old_sent"
+                  ],
+                  "properties": {
+                    "new_fee": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "new_received": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "new_sent": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "old_fee": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "old_received": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "old_sent": {
+                      "$ref": "#/definitions/Coin"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint128": {
+          "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+          "type": "string"
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
           "type": "string"
         }
       }
