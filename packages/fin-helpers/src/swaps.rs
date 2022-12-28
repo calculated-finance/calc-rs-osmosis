@@ -13,26 +13,27 @@ pub fn create_fin_swap_message(
     slippage_tolerance: Option<Decimal256>,
     reply_id: u64,
 ) -> SubMsg {
-    let fin_price = match position_type {
-        PositionType::Enter => query_base_price(querier, pair_address.clone()),
-        PositionType::Exit => query_quote_price(querier, pair_address.clone()),
-    };
-
-    let belief_price = match position_type {
-        PositionType::Enter => fin_price,
-        PositionType::Exit => Decimal256::one()
-            .checked_div(fin_price)
-            .expect("should return a valid inverted price for fin sell"),
-    };
-
     match slippage_tolerance {
-        Some(tolerance) => create_fin_swap_with_slippage(
-            pair_address.clone(),
-            belief_price,
-            tolerance,
-            swap_amount.clone(),
-            reply_id,
-        ),
+        Some(tolerance) => {
+            let fin_price = match position_type {
+                PositionType::Enter => query_base_price(querier, pair_address.clone()),
+                PositionType::Exit => query_quote_price(querier, pair_address.clone()),
+            };
+
+            let belief_price = match position_type {
+                PositionType::Enter => fin_price,
+                PositionType::Exit => Decimal256::one()
+                    .checked_div(fin_price)
+                    .expect("should return a valid inverted price for fin sell"),
+            };
+            create_fin_swap_with_slippage(
+                pair_address.clone(),
+                belief_price,
+                tolerance,
+                swap_amount.clone(),
+                reply_id,
+            )
+        }
         None => {
             create_fin_swap_without_slippage(pair_address.clone(), swap_amount.clone(), reply_id)
         }

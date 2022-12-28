@@ -1,10 +1,11 @@
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    BankMsg, Coin, Decimal256, Event, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
+    BankMsg, Coin, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
 };
 
 use crate::{
+    constants::TWO_MICRONS,
     contract::AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID,
     handlers::{
         after_fin_limit_order_withdrawn_for_cancel_vault::after_fin_limit_order_withdrawn_for_cancel_vault,
@@ -28,19 +29,35 @@ fn with_partially_filled_limit_order_should_return_funds_to_owner() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - TWO_MICRONS / Uint128::new(2)).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                (TWO_MICRONS / Uint128::new(2)).into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                offer_amount: TWO_MICRONS / Uint128::new(2),
+                original_offer_amount: TWO_MICRONS,
+                filled: TWO_MICRONS / Uint128::new(2),
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - TWO_MICRONS).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -51,10 +68,7 @@ fn with_partially_filled_limit_order_should_return_funds_to_owner() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -63,7 +77,10 @@ fn with_partially_filled_limit_order_should_return_funds_to_owner() {
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: vault.owner.to_string(),
-        amount: vec![Coin::new(received_amount.into(), vault.get_receive_denom())]
+        amount: vec![Coin::new(
+            (TWO_MICRONS / Uint128::new(2)).into(),
+            vault.get_receive_denom()
+        )]
     })));
 }
 
@@ -75,19 +92,21 @@ fn with_partially_filled_limit_order_should_set_vault_balance_to_zero() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
-
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                offer_amount: TWO_MICRONS / Uint128::new(2),
+                original_offer_amount: TWO_MICRONS,
+                filled: TWO_MICRONS / Uint128::new(2),
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - TWO_MICRONS).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -98,10 +117,7 @@ fn with_partially_filled_limit_order_should_set_vault_balance_to_zero() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -121,19 +137,21 @@ fn with_partially_filled_limit_order_should_set_vault_status_to_cancelled() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
-
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                offer_amount: TWO_MICRONS / Uint128::new(2),
+                original_offer_amount: TWO_MICRONS,
+                filled: TWO_MICRONS / Uint128::new(2),
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - TWO_MICRONS).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -144,10 +162,7 @@ fn with_partially_filled_limit_order_should_set_vault_status_to_cancelled() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -167,19 +182,21 @@ fn with_partially_filled_limit_order_should_delete_trigger() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
-
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                offer_amount: TWO_MICRONS / Uint128::new(2),
+                original_offer_amount: TWO_MICRONS,
+                filled: TWO_MICRONS / Uint128::new(2),
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - TWO_MICRONS).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -190,10 +207,7 @@ fn with_partially_filled_limit_order_should_delete_trigger() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },

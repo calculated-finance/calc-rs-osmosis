@@ -2,7 +2,7 @@ use crate::contract::{
     AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID, AFTER_Z_DELEGATION_REPLY_ID,
 };
 use crate::error::ContractError;
-use crate::state::cache::{CACHE, LIMIT_ORDER_CACHE};
+use crate::state::cache::{SwapCache, CACHE, LIMIT_ORDER_CACHE, SWAP_CACHE};
 use crate::state::config::{get_config, get_custom_fee};
 use crate::state::events::create_event;
 use crate::state::fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP;
@@ -12,7 +12,6 @@ use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;
-use base::helpers::message_helpers::get_attribute_in_event;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PostExecutionAction, VaultStatus};
@@ -29,7 +28,6 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
-    let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
     let vault = get_vault(deps.storage, cache.vault_id.into())?;
 
     match reply.result {
@@ -37,17 +35,20 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
             let mut messages: Vec<CosmosMsg> = Vec::new();
             let mut sub_msgs: Vec<SubMsg> = Vec::new();
 
-            let withdraw_order_response = reply.result.into_result().unwrap();
+            let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
 
-            let received_amount =
-                get_attribute_in_event(&withdraw_order_response.events, "transfer", "amount")?
-                    .trim_end_matches(&vault.get_receive_denom().to_string())
-                    .parse::<Uint128>()
-                    .expect("limit order withdrawn amount");
+            let receive_denom_balance = &deps
+                .querier
+                .query_balance(&env.contract.address, &vault.get_receive_denom())?;
+
+            let withdrawn_amount = receive_denom_balance
+                .amount
+                .checked_sub(limit_order_cache.receive_denom_balance.amount)
+                .expect("withdrawn amount");
 
             let coin_received = Coin {
                 denom: vault.get_receive_denom().clone(),
-                amount: received_amount,
+                amount: withdrawn_amount,
             };
 
             let config = get_config(deps.storage)?;
@@ -62,9 +63,27 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 if coin_received.amount.gt(&Uint128::zero()) {
                     messages.push(CosmosMsg::Bank(BankMsg::Send {
                         to_address: config.fee_collector.to_string(),
-                        amount: vec![coin_received],
+                        amount: vec![coin_received.clone()],
                     }));
                 }
+
+                SWAP_CACHE.save(
+                    deps.storage,
+                    &SwapCache {
+                        swap_denom_balance: deps
+                            .querier
+                            .query_balance(&env.contract.address, &vault.get_swap_denom())?,
+                        receive_denom_balance: Coin::new(
+                            (deps
+                                .querier
+                                .query_balance(&env.contract.address, &vault.get_receive_denom())?
+                                .amount
+                                - withdrawn_amount)
+                                .into(),
+                            vault.get_receive_denom().clone(),
+                        ),
+                    },
+                )?;
 
                 sub_msgs.push(create_fin_swap_message(
                     deps.querier,

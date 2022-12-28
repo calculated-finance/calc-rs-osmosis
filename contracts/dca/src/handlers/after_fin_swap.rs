@@ -2,7 +2,7 @@ use std::cmp::min;
 
 use crate::contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_Z_DELEGATION_REPLY_ID};
 use crate::error::ContractError;
-use crate::state::cache::CACHE;
+use crate::state::cache::{CACHE, SWAP_CACHE};
 use crate::state::config::{get_config, get_custom_fee};
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
@@ -11,14 +11,12 @@ use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;
-use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PostExecutionAction, VaultStatus};
 use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
-use fin_helpers::position_type::PositionType;
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
@@ -33,40 +31,25 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
     match reply.result {
         SubMsgResult::Ok(_) => {
-            let fin_swap_response = reply.result.into_result().unwrap();
+            let swap_cache = SWAP_CACHE.load(deps.storage)?;
 
-            let wasm_trade_event =
-                get_flat_map_for_event_type(&fin_swap_response.events, "wasm-trade").unwrap();
+            let swap_denom_balance = &deps
+                .querier
+                .query_balance(&env.contract.address, &vault.get_swap_denom())?;
 
-            let base_amount = wasm_trade_event["base_amount"].parse::<u128>().unwrap();
-            let quote_amount = wasm_trade_event["quote_amount"].parse::<u128>().unwrap();
+            let receive_denom_balance = &deps
+                .querier
+                .query_balance(&env.contract.address, &vault.get_receive_denom())?;
 
-            let (coin_sent, coin_received) = match vault.get_position_type() {
-                PositionType::Enter => {
-                    let sent = Coin {
-                        denom: vault.get_swap_denom(),
-                        amount: Uint128::from(quote_amount),
-                    };
-                    let received = Coin {
-                        denom: vault.get_receive_denom(),
-                        amount: Uint128::from(base_amount),
-                    };
+            let coin_sent = Coin::new(
+                (swap_cache.swap_denom_balance.amount - swap_denom_balance.amount).into(),
+                swap_denom_balance.denom.clone(),
+            );
 
-                    (sent, received)
-                }
-                PositionType::Exit => {
-                    let sent = Coin {
-                        denom: vault.get_swap_denom(),
-                        amount: Uint128::from(base_amount),
-                    };
-                    let received = Coin {
-                        denom: vault.get_receive_denom(),
-                        amount: Uint128::from(quote_amount),
-                    };
-
-                    (sent, received)
-                }
-            };
+            let coin_received = Coin::new(
+                (receive_denom_balance.amount - swap_cache.receive_denom_balance.amount).into(),
+                receive_denom_balance.denom.clone(),
+            );
 
             let config = get_config(deps.storage)?;
 
@@ -192,41 +175,22 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             )?;
 
             if updated_vault.is_active() {
-                match vault
-                    .trigger
-                    .expect(format!("trigger for vault id {}", vault.id).as_str())
-                {
-                    TriggerConfiguration::Time { target_time } => {
-                        save_trigger(
-                            deps.storage,
-                            Trigger {
-                                vault_id: vault.id,
-                                configuration: TriggerConfiguration::Time {
-                                    target_time: get_next_target_time(
-                                        env.block.time,
-                                        target_time,
-                                        vault.time_interval,
-                                    ),
+                save_trigger(
+                    deps.storage,
+                    Trigger {
+                        vault_id: vault.id,
+                        configuration: TriggerConfiguration::Time {
+                            target_time: get_next_target_time(
+                                env.block.time,
+                                match vault.trigger {
+                                    Some(TriggerConfiguration::Time { target_time }) => target_time,
+                                    _ => env.block.time,
                                 },
-                            },
-                        )?;
-                    }
-                    TriggerConfiguration::FinLimitOrder { .. } => {
-                        save_trigger(
-                            deps.storage,
-                            Trigger {
-                                vault_id: vault.id,
-                                configuration: TriggerConfiguration::Time {
-                                    target_time: get_next_target_time(
-                                        env.block.time,
-                                        env.block.time,
-                                        vault.time_interval,
-                                    ),
-                                },
-                            },
-                        )?;
-                    }
-                }
+                                vault.time_interval,
+                            ),
+                        },
+                    },
+                )?;
             }
 
             create_event(

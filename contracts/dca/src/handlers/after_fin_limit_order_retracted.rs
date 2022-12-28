@@ -5,7 +5,6 @@ use crate::state::fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMES
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::vault::Vault;
-use base::helpers::message_helpers::get_attribute_in_event;
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response, Uint128};
@@ -14,7 +13,7 @@ use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 
 pub fn after_fin_limit_order_retracted(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
@@ -25,12 +24,14 @@ pub fn after_fin_limit_order_retracted(
         SubMsgResult::Ok(_) => {
             let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
 
-            let fin_retract_order_response = reply.result.into_result().unwrap();
+            let swap_denom_balance = &deps
+                .querier
+                .query_balance(&env.contract.address, &vault.get_swap_denom())?;
 
-            let amount_retracted =
-                get_attribute_in_event(&fin_retract_order_response.events, "wasm", "amount")?
-                    .parse::<Uint128>()
-                    .expect("limit order retracted amount");
+            let amount_retracted = swap_denom_balance
+                .amount
+                .checked_sub(limit_order_cache.swap_denom_balance.amount)
+                .expect("amount retracted");
 
             let fin_limit_order_change_timestamp =
                 FIN_LIMIT_ORDER_CHANGE_TIMESTAMP.may_load(deps.storage)?;
@@ -69,7 +70,7 @@ pub fn after_fin_limit_order_retracted(
                 if is_new_fin_limit_order {
                     response = response.add_message(CosmosMsg::Bank(BankMsg::Send {
                         to_address: vault.owner.to_string(),
-                        amount: vec![Coin::new(amount_retracted.into(), vault.get_swap_denom())],
+                        amount: vec![Coin::new((amount_retracted).into(), vault.get_swap_denom())],
                     }));
                 }
 

@@ -3,9 +3,11 @@ use base::pair::Pair;
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::{Destination, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Decimal, Decimal256, Uint128, Uint64};
+use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128, Uint64};
 use fin_helpers::position_type::PositionType;
 
+use crate::state::config::Config;
+use crate::state::data_fixes::DataFix;
 use crate::types::vault::Vault;
 
 #[cw_serde]
@@ -82,11 +84,24 @@ pub enum ExecuteMsg {
     MigratePriceTrigger {
         vault_id: Uint128,
     },
+    FixVaultAmounts {
+        vault_id: Uint128,
+        expected_swapped_amount: Coin,
+        expected_received_amount: Coin,
+    },
+    FixEventAmounts {
+        event_id: u64,
+        expected_sent: Coin,
+        expected_received: Coin,
+        expected_fee: Coin,
+    },
 }
 
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
+    #[returns(ConfigResponse)]
+    GetConfig {},
     #[returns(PairsResponse)]
     GetPairs {},
     #[returns(TriggerIdsResponse)]
@@ -120,6 +135,17 @@ pub enum QueryMsg {
     },
     #[returns(CustomFeesResponse)]
     GetCustomSwapFees {},
+    #[returns(DataFixesResponse)]
+    GetDataFixesByResourceId {
+        resource_id: Uint128,
+        start_after: Option<u64>,
+        limit: Option<u16>,
+    },
+}
+
+#[cw_serde]
+pub struct ConfigResponse {
+    pub config: Config,
 }
 
 #[cw_serde]
@@ -155,4 +181,9 @@ pub struct EventsResponse {
 #[cw_serde]
 pub struct CustomFeesResponse {
     pub custom_fees: Vec<(String, Decimal)>,
+}
+
+#[cw_serde]
+pub struct DataFixesResponse {
+    pub fixes: Vec<DataFix>,
 }

@@ -1,7 +1,8 @@
 use crate::{
+    constants::TWO_MICRONS,
     contract::{
         AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
-        AFTER_Z_DELEGATION_REPLY_ID,
+        AFTER_FIN_SWAP_REPLY_ID, AFTER_Z_DELEGATION_REPLY_ID,
     },
     handlers::{
         after_fin_limit_order_withdrawn_for_execute_trigger::after_fin_limit_order_withdrawn_for_execute_vault,
@@ -10,6 +11,7 @@ use crate::{
     state::{
         cache::{LimitOrderCache, LIMIT_ORDER_CACHE},
         config::{create_custom_fee, get_config},
+        fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP,
         triggers::get_trigger,
     },
     tests::{
@@ -27,21 +29,34 @@ use base::{
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    to_binary, BankMsg, Coin, CosmosMsg, Decimal, Decimal256, Event, Reply, SubMsg, SubMsgResponse,
-    SubMsgResult, Timestamp, Uint128,
+    to_binary, BankMsg, Coin, CosmosMsg, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse,
+    SubMsgResult, Timestamp, Uint128, WasmMsg,
 };
+use kujira::fin::ExecuteMsg as FINExecuteMsg;
 use staking_router::msg::ExecuteMsg;
 use std::cmp::min;
 
 #[test]
-fn after_succcesful_withdrawal_returns_funds_to_destination() {
+fn after_succcesful_withdrawal_of_new_limit_order_invokes_a_fin_swap() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - TWO_MICRONS).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(TWO_MICRONS.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
 
     LIMIT_ORDER_CACHE
         .save(
@@ -49,10 +64,15 @@ fn after_succcesful_withdrawal_returns_funds_to_destination() {
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                original_offer_amount: TWO_MICRONS,
+                filled: TWO_MICRONS,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - TWO_MICRONS).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -63,17 +83,82 @@ fn after_succcesful_withdrawal_returns_funds_to_destination() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
     )
     .unwrap();
 
-    let config = get_config(&deps.storage).unwrap();
+    assert!(response.messages.contains(&SubMsg::reply_always(
+        CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: vault.pair.address.to_string(),
+            msg: to_binary(&FINExecuteMsg::Swap {
+                offer_asset: None,
+                belief_price: None,
+                max_spread: None,
+                to: None,
+            })
+            .unwrap(),
+            funds: vec![vault.get_swap_amount()]
+        }),
+        AFTER_FIN_SWAP_REPLY_ID
+    )));
+}
+
+#[test]
+fn after_succcesful_withdrawal_returns_funds_to_destination() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    let response = after_fin_limit_order_withdrawn_for_execute_vault(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let config = get_config(deps.as_ref().storage).unwrap();
 
     let automation_fee_rate = config.delegation_fee_percent
         * vault
@@ -105,15 +190,27 @@ fn after_succcesful_withdrawal_returns_funds_to_destination() {
 }
 
 #[test]
-fn after_succcesful_withdrawal_returns_fee_to_fee_collector() {
+fn after_succcesful_withdrawal_of_new_limit_order_returns_limit_order_to_fee_collector() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - TWO_MICRONS).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(TWO_MICRONS.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
 
     LIMIT_ORDER_CACHE
         .save(
@@ -121,10 +218,15 @@ fn after_succcesful_withdrawal_returns_fee_to_fee_collector() {
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                original_offer_amount: TWO_MICRONS,
+                filled: TWO_MICRONS,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - TWO_MICRONS).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -135,10 +237,68 @@ fn after_succcesful_withdrawal_returns_fee_to_fee_collector() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let config = get_config(deps.as_ref().storage).unwrap();
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: config.fee_collector.to_string(),
+        amount: vec![Coin::new(TWO_MICRONS.into(), vault.get_receive_denom())]
+    })));
+}
+
+#[test]
+fn after_succcesful_withdrawal_returns_fees_to_fee_collector() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    let response = after_fin_limit_order_withdrawn_for_execute_vault(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
                 data: None,
             }),
         },
@@ -178,8 +338,19 @@ fn after_succesful_withdrawal_adjusts_vault_balance() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.get_swap_amount().amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -191,6 +362,11 @@ fn after_succesful_withdrawal_adjusts_vault_balance() {
                 filled: vault.get_swap_amount().amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -201,10 +377,7 @@ fn after_succesful_withdrawal_adjusts_vault_balance() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -227,8 +400,19 @@ fn after_successful_withdrawal_creates_a_new_time_trigger() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.get_swap_amount().amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -240,6 +424,11 @@ fn after_successful_withdrawal_creates_a_new_time_trigger() {
                 filled: vault.get_swap_amount().amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -250,10 +439,7 @@ fn after_successful_withdrawal_creates_a_new_time_trigger() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -283,8 +469,19 @@ fn after_successful_withdrawal_resulting_in_low_funds_does_not_create_a_new_time
         Uint128::new(60000),
     );
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.get_swap_amount().amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -296,6 +493,11 @@ fn after_successful_withdrawal_resulting_in_low_funds_does_not_create_a_new_time
                 filled: vault.get_swap_amount().amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -306,10 +508,7 @@ fn after_successful_withdrawal_resulting_in_low_funds_does_not_create_a_new_time
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -328,9 +527,18 @@ fn after_successful_withdrawal_creates_delegation_messages() {
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let received_amount = vault.get_swap_amount().amount;
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -339,9 +547,14 @@ fn after_successful_withdrawal_creates_delegation_messages() {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -352,10 +565,7 @@ fn after_successful_withdrawal_creates_delegation_messages() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -407,8 +617,18 @@ fn after_successful_withdrawal_creates_execution_completed_event() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -417,9 +637,14 @@ fn after_successful_withdrawal_creates_execution_completed_event() {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -430,10 +655,7 @@ fn after_successful_withdrawal_creates_execution_completed_event() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -481,8 +703,18 @@ fn with_empty_resulting_vault_sets_vault_to_inactive() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -491,9 +723,14 @@ fn with_empty_resulting_vault_sets_vault_to_inactive() {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -504,10 +741,7 @@ fn with_empty_resulting_vault_sets_vault_to_inactive() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -527,9 +761,6 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
-
     let custom_fee_percent = Decimal::percent(20);
 
     create_custom_fee(
@@ -539,7 +770,18 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
     )
     .unwrap();
 
-    let filled_amount = Uint128::new(2187312);
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -548,9 +790,14 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -561,10 +808,7 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -604,9 +848,6 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
-
     let custom_fee_percent = Decimal::percent(20);
 
     create_custom_fee(
@@ -616,7 +857,18 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
     )
     .unwrap();
 
-    let filled_amount = Uint128::new(1298321);
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -625,9 +877,14 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -638,10 +895,7 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },
@@ -679,9 +933,6 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let filled_amount = Uint128::new(32472323);
-    let received_amount = filled_amount - filled_amount * Uint128::new(3) / Uint128::new(4000);
-
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
     let swap_denom_fee_percent = Decimal::percent(20);
@@ -701,7 +952,18 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
     )
     .unwrap();
 
-    let filled_amount = Uint128::new(8798372);
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
@@ -710,9 +972,14 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: filled_amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -723,10 +990,7 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("transfer").add_attribute(
-                    "amount",
-                    format!("{}{}", received_amount, vault.get_receive_denom()),
-                )],
+                events: vec![],
                 data: None,
             }),
         },

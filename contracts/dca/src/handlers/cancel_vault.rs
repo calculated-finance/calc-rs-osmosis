@@ -30,7 +30,7 @@ pub fn cancel_vault(
 
     create_event(
         deps.storage,
-        EventBuilder::new(vault.id, env.block, EventData::DcaVaultCancelled {}),
+        EventBuilder::new(vault.id, env.block.clone(), EventData::DcaVaultCancelled {}),
     )?;
 
     match vault.trigger {
@@ -41,6 +41,7 @@ pub fn cancel_vault(
         Some(TriggerConfiguration::FinLimitOrder { order_idx, .. }) => {
             cancel_fin_limit_order_trigger(
                 deps,
+                env.clone(),
                 order_idx
                     .expect(format!("order idx for price trigger for vault {}", vault.id).as_str()),
                 vault,
@@ -85,6 +86,7 @@ fn refund_vault_balance(deps: DepsMut, vault: Vault) -> Result<Response, Contrac
 
 fn cancel_fin_limit_order_trigger(
     deps: DepsMut,
+    env: Env,
     order_idx: Uint128,
     vault: Vault,
 ) -> Result<Response, ContractError> {
@@ -98,6 +100,12 @@ fn cancel_fin_limit_order_trigger(
         filled: limit_order_details.filled_amount,
         quote_price: limit_order_details.quote_price,
         created_at: limit_order_details.created_at,
+        swap_denom_balance: deps
+            .querier
+            .query_balance(&env.contract.address, &vault.get_swap_denom())?,
+        receive_denom_balance: deps
+            .querier
+            .query_balance(&env.contract.address, &vault.get_receive_denom())?,
     };
 
     LIMIT_ORDER_CACHE.save(deps.storage, &limit_order_cache)?;

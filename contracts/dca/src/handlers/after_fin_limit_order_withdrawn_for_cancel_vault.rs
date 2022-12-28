@@ -1,37 +1,40 @@
 use crate::{
     error::ContractError,
     state::{
-        cache::CACHE,
+        cache::{CACHE, LIMIT_ORDER_CACHE},
         triggers::delete_trigger,
         vaults::{get_vault, update_vault},
     },
     types::vault::Vault,
 };
-use base::{helpers::message_helpers::get_attribute_in_event, vaults::vault::VaultStatus};
+use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response};
 use cosmwasm_std::{CosmosMsg, StdError, StdResult, SubMsgResult, Uint128};
 
 pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
     let vault = get_vault(deps.storage, cache.vault_id.into())?;
     match reply.result {
         SubMsgResult::Ok(_) => {
-            let withdraw_order_response = reply.result.into_result().unwrap();
+            let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
 
-            let received_amount =
-                get_attribute_in_event(&withdraw_order_response.events, "transfer", "amount")?
-                    .trim_end_matches(&vault.get_receive_denom().to_string())
-                    .parse::<Uint128>()
-                    .expect("limit order withdrawn amount");
+            let receive_denom_balance = &deps
+                .querier
+                .query_balance(&env.contract.address, &vault.get_receive_denom())?;
+
+            let withdrawn_amount = receive_denom_balance
+                .amount
+                .checked_sub(limit_order_cache.receive_denom_balance.amount)
+                .expect("withdrawn amount");
 
             let coin_received = Coin {
                 denom: vault.get_receive_denom().clone(),
-                amount: received_amount,
+                amount: withdrawn_amount,
             };
 
             let mut response = Response::new()

@@ -1,4 +1,5 @@
 use crate::{
+    constants::TWO_MICRONS,
     contract::{
         AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
         AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID,
@@ -8,6 +9,7 @@ use crate::{
     },
     state::{
         cache::{LimitOrderCache, LIMIT_ORDER_CACHE},
+        fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP,
         triggers::get_trigger,
     },
     tests::{
@@ -20,8 +22,8 @@ use crate::{
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    to_binary, BankMsg, Coin, CosmosMsg, Decimal256, Event, Reply, SubMsg, SubMsgResponse,
-    SubMsgResult, Uint128, WasmMsg,
+    to_binary, BankMsg, Coin, CosmosMsg, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult,
+    Uint128, WasmMsg,
 };
 use kujira::fin::ExecuteMsg as FINExecuteMsg;
 
@@ -32,17 +34,31 @@ fn with_unfilled_limit_order_should_return_vault_balance() {
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
+                offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: Uint128::zero(),
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -53,9 +69,66 @@ fn with_unfilled_limit_order_should_return_vault_balance() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![
-                    Event::new("wasm").add_attribute("amount", vault.get_swap_amount().amount)
-                ],
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: vault.owner.to_string(),
+        amount: vec![Coin::new(vault.balance.amount.into(), "base")]
+    })));
+}
+
+#[test]
+fn with_new_unfilled_limit_order_should_return_vault_balance() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let received_amount = TWO_MICRONS;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount + TWO_MICRONS).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: TWO_MICRONS,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(TWO_MICRONS.into(), vault.get_receive_denom()),
+            },
+        )
+        .unwrap();
+
+    let response = after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
                 data: None,
             }),
         },
@@ -75,17 +148,31 @@ fn with_unfilled_limit_order_and_low_funds_should_return_vault_balance() {
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
+                offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: Uint128::zero(),
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -96,9 +183,7 @@ fn with_unfilled_limit_order_and_low_funds_should_return_vault_balance() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![
-                    Event::new("wasm").add_attribute("amount", vault.get_swap_amount().amount)
-                ],
+                events: vec![],
                 data: None,
             }),
         },
@@ -115,23 +200,38 @@ fn with_unfilled_limit_order_and_low_funds_should_return_vault_balance() {
 }
 
 #[test]
-fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
+fn with_unfilled_limit_order_should_set_vault_balance_to_zero() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
+                offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: Uint128::zero(),
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -142,9 +242,7 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![
-                    Event::new("wasm").add_attribute("amount", vault.get_swap_amount().amount)
-                ],
+                events: vec![],
                 data: None,
             }),
         },
@@ -157,23 +255,42 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
 }
 
 #[test]
-fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled() {
+fn with_new_unfilled_limit_order_should_set_vault_balance_to_zero() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = TWO_MICRONS;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount + TWO_MICRONS).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: Uint128::zero(),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: TWO_MICRONS,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(TWO_MICRONS.into(), vault.get_receive_denom()),
             },
         )
         .unwrap();
@@ -184,9 +301,117 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled(
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![
-                    Event::new("wasm").add_attribute("amount", vault.get_swap_amount().amount)
-                ],
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(updated_vault.balance.amount, Uint128::zero());
+}
+
+#[test]
+fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(updated_vault.balance.amount, Uint128::zero());
+}
+
+#[test]
+fn with_unfilled_limit_order_should_set_vault_status_to_cancelled() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
                 data: None,
             }),
         },
@@ -199,23 +424,42 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled(
 }
 
 #[test]
-fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
+fn with_new_unfilled_limit_order_should_set_vault_status_to_cancelled() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = TWO_MICRONS;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount + TWO_MICRONS).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount,
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: Uint128::zero(),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: TWO_MICRONS,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(TWO_MICRONS.into(), vault.get_receive_denom()),
             },
         )
         .unwrap();
@@ -226,9 +470,231 @@ fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![
-                    Event::new("wasm").add_attribute("amount", vault.get_swap_amount().amount)
-                ],
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(updated_vault.status, VaultStatus::Cancelled);
+}
+
+#[test]
+fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(updated_vault.status, VaultStatus::Cancelled);
+}
+
+#[test]
+fn with_unfilled_limit_order_should_delete_trigger() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let trigger = get_trigger(&deps.storage, vault.id).unwrap();
+
+    assert_eq!(trigger, None);
+}
+
+#[test]
+fn with_new_unfilled_limit_order_should_delete_trigger() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = TWO_MICRONS;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount + TWO_MICRONS).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: TWO_MICRONS,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(TWO_MICRONS.into(), vault.get_receive_denom()),
+            },
+        )
+        .unwrap();
+
+    after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let trigger = get_trigger(&deps.storage, vault.id).unwrap();
+
+    assert_eq!(trigger, None);
+}
+
+#[test]
+fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
                 data: None,
             }),
         },
@@ -248,16 +714,37 @@ fn with_partially_filled_limit_order_should_return_vault_balance_minus_filled_am
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
+    let received_amount = vault.get_swap_amount().amount / Uint128::new(2);
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount + received_amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.received_amount.amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount / Uint128::new(2),
+                offer_amount: received_amount,
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount / Uint128::new(2),
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -268,8 +755,7 @@ fn with_partially_filled_limit_order_should_return_vault_balance_minus_filled_am
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("wasm")
-                    .add_attribute("amount", vault.get_swap_amount().amount / Uint128::new(2))],
+                events: vec![],
                 data: None,
             }),
         },
@@ -279,31 +765,49 @@ fn with_partially_filled_limit_order_should_return_vault_balance_minus_filled_am
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: vault.owner.to_string(),
         amount: vec![Coin::new(
-            (vault.balance.amount - vault.get_swap_amount().amount / Uint128::new(2)).into(),
+            (vault.balance.amount - vault.get_swap_amount().amount + received_amount).into(),
             vault.get_swap_denom()
         )]
     })));
 }
 
 #[test]
-fn with_partially_filled_limit_order_should_return_withdraw_remainder() {
+fn with_partially_filled_new_limit_order_should_return_vault_balance_minus_filled_amount() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
-    let order_idx = Uint128::new(18);
+
+    let received_amount = TWO_MICRONS / Uint128::new(2);
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount + received_amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
-                order_idx,
-                offer_amount: vault.get_swap_amount().amount / Uint128::new(2),
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount / Uint128::new(2),
+                order_idx: Uint128::new(18),
+                offer_amount: received_amount,
+                original_offer_amount: TWO_MICRONS,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
             },
         )
         .unwrap();
@@ -314,8 +818,139 @@ fn with_partially_filled_limit_order_should_return_withdraw_remainder() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("wasm")
-                    .add_attribute("amount", vault.get_swap_amount().amount / Uint128::new(2))],
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: vault.owner.to_string(),
+        amount: vec![Coin::new(
+            (vault.balance.amount + received_amount).into(),
+            vault.get_swap_denom()
+        )]
+    })));
+}
+
+#[test]
+fn with_partially_filled_limit_order_and_low_funds_should_return_vault_balance_minus_filled_amount()
+{
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount / Uint128::new(2);
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount + received_amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.received_amount.amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: received_amount,
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    let response = after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: vault.owner.to_string(),
+        amount: vec![Coin::new(
+            (vault.balance.amount - vault.get_swap_amount().amount + received_amount).into(),
+            vault.get_swap_denom()
+        )]
+    })));
+}
+
+#[test]
+fn with_partially_filled_limit_order_should_withdraw_remainder() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let order_idx = Uint128::new(18);
+
+    let received_amount = vault.get_swap_amount().amount / Uint128::new(2);
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount + received_amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.received_amount.amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: received_amount,
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    let response = after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
                 data: None,
             }),
         },
@@ -336,24 +971,43 @@ fn with_partially_filled_limit_order_should_return_withdraw_remainder() {
 }
 
 #[test]
-fn with_partially_filled_limit_order_and_low_funds_should_return_vault_balance_minus_filled_amount()
-{
+fn with_partially_filled_new_limit_order_should_withdraw_remainder() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let order_idx = Uint128::new(18);
+
+    let received_amount = TWO_MICRONS / Uint128::new(2);
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount + received_amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(0, vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
-                offer_amount: vault.get_swap_amount().amount / Uint128::new(2),
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount / Uint128::new(2),
+                offer_amount: received_amount,
+                original_offer_amount: TWO_MICRONS,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
             },
         )
         .unwrap();
@@ -364,21 +1018,24 @@ fn with_partially_filled_limit_order_and_low_funds_should_return_vault_balance_m
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("wasm")
-                    .add_attribute("amount", vault.get_swap_amount().amount / Uint128::new(2))],
+                events: vec![],
                 data: None,
             }),
         },
     )
     .unwrap();
 
-    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: vault.owner.to_string(),
-        amount: vec![Coin::new(
-            (vault.balance.amount - vault.get_swap_amount().amount / Uint128::new(2)).into(),
-            vault.get_swap_denom()
-        )]
-    })));
+    assert!(response.messages.contains(&SubMsg::reply_always(
+        CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: vault.pair.address.to_string(),
+            msg: to_binary(&FINExecuteMsg::WithdrawOrders {
+                order_idxs: Some(vec![order_idx]),
+            })
+            .unwrap(),
+            funds: vec![],
+        }),
+        AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID
+    )));
 }
 
 #[test]
@@ -390,16 +1047,37 @@ fn with_partially_filled_limit_order_and_low_funds_should_withdraw_remainder() {
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
 
+    let received_amount = vault.get_swap_amount().amount / Uint128::new(2);
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount + received_amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.received_amount.amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
-                order_idx,
-                offer_amount: vault.get_swap_amount().amount / Uint128::new(2),
+                order_idx: Uint128::new(18),
+                offer_amount: received_amount,
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount / Uint128::new(2),
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -410,8 +1088,7 @@ fn with_partially_filled_limit_order_and_low_funds_should_withdraw_remainder() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("wasm")
-                    .add_attribute("amount", vault.get_swap_amount().amount / Uint128::new(2))],
+                events: vec![],
                 data: None,
             }),
         },
@@ -439,6 +1116,22 @@ fn with_filled_limit_order_should_return_vault_balance_minus_swap_amount() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.received_amount.amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
@@ -446,9 +1139,14 @@ fn with_filled_limit_order_should_return_vault_balance_minus_swap_amount() {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -459,7 +1157,7 @@ fn with_filled_limit_order_should_return_vault_balance_minus_swap_amount() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("wasm").add_attribute("amount", Uint128::zero())],
+                events: vec![],
                 data: None,
             }),
         },
@@ -477,24 +1175,39 @@ fn with_filled_limit_order_should_return_vault_balance_minus_swap_amount() {
 }
 
 #[test]
-fn with_filled_limit_order_should_withdraw_remainder() {
+fn with_filled_new_limit_order_should_return_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
-    let order_idx = Uint128::new(18);
+
+    let received_amount = TWO_MICRONS;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
-                order_idx,
+                order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount,
+                original_offer_amount: TWO_MICRONS,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
             },
         )
         .unwrap();
@@ -505,7 +1218,139 @@ fn with_filled_limit_order_should_withdraw_remainder() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("wasm").add_attribute("amount", Uint128::zero())],
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: vault.owner.to_string(),
+        amount: vec![Coin::new(
+            vault.balance.amount.into(),
+            vault.get_swap_denom()
+        )]
+    })));
+    assert_eq!(response.messages.len(), 2);
+}
+
+#[test]
+fn with_filled_limit_order_should_withdraw_remainder() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let order_idx = Uint128::new(18);
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.received_amount.amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    let response = after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    assert!(response.messages.contains(&SubMsg::reply_always(
+        CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: vault.pair.address.to_string(),
+            msg: to_binary(&FINExecuteMsg::WithdrawOrders {
+                order_idxs: Some(vec![order_idx]),
+            })
+            .unwrap(),
+            funds: vec![],
+        }),
+        AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_CANCEL_VAULT_REPLY_ID
+    )));
+}
+
+#[test]
+fn with_filled_new_limit_order_should_withdraw_remainder() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let order_idx = Uint128::new(18);
+
+    let received_amount = TWO_MICRONS;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(vault.balance.amount.into(), vault.get_swap_denom()),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
+        .save(deps.as_mut().storage, &env.block.time.minus_seconds(10))
+        .unwrap();
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: TWO_MICRONS,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+            },
+        )
+        .unwrap();
+
+    let response = after_fin_limit_order_retracted(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
                 data: None,
             }),
         },
@@ -532,18 +1377,38 @@ fn with_filled_limit_order_and_low_funds_should_return_no_funds() {
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
-    let order_idx = Uint128::new(18);
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.received_amount.amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
 
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
-                order_idx,
+                order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -554,7 +1419,7 @@ fn with_filled_limit_order_and_low_funds_should_return_no_funds() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("wasm").add_attribute("amount", Uint128::zero())],
+                events: vec![],
                 data: None,
             }),
         },
@@ -578,16 +1443,37 @@ fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
 
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(
+                vault.received_amount.amount.into(),
+                vault.get_receive_denom(),
+            ),
+        ],
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
-                order_idx,
+                order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
                 original_offer_amount: vault.get_swap_amount().amount,
-                filled: vault.get_swap_amount().amount,
+                filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
             },
         )
         .unwrap();
@@ -598,7 +1484,7 @@ fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![Event::new("wasm").add_attribute("amount", Uint128::zero())],
+                events: vec![],
                 data: None,
             }),
         },
