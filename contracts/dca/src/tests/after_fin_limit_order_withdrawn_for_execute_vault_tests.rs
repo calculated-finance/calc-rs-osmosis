@@ -16,21 +16,22 @@ use crate::{
     },
     tests::{
         helpers::{
-            instantiate_contract, setup_active_vault_with_funds, setup_active_vault_with_low_funds,
-            setup_vault, instantiate_contract_with_multiple_fee_collectors,
+            instantiate_contract, instantiate_contract_with_multiple_fee_collectors,
+            setup_active_vault_with_funds, setup_active_vault_with_low_funds, setup_vault,
         },
         mocks::{ADMIN, DENOM_UKUJI},
     },
 };
 use base::{
     events::event::{EventBuilder, EventData},
+    helpers::math_helpers::checked_mul,
     triggers::trigger::TriggerConfiguration,
-    vaults::vault::{PostExecutionAction, VaultStatus}, helpers::math_helpers::checked_mul,
+    vaults::vault::{PostExecutionAction, VaultStatus},
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    to_binary, BankMsg, Coin, CosmosMsg, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse,
-    SubMsgResult, Timestamp, Uint128, WasmMsg, Addr,
+    to_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse,
+    SubMsgResult, Timestamp, Uint128, WasmMsg,
 };
 use kujira::fin::ExecuteMsg as FINExecuteMsg;
 use staking_router::msg::ExecuteMsg;
@@ -336,14 +337,21 @@ fn after_succcesful_withdrawal_returns_fees_to_multiple_fee_collectors() {
     let env = mock_env();
     let fee_allocation = Decimal::from_str("0.5").unwrap();
 
-    instantiate_contract_with_multiple_fee_collectors(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]), vec![FeeCollector {
-        address: Addr::unchecked(ADMIN),
-        allocation: fee_allocation,
-    },
-    FeeCollector {
-        address: Addr::unchecked("fee-collector-two"),
-        allocation: fee_allocation,
-    }]);
+    instantiate_contract_with_multiple_fee_collectors(
+        deps.as_mut(),
+        env.clone(),
+        mock_info(ADMIN, &vec![]),
+        vec![
+            FeeCollector {
+                address: Addr::unchecked(ADMIN),
+                allocation: fee_allocation,
+            },
+            FeeCollector {
+                address: Addr::unchecked("fee-collector-two"),
+                allocation: fee_allocation,
+            },
+        ],
+    );
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
     let received_amount = vault.get_swap_amount().amount;
@@ -408,23 +416,33 @@ fn after_succcesful_withdrawal_returns_fees_to_multiple_fee_collectors() {
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(
-            checked_mul(swap_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+            checked_mul(swap_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[0].address.to_string(),
-        amount: vec![Coin::new(checked_mul(automation_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+        amount: vec![Coin::new(
+            checked_mul(automation_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[1].address.to_string(),
         amount: vec![Coin::new(
-            checked_mul(swap_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+            checked_mul(swap_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[1].address.to_string(),
-        amount: vec![Coin::new(checked_mul(automation_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+        amount: vec![Coin::new(
+            checked_mul(automation_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
     })));
 }
 

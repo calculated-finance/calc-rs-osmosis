@@ -85,9 +85,6 @@ pub enum ExecuteMsg {
     RemoveCustomSwapFee {
         denom: String,
     },
-    MigrateEvent {
-        limit: u64,
-    },
     SetFinLimitOrderTimestamp {},
     MigratePriceTrigger {
         vault_id: Uint128,

@@ -444,29 +444,6 @@
       {
         "type": "object",
         "required": [
-          "migrate_event"
-        ],
-        "properties": {
-          "migrate_event": {
-            "type": "object",
-            "required": [
-              "limit"
-            ],
-            "properties": {
-              "limit": {
-                "type": "integer",
-                "format": "uint64",
-                "minimum": 0.0
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": [
           "set_fin_limit_order_timestamp"
         ],
         "properties": {

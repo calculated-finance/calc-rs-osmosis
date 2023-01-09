@@ -1,7 +1,7 @@
 use crate::state::events::event_store;
 use crate::{msg::EventsResponse, validation_helpers::assert_page_limit_is_valid};
 use base::events::event::Event;
-use cosmwasm_std::{Deps, Order, StdResult, Uint128};
+use cosmwasm_std::{from_binary, Deps, Order, StdResult, Uint128};
 use cw_storage_plus::Bound;
 
 pub fn get_events_by_resource_id(
@@ -23,7 +23,7 @@ pub fn get_events_by_resource_id(
             Order::Ascending,
         )
         .take(limit.unwrap_or(30) as usize)
-        .map(|result| result.unwrap().1)
+        .map(|result| from_binary(&result.unwrap().1).expect("deserialised event"))
         .collect::<Vec<Event>>();
 
     Ok(EventsResponse { events })

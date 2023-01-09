@@ -91,14 +91,16 @@ fn update_fee_collectors_with_valid_value_should_succeed() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::UpdateConfig {
-                fee_collectors: Some(vec![FeeCollector {
-                    address: Addr::unchecked(ADMIN),
-                    allocation: Decimal::from_str("0.9").unwrap(),
-                },
-                FeeCollector {
-                    address: Addr::unchecked(ADMIN),
-                    allocation: Decimal::from_str("0.1").unwrap(),
-                }]),
+                fee_collectors: Some(vec![
+                    FeeCollector {
+                        address: Addr::unchecked(ADMIN),
+                        allocation: Decimal::from_str("0.9").unwrap(),
+                    },
+                    FeeCollector {
+                        address: Addr::unchecked(ADMIN),
+                        allocation: Decimal::from_str("0.1").unwrap(),
+                    },
+                ]),
                 swap_fee_percent: None,
                 delegation_fee_percent: None,
                 staking_router_address: None,
@@ -120,14 +122,16 @@ fn update_fee_collectors_with_total_allocations_more_than_100_percent_should_fai
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::UpdateConfig {
-                fee_collectors: Some(vec![FeeCollector {
-                    address: Addr::unchecked(ADMIN),
-                    allocation: Decimal::from_str("1").unwrap(),
-                },
-                FeeCollector {
-                    address: Addr::unchecked(ADMIN),
-                    allocation: Decimal::from_str("1").unwrap(),
-                }]),
+                fee_collectors: Some(vec![
+                    FeeCollector {
+                        address: Addr::unchecked(ADMIN),
+                        allocation: Decimal::from_str("1").unwrap(),
+                    },
+                    FeeCollector {
+                        address: Addr::unchecked(ADMIN),
+                        allocation: Decimal::from_str("1").unwrap(),
+                    },
+                ]),
                 swap_fee_percent: None,
                 delegation_fee_percent: None,
                 staking_router_address: None,

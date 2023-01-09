@@ -8,7 +8,7 @@ use base::{
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp, Uint128, Addr,
+    Addr, BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp, Uint128,
 };
 use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 
@@ -26,8 +26,9 @@ use crate::{
     },
     tests::{
         helpers::{
-            instantiate_contract, setup_active_vault_with_funds, setup_active_vault_with_low_funds,
-            setup_active_vault_with_slippage_funds, setup_vault, instantiate_contract_with_multiple_fee_collectors,
+            instantiate_contract, instantiate_contract_with_multiple_fee_collectors,
+            setup_active_vault_with_funds, setup_active_vault_with_low_funds,
+            setup_active_vault_with_slippage_funds, setup_vault,
         },
         mocks::{ADMIN, DENOM_UKUJI},
     },
@@ -172,14 +173,21 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
     let env = mock_env();
     let fee_allocation = Decimal::from_str("0.5").unwrap();
 
-    instantiate_contract_with_multiple_fee_collectors(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]), vec![FeeCollector {
-        address: Addr::unchecked(ADMIN),
-        allocation: fee_allocation,
-    },
-    FeeCollector {
-        address: Addr::unchecked("fee-collector-two"),
-        allocation: fee_allocation,
-    }]);
+    instantiate_contract_with_multiple_fee_collectors(
+        deps.as_mut(),
+        env.clone(),
+        mock_info(ADMIN, &vec![]),
+        vec![
+            FeeCollector {
+                address: Addr::unchecked(ADMIN),
+                allocation: fee_allocation,
+            },
+            FeeCollector {
+                address: Addr::unchecked("fee-collector-two"),
+                allocation: fee_allocation,
+            },
+        ],
+    );
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
     let receive_amount = Uint128::new(234312312);
@@ -227,27 +235,37 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
                 checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
             acc.checked_add(allocation_automation_fee).unwrap()
         });
-    
+
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(
-            checked_mul(swap_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+            checked_mul(swap_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[0].address.to_string(),
-        amount: vec![Coin::new(checked_mul(automation_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+        amount: vec![Coin::new(
+            checked_mul(automation_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[1].address.to_string(),
         amount: vec![Coin::new(
-            checked_mul(swap_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+            checked_mul(swap_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[1].address.to_string(),
-        amount: vec![Coin::new(checked_mul(automation_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+        amount: vec![Coin::new(
+            checked_mul(automation_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
     })));
 }
 

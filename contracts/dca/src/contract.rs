@@ -30,7 +30,6 @@ use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_vault_label::update_vault_label;
 use crate::msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::config::{get_config, update_config, Config};
-use crate::state::events::migrate_previous_events;
 use crate::state::fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP;
 use crate::validation_helpers::{
     assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
@@ -195,9 +194,6 @@ pub fn execute(
             swap_fee_percent,
         } => create_custom_swap_fee(deps, info, denom, swap_fee_percent),
         ExecuteMsg::RemoveCustomSwapFee { denom } => remove_custom_swap_fee(deps, info, denom),
-        ExecuteMsg::MigrateEvent { limit } => {
-            migrate_previous_events(deps.storage, &mut limit.clone())
-        }
         ExecuteMsg::SetFinLimitOrderTimestamp {} => {
             assert_sender_is_admin(deps.storage, info.sender)?;
             FIN_LIMIT_ORDER_CHANGE_TIMESTAMP.save(deps.storage, &env.block.time)?;
