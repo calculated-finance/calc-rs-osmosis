@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use crate::constants::{ONE, ONE_HUNDRED, ONE_THOUSAND, TEN};
 use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
+use crate::state::config::FeeCollector;
 use crate::tests::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, USER};
 use base::events::event::EventBuilder;
 use base::vaults::vault::VaultStatus;
@@ -516,7 +517,10 @@ fn when_contract_is_paused_should_fail() {
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
             &ExecuteMsg::UpdateConfig {
-                fee_collector: Some(Addr::unchecked(ADMIN)),
+                fee_collectors: Some(vec![FeeCollector {
+                    address: Addr::unchecked(ADMIN),
+                    allocation: Decimal::from_str("1").unwrap(),
+                }]),
                 swap_fee_percent: Some(Decimal::from_str("0.015").unwrap()),
                 delegation_fee_percent: Some(Decimal::from_str("0.0075").unwrap()),
                 staking_router_address: None,

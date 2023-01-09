@@ -5,12 +5,18 @@ use cw_storage_plus::{Item, Map};
 #[cw_serde]
 pub struct Config {
     pub admin: Addr,
-    pub fee_collector: Addr,
+    pub fee_collectors: Vec<FeeCollector>,
     pub swap_fee_percent: Decimal,
     pub delegation_fee_percent: Decimal,
     pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
+}
+
+#[cw_serde]
+pub struct FeeCollector {
+    pub address: Addr,
+    pub allocation: Decimal,
 }
 
 const CONFIG: Item<Config> = Item::new("config_v6");

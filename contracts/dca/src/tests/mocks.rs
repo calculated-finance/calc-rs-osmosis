@@ -1,6 +1,7 @@
 use crate::constants::{ONE, ONE_THOUSAND, TWO_MICRONS};
 use crate::contract::reply;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
+use crate::state::config::FeeCollector;
 use crate::types::vault::Vault;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
@@ -71,7 +72,10 @@ impl MockApp {
             Addr::unchecked(ADMIN),
             &InstantiateMsg {
                 admin: Addr::unchecked(ADMIN),
-                fee_collector: Addr::unchecked(FEE_COLLECTOR),
+                fee_collectors: vec![FeeCollector {
+                    address: Addr::unchecked(FEE_COLLECTOR),
+                    allocation: Decimal::from_str("1").unwrap(),
+                }],
                 swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
                 delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
                 staking_router_address: Addr::unchecked("staking-router"),

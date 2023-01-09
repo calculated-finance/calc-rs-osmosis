@@ -10,14 +10,14 @@ use crate::{
     },
     state::{
         cache::{LimitOrderCache, LIMIT_ORDER_CACHE},
-        config::{create_custom_fee, get_config},
+        config::{create_custom_fee, get_config, FeeCollector},
         fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP,
         triggers::get_trigger,
     },
     tests::{
         helpers::{
             instantiate_contract, setup_active_vault_with_funds, setup_active_vault_with_low_funds,
-            setup_vault,
+            setup_vault, instantiate_contract_with_multiple_fee_collectors,
         },
         mocks::{ADMIN, DENOM_UKUJI},
     },
@@ -25,16 +25,16 @@ use crate::{
 use base::{
     events::event::{EventBuilder, EventData},
     triggers::trigger::TriggerConfiguration,
-    vaults::vault::{PostExecutionAction, VaultStatus},
+    vaults::vault::{PostExecutionAction, VaultStatus}, helpers::math_helpers::checked_mul,
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
     to_binary, BankMsg, Coin, CosmosMsg, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse,
-    SubMsgResult, Timestamp, Uint128, WasmMsg,
+    SubMsgResult, Timestamp, Uint128, WasmMsg, Addr,
 };
 use kujira::fin::ExecuteMsg as FINExecuteMsg;
 use staking_router::msg::ExecuteMsg;
-use std::cmp::min;
+use std::{cmp::min, str::FromStr};
 
 #[test]
 fn after_succcesful_withdrawal_of_new_limit_order_invokes_a_fin_swap() {
@@ -247,7 +247,7 @@ fn after_succcesful_withdrawal_of_new_limit_order_returns_limit_order_to_fee_col
     let config = get_config(deps.as_ref().storage).unwrap();
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(TWO_MICRONS.into(), vault.get_receive_denom())]
     })));
 }
@@ -320,13 +320,111 @@ fn after_succcesful_withdrawal_returns_fees_to_fee_collector() {
     let automation_fee = total_after_swap_fee * automation_fee_rate;
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(swap_fee.into(), vault.get_receive_denom())]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
+    })));
+}
+
+#[test]
+fn after_succcesful_withdrawal_returns_fees_to_multiple_fee_collectors() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let fee_allocation = Decimal::from_str("0.5").unwrap();
+
+    instantiate_contract_with_multiple_fee_collectors(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]), vec![FeeCollector {
+        address: Addr::unchecked(ADMIN),
+        allocation: fee_allocation,
+    },
+    FeeCollector {
+        address: Addr::unchecked("fee-collector-two"),
+        allocation: fee_allocation,
+    }]);
+    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+
+    let received_amount = vault.get_swap_amount().amount;
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![
+            Coin::new(
+                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                vault.get_swap_denom(),
+            ),
+            Coin::new(received_amount.into(), vault.get_receive_denom()),
+        ],
+    );
+
+    LIMIT_ORDER_CACHE
+        .save(
+            deps.as_mut().storage,
+            &LimitOrderCache {
+                order_idx: Uint128::new(18),
+                offer_amount: Uint128::zero(),
+                original_offer_amount: vault.get_swap_amount().amount,
+                filled: received_amount,
+                quote_price: Decimal256::one(),
+                created_at: env.block.time,
+                swap_denom_balance: Coin::new(
+                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                receive_denom_balance: vault.received_amount.clone(),
+            },
+        )
+        .unwrap();
+
+    let response = after_fin_limit_order_withdrawn_for_execute_vault(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let config = get_config(&deps.storage).unwrap();
+
+    let automation_fee_rate = config.delegation_fee_percent
+        * vault
+            .destinations
+            .iter()
+            .filter(|destination| destination.action == PostExecutionAction::ZDelegate)
+            .map(|destination| destination.allocation)
+            .sum::<Decimal>();
+
+    let swap_fee = received_amount * config.swap_fee_percent;
+    let total_after_swap_fee = received_amount - swap_fee;
+    let automation_fee = total_after_swap_fee * automation_fee_rate;
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: config.fee_collectors[0].address.to_string(),
+        amount: vec![Coin::new(
+            checked_mul(swap_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+    })));
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: config.fee_collectors[0].address.to_string(),
+        amount: vec![Coin::new(checked_mul(automation_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+    })));
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: config.fee_collectors[1].address.to_string(),
+        amount: vec![Coin::new(
+            checked_mul(swap_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
+    })));
+
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: config.fee_collectors[1].address.to_string(),
+        amount: vec![Coin::new(checked_mul(automation_fee, fee_allocation).unwrap().into(), vault.get_receive_denom())]
     })));
 }
 
@@ -830,12 +928,12 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
     let automation_fee = total_after_swap_fee * automation_fee_rate;
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(swap_fee.into(), vault.get_receive_denom())]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
     })));
 }
@@ -917,12 +1015,12 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
     let automation_fee = total_after_swap_fee * automation_fee_rate;
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(swap_fee.into(), vault.get_receive_denom())]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
     })));
 }
@@ -1012,12 +1110,12 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
     let automation_fee = total_after_swap_fee * automation_fee_rate;
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(swap_fee.into(), vault.get_receive_denom())]
     })));
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collector.to_string(),
+        to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
     })));
 }

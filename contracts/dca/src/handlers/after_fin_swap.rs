@@ -78,22 +78,37 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             let total_after_swap_fee = coin_received.amount - swap_fee;
             let automation_fee = checked_mul(total_after_swap_fee, automation_fee_rate)?;
 
-            if swap_fee.gt(&Uint128::zero()) {
-                messages.push(CosmosMsg::Bank(BankMsg::Send {
-                    to_address: config.fee_collector.to_string(),
-                    amount: vec![Coin::new(swap_fee.into(), coin_received.denom.clone())],
-                }));
-            }
+            config.fee_collectors.iter().for_each(|fee_collector| {
+                let swap_fee_allocation = Coin::new(
+                    checked_mul(swap_fee, fee_collector.allocation)
+                        .ok()
+                        .expect("amount to be distributed should be valid")
+                        .into(),
+                    coin_received.denom.clone(),
+                );
 
-            if automation_fee.gt(&Uint128::zero()) {
-                messages.push(CosmosMsg::Bank(BankMsg::Send {
-                    to_address: config.fee_collector.to_string(),
-                    amount: vec![Coin::new(
-                        automation_fee.into(),
-                        coin_received.denom.clone(),
-                    )],
-                }));
-            }
+                if swap_fee_allocation.amount.gt(&Uint128::zero()) {
+                    messages.push(CosmosMsg::Bank(BankMsg::Send {
+                        to_address: fee_collector.address.to_string(),
+                        amount: vec![swap_fee_allocation],
+                    }));
+                }
+
+                let automation_fee_allocation = Coin::new(
+                    checked_mul(automation_fee, fee_collector.allocation)
+                        .ok()
+                        .expect("amount to be distributed should be valid")
+                        .into(),
+                    coin_received.denom.clone(),
+                );
+
+                if automation_fee_allocation.amount.gt(&Uint128::zero()) {
+                    messages.push(CosmosMsg::Bank(BankMsg::Send {
+                        to_address: fee_collector.address.to_string(),
+                        amount: vec![automation_fee_allocation],
+                    }));
+                }
+            });
 
             let total_fee = swap_fee + automation_fee;
             let total_after_total_fee = coin_received.amount - total_fee;

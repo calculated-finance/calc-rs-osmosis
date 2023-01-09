@@ -9,6 +9,7 @@ use crate::msg::{
     EventsResponse, ExecuteMsg, InstantiateMsg, PairsResponse, QueryMsg, VaultResponse,
     VaultsResponse,
 };
+use crate::state::config::FeeCollector;
 pub const INVALID_ADDRESS: &str = "";
 pub const VALID_ADDRESS_ONE: &str = "kujira16q6jpx7ns0ugwghqay73uxd5aq30du3uqgxf0d";
 pub const VALID_ADDRESS_TWO: &str = "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv";
@@ -24,7 +25,10 @@ fn instantiation_with_valid_admin_address_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -51,7 +55,10 @@ fn instantiation_with_invalid_admin_address_should_fail() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(INVALID_ADDRESS),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -68,6 +75,57 @@ fn instantiation_with_invalid_admin_address_should_fail() {
 }
 
 #[test]
+fn instantiation_with_invalid_fee_collector_address_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info("", &vec![]);
+
+    let instantiate_message = InstantiateMsg {
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(INVALID_ADDRESS),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
+        page_limit: 1000,
+        paused: false,
+    };
+
+    let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
+
+    assert_eq!(
+        result.to_string(),
+        "Error: fee collector address  is invalid"
+    )
+}
+
+#[test]
+fn instantiation_with_fee_collector_amounts_not_equal_to_100_percent_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info("", &vec![]);
+
+    let instantiate_message = InstantiateMsg {
+        admin: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![],
+        swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
+        staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
+        page_limit: 1000,
+        paused: false,
+    };
+
+    let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
+
+    assert_eq!(
+        result.to_string(),
+        "Error: fee collector allocations must add up to 1"
+    )
+}
+
+#[test]
 fn create_pair_with_valid_address_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -75,7 +133,10 @@ fn create_pair_with_valid_address_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -117,7 +178,10 @@ fn create_pair_that_already_exists_should_fail() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -174,7 +238,10 @@ fn create_pair_with_invalid_address_should_fail() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -211,7 +278,10 @@ fn create_pair_with_unauthorised_sender_should_fail() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -252,7 +322,10 @@ fn delete_pair_with_valid_address_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -304,7 +377,10 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -352,7 +428,10 @@ fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -381,7 +460,10 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -463,7 +545,10 @@ fn get_active_vault_by_address_and_id_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -540,7 +625,10 @@ fn get_all_active_vaults_by_address_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -650,7 +738,10 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
@@ -732,7 +823,10 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
 
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(VALID_ADDRESS_ONE),
-        fee_collector: Addr::unchecked(VALID_ADDRESS_ONE),
+        fee_collectors: vec![FeeCollector {
+            address: Addr::unchecked(VALID_ADDRESS_ONE),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
         swap_fee_percent: Decimal::from_str("0.015").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),

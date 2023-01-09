@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::config::get_config;
+use crate::state::config::{get_config, FeeCollector};
 use crate::types::vault::Vault;
 use base::pair::Pair;
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
@@ -149,6 +149,20 @@ pub fn assert_destination_send_addresses_are_valid(
     Ok(())
 }
 
+pub fn assert_fee_collector_addresses_are_valid(
+    deps: Deps,
+    fee_collectors: &[FeeCollector],
+) -> Result<(), ContractError> {
+    for fee_collector in fee_collectors {
+        assert_address_is_valid(
+            deps,
+            fee_collector.address.clone(),
+            "fee collector".to_string(),
+        )?;
+    }
+    Ok(())
+}
+
 pub fn assert_destination_validator_addresses_are_valid(
     deps: Deps,
     destinations: &[Destination],
@@ -200,6 +214,23 @@ pub fn assert_destination_allocations_add_up_to_one(
     {
         return Err(ContractError::CustomError {
             val: String::from("destination allocations must add up to 1"),
+        });
+    }
+    Ok(())
+}
+
+pub fn assert_fee_collector_allocations_add_up_to_one(
+    fee_collectors: &[FeeCollector],
+) -> Result<(), ContractError> {
+    if fee_collectors
+        .iter()
+        .fold(Decimal::zero(), |acc, fee_collector| {
+            acc.checked_add(fee_collector.allocation).unwrap()
+        })
+        != Decimal::percent(100)
+    {
+        return Err(ContractError::CustomError {
+            val: String::from("fee collector allocations must add up to 1"),
         });
     }
     Ok(())

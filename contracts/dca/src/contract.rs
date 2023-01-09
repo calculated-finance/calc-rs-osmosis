@@ -12,8 +12,6 @@ use crate::handlers::create_vault::create_vault;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
 use crate::handlers::execute_trigger::execute_trigger_handler;
-use crate::handlers::fix_event_amounts::fix_event_amounts;
-use crate::handlers::fix_vault_amounts::fix_vault_amounts;
 use crate::handlers::get_custom_swap_fees::get_custom_swap_fees;
 use crate::handlers::get_data_fixes_by_resource_id::get_data_fixes_by_resource_id;
 use crate::handlers::get_events::get_events;
@@ -34,7 +32,10 @@ use crate::msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMs
 use crate::state::config::{get_config, update_config, Config};
 use crate::state::events::migrate_previous_events;
 use crate::state::fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP;
-use crate::validation_helpers::assert_sender_is_admin;
+use crate::validation_helpers::{
+    assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
+    assert_sender_is_admin,
+};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
@@ -55,15 +56,35 @@ pub const AFTER_FIN_LIMIT_ORDER_RETRACTED_FOR_MIGRATE_REPLY_ID: u64 = 8;
 pub const AFTER_FIN_LIMIT_ORDER_SUBMITTED_FOR_MIGRATE_REPLY_ID: u64 = 9;
 
 #[entry_point]
-pub fn migrate(deps: DepsMut, env: Env, _: MigrateMsg) -> Result<Response, ContractError> {
-    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-
+pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     if FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
         .may_load(deps.storage)?
         .is_none()
     {
         FIN_LIMIT_ORDER_CHANGE_TIMESTAMP.save(deps.storage, &env.block.time)?;
     }
+
+    deps.api.addr_validate(&msg.admin.to_string())?;
+    deps.api
+        .addr_validate(&msg.staking_router_address.to_string())?;
+
+    assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
+    assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
+
+    update_config(
+        deps.storage,
+        Config {
+            admin: msg.admin.clone(),
+            fee_collectors: msg.fee_collectors,
+            swap_fee_percent: msg.swap_fee_percent,
+            delegation_fee_percent: msg.delegation_fee_percent,
+            staking_router_address: msg.staking_router_address,
+            page_limit: msg.page_limit,
+            paused: msg.paused,
+        },
+    )?;
+
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     Ok(Response::new())
 }
@@ -76,15 +97,17 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     deps.api.addr_validate(&msg.admin.to_string())?;
-    deps.api.addr_validate(&msg.fee_collector.to_string())?;
     deps.api
         .addr_validate(&msg.staking_router_address.to_string())?;
+
+    assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
+    assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
 
     update_config(
         deps.storage,
         Config {
             admin: msg.admin.clone(),
-            fee_collector: msg.fee_collector,
+            fee_collectors: msg.fee_collectors,
             swap_fee_percent: msg.swap_fee_percent,
             delegation_fee_percent: msg.delegation_fee_percent,
             staking_router_address: msg.staking_router_address,
@@ -146,7 +169,7 @@ pub fn execute(
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),
         ExecuteMsg::Deposit { address, vault_id } => deposit(deps, env, info, address, vault_id),
         ExecuteMsg::UpdateConfig {
-            fee_collector,
+            fee_collectors,
             swap_fee_percent,
             delegation_fee_percent,
             staking_router_address,
@@ -155,7 +178,7 @@ pub fn execute(
         } => update_config_handler(
             deps,
             info,
-            fee_collector,
+            fee_collectors,
             swap_fee_percent,
             delegation_fee_percent,
             staking_router_address,
@@ -185,32 +208,6 @@ pub fn execute(
             assert_sender_is_admin(deps.storage, info.sender)?;
             migrate_price_trigger(deps, vault_id)
         }
-        ExecuteMsg::FixVaultAmounts {
-            vault_id,
-            expected_swapped_amount,
-            expected_received_amount,
-        } => fix_vault_amounts(
-            deps,
-            env,
-            info,
-            vault_id,
-            expected_swapped_amount,
-            expected_received_amount,
-        ),
-        ExecuteMsg::FixEventAmounts {
-            event_id,
-            expected_sent,
-            expected_received,
-            expected_fee,
-        } => fix_event_amounts(
-            deps,
-            env,
-            info,
-            event_id,
-            expected_sent,
-            expected_received,
-            expected_fee,
-        ),
     }
 }
 
