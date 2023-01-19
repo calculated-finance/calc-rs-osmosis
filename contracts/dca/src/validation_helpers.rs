@@ -23,6 +23,7 @@ pub fn assert_contract_is_not_paused(storage: &mut dyn Storage) -> Result<(), Co
     }
     Ok(())
 }
+
 pub fn assert_sender_is_admin(
     storage: &mut dyn Storage,
     sender: Addr,

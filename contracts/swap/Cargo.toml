@@ -1,0 +1,28 @@
+[package]
+name = "swap"
+version = "0.1.0"
+edition = "2021"
+
+exclude = ["contract.wasm", "hash.txt"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+backtraces = ["cosmwasm-std/backtraces"]
+
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+base = { path = "../../packages/base" }
+cosmwasm-schema = "1.1.9"
+cosmwasm-std = "1.1.9"
+cosmwasm-storage = "1.1.9"
+cw-storage-plus = "1.0.1"
+cw2 = "1.0.1"
+fin-helpers = { path = "../../packages/fin-helpers" }
+kujira = "0.7.18"
+petgraph = { version = "0.6.2", features = ["serde-1"] }
+serde = { version = "1.0.152", default-features = false, features = ["derive"] }
+thiserror = "1.0.38"
