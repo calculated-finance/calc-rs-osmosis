@@ -1,16 +1,16 @@
-use std::{cmp::min, str::FromStr};
-
 use base::{
     events::event::{EventBuilder, EventData, ExecutionSkippedReason},
     helpers::math_helpers::checked_mul,
-    triggers::trigger::TriggerConfiguration,
+    triggers::trigger::{Trigger, TriggerConfiguration},
     vaults::vault::{PostExecutionAction, VaultStatus},
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    Addr, BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp, Uint128,
+    Addr, BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult,
+    Timestamp, Uint128,
 };
 use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
+use std::{cmp::min, str::FromStr};
 
 use crate::{
     constants::TEN,
@@ -21,7 +21,7 @@ use crate::{
     state::{
         cache::{SwapCache, SWAP_CACHE},
         config::{create_custom_fee, get_config, FeeCollector},
-        triggers::get_trigger,
+        triggers::{delete_trigger, get_trigger, save_trigger},
         vaults::get_vault,
     },
     tests::{
@@ -730,6 +730,44 @@ fn with_failed_swap_leaves_vault_active() {
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
     assert_eq!(vault.status, VaultStatus::Active);
+}
+
+#[test]
+fn with_failed_swap_and_low_funds_and_price_trigger_creates_new_time_trigger() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+
+    let vault = setup_active_vault_with_slippage_funds(deps.as_mut(), env.clone());
+
+    delete_trigger(deps.as_mut().storage, vault.id).unwrap();
+
+    save_trigger(
+        deps.as_mut().storage,
+        Trigger {
+            vault_id: vault.id,
+            configuration: TriggerConfiguration::FinLimitOrder {
+                target_price: Decimal256::one(),
+                order_idx: Some(Uint128::one()),
+            },
+        },
+    )
+    .unwrap();
+
+    let reply = Reply {
+        id: AFTER_FIN_SWAP_REPLY_ID,
+        result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
+    };
+
+    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
+
+    let vault = get_vault(&mut deps.storage, vault.id).unwrap();
+
+    assert_eq!(
+        vault.trigger.clone(),
+        Some(TriggerConfiguration::Time {
+            target_time: Timestamp::from_seconds(env.block.time.seconds() + 60 * 60 * 24)
+        })
+    );
 }
 
 #[test]
