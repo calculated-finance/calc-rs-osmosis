@@ -1,6 +1,6 @@
 {
   "contract_name": "dca",
-  "contract_version": "1.3.0",
+  "contract_version": "1.4.0",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -61,7 +61,7 @@
         ],
         "properties": {
           "address": {
-            "$ref": "#/definitions/Addr"
+            "type": "string"
           },
           "allocation": {
             "$ref": "#/definitions/Decimal"
@@ -517,7 +517,7 @@
         ],
         "properties": {
           "address": {
-            "$ref": "#/definitions/Addr"
+            "type": "string"
           },
           "allocation": {
             "$ref": "#/definitions/Decimal"
@@ -947,7 +947,7 @@
           ],
           "properties": {
             "address": {
-              "$ref": "#/definitions/Addr"
+              "type": "string"
             },
             "allocation": {
               "$ref": "#/definitions/Decimal"
