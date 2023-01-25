@@ -11,6 +11,7 @@ use crate::state::vaults::{get_vault, update_vault};
 use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::coin_helpers::add_to_coin;
+use base::helpers::community_pool::create_fund_community_pool_msg;
 use base::helpers::math_helpers::checked_mul;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
@@ -70,10 +71,18 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                     );
 
                     if swap_fee_allocation.amount.gt(&Uint128::zero()) {
-                        messages.push(CosmosMsg::Bank(BankMsg::Send {
-                            to_address: fee_collector.address.to_string(),
-                            amount: vec![swap_fee_allocation],
-                        }));
+                        match fee_collector.address.as_str() {
+                            "community_pool" => messages.push(create_fund_community_pool_msg(
+                                env.contract.address.to_string(),
+                                vec![swap_fee_allocation.clone()],
+                            )),
+                            _ => {
+                                messages.push(CosmosMsg::Bank(BankMsg::Send {
+                                    to_address: fee_collector.address.to_string(),
+                                    amount: vec![swap_fee_allocation],
+                                }));
+                            }
+                        }
                     }
                 });
 
@@ -141,10 +150,18 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                     );
 
                     if swap_fee_allocation.amount.gt(&Uint128::zero()) {
-                        messages.push(CosmosMsg::Bank(BankMsg::Send {
-                            to_address: fee_collector.address.to_string(),
-                            amount: vec![swap_fee_allocation],
-                        }));
+                        match fee_collector.address.as_str() {
+                            "community_pool" => messages.push(create_fund_community_pool_msg(
+                                env.contract.address.to_string(),
+                                vec![swap_fee_allocation.clone()],
+                            )),
+                            _ => {
+                                messages.push(CosmosMsg::Bank(BankMsg::Send {
+                                    to_address: fee_collector.address.to_string(),
+                                    amount: vec![swap_fee_allocation],
+                                }));
+                            }
+                        }
                     }
 
                     let automation_fee_allocation = Coin::new(
@@ -156,10 +173,18 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                     );
 
                     if automation_fee_allocation.amount.gt(&Uint128::zero()) {
-                        messages.push(CosmosMsg::Bank(BankMsg::Send {
-                            to_address: fee_collector.address.to_string(),
-                            amount: vec![automation_fee_allocation],
-                        }));
+                        match fee_collector.address.as_str() {
+                            "community_pool" => messages.push(create_fund_community_pool_msg(
+                                env.contract.address.to_string(),
+                                vec![automation_fee_allocation.clone()],
+                            )),
+                            _ => {
+                                messages.push(CosmosMsg::Bank(BankMsg::Send {
+                                    to_address: fee_collector.address.to_string(),
+                                    amount: vec![automation_fee_allocation],
+                                }));
+                            }
+                        }
                     }
                 });
 

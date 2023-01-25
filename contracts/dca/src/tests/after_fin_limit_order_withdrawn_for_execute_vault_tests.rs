@@ -30,7 +30,7 @@ use base::{
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    to_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse,
+    to_binary, BankMsg, Coin, CosmosMsg, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse,
     SubMsgResult, Timestamp, Uint128, WasmMsg,
 };
 use kujira::fin::ExecuteMsg as FINExecuteMsg;
@@ -343,11 +343,11 @@ fn after_succcesful_withdrawal_returns_fees_to_multiple_fee_collectors() {
         mock_info(ADMIN, &vec![]),
         vec![
             FeeCollector {
-                address: Addr::unchecked(ADMIN),
+                address: ADMIN.to_string(),
                 allocation: fee_allocation,
             },
             FeeCollector {
-                address: Addr::unchecked("fee-collector-two"),
+                address: "fee-collector-two".to_string(),
                 allocation: fee_allocation,
             },
         ],

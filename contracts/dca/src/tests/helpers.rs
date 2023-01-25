@@ -26,7 +26,28 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
         fee_collectors: vec![FeeCollector {
-            address: Addr::unchecked(ADMIN),
+            address: ADMIN.to_string(),
+            allocation: Decimal::from_str("1").unwrap(),
+        }],
+        swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
+        delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
+        staking_router_address: Addr::unchecked(ADMIN),
+        page_limit: 1000,
+        paused: false,
+    };
+
+    instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
+}
+
+pub fn instantiate_contract_with_community_pool_fee_collector(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+) {
+    let instantiate_message = InstantiateMsg {
+        admin: Addr::unchecked(ADMIN),
+        fee_collectors: vec![FeeCollector {
+            address: "community_pool".to_string(),
             allocation: Decimal::from_str("1").unwrap(),
         }],
         swap_fee_percent: Decimal::from_str("0.0165").unwrap(),

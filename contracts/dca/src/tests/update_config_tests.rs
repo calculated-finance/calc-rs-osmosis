@@ -17,7 +17,7 @@ fn update_fee_percent_with_valid_value_should_succeed() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::UpdateConfig {
                 fee_collectors: Some(vec![FeeCollector {
-                    address: Addr::unchecked(ADMIN),
+                    address: ADMIN.to_string(),
                     allocation: Decimal::from_str("1").unwrap(),
                 }]),
                 swap_fee_percent: Some(Decimal::from_str("0.015").unwrap()),
@@ -42,7 +42,7 @@ fn update_swap_fee_percent_more_than_100_percent_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::UpdateConfig {
                 fee_collectors: Some(vec![FeeCollector {
-                    address: Addr::unchecked(ADMIN),
+                    address: ADMIN.to_string(),
                     allocation: Decimal::from_str("1").unwrap(),
                 }]),
                 swap_fee_percent: Some(Decimal::from_str("1.5").unwrap()),
@@ -93,11 +93,11 @@ fn update_fee_collectors_with_valid_value_should_succeed() {
             &ExecuteMsg::UpdateConfig {
                 fee_collectors: Some(vec![
                     FeeCollector {
-                        address: Addr::unchecked(ADMIN),
+                        address: ADMIN.to_string(),
                         allocation: Decimal::from_str("0.9").unwrap(),
                     },
                     FeeCollector {
-                        address: Addr::unchecked(ADMIN),
+                        address: ADMIN.to_string(),
                         allocation: Decimal::from_str("0.1").unwrap(),
                     },
                 ]),
@@ -124,11 +124,11 @@ fn update_fee_collectors_with_total_allocations_more_than_100_percent_should_fai
             &ExecuteMsg::UpdateConfig {
                 fee_collectors: Some(vec![
                     FeeCollector {
-                        address: Addr::unchecked(ADMIN),
+                        address: ADMIN.to_string(),
                         allocation: Decimal::from_str("1").unwrap(),
                     },
                     FeeCollector {
-                        address: Addr::unchecked(ADMIN),
+                        address: ADMIN.to_string(),
                         allocation: Decimal::from_str("1").unwrap(),
                     },
                 ]),

@@ -518,7 +518,7 @@ fn when_contract_is_paused_should_fail() {
             mock.dca_contract_address.clone(),
             &ExecuteMsg::UpdateConfig {
                 fee_collectors: Some(vec![FeeCollector {
-                    address: Addr::unchecked(ADMIN),
+                    address: ADMIN.to_string(),
                     allocation: Decimal::from_str("1").unwrap(),
                 }]),
                 swap_fee_percent: Some(Decimal::from_str("0.015").unwrap()),

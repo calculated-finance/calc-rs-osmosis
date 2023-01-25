@@ -15,7 +15,7 @@ pub struct Config {
 
 #[cw_serde]
 pub struct FeeCollector {
-    pub address: Addr,
+    pub address: String,
     pub allocation: Decimal,
 }
 

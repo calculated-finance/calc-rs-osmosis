@@ -1,12 +1,12 @@
 use base::{
     events::event::{EventBuilder, EventData, ExecutionSkippedReason},
-    helpers::math_helpers::checked_mul,
+    helpers::{community_pool::create_fund_community_pool_msg, math_helpers::checked_mul},
     triggers::trigger::{Trigger, TriggerConfiguration},
     vaults::vault::{PostExecutionAction, VaultStatus},
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    Addr, BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult,
+    BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult,
     Timestamp, Uint128,
 };
 use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
@@ -179,11 +179,11 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
         mock_info(ADMIN, &vec![]),
         vec![
             FeeCollector {
-                address: Addr::unchecked(ADMIN),
+                address: ADMIN.to_string(),
                 allocation: fee_allocation,
             },
             FeeCollector {
-                address: Addr::unchecked("fee-collector-two"),
+                address: "community_pool".to_string(),
                 allocation: fee_allocation,
             },
         ],
@@ -209,7 +209,7 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
 
     let response = after_fin_swap(
         deps.as_mut(),
-        env,
+        env.clone(),
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -252,21 +252,25 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
         )]
     })));
 
-    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collectors[1].address.to_string(),
-        amount: vec![Coin::new(
-            checked_mul(swap_fee, fee_allocation).unwrap().into(),
-            vault.get_receive_denom()
-        )]
-    })));
+    assert!(response
+        .messages
+        .contains(&SubMsg::new(create_fund_community_pool_msg(
+            env.contract.address.to_string(),
+            vec![Coin::new(
+                checked_mul(swap_fee, fee_allocation).unwrap().into(),
+                vault.get_receive_denom()
+            )]
+        ))));
 
-    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collectors[1].address.to_string(),
-        amount: vec![Coin::new(
-            checked_mul(automation_fee, fee_allocation).unwrap().into(),
-            vault.get_receive_denom()
-        )]
-    })));
+    assert!(response
+        .messages
+        .contains(&SubMsg::new(create_fund_community_pool_msg(
+            env.contract.address.to_string(),
+            vec![Coin::new(
+                checked_mul(automation_fee, fee_allocation).unwrap().into(),
+                vault.get_receive_denom()
+            )]
+        ))));
 }
 
 #[test]

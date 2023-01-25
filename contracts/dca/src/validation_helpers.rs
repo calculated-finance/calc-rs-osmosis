@@ -155,11 +155,14 @@ pub fn assert_fee_collector_addresses_are_valid(
     fee_collectors: &[FeeCollector],
 ) -> Result<(), ContractError> {
     for fee_collector in fee_collectors {
-        assert_address_is_valid(
-            deps,
-            fee_collector.address.clone(),
-            "fee collector".to_string(),
-        )?;
+        match fee_collector.address.as_str() {
+            "community_pool" => (),
+            _ => assert_address_is_valid(
+                deps,
+                Addr::unchecked(fee_collector.address.clone()),
+                "fee collector".to_string(),
+            )?,
+        }
     }
     Ok(())
 }
