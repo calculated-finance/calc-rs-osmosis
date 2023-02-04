@@ -29,6 +29,7 @@ optimize = """docker run --rm -v "$(pwd)":/code \
 """
 
 [dependencies]
+base = { path = "../base" }
 cosmwasm-std = "1.0.0"
 cosmwasm-storage = "1.1.1"
 cw-storage-plus = "0.15.0"

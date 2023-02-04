@@ -16,7 +16,9 @@ use base::helpers::math_helpers::checked_mul;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PostExecutionAction, VaultStatus};
-use cosmwasm_std::{to_binary, CosmosMsg, Env, StdError, StdResult, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{
+    to_binary, CosmosMsg, Env, ReplyOn, StdError, StdResult, SubMsg, Uint128, WasmMsg,
+};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Reply, Response};
 use fin_helpers::swaps::create_fin_swap_message;
@@ -106,12 +108,12 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
 
                 sub_msgs.push(create_fin_swap_message(
                     deps.querier,
-                    vault.pair.address.clone(),
+                    vault.pair.clone(),
                     vault.get_swap_amount(),
-                    vault.get_position_type(),
                     vault.slippage_tolerance,
-                    AFTER_FIN_SWAP_REPLY_ID,
-                ));
+                    Some(AFTER_FIN_SWAP_REPLY_ID),
+                    Some(ReplyOn::Always),
+                )?);
             } else {
                 delete_trigger(deps.storage, vault.id)?;
 

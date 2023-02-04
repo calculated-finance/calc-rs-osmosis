@@ -1,17 +1,23 @@
-use cosmwasm_std::{
-    entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-};
-use cw2::set_contract_version;
-
 use crate::{
     errors::contract_error::ContractError,
-    handlers::{add_path::add_path_handler, update_config::update_config_handler},
+    handlers::{
+        add_path::add_path_handler,
+        continue_swap::continue_swap_handler,
+        create_swap::create_swap_handler,
+        swap_on_fin::{after_swap_on_fin_handler, swap_on_fin_handler},
+        update_config::update_config_handler,
+    },
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg},
     state::{
         config::{get_config, update_config, Config},
         paths::get_path,
     },
 };
+use cosmwasm_std::{
+    entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdError,
+    StdResult,
+};
+use cw2::set_contract_version;
 
 pub const CONTRACT_NAME: &str = "crates.io:calc-swap";
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -46,17 +52,36 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
-    deps: DepsMut,
-    _: Env,
-    info: MessageInfo,
-    msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
     match msg {
         ExecuteMsg::UpdateConfig { admin, paused } => {
             update_config_handler(deps, info, Config { admin, paused })
         }
         ExecuteMsg::AddPath { denoms, pair } => add_path_handler(deps, denoms, pair),
+        ExecuteMsg::CreateSwap {
+            target_denom,
+            slippage_tolerance,
+            callback,
+        } => create_swap_handler(deps, env, info, target_denom, slippage_tolerance, callback),
+        ExecuteMsg::ContinueSwap { swap_id } => continue_swap_handler(deps, info, swap_id),
+        ExecuteMsg::SwapOnFin {
+            pair,
+            slippage_tolerance,
+            callback,
+        } => swap_on_fin_handler(deps, &env, &info, pair, slippage_tolerance, callback),
+    }
+}
+
+pub const AFTER_FIN_SWAP_REPLY_ID: u64 = 0;
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> StdResult<Response> {
+    match reply.id {
+        AFTER_FIN_SWAP_REPLY_ID => after_swap_on_fin_handler(deps, env),
+        id => Err(StdError::generic_err(format!(
+            "Reply id {} has no after handler",
+            id
+        ))),
     }
 }
 

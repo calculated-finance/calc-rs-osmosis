@@ -27,7 +27,6 @@ dependencies = [
  "cw-storage-plus 0.15.1",
  "cw2 0.15.1",
  "enum-as-inner",
- "fin-helpers",
  "schemars",
  "serde",
  "thiserror",
@@ -482,6 +481,7 @@ dependencies = [
 name = "fin-helpers"
 version = "1.1.0"
 dependencies = [
+ "base",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
