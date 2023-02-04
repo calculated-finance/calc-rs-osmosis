@@ -183,7 +183,6 @@ mod swap_tests {
 
         add_path(
             deps.as_mut().storage,
-            ["swap_denom".to_string(), "transfer_denom".to_string()],
             Pair::Fin {
                 address: pair.address.clone(),
                 quote_denom: pair.quote_denom.clone(),
@@ -194,7 +193,6 @@ mod swap_tests {
 
         add_path(
             deps.as_mut().storage,
-            ["transfer_denom".to_string(), "target_denom".to_string()],
             Pair::Fin {
                 address: Addr::unchecked("fin_pair_2"),
                 quote_denom: "transfer_denom".to_string(),
@@ -244,7 +242,6 @@ mod swap_tests {
 
         add_path(
             deps.as_mut().storage,
-            ["swap_denom".to_string(), "transfer_denom".to_string()],
             Pair::Fin {
                 address: pair.address.clone(),
                 quote_denom: pair.quote_denom.clone(),
@@ -255,7 +252,6 @@ mod swap_tests {
 
         add_path(
             deps.as_mut().storage,
-            ["transfer_denom".to_string(), "target_denom".to_string()],
             Pair::Fin {
                 address: Addr::unchecked("fin_pair_2"),
                 quote_denom: "transfer_denom".to_string(),
@@ -329,7 +325,6 @@ mod swap_tests {
 
         add_path(
             deps.as_mut().storage,
-            ["swap_denom".to_string(), "transfer_denom".to_string()],
             Pair::Fin {
                 address: Addr::unchecked("fin_pair_1"),
                 quote_denom: "swap_denom".to_string(),
@@ -340,7 +335,6 @@ mod swap_tests {
 
         add_path(
             deps.as_mut().storage,
-            ["transfer_denom".to_string(), "target_denom".to_string()],
             Pair::Fin {
                 address: Addr::unchecked("fin_pair_2"),
                 quote_denom: "transfer_denom".to_string(),
@@ -380,7 +374,6 @@ mod swap_tests {
 
         add_path(
             deps.as_mut().storage,
-            ["swap_denom".to_string(), "transfer_denom".to_string()],
             Pair::Fin {
                 address: Addr::unchecked("fin_pair_1"),
                 quote_denom: "swap_denom".to_string(),
@@ -391,7 +384,6 @@ mod swap_tests {
 
         add_path(
             deps.as_mut().storage,
-            ["transfer_denom".to_string(), "target_denom".to_string()],
             Pair::Fin {
                 address: Addr::unchecked("fin_pair_2"),
                 quote_denom: "transfer_denom".to_string(),

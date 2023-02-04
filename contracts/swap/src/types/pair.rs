@@ -9,3 +9,15 @@ pub enum Pair {
         base_denom: String,
     },
 }
+
+impl Pair {
+    pub fn get_denoms(&self) -> [String; 2] {
+        match self {
+            Pair::Fin {
+                base_denom,
+                quote_denom,
+                ..
+            } => [base_denom.clone(), quote_denom.clone()],
+        }
+    }
+}

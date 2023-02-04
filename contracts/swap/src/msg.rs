@@ -21,7 +21,6 @@ pub enum ExecuteMsg {
         paused: bool,
     },
     AddPath {
-        denoms: [String; 2],
         pair: Pair,
     },
     CreateSwap {
