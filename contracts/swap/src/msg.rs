@@ -26,7 +26,7 @@ pub enum ExecuteMsg {
     CreateSwap {
         target_denom: String,
         slippage_tolerance: Option<Decimal256>,
-        callback: Callback,
+        on_complete: Option<Callback>,
     },
     ContinueSwap {
         swap_id: u64,
@@ -35,6 +35,9 @@ pub enum ExecuteMsg {
         pair: FinPair,
         slippage_tolerance: Option<Decimal256>,
         callback: Binary,
+    },
+    SendFunds {
+        address: Addr,
     },
 }
 

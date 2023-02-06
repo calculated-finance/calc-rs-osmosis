@@ -4,6 +4,7 @@ use crate::{
         add_path::add_path_handler,
         continue_swap::continue_swap_handler,
         create_swap::create_swap_handler,
+        send_funds::send_funds_handler,
         swap_on_fin::{after_swap_on_fin_handler, swap_on_fin_handler},
         update_config::update_config_handler,
     },
@@ -61,14 +62,22 @@ pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> S
         ExecuteMsg::CreateSwap {
             target_denom,
             slippage_tolerance,
-            callback,
-        } => create_swap_handler(deps, env, info, target_denom, slippage_tolerance, callback),
+            on_complete,
+        } => create_swap_handler(
+            deps,
+            env,
+            info,
+            target_denom,
+            slippage_tolerance,
+            on_complete,
+        ),
         ExecuteMsg::ContinueSwap { swap_id } => continue_swap_handler(deps, info, swap_id),
         ExecuteMsg::SwapOnFin {
             pair,
             slippage_tolerance,
             callback,
         } => swap_on_fin_handler(deps, &env, &info, pair, slippage_tolerance, callback),
+        ExecuteMsg::SendFunds { address } => send_funds_handler(info, address),
     }
 }
 

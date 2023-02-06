@@ -20,7 +20,7 @@ pub fn create_swap_handler(
     info: MessageInfo,
     target_denom: String,
     slippage_tolerance: Option<Decimal256>,
-    on_complete: Callback,
+    on_complete: Option<Callback>,
 ) -> StdResult<Response> {
     assert_exactly_one_asset(info.funds.clone())?;
 
@@ -51,7 +51,13 @@ pub fn create_swap_handler(
         .flatten()
         .collect::<VecDeque<Callback>>();
 
-    swap_messages.push_back(on_complete);
+    swap_messages.push_back(on_complete.unwrap_or(Callback {
+        address: env.contract.address.clone(),
+        msg: to_binary(&ExecuteMsg::SendFunds {
+            address: info.sender,
+        })?,
+    }));
+
     save_swap_messages(deps.storage, swap_id, swap_messages)?;
 
     Ok(Response::new()
@@ -122,10 +128,7 @@ mod swap_tests {
             info,
             "target_denom".to_string(),
             None,
-            Callback {
-                address: Addr::unchecked("sender"),
-                msg: to_binary("callback").unwrap(),
-            },
+            None,
         );
 
         assert_eq!(
@@ -152,10 +155,7 @@ mod swap_tests {
             info,
             "target_denom".to_string(),
             None,
-            Callback {
-                address: Addr::unchecked("sender"),
-                msg: to_binary("callback").unwrap(),
-            },
+            None,
         );
 
         assert_eq!(
@@ -207,10 +207,7 @@ mod swap_tests {
             info,
             "target_denom".to_string(),
             None,
-            Callback {
-                address: Addr::unchecked("sender"),
-                msg: to_binary("callback").unwrap(),
-            },
+            None,
         );
 
         assert!(response
@@ -221,6 +218,101 @@ mod swap_tests {
                 msg: to_binary(&ExecuteMsg::ContinueSwap { swap_id: 1 }).unwrap(),
                 funds: vec![swap_amount]
             }))));
+    }
+
+    #[test]
+    fn swap_with_no_callback_should_append_send_funds_message() {
+        let swap_amount = Coin {
+            denom: "swap_denom".to_string(),
+            amount: Uint128::new(1000000),
+        };
+
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("sender", &[swap_amount.clone()]);
+
+        let pair = FinPair {
+            address: Addr::unchecked("fin_pair_1"),
+            quote_denom: "swap_denom".to_string(),
+            base_denom: "target_denom".to_string(),
+        };
+
+        add_path(
+            deps.as_mut().storage,
+            Pair::Fin {
+                address: pair.address.clone(),
+                quote_denom: pair.quote_denom.clone(),
+                base_denom: pair.base_denom.clone(),
+            },
+        )
+        .unwrap();
+
+        create_swap_handler(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            "target_denom".to_string(),
+            None,
+            None,
+        )
+        .unwrap();
+
+        let swap_messages = get_swap_messages(&deps.storage, 1).unwrap();
+
+        assert!(swap_messages.contains(&Callback {
+            address: env.contract.address,
+            msg: to_binary(&ExecuteMsg::SendFunds {
+                address: Addr::unchecked(info.sender)
+            })
+            .unwrap(),
+        }));
+    }
+
+    #[test]
+    fn swap_with_on_complete_callback_should_append_it() {
+        let swap_amount = Coin {
+            denom: "swap_denom".to_string(),
+            amount: Uint128::new(1000000),
+        };
+
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("sender", &[swap_amount.clone()]);
+
+        let pair = FinPair {
+            address: Addr::unchecked("fin_pair_1"),
+            quote_denom: "swap_denom".to_string(),
+            base_denom: "target_denom".to_string(),
+        };
+
+        add_path(
+            deps.as_mut().storage,
+            Pair::Fin {
+                address: pair.address.clone(),
+                quote_denom: pair.quote_denom.clone(),
+                base_denom: pair.base_denom.clone(),
+            },
+        )
+        .unwrap();
+
+        let on_complete_callback = Callback {
+            address: Addr::unchecked("final-destination"),
+            msg: to_binary("custom-callback").unwrap(),
+        };
+
+        create_swap_handler(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            "target_denom".to_string(),
+            None,
+            Some(on_complete_callback.clone()),
+        )
+        .unwrap();
+
+        let swap_messages = get_swap_messages(&deps.storage, 1).unwrap();
+
+        assert!(swap_messages.contains(&on_complete_callback));
     }
 
     #[test]
@@ -260,56 +352,46 @@ mod swap_tests {
         )
         .unwrap();
 
-        let on_complete = Callback {
-            address: Addr::unchecked("sender"),
-            msg: to_binary("callback").unwrap(),
-        };
-
         create_swap_handler(
             deps.as_mut(),
             env.clone(),
             info,
             "target_denom".to_string(),
             None,
-            on_complete.clone(),
+            None,
         )
         .unwrap();
 
         let swap_messages = get_swap_messages(deps.as_ref().storage, 1).unwrap();
         let continue_callback = to_binary(&ExecuteMsg::ContinueSwap { swap_id: 1 }).unwrap();
 
-        assert_eq!(
-            swap_messages,
-            vec![
-                Callback {
-                    address: env.contract.address.clone(),
-                    msg: to_binary(&ExecuteMsg::SwapOnFin {
-                        pair: FinPair {
-                            address: Addr::unchecked("fin_pair_1"),
-                            base_denom: "transfer_denom".to_string(),
-                            quote_denom: "swap_denom".to_string(),
-                        },
-                        callback: continue_callback.clone(),
-                        slippage_tolerance: None
-                    })
-                    .unwrap(),
+        assert!(swap_messages.contains(&Callback {
+            address: env.contract.address.clone(),
+            msg: to_binary(&ExecuteMsg::SwapOnFin {
+                pair: FinPair {
+                    address: Addr::unchecked("fin_pair_1"),
+                    base_denom: "transfer_denom".to_string(),
+                    quote_denom: "swap_denom".to_string(),
                 },
-                Callback {
-                    address: env.contract.address,
-                    msg: to_binary(&ExecuteMsg::SwapOnFin {
-                        pair: FinPair {
-                            address: Addr::unchecked("fin_pair_2"),
-                            base_denom: "target_denom".to_string(),
-                            quote_denom: "transfer_denom".to_string(),
-                        },
-                        callback: continue_callback,
-                        slippage_tolerance: None
-                    })
-                    .unwrap(),
+                callback: continue_callback.clone(),
+                slippage_tolerance: None
+            })
+            .unwrap(),
+        }));
+
+        assert!(swap_messages.contains(&Callback {
+            address: env.contract.address,
+            msg: to_binary(&ExecuteMsg::SwapOnFin {
+                pair: FinPair {
+                    address: Addr::unchecked("fin_pair_2"),
+                    base_denom: "target_denom".to_string(),
+                    quote_denom: "transfer_denom".to_string(),
                 },
-                on_complete
-            ]
-        );
+                callback: continue_callback,
+                slippage_tolerance: None
+            })
+            .unwrap(),
+        }));
     }
 
     #[test]
@@ -349,10 +431,7 @@ mod swap_tests {
             info,
             "target_denom".to_string(),
             None,
-            Callback {
-                address: Addr::unchecked("sender"),
-                msg: to_binary("callback").unwrap(),
-            },
+            None,
         );
 
         assert!(response
@@ -398,10 +477,7 @@ mod swap_tests {
             info,
             "target_denom".to_string(),
             None,
-            Callback {
-                address: Addr::unchecked("sender"),
-                msg: to_binary("callback").unwrap(),
-            },
+            None,
         );
 
         assert!(response
