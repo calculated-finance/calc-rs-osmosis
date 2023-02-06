@@ -1,14 +1,15 @@
 use crate::{
+    contract::ContractResult,
     state::swap_messages::{get_swap_messages, save_swap_messages},
     validation::assert_exactly_one_asset,
 };
-use cosmwasm_std::{CosmosMsg, DepsMut, MessageInfo, Response, StdResult, WasmMsg};
+use cosmwasm_std::{CosmosMsg, DepsMut, MessageInfo, Response, WasmMsg};
 
 pub fn continue_swap_handler(
     deps: DepsMut,
     info: MessageInfo,
     swap_id: u64,
-) -> StdResult<Response> {
+) -> ContractResult<Response> {
     assert_exactly_one_asset(&info.funds)?;
 
     let mut swap_messages = get_swap_messages(deps.storage, swap_id)?;

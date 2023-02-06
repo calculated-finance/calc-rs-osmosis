@@ -1,4 +1,5 @@
 use crate::{
+    contract::ContractResult,
     msg::ExecuteMsg,
     shared::helpers::get_cheapest_swap_path,
     state::swap_messages::{get_next_swap_id, save_swap_messages},
@@ -19,7 +20,7 @@ pub fn create_swap_handler(
     target_denom: String,
     slippage_tolerance: Option<Decimal256>,
     on_complete: Option<Callback>,
-) -> StdResult<Response> {
+) -> ContractResult<Response> {
     assert_exactly_one_asset(&info.funds)?;
 
     let cheapest_swap_path = get_cheapest_swap_path(deps.as_ref(), &info.funds[0], &target_denom)?;
@@ -124,7 +125,7 @@ mod swap_tests {
 
         assert_eq!(
             response.unwrap_err().to_string(),
-            "Generic error: received 0 denoms but required exactly 1"
+            "Error: received 0 denoms but required exactly 1"
         )
     }
 

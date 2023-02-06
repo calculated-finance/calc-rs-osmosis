@@ -1,12 +1,12 @@
 use crate::{
-    contract::AFTER_FIN_SWAP_REPLY_ID,
+    contract::{ContractResult, AFTER_FIN_SWAP_REPLY_ID},
     state::cache::{SwapCache, SWAP_CACHE},
     types::callback::Callback,
     validation::{assert_exactly_one_asset, assert_sender_is_contract},
 };
 use base::pair::Pair;
 use cosmwasm_std::{
-    Binary, CosmosMsg, Decimal256, DepsMut, Env, MessageInfo, ReplyOn, Response, StdResult, WasmMsg,
+    Binary, CosmosMsg, Decimal256, DepsMut, Env, MessageInfo, ReplyOn, Response, WasmMsg,
 };
 use fin_helpers::swaps::create_fin_swap_message;
 
@@ -17,7 +17,7 @@ pub fn swap_on_fin_handler(
     pair: Pair,
     slippage_tolerance: Option<Decimal256>,
     callback: Binary,
-) -> StdResult<Response> {
+) -> ContractResult<Response> {
     assert_sender_is_contract(&info.sender, env)?;
     assert_exactly_one_asset(&info.funds)?;
 
@@ -52,7 +52,7 @@ pub fn swap_on_fin_handler(
     )?))
 }
 
-pub fn after_swap_on_fin_handler(deps: DepsMut, env: Env) -> StdResult<Response> {
+pub fn after_swap_on_fin_handler(deps: DepsMut, env: Env) -> ContractResult<Response> {
     let swap_cache = SWAP_CACHE.load(deps.storage)?;
 
     let receive_denom_balance = deps.querier.query_balance(
