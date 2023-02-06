@@ -19,7 +19,7 @@ pub fn swap_on_fin_handler(
     callback: Binary,
 ) -> StdResult<Response> {
     assert_sender_is_contract(&info.sender, env)?;
-    assert_exactly_one_asset(info.funds.clone())?;
+    assert_exactly_one_asset(&info.funds)?;
 
     let swap_amount = info.funds[0].clone();
 

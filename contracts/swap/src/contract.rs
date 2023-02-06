@@ -9,10 +9,8 @@ use crate::{
         update_config::update_config_handler,
     },
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg},
-    state::{
-        config::{get_config, update_config, Config},
-        paths::get_path,
-    },
+    shared::helpers::get_swap_paths_with_price,
+    state::config::{get_config, update_config, Config},
 };
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdError,
@@ -98,6 +96,13 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> StdResult<Response> {
 pub fn query(deps: Deps, _: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetConfig {} => to_binary(&get_config(deps.storage)?),
-        QueryMsg::GetPath { denoms } => to_binary(&get_path(deps.storage, denoms)?),
+        QueryMsg::GetPaths {
+            swap_amount,
+            target_denom,
+        } => to_binary(&get_swap_paths_with_price(
+            deps,
+            &swap_amount,
+            &target_denom,
+        )?),
     }
 }

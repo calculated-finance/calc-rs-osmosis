@@ -2,7 +2,7 @@ use crate::types::callback::Callback;
 use crate::{state::config::Config, types::pair::Pair};
 use base::pair::Pair as FinPair;
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Binary, Decimal256};
+use cosmwasm_std::{Addr, Binary, Coin, Decimal256};
 
 #[cw_serde]
 pub struct MigrateMsg {
@@ -46,6 +46,9 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(Config)]
     GetConfig {},
-    #[returns(Vec<Pair>)]
-    GetPath { denoms: [String; 2] },
+    #[returns(Vec<Vec<Pair>>)]
+    GetPaths {
+        swap_amount: Coin,
+        target_denom: String,
+    },
 }

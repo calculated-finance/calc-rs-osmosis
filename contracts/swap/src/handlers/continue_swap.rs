@@ -9,7 +9,7 @@ pub fn continue_swap_handler(
     info: MessageInfo,
     swap_id: u64,
 ) -> StdResult<Response> {
-    assert_exactly_one_asset(info.funds.clone())?;
+    assert_exactly_one_asset(&info.funds)?;
 
     let mut swap_messages = get_swap_messages(deps.storage, swap_id)?;
     let next_swap_message = swap_messages.pop_front().expect("next callback");
