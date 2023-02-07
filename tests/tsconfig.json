@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Node 16",
+  "compilerOptions": {
+    "target": "es2020",
+    "strict": false,
+    "preserveConstEnums": true,
+    "noEmit": true,
+    "sourceMap": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "outDir": "out"
+  },
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,11 @@
+version: '3'
+services:
+  node:
+    build:
+      context: .
+      args:
+        - arch=${ARCH:-x86_64}
+    command: ignite chain serve --skip-proto -y
+    ports:
+      - 1317:1317 # rest
+      - 26657:26657 # rpc

@@ -33,8 +33,7 @@ pub fn get_swap_paths_with_price(
         .map(|pairs| Path {
             price: pairs
                 .iter()
-                .map(|pair| get_price_for_pair(deps.querier, pair, swap_amount))
-                .flatten()
+                .flat_map(|pair| get_price_for_pair(deps.querier, pair, swap_amount))
                 .reduce(|acc, price| acc * price)
                 .expect("total price of the swap"),
             pairs: pairs.clone(),
@@ -51,7 +50,7 @@ pub fn get_price_for_pair(
     pair: &Pair,
     swap_amount: &Coin,
 ) -> StdResult<Decimal256> {
-    Ok(match pair.clone() {
+    match pair.clone() {
         Pair::Fin {
             address,
             base_denom,
@@ -64,6 +63,6 @@ pub fn get_price_for_pair(
                 quote_denom,
             },
             swap_amount,
-        )?,
-    })
+        ),
+    }
 }

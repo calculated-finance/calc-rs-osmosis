@@ -1,0 +1,69 @@
+version: 1
+build:
+  proto:
+    path: proto
+    third_party_paths:
+      - third_party/proto
+      - proto_vendor
+accounts:
+  - name: bob
+    coins:
+      - 100000000000000000ukuji
+      - 100000000000000000udemo
+      - 100000000000000000utest
+  - name: admin
+    coins:
+      - 100000000000000000ukuji
+      - 100000000000000000udemo
+      - 100000000000000000utest
+    mnemonic: solution select match tell survey picnic trouble off bread fork gold dragon taxi mad artefact truck hair avocado success scene heavy alarm stay lazy
+client:
+  openapi:
+    path: docs/static/openapi.yml
+validators:
+  - name: bob
+    bonded: 100000000ukuji
+  - name: admin
+    bonded: 100000000ukuji
+genesis:
+  app_state:
+    crisis:
+      constant_fee:
+        amount: '1000'
+        denom: ukuji
+    denom:
+      params:
+        creation_fee:
+          - amount: '1000000'
+            denom: ukuji
+    gov:
+      deposit_params:
+        min_deposit:
+          - amount: '10000000'
+            denom: ukuji
+      voting_params:
+        voting_period: 5m
+    mint:
+      minter:
+        annual_provisions: '0.0'
+        inflation: '0.0'
+      params:
+        blocks_per_year: '6311520'
+        goal_bonded: '0.67'
+        inflation_max: '0.2'
+        inflation_min: '0.07'
+        inflation_rate_change: '0.13'
+        mint_denom: ukuji
+    oracle:
+      params:
+        whitelist:
+          - name: ukuji
+    staking:
+      params:
+        bond_denom: ukuji
+    wasm:
+      params:
+        code_upload_access:
+          permission: Everybody
+        instantiate_default_permission: Everybody
+  chain_id: harpoon-2

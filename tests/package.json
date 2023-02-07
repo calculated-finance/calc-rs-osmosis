@@ -1,0 +1,31 @@
+{
+  "scripts": {
+    "generate-types:swap": "ts-node ./src/scripts/generate-types.ts ../contracts/dca/schema/swap.json ./src/types/swap",
+    "generate-types:dca": "ts-node ./src/scripts/generate-types.ts ../contracts/dca/schema/dca.json ./src/types/dca",
+    "generate-types": "npm run generate-types:swap && npm run generate-types:dca",
+    "localnet": "docker compose up -d",
+    "test": "mocha --recursive '**/*.test.ts' --timeout 20000 --exit"
+  },
+  "devDependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.29.3",
+    "@cosmjs/proto-signing": "^0.29.3",
+    "@cosmjs/stargate": "^0.29.3",
+    "@cosmjs/tendermint-rpc": "^0.29.4",
+    "@types/chai-as-promised": "^7.1.5",
+    "@types/mocha": "^10.0.0",
+    "@types/ramda": "^0.28.18",
+    "@types/sinon": "^10.0.13",
+    "chai": "^4.3.6",
+    "chai-as-promised": "^7.1.1",
+    "cosmjs-types": "^0.6.1",
+    "dayjs": "^1.11.6",
+    "dotenv": "^16.0.3",
+    "json-schema-to-typescript": "^11.0.2",
+    "kujira.js": "Team-Kujira/kujira.js.git",
+    "mocha": "^10.1.0",
+    "ramda": "^0.28.0",
+    "sinon": "^14.0.2",
+    "ts-node": "^10.9.1",
+    "ts-sinon": "^2.0.2"
+  }
+}
