@@ -601,6 +601,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "fund-factory"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-multi-test 0.16.2",
+ "cw-storage-plus 1.0.1",
+ "cw2 1.0.1",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "fund-router"
 version = "0.1.0"
 dependencies = [
