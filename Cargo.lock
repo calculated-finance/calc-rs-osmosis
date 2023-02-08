@@ -604,6 +604,7 @@ dependencies = [
 name = "fund-factory"
 version = "0.1.0"
 dependencies = [
+ "base",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",

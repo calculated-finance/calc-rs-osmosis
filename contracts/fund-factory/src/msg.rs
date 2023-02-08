@@ -1,7 +1,10 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Addr;
 
 #[cw_serde]
-pub struct InstantiateMsg {}
+pub struct InstantiateMsg {
+    pub admin: Addr,
+}
 
 #[cw_serde]
 pub enum ExecuteMsg {}
