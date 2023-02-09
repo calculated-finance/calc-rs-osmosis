@@ -70,7 +70,7 @@ fn instantiation_with_invalid_admin_address_should_fail() {
 
     assert_eq!(
         result.to_string(),
-        "Generic error: Invalid input: human address too short"
+        "Generic error: Invalid input: human address too short for this mock implementation (must be >= 3)."
     )
 }
 
@@ -266,7 +266,7 @@ fn create_pair_with_invalid_address_should_fail() {
 
     assert_eq!(
         result.to_string(),
-        "Generic error: Invalid input: human address too short"
+        "Generic error: Invalid input: human address too short for this mock implementation (must be >= 3)."
     )
 }
 

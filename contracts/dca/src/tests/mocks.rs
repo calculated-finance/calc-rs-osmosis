@@ -12,8 +12,8 @@ use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal, Decimal256, Empty, Env, Event, MessageInfo,
     Response, StdError, StdResult, Uint128, Uint256, Uint64,
 };
+use cw20::Denom;
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
-use kujira::denom::Denom;
 use kujira::fin::{
     BookResponse, ConfigResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg,
     OrderResponse, PoolResponse, QueryMsg as FINQueryMsg,
@@ -91,9 +91,15 @@ impl MockApp {
             Addr::unchecked(ADMIN),
             &FINInstantiateMsg {
                 decimal_delta: None,
-                denoms: [Denom::from(DENOM_UTEST), Denom::from(DENOM_UKUJI)],
+                denoms: [
+                    Denom::Native(DENOM_UTEST.to_string()),
+                    Denom::Native(DENOM_UKUJI.to_string()),
+                ],
                 owner: Addr::unchecked(ADMIN),
                 price_precision: kujira::precision::Precision::DecimalPlaces(3),
+                fee_taker: Decimal256::percent(1),
+                fee_maker: Decimal256::percent(1),
+                fee_maker_negative: false,
             },
             "fin",
         );
@@ -812,13 +818,13 @@ fn book_response_handler(
 ) -> StdResult<Binary> {
     let pool_response_quote = PoolResponse {
         quote_price,
-        offer_denom: Denom::from(quote_denom.clone()),
+        offer_denom: Denom::Native(quote_denom.clone()),
         total_offer_amount: Uint256::zero(),
     };
 
     let pool_response_base = PoolResponse {
         quote_price: base_price,
-        offer_denom: Denom::from(quote_denom),
+        offer_denom: Denom::Native(quote_denom),
         total_offer_amount: Uint256::zero(),
     };
 
@@ -836,7 +842,7 @@ fn unfilled_order_response(env: Env) -> StdResult<Binary> {
         quote_price: Decimal256::from_str("1.0").unwrap(),
         original_offer_amount: Uint256::from_str(&ONE.to_string()).unwrap(),
         filled_amount: Uint256::from_str("0").unwrap(),
-        offer_denom: Denom::from(DENOM_UKUJI),
+        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
         offer_amount: Uint256::from_str(&ONE.to_string()).unwrap(),
     };
     Ok(to_binary(&response)?)
@@ -850,7 +856,7 @@ fn new_unfilled_order_response(env: Env) -> StdResult<Binary> {
         quote_price: Decimal256::from_str("1.0").unwrap(),
         original_offer_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
         filled_amount: Uint256::from_str("0").unwrap(),
-        offer_denom: Denom::from(DENOM_UKUJI),
+        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
         offer_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
     };
     Ok(to_binary(&response)?)
@@ -864,7 +870,7 @@ fn filled_order_response(env: Env) -> StdResult<Binary> {
         quote_price: Decimal256::from_str("1.0").unwrap(),
         original_offer_amount: Uint256::from_str(&ONE.to_string()).unwrap(),
         filled_amount: Uint256::from_str(&ONE.to_string()).unwrap(),
-        offer_denom: Denom::from(DENOM_UKUJI),
+        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
         offer_amount: Uint256::from_str("0").unwrap(),
     };
     Ok(to_binary(&response)?)
@@ -878,7 +884,7 @@ fn new_filled_order_response(env: Env) -> StdResult<Binary> {
         quote_price: Decimal256::from_str("1.0").unwrap(),
         original_offer_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
         filled_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
-        offer_denom: Denom::from(DENOM_UKUJI),
+        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
         offer_amount: Uint256::from_str("0").unwrap(),
     };
     Ok(to_binary(&response)?)
@@ -889,7 +895,7 @@ fn partially_filled_order_response(env: Env) -> StdResult<Binary> {
         idx: Uint128::new(1),
         owner: Addr::unchecked(USER),
         quote_price: Decimal256::from_str("1.0").unwrap(),
-        offer_denom: Denom::from(DENOM_UKUJI),
+        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
         offer_amount: Uint256::from_str(&ONE.to_string()).unwrap(),
         filled_amount: Uint256::from_str(&(ONE / Uint128::new(2)).to_string()).unwrap(),
         created_at: env.block.time,
@@ -903,7 +909,7 @@ fn new_partially_filled_order_response(env: Env) -> StdResult<Binary> {
         idx: Uint128::new(1),
         owner: Addr::unchecked(USER),
         quote_price: Decimal256::from_str("1.0").unwrap(),
-        offer_denom: Denom::from(DENOM_UKUJI),
+        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
         offer_amount: Uint256::from_str(&(TWO_MICRONS / Uint128::new(2)).to_string()).unwrap(),
         filled_amount: Uint256::from_str(&(TWO_MICRONS / Uint128::new(2)).to_string()).unwrap(),
         created_at: env.block.time,
@@ -938,10 +944,16 @@ pub fn fin_contract_unfilled_limit_order() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Order { .. } => unfilled_order_response(env),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -970,10 +982,16 @@ pub fn new_fin_contract_unfilled_limit_order() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Order { .. } => new_unfilled_order_response(env),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -1001,10 +1019,16 @@ pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Order { .. } => partially_filled_order_response(env),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -1034,10 +1058,16 @@ pub fn new_fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Order { .. } => new_partially_filled_order_response(env),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -1066,10 +1096,16 @@ pub fn fin_contract_filled_limit_order() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Order { .. } => filled_order_response(env),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -1098,10 +1134,16 @@ pub fn new_fin_contract_filled_limit_order() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Order { .. } => new_filled_order_response(env),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -1124,10 +1166,16 @@ pub fn fin_contract_pass_slippage_tolerance() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Book { .. } => default_book_response_handler(),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -1152,10 +1200,16 @@ pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
                 FINQueryMsg::Book { .. } => default_book_response_handler(),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -1182,10 +1236,16 @@ pub fn fin_contract_high_swap_price() -> Box<dyn Contract<Empty>> {
                 ),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }
@@ -1212,10 +1272,16 @@ pub fn fin_contract_low_swap_price() -> Box<dyn Contract<Empty>> {
                 ),
                 FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
                     owner: Addr::unchecked(ADMIN),
-                    denoms: [Denom::from(DENOM_UKUJI), Denom::from(DENOM_UTEST)],
+                    denoms: [
+                        Denom::Native(DENOM_UKUJI.to_string()),
+                        Denom::Native(DENOM_UTEST.to_string()),
+                    ],
                     price_precision: Precision::DecimalPlaces(3),
                     decimal_delta: 0,
                     is_bootstrapping: false,
+                    fee_taker: Decimal256::percent(1),
+                    fee_maker: Decimal256::percent(1),
+                    fee_maker_negative: false,
                 }),
                 _ => default_query_response(),
             }

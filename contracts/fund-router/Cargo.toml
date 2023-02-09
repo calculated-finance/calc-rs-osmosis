@@ -27,6 +27,7 @@ cosmwasm-std = "1.1.3"
 cosmwasm-storage = "1.1.3"
 cw-storage-plus = "1.0.1"
 cw2 = "1.0.1"
+cw20 = "0.13.4"
 kujira = "0.7.20"
 schemars = "0.8.10"
 serde = { version = "1.0.145", default-features = false, features = ["derive"] }
