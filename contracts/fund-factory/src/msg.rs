@@ -7,6 +7,7 @@ use crate::state::config::Config;
 pub struct InstantiateMsg {
     pub admin: Addr,
     pub router_code_id: u64,
+    pub core_code_id: u64,
 }
 
 #[cw_serde]
@@ -14,6 +15,7 @@ pub enum ExecuteMsg {
     UpdateConfig {
         admin: Option<Addr>,
         router_code_id: Option<u64>,
+        core_code_id: Option<u64>,
     },
 }
 

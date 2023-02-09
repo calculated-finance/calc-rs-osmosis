@@ -27,6 +27,7 @@ pub fn instantiate(
         Config {
             admin: msg.admin,
             router_code_id: msg.router_code_id,
+            core_code_id: msg.core_code_id,
         },
     )?;
 
@@ -46,7 +47,8 @@ pub fn execute(
         ExecuteMsg::UpdateConfig {
             admin,
             router_code_id,
-        } => update_config_handler(deps, info, admin, router_code_id),
+            core_code_id,
+        } => update_config_handler(deps, info, admin, router_code_id, core_code_id),
     }
 }
 

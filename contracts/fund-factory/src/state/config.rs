@@ -6,6 +6,7 @@ use cw_storage_plus::Item;
 pub struct Config {
     pub admin: Addr,
     pub router_code_id: u64,
+    pub core_code_id: u64,
 }
 
 const CONFIG: Item<Config> = Item::new("config_v1");

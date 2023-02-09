@@ -11,6 +11,7 @@ pub fn update_config_handler(
     info: MessageInfo,
     admin: Option<Addr>,
     router_code_id: Option<u64>,
+    core_code_id: Option<u64>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
 
@@ -19,6 +20,7 @@ pub fn update_config_handler(
     let config = Config {
         admin: admin.unwrap_or(existing_config.admin),
         router_code_id: router_code_id.unwrap_or(existing_config.router_code_id),
+        core_code_id: core_code_id.unwrap_or(existing_config.core_code_id),
     };
 
     let config = update_config(deps.storage, config)?;
