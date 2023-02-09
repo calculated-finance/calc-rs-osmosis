@@ -19,8 +19,8 @@ fn with_valid_admin_should_succeed() {
 
     let instantiate_msg = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
-        router_code_id: 0,
-        core_code_id: 0,
+        fund_router_code_id: 0,
+        fund_core_code_id: 0,
     };
 
     instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
@@ -29,8 +29,8 @@ fn with_valid_admin_should_succeed() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: Some(Addr::unchecked("updated_admin")),
-        router_code_id: None,
-        core_code_id: None,
+        fund_router_code_id: None,
+        fund_core_code_id: None,
     };
 
     execute(deps.as_mut(), env.clone(), info, update_config_msg).unwrap();
@@ -52,8 +52,8 @@ fn with_invalid_admin_address_should_fail() {
 
     let instantiate_msg = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
-        router_code_id: 0,
-        core_code_id: 0,
+        fund_router_code_id: 0,
+        fund_core_code_id: 0,
     };
 
     instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
@@ -62,8 +62,8 @@ fn with_invalid_admin_address_should_fail() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: Some(Addr::unchecked(updated_admin)),
-        router_code_id: None,
-        core_code_id: None,
+        fund_router_code_id: None,
+        fund_core_code_id: None,
     };
 
     let update_config_res = execute(deps.as_mut(), env.clone(), info, update_config_msg);
@@ -79,8 +79,8 @@ fn with_valid_router_code_id_should_succeed() {
 
     let instantiate_msg = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
-        router_code_id: 0,
-        core_code_id: 0,
+        fund_router_code_id: 0,
+        fund_core_code_id: 0,
     };
 
     instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
@@ -89,8 +89,8 @@ fn with_valid_router_code_id_should_succeed() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: None,
-        router_code_id: Some(updated_code_id),
-        core_code_id: None,
+        fund_router_code_id: Some(updated_code_id),
+        fund_core_code_id: None,
     };
 
     execute(deps.as_mut(), env.clone(), info, update_config_msg).unwrap();
@@ -101,7 +101,7 @@ fn with_valid_router_code_id_should_succeed() {
 
     let config_response: ConfigResponse = from_binary(&binary).unwrap();
 
-    assert_eq!(config_response.config.router_code_id, updated_code_id);
+    assert_eq!(config_response.config.fund_router_code_id, updated_code_id);
 }
 
 #[test]
@@ -112,8 +112,8 @@ fn with_no_admin_permissions_should_fail() {
 
     let instantiate_msg = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
-        router_code_id: 0,
-        core_code_id: 0,
+        fund_router_code_id: 0,
+        fund_core_code_id: 0,
     };
 
     instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
@@ -124,8 +124,8 @@ fn with_no_admin_permissions_should_fail() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: Some(Addr::unchecked(unauthorised_admin)),
-        router_code_id: None,
-        core_code_id: None,
+        fund_router_code_id: None,
+        fund_core_code_id: None,
     };
 
     let update_config_res = execute(
@@ -147,8 +147,8 @@ fn with_valid_core_code_id_should_succeed() {
 
     let instantiate_msg = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
-        router_code_id: 0,
-        core_code_id: 0,
+        fund_router_code_id: 0,
+        fund_core_code_id: 0,
     };
 
     instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
@@ -157,8 +157,8 @@ fn with_valid_core_code_id_should_succeed() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: None,
-        router_code_id: None,
-        core_code_id: Some(updated_code_id),
+        fund_router_code_id: None,
+        fund_core_code_id: Some(updated_code_id),
     };
 
     execute(deps.as_mut(), env.clone(), info, update_config_msg).unwrap();
@@ -169,5 +169,5 @@ fn with_valid_core_code_id_should_succeed() {
 
     let config_response: ConfigResponse = from_binary(&binary).unwrap();
 
-    assert_eq!(config_response.config.core_code_id, updated_code_id);
+    assert_eq!(config_response.config.fund_core_code_id, updated_code_id);
 }
