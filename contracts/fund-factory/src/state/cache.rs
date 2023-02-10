@@ -7,4 +7,4 @@ pub struct Cache {
     pub owner: Addr,
 }
 
-pub const CACHE: Item<Cache> = Item::new("cache_v20");
+pub const CACHE: Item<Cache> = Item::new("cache_v1");

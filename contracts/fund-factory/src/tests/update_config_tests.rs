@@ -5,11 +5,10 @@ use cosmwasm_std::{
 };
 
 use crate::{
-    contract::{execute, instantiate, query},
-    msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg},
+    contract::{execute, query},
+    msg::{ConfigResponse, ExecuteMsg, QueryMsg},
+    tests::helpers::{instantiate_contract, ADMIN},
 };
-
-pub const ADMIN: &str = "admin";
 
 #[test]
 fn with_valid_admin_should_succeed() {
@@ -17,13 +16,7 @@ fn with_valid_admin_should_succeed() {
     let env = mock_env();
     let info = mock_info(ADMIN, &vec![]);
 
-    let instantiate_msg = InstantiateMsg {
-        admin: Addr::unchecked(ADMIN),
-        fund_router_code_id: 0,
-        fund_core_code_id: 0,
-    };
-
-    instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
     let updated_admin: &str = "updated_admin";
 
@@ -50,13 +43,7 @@ fn with_invalid_admin_address_should_fail() {
     let env = mock_env();
     let info = mock_info(ADMIN, &vec![]);
 
-    let instantiate_msg = InstantiateMsg {
-        admin: Addr::unchecked(ADMIN),
-        fund_router_code_id: 0,
-        fund_core_code_id: 0,
-    };
-
-    instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
     let updated_admin: &str = "";
 
@@ -77,13 +64,7 @@ fn with_valid_router_code_id_should_succeed() {
     let env = mock_env();
     let info = mock_info(ADMIN, &vec![]);
 
-    let instantiate_msg = InstantiateMsg {
-        admin: Addr::unchecked(ADMIN),
-        fund_router_code_id: 0,
-        fund_core_code_id: 0,
-    };
-
-    instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
     let updated_code_id: u64 = 1;
 
@@ -110,13 +91,7 @@ fn with_no_admin_permissions_should_fail() {
     let env = mock_env();
     let info = mock_info(ADMIN, &vec![]);
 
-    let instantiate_msg = InstantiateMsg {
-        admin: Addr::unchecked(ADMIN),
-        fund_router_code_id: 0,
-        fund_core_code_id: 0,
-    };
-
-    instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
     let unauthorised_admin: &str = "unauthorised_admin";
 
@@ -145,13 +120,7 @@ fn with_valid_core_code_id_should_succeed() {
     let env = mock_env();
     let info = mock_info(ADMIN, &vec![]);
 
-    let instantiate_msg = InstantiateMsg {
-        admin: Addr::unchecked(ADMIN),
-        fund_router_code_id: 0,
-        fund_core_code_id: 0,
-    };
-
-    instantiate(deps.as_mut(), env.clone(), info.clone(), instantiate_msg).unwrap();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
     let updated_code_id: u64 = 1;
 

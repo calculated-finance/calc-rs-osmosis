@@ -27,9 +27,16 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(ConfigResponse)]
     GetConfig {},
+    #[returns(FundRoutersResponse)]
+    GetFundRouters { owner: Addr },
 }
 
 #[cw_serde]
 pub struct ConfigResponse {
     pub config: Config,
+}
+
+#[cw_serde]
+pub struct FundRoutersResponse {
+    pub fund_routers: Vec<Addr>,
 }

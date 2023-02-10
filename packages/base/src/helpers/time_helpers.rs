@@ -16,9 +16,12 @@ pub fn get_next_target_time(
     last_execution_timestamp: Timestamp,
     interval: TimeInterval,
 ) -> Timestamp {
-    let current_time = Utc.timestamp(current_timestamp.seconds().try_into().unwrap(), 0);
-    let last_execution_time =
-        Utc.timestamp(last_execution_timestamp.seconds().try_into().unwrap(), 0);
+    let current_time = Utc
+        .timestamp_opt(current_timestamp.seconds().try_into().unwrap(), 0)
+        .unwrap();
+    let last_execution_time = Utc
+        .timestamp_opt(last_execution_timestamp.seconds().try_into().unwrap(), 0)
+        .unwrap();
 
     let mut next_execution_time = get_next_time(last_execution_time, &interval);
 
@@ -157,7 +160,7 @@ mod tests {
 
     #[test]
     fn assert_monthly_next_execution_times() {
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
         let scenarios = vec![
             (last_execution_time, shift_months(last_execution_time, 1)),
             (
@@ -191,7 +194,7 @@ mod tests {
 
     #[test]
     fn assert_fortnightly_next_execution_times() {
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
         let scenarios = vec![
             (
                 last_execution_time,
@@ -228,7 +231,7 @@ mod tests {
 
     #[test]
     fn assert_weekly_next_execution_times() {
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
         let scenarios = vec![
             (
                 last_execution_time,
@@ -261,7 +264,7 @@ mod tests {
 
     #[test]
     fn assert_daily_next_execution_times() {
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
         let scenarios = vec![
             (last_execution_time, last_execution_time + Duration::days(1)),
             (
@@ -291,7 +294,7 @@ mod tests {
 
     #[test]
     fn assert_half_daily_next_execution_times() {
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
         let scenarios = vec![
             (
                 last_execution_time,
@@ -328,7 +331,7 @@ mod tests {
 
     #[test]
     fn assert_hourly_next_execution_times() {
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
         let scenarios = vec![
             (
                 last_execution_time,
@@ -361,7 +364,7 @@ mod tests {
 
     #[test]
     fn assert_half_hourly_next_execution_times() {
-        let last_execution_time = Utc.ymd(2022, 1, 1).and_hms(1, 0, 0);
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
         let scenarios = vec![
             (
                 last_execution_time,
@@ -431,9 +434,9 @@ mod tests {
 
     #[test]
     fn get_next_time_given_month_should_get_next_month() {
-        let current_time = Utc.ymd(2022, 5, 1).and_hms(10, 0, 0);
+        let current_time = Utc.with_ymd_and_hms(2022, 5, 1, 10, 0, 0).unwrap();
 
-        let expected_time = Utc.ymd(2022, 6, 1).and_hms(10, 0, 0);
+        let expected_time = Utc.with_ymd_and_hms(2022, 6, 1, 10, 0, 0).unwrap();
 
         let result = get_next_time(current_time, &TimeInterval::Monthly);
 
@@ -442,9 +445,9 @@ mod tests {
 
     #[test]
     fn get_next_time_given_week_should_get_next_week() {
-        let current_time = Utc.ymd(2022, 5, 1).and_hms(10, 0, 0);
+        let current_time = Utc.with_ymd_and_hms(2022, 5, 1, 10, 0, 0).unwrap();
 
-        let expected_time = Utc.ymd(2022, 5, 8).and_hms(10, 0, 0);
+        let expected_time = Utc.with_ymd_and_hms(2022, 5, 8, 10, 0, 0).unwrap();
 
         let result = get_next_time(current_time, &TimeInterval::Weekly);
 
@@ -453,9 +456,9 @@ mod tests {
 
     #[test]
     fn get_next_time_given_week_that_spans_multiple_months_should_get_next_week() {
-        let current_time = Utc.ymd(2022, 9, 29).and_hms(10, 0, 0);
+        let current_time = Utc.with_ymd_and_hms(2022, 9, 29, 10, 0, 0).unwrap();
 
-        let expected_time = Utc.ymd(2022, 10, 6).and_hms(10, 0, 0);
+        let expected_time = Utc.with_ymd_and_hms(2022, 10, 6, 10, 0, 0).unwrap();
 
         let result = get_next_time(current_time, &TimeInterval::Weekly);
 
@@ -464,9 +467,9 @@ mod tests {
 
     #[test]
     fn get_next_time_given_day_should_get_next_day() {
-        let current_time = Utc.ymd(2022, 9, 1).and_hms(10, 0, 0);
+        let current_time = Utc.with_ymd_and_hms(2022, 9, 1, 10, 0, 0).unwrap();
 
-        let expected_time = Utc.ymd(2022, 9, 2).and_hms(10, 0, 0);
+        let expected_time = Utc.with_ymd_and_hms(2022, 9, 2, 10, 0, 0).unwrap();
 
         let result = get_next_time(current_time, &TimeInterval::Daily);
 
@@ -475,9 +478,9 @@ mod tests {
 
     #[test]
     fn get_next_time_given_day_that_spans_multiple_months_should_get_next_day() {
-        let current_time = Utc.ymd(2022, 9, 30).and_hms(10, 0, 0);
+        let current_time = Utc.with_ymd_and_hms(2022, 9, 30, 10, 0, 0).unwrap();
 
-        let expected_time = Utc.ymd(2022, 10, 1).and_hms(10, 0, 0);
+        let expected_time = Utc.with_ymd_and_hms(2022, 10, 1, 10, 0, 0).unwrap();
 
         let result = get_next_time(current_time, &TimeInterval::Daily);
 
@@ -486,9 +489,9 @@ mod tests {
 
     #[test]
     fn get_next_time_given_hour_should_get_next_hour() {
-        let current_time = Utc.ymd(2022, 10, 1).and_hms(10, 0, 0);
+        let current_time = Utc.with_ymd_and_hms(2022, 10, 1, 10, 0, 0).unwrap();
 
-        let expected_time = Utc.ymd(2022, 10, 1).and_hms(11, 0, 0);
+        let expected_time = Utc.with_ymd_and_hms(2022, 10, 1, 11, 0, 0).unwrap();
 
         let result = get_next_time(current_time, &TimeInterval::Hourly);
 
@@ -497,9 +500,9 @@ mod tests {
 
     #[test]
     fn get_next_time_given_hour_that_spans_multiple_days_should_get_next_hour() {
-        let current_time = Utc.ymd(2022, 10, 1).and_hms(23, 0, 0);
+        let current_time = Utc.with_ymd_and_hms(2022, 10, 1, 23, 0, 0).unwrap();
 
-        let expected_time = Utc.ymd(2022, 10, 2).and_hms(0, 0, 0);
+        let expected_time = Utc.with_ymd_and_hms(2022, 10, 2, 0, 0, 0).unwrap();
 
         let result = get_next_time(current_time, &TimeInterval::Hourly);
 
