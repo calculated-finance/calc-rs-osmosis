@@ -1,9 +1,14 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
+};
 use cw2::set_contract_version;
 
+use crate::handlers::create_fund_router::create_fund_router;
 use crate::handlers::get_config::get_config_handler;
+use crate::handlers::get_fund_routers_by_address::get_fund_routers_by_address_handler;
+use crate::handlers::save_fund_router_address::save_fund_router_address;
 use crate::handlers::update_config::update_config_handler;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{update_config, Config};
@@ -26,8 +31,8 @@ pub fn instantiate(
         deps.storage,
         Config {
             admin: msg.admin,
-            router_code_id: msg.router_code_id,
-            core_code_id: msg.core_code_id,
+            fund_router_code_id: msg.fund_router_code_id,
+            fund_core_code_id: msg.fund_core_code_id,
         },
     )?;
 
@@ -39,16 +44,31 @@ pub fn instantiate(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
+        ExecuteMsg::CreateManagedFund { token_name } => {
+            create_fund_router(deps, env, info, token_name)
+        }
         ExecuteMsg::UpdateConfig {
             admin,
-            router_code_id,
-            core_code_id,
-        } => update_config_handler(deps, info, admin, router_code_id, core_code_id),
+            fund_router_code_id,
+            fund_core_code_id,
+        } => update_config_handler(deps, info, admin, fund_router_code_id, fund_core_code_id),
+    }
+}
+
+pub const AFTER_INSTANTIATE_FUND_ROUTER_REPLY_ID: u64 = 1;
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {
+    match reply.id {
+        AFTER_INSTANTIATE_FUND_ROUTER_REPLY_ID => save_fund_router_address(deps, reply),
+        id => Err(ContractError::CustomError {
+            val: format!("unknown reply id: {}", id),
+        }),
     }
 }
 
@@ -56,5 +76,8 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetConfig {} => to_binary(&get_config_handler(deps)?),
+        QueryMsg::GetFundRouters { owner } => {
+            to_binary(&get_fund_routers_by_address_handler(deps, owner)?)
+        }
     }
 }

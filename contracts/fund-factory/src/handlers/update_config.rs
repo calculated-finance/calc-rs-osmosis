@@ -19,8 +19,8 @@ pub fn update_config_handler(
 
     let config = Config {
         admin: admin.unwrap_or(existing_config.admin),
-        router_code_id: router_code_id.unwrap_or(existing_config.router_code_id),
-        core_code_id: core_code_id.unwrap_or(existing_config.core_code_id),
+        fund_router_code_id: router_code_id.unwrap_or(existing_config.fund_router_code_id),
+        fund_core_code_id: core_code_id.unwrap_or(existing_config.fund_core_code_id),
     };
 
     let config = update_config(deps.storage, config)?;
@@ -29,5 +29,5 @@ pub fn update_config_handler(
 
     Ok(Response::new()
         .add_attribute("method", "update_config")
-        .add_attribute("router_code_id", config.router_code_id.to_string()))
+        .add_attribute("router_code_id", config.fund_router_code_id.to_string()))
 }
