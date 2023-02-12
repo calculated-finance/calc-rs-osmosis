@@ -1162,11 +1162,13 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
+ "cw-multi-test 0.16.2",
  "cw-storage-plus 1.0.1",
  "cw2 1.0.1",
  "fin-helpers",
  "kujira",
  "petgraph",
+ "schemars",
  "serde",
  "thiserror",
 ]
