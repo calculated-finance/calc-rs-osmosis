@@ -5,8 +5,8 @@ use cw_storage_plus::Item;
 #[cw_serde]
 pub struct Config {
     pub admin: Addr,
-    pub fund_router_code_id: u64,
-    pub fund_core_code_id: u64,
+    pub router_code_id: u64,
+    pub fund_code_id: u64,
 }
 
 const CONFIG: Item<Config> = Item::new("config_v1");

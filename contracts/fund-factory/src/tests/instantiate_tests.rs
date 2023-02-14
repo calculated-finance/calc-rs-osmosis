@@ -16,8 +16,8 @@ fn with_valid_admin_should_succeed() {
 
     let msg = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
-        fund_router_code_id: 0,
-        fund_core_code_id: 0,
+        router_code_id: 0,
+        fund_code_id: 0,
     };
 
     let res = instantiate(deps.as_mut(), env, info, msg);
@@ -33,8 +33,8 @@ fn with_invalid_admin_should_fail() {
 
     let msg = InstantiateMsg {
         admin: Addr::unchecked(""),
-        fund_router_code_id: 0,
-        fund_core_code_id: 0,
+        router_code_id: 0,
+        fund_code_id: 0,
     };
 
     let res = instantiate(deps.as_mut(), env, info, msg);
@@ -50,8 +50,8 @@ fn with_valid_router_code_id_should_succeed() {
 
     let msg = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
-        fund_router_code_id: 1,
-        fund_core_code_id: 0,
+        router_code_id: 1,
+        fund_code_id: 0,
     };
 
     let res = instantiate(deps.as_mut(), env, info, msg);
@@ -60,15 +60,15 @@ fn with_valid_router_code_id_should_succeed() {
 }
 
 #[test]
-fn with_valid_core_code_id_should_succeed() {
+fn with_valid_fund_code_id_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(ADMIN, &vec![]);
 
     let msg = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
-        fund_router_code_id: 0,
-        fund_core_code_id: 1,
+        router_code_id: 0,
+        fund_code_id: 1,
     };
 
     let res = instantiate(deps.as_mut(), env, info, msg);
