@@ -6,19 +6,19 @@ use crate::state::config::Config;
 #[cw_serde]
 pub struct InstantiateMsg {
     pub admin: Addr,
-    pub fund_router_code_id: u64,
-    pub fund_core_code_id: u64,
+    pub router_code_id: u64,
+    pub fund_code_id: u64,
 }
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    CreateManagedFund {
+    CreateRouter {
         token_name: String,
     },
     UpdateConfig {
         admin: Option<Addr>,
-        fund_router_code_id: Option<u64>,
-        fund_core_code_id: Option<u64>,
+        router_code_id: Option<u64>,
+        fund_code_id: Option<u64>,
     },
 }
 
@@ -27,8 +27,8 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(ConfigResponse)]
     GetConfig {},
-    #[returns(FundRoutersResponse)]
-    GetFundRouters { owner: Addr },
+    #[returns(RoutersResponse)]
+    GetRouters { owner: Addr },
 }
 
 #[cw_serde]
@@ -37,6 +37,6 @@ pub struct ConfigResponse {
 }
 
 #[cw_serde]
-pub struct FundRoutersResponse {
-    pub fund_routers: Vec<Addr>,
+pub struct RoutersResponse {
+    pub routers: Vec<Addr>,
 }

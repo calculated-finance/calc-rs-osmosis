@@ -22,8 +22,8 @@ fn with_valid_admin_should_succeed() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: Some(Addr::unchecked("updated_admin")),
-        fund_router_code_id: None,
-        fund_core_code_id: None,
+        router_code_id: None,
+        fund_code_id: None,
     };
 
     execute(deps.as_mut(), env.clone(), info, update_config_msg).unwrap();
@@ -49,8 +49,8 @@ fn with_invalid_admin_address_should_fail() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: Some(Addr::unchecked(updated_admin)),
-        fund_router_code_id: None,
-        fund_core_code_id: None,
+        router_code_id: None,
+        fund_code_id: None,
     };
 
     let update_config_res = execute(deps.as_mut(), env.clone(), info, update_config_msg);
@@ -70,8 +70,8 @@ fn with_valid_router_code_id_should_succeed() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: None,
-        fund_router_code_id: Some(updated_code_id),
-        fund_core_code_id: None,
+        router_code_id: Some(updated_code_id),
+        fund_code_id: None,
     };
 
     execute(deps.as_mut(), env.clone(), info, update_config_msg).unwrap();
@@ -82,7 +82,7 @@ fn with_valid_router_code_id_should_succeed() {
 
     let config_response: ConfigResponse = from_binary(&binary).unwrap();
 
-    assert_eq!(config_response.config.fund_router_code_id, updated_code_id);
+    assert_eq!(config_response.config.router_code_id, updated_code_id);
 }
 
 #[test]
@@ -99,8 +99,8 @@ fn with_no_admin_permissions_should_fail() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: Some(Addr::unchecked(unauthorised_admin)),
-        fund_router_code_id: None,
-        fund_core_code_id: None,
+        router_code_id: None,
+        fund_code_id: None,
     };
 
     let update_config_res = execute(
@@ -115,7 +115,7 @@ fn with_no_admin_permissions_should_fail() {
 }
 
 #[test]
-fn with_valid_core_code_id_should_succeed() {
+fn with_valid_fund_code_id_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(ADMIN, &vec![]);
@@ -126,8 +126,8 @@ fn with_valid_core_code_id_should_succeed() {
 
     let update_config_msg = ExecuteMsg::UpdateConfig {
         admin: None,
-        fund_router_code_id: None,
-        fund_core_code_id: Some(updated_code_id),
+        router_code_id: None,
+        fund_code_id: Some(updated_code_id),
     };
 
     execute(deps.as_mut(), env.clone(), info, update_config_msg).unwrap();
@@ -138,5 +138,5 @@ fn with_valid_core_code_id_should_succeed() {
 
     let config_response: ConfigResponse = from_binary(&binary).unwrap();
 
-    assert_eq!(config_response.config.fund_core_code_id, updated_code_id);
+    assert_eq!(config_response.config.fund_code_id, updated_code_id);
 }

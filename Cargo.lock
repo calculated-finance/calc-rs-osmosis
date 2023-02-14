@@ -590,6 +590,7 @@ checksum = "c8cbd1169bd7b4a0a20d92b9af7a7e0422888bd38a6f5ec29c1fd8c1558a272e"
 name = "fund-core"
 version = "0.1.0"
 dependencies = [
+ "base",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -623,6 +624,7 @@ dependencies = [
 name = "fund-router"
 version = "0.1.0"
 dependencies = [
+ "base",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
