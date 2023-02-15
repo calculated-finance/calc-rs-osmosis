@@ -23,6 +23,7 @@ describe('when creating a swap', () => {
       this.adminContractAddress,
       baseDenom,
       quoteDenom,
+      1.0,
       flatten(
         map(
           (i) => [

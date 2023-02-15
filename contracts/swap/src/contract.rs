@@ -9,9 +9,10 @@ use crate::{
         update_config::update_config_handler,
     },
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg},
-    shared::helpers::get_swap_paths_with_price,
+    shared::helpers::{get_price, get_swap_paths_with_price},
     state::config::{get_config, update_config, Config},
 };
+use base::price_type::PriceType;
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
 };
@@ -108,6 +109,12 @@ pub fn query(deps: Deps, _: Env, msg: QueryMsg) -> StdResult<Binary> {
             deps,
             &swap_amount,
             &target_denom,
+            PriceType::Actual,
         )?),
+        QueryMsg::GetPrice {
+            swap_amount,
+            target_denom,
+            price_type,
+        } => to_binary(&get_price(deps, &swap_amount, &target_denom, price_type)?),
     }
 }

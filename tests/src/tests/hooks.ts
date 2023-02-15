@@ -83,7 +83,6 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
         validatorAddress,
       };
 
-      console.log('Test context:\n', context);
       Object.assign(this, context);
     },
   };
@@ -158,12 +157,8 @@ export const instantiateFinPairContract = async (
   adminContractAddress: string,
   baseDenom: string = 'ukuji',
   quoteDenom: string = 'udemo',
-  orders: Record<string, number | Coin>[] = [
-    { price: 1.02, amount: coin('1000000', baseDenom) },
-    { price: 1.01, amount: coin('1000000', baseDenom) },
-    { price: 0.99, amount: coin('1000000', quoteDenom) },
-    { price: 0.98, amount: coin('1000000', quoteDenom) },
-  ],
+  beliefPrice: number = 1.0,
+  orders: Record<string, number | Coin>[] = [],
 ): Promise<string> => {
   const finContractAddress = await uploadAndInstantiate(
     '../artifacts/fin.wasm',
@@ -180,6 +175,13 @@ export const instantiateFinPairContract = async (
   await execute(cosmWasmClient, adminContractAddress, finContractAddress, {
     launch: {},
   });
+
+  orders =
+    (orders.length == 0 && [
+      { price: beliefPrice + 0.01, amount: coin('1000000000000', baseDenom) },
+      { price: beliefPrice - 0.01, amount: coin('1000000000000', quoteDenom) },
+    ]) ||
+    orders;
 
   for (const order of orders) {
     await execute(
@@ -199,8 +201,8 @@ export const instantiateFinPairContract = async (
 export const instantiateSwapContract = async (
   cosmWasmClient: SigningCosmWasmClient,
   adminContractAddress: string,
-): Promise<string> => {
-  const address = await uploadAndInstantiate(
+): Promise<string> =>
+  uploadAndInstantiate(
     '../artifacts/swap.wasm',
     cosmWasmClient,
     adminContractAddress,
@@ -210,5 +212,20 @@ export const instantiateSwapContract = async (
     'swap',
   );
 
-  return address;
-};
+export const instantiateFundCoreContract = async (
+  cosmWasmClient: SigningCosmWasmClient,
+  routerContractAddress: string,
+  swapContractAddress: string,
+  baseAsset: string = 'uusk',
+): Promise<string> =>
+  uploadAndInstantiate(
+    '../artifacts/fund_core.wasm',
+    cosmWasmClient,
+    routerContractAddress,
+    {
+      router: routerContractAddress,
+      swapper: swapContractAddress,
+      base_denom: baseAsset,
+    },
+    'fund-core',
+  );

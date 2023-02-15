@@ -4,10 +4,11 @@ import dayjs, { Dayjs } from 'dayjs';
 import { Context } from 'mocha';
 import { execute } from '../../shared/cosmwasm';
 import { Vault } from '../../types/dca/response/get_vaults';
-import { createVault, getBalances, getVaultLastUpdatedTime, isWithinFivePercent, provideAuthGrant } from '../helpers';
+import { createVault, getBalances, getVaultLastUpdatedTime } from '../helpers';
 import { setTimeout } from 'timers/promises';
 import { EventData } from '../../types/dca/response/get_events';
-import { find, map } from 'ramda';
+import { map } from 'ramda';
+import { instantiateFinPairContract } from '../hooks';
 
 describe('when executing a vault', () => {
   describe('with a filled fin limit order trigger', () => {
@@ -490,6 +491,31 @@ describe('when executing a vault', () => {
     let eventPayloadsAfterExecution: EventData[];
 
     before(async function (this: Context) {
+      const finPairAddress = await instantiateFinPairContract(
+        this.cosmWasmClient,
+        this.adminContractAddress,
+        'ukuji',
+        'udemo',
+        5,
+        [
+          { price: 1, amount: coin('100000000', 'ukuji') },
+          { price: 0.2, amount: coin('1000', 'ukuji') },
+          { price: 0.1, amount: coin('100000000', 'ukuji') },
+        ],
+      );
+
+      const pair = await this.cosmWasmClient.queryContractSmart(finPairAddress, {
+        config: {},
+      });
+
+      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+        create_pair: {
+          base_denom: pair.denoms[0].native,
+          quote_denom: pair.denoms[1].native,
+          address: finPairAddress,
+        },
+      });
+
       targetTime = dayjs().add(10, 'seconds');
 
       const vaultId = await createVault(
@@ -498,6 +524,7 @@ describe('when executing a vault', () => {
           target_start_time_utc_seconds: `${targetTime.unix()}`,
           swap_amount: '100000000',
           slippage_tolerance: '0.0001',
+          pair_address: finPairAddress,
         },
         [coin('1000000000', 'udemo')],
       );
@@ -596,7 +623,7 @@ describe('when executing a vault', () => {
       expect(eventPayloadsAfterExecution).to.include.deep.members([
         {
           dca_vault_execution_triggered: {
-            asset_price: `${this.finBuyPrice}`,
+            asset_price: '0.1',
             base_denom: 'ukuji',
             quote_denom: vaultAfterExecution.balance.denom,
           },

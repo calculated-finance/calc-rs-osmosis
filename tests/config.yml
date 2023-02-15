@@ -9,13 +9,18 @@ accounts:
   - name: bob
     coins:
       - 100000000000000000ukuji
-      - 100000000000000000udemo
-      - 100000000000000000utest
   - name: admin
     coins:
       - 100000000000000000ukuji
       - 100000000000000000udemo
       - 100000000000000000utest
+      - 100000000000000000uatom
+      - 100000000000000000uosmo
+      - 100000000000000000uaxlusdc
+      - 100000000000000000uusk
+      - 100000000000000000umars
+      - 100000000000000000uweth
+      - 100000000000000000uwbtc
     mnemonic: solution select match tell survey picnic trouble off bread fork gold dragon taxi mad artefact truck hair avocado success scene heavy alarm stay lazy
 client:
   openapi:
