@@ -633,6 +633,7 @@ dependencies = [
  "cw-storage-plus 1.0.1",
  "cw2 1.0.1",
  "cw20",
+ "fund-core",
  "kujira",
  "schemars",
  "serde",

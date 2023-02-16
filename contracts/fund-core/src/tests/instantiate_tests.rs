@@ -4,15 +4,19 @@ use cosmwasm_std::{
     Addr,
 };
 
+use crate::{
+    tests::helpers::{BASE_DENOM, ROUTER_ADDRESS, SWAPPER_ADDRESS},
+};
+
 #[test]
 fn saves_config() {
     let mut deps = mock_dependencies();
     let mock_env = mock_env();
     let info = mock_info("factory", &[]);
 
-    let router = Addr::unchecked("router");
-    let swapper = Addr::unchecked("swapper");
-    let base_denom = String::from("ukuji");
+    let router = Addr::unchecked(ROUTER_ADDRESS);
+    let swapper = Addr::unchecked(SWAPPER_ADDRESS);
+    let base_denom = BASE_DENOM.to_string();
 
     let instantiate_msg = InstantiateMsg {
         router: router.clone(),
