@@ -4,6 +4,7 @@
     "generate-types:dca": "ts-node ./src/scripts/generate-types.ts ../contracts/dca/schema/dca.json ./src/types/dca",
     "generate-types": "npm run generate-types:swap && npm run generate-types:dca",
     "localnet": "docker compose up -d",
+    "compile": "cd .. && ./scripts/optimizer.sh && cd tests",
     "test": "mocha --recursive '**/*.test.ts' --timeout 20000 --exit"
   },
   "devDependencies": {

@@ -1,8 +1,9 @@
-use crate::types::callback::Callback;
-use crate::{state::config::Config, types::pair::Pair};
+use crate::types::pair::Pair;
+use crate::{state::config::Config, types::callback::Callback};
 use base::pair::Pair as FinPair;
+use base::price_type::PriceType;
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Binary, Coin, Decimal256};
+use cosmwasm_std::{Addr, Binary, Coin, Decimal, Decimal256};
 
 #[cw_serde]
 pub struct MigrateMsg {
@@ -51,4 +52,15 @@ pub enum QueryMsg {
         swap_amount: Coin,
         target_denom: String,
     },
+    #[returns(Decimal)]
+    GetPrice {
+        swap_amount: Coin,
+        target_denom: String,
+        price_type: PriceType,
+    },
+}
+
+#[cw_serde]
+pub struct PricesResponse {
+    pub prices: Vec<Decimal>,
 }

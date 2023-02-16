@@ -61,8 +61,11 @@ export const createVault = async (
   return response['wasm']['vault_id'];
 };
 
-export const getBalances = async (cosmWasmClient: SigningCosmWasmClient, addresses: Addr[], include: string[] = []) => {
-  const denoms = ['udemo', 'ukuji', 'utest', ...include];
+export const getBalances = async (
+  cosmWasmClient: SigningCosmWasmClient,
+  addresses: Addr[],
+  denoms: string[] = ['udemo', 'ukuji', 'utest'],
+) => {
   return indexBy(
     prop('address'),
     await Promise.all(
@@ -128,4 +131,16 @@ export const provideAuthGrant = async (
   return await client.signAndBroadcast(granter, [message], 'auto', 'creating authz grant for staking to BOW');
 };
 
-export const isWithinFivePercent = (value: number, expected: number) => Math.abs(value - expected) <= expected * 0.05;
+export const sendTokens = async (
+  cosmWasmClient: SigningCosmWasmClient,
+  fromAddess: string,
+  toAddress: string,
+  tokens: Coin[],
+) => {
+  for (const token of tokens) {
+    await cosmWasmClient.sendTokens(fromAddess, toAddress, [token], 'auto');
+  }
+};
+
+export const isWithinPercent = (total: number, actual: number, expected: number, percent: number) =>
+  Math.abs(actual / total - expected / total) * 100 <= percent;

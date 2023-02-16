@@ -2,7 +2,7 @@ use crate::{
     msg::{FinBookResponse, FinConfigResponse, FinOrderResponseWithoutDenom},
     position_type::PositionType,
 };
-use base::pair::Pair;
+use base::{pair::Pair, price_type::PriceType};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, QuerierWrapper, StdError, StdResult, Uint128};
 use kujira::fin::QueryMsg as FinQueryMsg;
 
@@ -32,16 +32,53 @@ pub fn query_quote_price(querier: QuerierWrapper, pair_address: Addr) -> Decimal
     book_response.quote[0].quote_price.into()
 }
 
+pub fn query_belief_price(
+    querier: QuerierWrapper,
+    pair: Pair,
+    swap_denom: &str,
+) -> StdResult<Decimal> {
+    let position_type = match swap_denom == pair.quote_denom {
+        true => PositionType::Enter,
+        false => PositionType::Exit,
+    };
+
+    let book_response = querier.query_wasm_smart::<FinBookResponse>(
+        pair.address,
+        &FinQueryMsg::Book {
+            limit: Some(1),
+            offset: None,
+        },
+    )?;
+
+    let book_price = match position_type {
+        PositionType::Enter => book_response.base,
+        PositionType::Exit => book_response.quote,
+    }[0]
+    .quote_price;
+
+    Ok(match position_type {
+        PositionType::Enter => book_price,
+        PositionType::Exit => Decimal::one()
+            .checked_div(book_price)
+            .expect("should return a valid inverted price for fin sell"),
+    })
+}
+
 pub fn query_price(
     querier: QuerierWrapper,
     pair: Pair,
     swap_amount: &Coin,
-) -> StdResult<Decimal256> {
+    price_type: PriceType,
+) -> StdResult<Decimal> {
     if ![pair.base_denom.clone(), pair.quote_denom.clone()].contains(&swap_amount.denom) {
         return Err(StdError::generic_err(format!(
             "Provided swap denom {} not in pair {:?}",
             swap_amount, pair
         )));
+    }
+
+    if price_type == PriceType::Belief {
+        return query_belief_price(querier, pair, &swap_amount.denom);
     }
 
     let position_type = match swap_amount.denom == pair.quote_denom {
@@ -108,7 +145,7 @@ pub fn query_price(
         )));
     }
 
-    Ok(Decimal::from_ratio(swap_amount.amount, received).into())
+    Ok(Decimal::from_ratio(swap_amount.amount, received))
 }
 
 pub fn query_order_details(
