@@ -21,6 +21,7 @@ pub fn create_router(
             funds: vec![info.funds[0].clone()],
             msg: to_binary(&RouterInstantiateMsg {
                 token_name: token_name.clone(),
+                owner: info.sender.clone(),
             })?,
         }),
         AFTER_INSTANTIATE_ROUTER_REPLY_ID,
@@ -29,7 +30,7 @@ pub fn create_router(
     CACHE.save(
         deps.storage,
         &Cache {
-            owner: info.sender,
+            owner: Some(info.sender),
             router_address: None,
         },
     )?;

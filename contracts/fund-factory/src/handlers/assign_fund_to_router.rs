@@ -6,10 +6,7 @@ use cosmwasm_std::{
 };
 use fund_router::msg::ExecuteMsg as RouterExecuteMsg;
 
-pub fn assign_fund_to_router(
-    deps: DepsMut,
-    reply: Reply,
-) -> Result<Response, ContractError> {
+pub fn assign_fund_to_router(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
 
     let instantiate_fund_response = reply.result.unwrap();
@@ -23,7 +20,7 @@ pub fn assign_fund_to_router(
     let assign_fund_msg = SubMsg::new(CosmosMsg::Wasm(WasmExecuteMsg {
         contract_addr: cache
             .router_address
-            .expect("router address should be known")
+            .expect("router address is set in previous logic")
             .to_string(),
         funds: vec![],
         msg: to_binary(&RouterExecuteMsg::AssignFund {

@@ -20,6 +20,9 @@ pub enum ExecuteMsg {
         router_code_id: Option<u64>,
         fund_code_id: Option<u64>,
     },
+    MigrateToLatestCodeId {
+        router: Addr,
+    },
 }
 
 #[cw_serde]

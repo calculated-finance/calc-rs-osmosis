@@ -4,7 +4,10 @@ use crate::state::{update_config, Config};
 use base::ContractError;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Reply};
+
+use crate::handlers::get_config::get_config_handler;
+use crate::handlers::migrate::migrate;
 
 pub type ContractResult<T> = Result<T, ContractError>;
 
@@ -38,6 +41,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> ContractResult<Response> {
     match msg {
+        ExecuteMsg::Migrate { new_fund_address } => migrate(deps, env, info, new_fund_address),
         ExecuteMsg::Rebalance {
             allocations,
             slippage_tolerance,
@@ -66,6 +70,8 @@ pub fn reply(_deps: DepsMut, _env: Env, reply: Reply) -> ContractResult<Response
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
-    unimplemented!()
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::GetConfig {} => to_binary(&get_config_handler(deps)?),
+    }
 }

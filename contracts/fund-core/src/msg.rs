@@ -2,6 +2,8 @@ use crate::types::failure_behaviour::FailureBehaviour;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Decimal, Decimal256};
 
+use crate::state::Config;
+
 #[cw_serde]
 pub struct InstantiateMsg {
     pub router: Addr,
@@ -11,6 +13,7 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    Migrate { new_fund_address: Addr },
     Rebalance {
         allocations: Vec<(String, Decimal)>,
         slippage_tolerance: Option<Decimal256>,
@@ -20,4 +23,12 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 #[derive(QueryResponses)]
-pub enum QueryMsg {}
+pub enum QueryMsg {
+    #[returns(ConfigResponse)]
+    GetConfig {},
+}
+
+#[cw_serde]
+pub struct ConfigResponse {
+    pub config: Config,
+}
