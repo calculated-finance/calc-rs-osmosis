@@ -88,10 +88,6 @@ pub enum ExecuteMsg {
     RemoveCustomSwapFee {
         denom: String,
     },
-    SetFinLimitOrderTimestamp {},
-    MigratePriceTrigger {
-        vault_id: Uint128,
-    },
     UpdateSwapAdjustments {
         adjustments: Vec<(u8, Decimal)>,
     },

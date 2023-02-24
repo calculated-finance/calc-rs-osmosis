@@ -21,7 +21,6 @@ pub mod get_trigger_id_by_fin_limit_order_idx;
 pub mod get_vault;
 pub mod get_vaults;
 pub mod get_vaults_by_address;
-pub mod migrate_fin_limit_order;
 pub mod remove_custom_swap_fee;
 pub mod update_config;
 pub mod update_swap_adjustments_handler;

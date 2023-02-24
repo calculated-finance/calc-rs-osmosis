@@ -1,4 +1,4 @@
-use crate::constants::{ONE, ONE_THOUSAND, TEN};
+use crate::constants::{ONE, ONE_THOUSAND, TEN, TWO_MICRONS};
 use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
 use crate::state::config::FeeCollector;
 use crate::tests::helpers::{
@@ -73,13 +73,13 @@ fn with_price_trigger_should_update_address_balances() {
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + user_balance - swap_amount,
+                ONE_THOUSAND + user_balance - TWO_MICRONS,
             ),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (
                 &mock.fin_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + swap_amount,
+                ONE_THOUSAND + TWO_MICRONS,
             ),
             (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
@@ -146,7 +146,7 @@ fn with_price_trigger_should_create_vault() {
     assert_eq!(vault_response.vault.id, Uint128::one());
     assert_eq!(
         vault_response.vault.balance,
-        Coin::new(vault_deposit.into(), DENOM_UKUJI)
+        Coin::new((vault_deposit - TWO_MICRONS).into(), DENOM_UKUJI)
     );
     assert_eq!(vault_response.vault.swap_amount, swap_amount);
     assert_eq!(vault_response.vault.pair.address, mock.fin_contract_address);
@@ -412,7 +412,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
     assert_eq!(vault_response.vault.id, Uint128::new(2));
     assert_eq!(
         vault_response.vault.balance,
-        Coin::new(vault_deposit.into(), DENOM_UKUJI)
+        Coin::new((vault_deposit - TWO_MICRONS).into(), DENOM_UKUJI)
     );
     assert_eq!(vault_response.vault.swap_amount, swap_amount);
     assert_eq!(vault_response.vault.pair.address, mock.fin_contract_address);
@@ -442,14 +442,14 @@ fn with_price_trigger_twice_for_user_should_succeed() {
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit - swap_amount,
+                ONE_THOUSAND + vault_deposit - TWO_MICRONS,
             ),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
             (
                 &mock.fin_contract_address,
                 DENOM_UTEST,
-                ONE_THOUSAND + swap_amount,
+                ONE_THOUSAND + TWO_MICRONS,
             ),
         ],
     );
@@ -484,18 +484,18 @@ fn with_price_trigger_twice_for_user_should_succeed() {
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit + vault_deposit - swap_amount - swap_amount,
+                ONE_THOUSAND + vault_deposit + vault_deposit - TWO_MICRONS - TWO_MICRONS,
             ),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (
                 &mock.fin_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + swap_amount, // from newly created fin limit order (unfilled)
+                ONE_THOUSAND + TWO_MICRONS, // from newly created fin limit order (unfilled)
             ),
             (
                 &mock.fin_contract_address,
                 DENOM_UTEST,
-                ONE_THOUSAND + swap_amount, // from initial limit order (filled)
+                ONE_THOUSAND + TWO_MICRONS, // from initial limit order (filled)
             ),
         ],
     );
@@ -521,7 +521,7 @@ fn with_price_trigger_twice_for_user_should_succeed() {
         &mock.dca_contract_address,
         user_address,
         Uint128::new(1),
-        vault_deposit,
+        vault_deposit - TWO_MICRONS,
     );
 }
 

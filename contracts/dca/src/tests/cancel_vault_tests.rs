@@ -10,10 +10,6 @@ use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
-use super::mocks::{
-    new_fin_contract_partially_filled_order, new_fin_contract_unfilled_limit_order,
-};
-
 #[test]
 fn when_vault_has_unfilled_fin_limit_order_trigger_should_update_address_balances() {
     let user_address = Addr::unchecked(USER);
@@ -38,13 +34,13 @@ fn when_vault_has_unfilled_fin_limit_order_trigger_should_update_address_balance
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit - swap_amount,
+                ONE_THOUSAND + vault_deposit - TWO_MICRONS,
             ),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (
                 &mock.fin_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + swap_amount,
+                ONE_THOUSAND + TWO_MICRONS,
             ),
             (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
@@ -81,22 +77,11 @@ fn when_vault_has_new_unfilled_fin_limit_order_trigger_should_update_address_bal
     let vault_deposit = TEN;
     let swap_amount = ONE;
 
-    let mut mock = MockApp::new(new_fin_contract_unfilled_limit_order()).with_funds_for(
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
         &user_address,
         user_balance,
         DENOM_UKUJI,
     );
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::SetFinLimitOrderTimestamp {},
-            &[],
-        )
-        .unwrap();
-
-    mock.elapse_time(10);
 
     mock = mock.with_vault_with_unfilled_fin_limit_price_trigger(
         &user_address,
@@ -293,18 +278,18 @@ fn when_vault_has_partially_filled_price_trigger_should_update_address_balances(
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit - swap_amount,
+                ONE_THOUSAND + vault_deposit - TWO_MICRONS,
             ),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (
                 &mock.fin_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + swap_amount / Uint128::new(2),
+                ONE_THOUSAND + Uint128::one(),
             ),
             (
                 &mock.fin_contract_address,
                 DENOM_UTEST,
-                ONE_THOUSAND + swap_amount / Uint128::new(2),
+                ONE_THOUSAND + Uint128::one(),
             ),
         ],
     );
@@ -323,12 +308,8 @@ fn when_vault_has_partially_filled_price_trigger_should_update_address_balances(
     assert_address_balances(
         &mock,
         &[
-            (
-                &user_address,
-                DENOM_UKUJI,
-                vault_deposit - swap_amount + swap_amount / Uint128::new(2),
-            ),
-            (&user_address, DENOM_UTEST, swap_amount / Uint128::new(2)),
+            (&user_address, DENOM_UKUJI, vault_deposit - Uint128::one()),
+            (&user_address, DENOM_UTEST, Uint128::one()),
             (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
@@ -343,24 +324,13 @@ fn when_vault_has_partially_new_filled_price_trigger_should_update_address_balan
     let user_balance = TEN;
     let vault_deposit = TEN;
     let swap_amount = ONE;
-    let mut mock = MockApp::new(new_fin_contract_partially_filled_order()).with_funds_for(
+    let mut mock = MockApp::new(fin_contract_partially_filled_order()).with_funds_for(
         &user_address,
         user_balance,
         DENOM_UKUJI,
     );
 
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::SetFinLimitOrderTimestamp {},
-            &[],
-        )
-        .unwrap();
-
-    mock.elapse_time(10);
-
-    mock = mock.with_vault_with_new_partially_filled_fin_limit_price_trigger(
+    mock = mock.with_vault_with_partially_filled_fin_limit_price_trigger(
         &user_address,
         Coin::new(vault_deposit.into(), DENOM_UKUJI),
         swap_amount,
