@@ -136,7 +136,8 @@ fn with_one_vault_should_return_proper_vault_data() {
                     .time
                     .plus_seconds(2)
                     .minus_nanos(mock.app.block_info().time.subsec_nanos())
-            })
+            }),
+            dca_plus_config: None,
         }
     );
 }

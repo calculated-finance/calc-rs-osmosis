@@ -1,3 +1,4 @@
+use super::dca_plus_config::DCAPlusConfig;
 use base::{
     pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
@@ -27,6 +28,7 @@ pub struct Vault {
     pub swapped_amount: Coin,
     pub received_amount: Coin,
     pub trigger: Option<TriggerConfiguration>,
+    pub dca_plus_config: Option<DCAPlusConfig>,
 }
 
 impl Vault {
@@ -185,6 +187,7 @@ mod has_sufficient_funds_tests {
             swapped_amount: coin(0, "quote"),
             received_amount: coin(0, "base"),
             trigger: None,
+            dca_plus_config: None,
         }
     }
 }
@@ -299,6 +302,7 @@ mod price_threshold_exceeded_tests {
                 },
             ),
             trigger: None,
+            dca_plus_config: None,
         }
     }
 }
@@ -386,46 +390,6 @@ mod get_target_price_tests {
         );
     }
 
-    // #[test]
-    // fn for_fin_buy_with_negative_decimal_delta_should_truncate() {
-    //     let position_type = PositionType::Enter;
-    //     let swap_amount = Uint128::new(1);
-    //     let target_receive_amount = Uint128::new(1000);
-    //     let decimal_delta = -6;
-    //     let precision = Precision::DecimalPlaces(2);
-    //     let vault = vault_with(swap_amount, position_type);
-    //     assert_eq!(
-    //         Decimal256::from_ratio(swap_amount, target_receive_amount).to_string(),
-    //         "0.001"
-    //     );
-    //     assert_eq!(
-    //         vault
-    //             .get_target_price(target_receive_amount, decimal_delta, precision)
-    //             .to_string(),
-    //         "0"
-    //     );
-    // }
-
-    // #[test]
-    // fn for_fin_sell_with_negative_decimal_delta_should_truncate() {
-    //     let position_type = PositionType::Exit;
-    //     let swap_amount = Uint128::new(1);
-    //     let target_receive_amount = Uint128::new(1000);
-    //     let decimal_delta = -6;
-    //     let precision = Precision::DecimalPlaces(2);
-    //     let vault = vault_with(swap_amount, position_type);
-    //     assert_eq!(
-    //         Decimal256::from_ratio(swap_amount, target_receive_amount).to_string(),
-    //         "0.001"
-    //     );
-    //     assert_eq!(
-    //         vault
-    //             .get_target_price(target_receive_amount, decimal_delta, precision)
-    //             .to_string(),
-    //         "0"
-    //     );
-    // }
-
     fn vault_with(swap_amount: Uint128, position_type: PositionType) -> Vault {
         Vault {
             id: Uint128::new(1),
@@ -466,6 +430,7 @@ mod get_target_price_tests {
                 },
             ),
             trigger: None,
+            dca_plus_config: None,
         }
     }
 }

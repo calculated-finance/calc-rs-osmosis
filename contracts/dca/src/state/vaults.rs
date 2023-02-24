@@ -1,5 +1,5 @@
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
-use crate::types::{price_delta_limit::PriceDeltaLimit, vault::Vault, vault_builder::VaultBuilder};
+use crate::types::{dca_plus_config::DCAPlusConfig, vault::Vault, vault_builder::VaultBuilder};
 use base::{
     pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
@@ -30,7 +30,6 @@ struct VaultDTO {
     pub started_at: Option<Timestamp>,
     pub swapped_amount: Coin,
     pub received_amount: Coin,
-    pub price_delta_limits: Vec<PriceDeltaLimit>,
 }
 
 impl From<Vault> for VaultDTO {
@@ -51,7 +50,6 @@ impl From<Vault> for VaultDTO {
             started_at: vault.started_at,
             swapped_amount: vault.swapped_amount,
             received_amount: vault.received_amount,
-            price_delta_limits: vec![],
         }
     }
 }
@@ -61,6 +59,7 @@ fn vault_from(
     pair: Pair,
     trigger: Option<TriggerConfiguration>,
     destinations: &mut Vec<Destination>,
+    dca_plus_config: Option<DCAPlusConfig>,
 ) -> Vault {
     destinations.append(
         &mut data
@@ -87,6 +86,7 @@ fn vault_from(
         swapped_amount: data.swapped_amount.clone(),
         received_amount: data.received_amount.clone(),
         trigger,
+        dca_plus_config,
     }
 }
 
@@ -98,6 +98,14 @@ fn get_destinations(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vec<Des
         Some(destinations) => Ok(from_binary(&destinations)?),
         None => Ok(vec![]),
     }
+}
+
+const DCA_PLUS_CONFIGS: Map<u128, DCAPlusConfig> = Map::new("dca_plus_configs_v20");
+
+fn get_dca_plus_config(store: &dyn Storage, vault_id: Uint128) -> Option<DCAPlusConfig> {
+    DCA_PLUS_CONFIGS
+        .may_load(store, vault_id.into())
+        .unwrap_or(None)
 }
 
 struct VaultIndexes<'a> {
@@ -130,6 +138,9 @@ pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdRe
         vault.id.into(),
         &to_binary(&vault.destinations).expect("serialised destinations"),
     )?;
+    if let Some(dca_plus_config) = vault.dca_plus_config.clone() {
+        DCA_PLUS_CONFIGS.save(store, vault.id.into(), &dca_plus_config)?;
+    }
     vault_store().save(store, vault.id.into(), &vault.clone().into())?;
     Ok(vault)
 }
@@ -141,6 +152,7 @@ pub fn get_vault(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vault> {
         PAIRS.load(store, data.pair_address.clone())?,
         get_trigger(store, vault_id)?.map(|t| t.configuration),
         &mut get_destinations(store, vault_id)?,
+        get_dca_plus_config(store, vault_id),
     ))
 }
 
@@ -179,6 +191,7 @@ pub fn get_vaults_by_address(
                     .expect(format!("a trigger for vault id {}", vault_data.id).as_str())
                     .map(|trigger| trigger.configuration),
                 &mut get_destinations(store, vault_data.id).expect("vault destinations"),
+                get_dca_plus_config(store, vault_data.id),
             )
         })
         .collect::<Vec<Vault>>())
@@ -209,6 +222,7 @@ pub fn get_vaults(
                     .expect(format!("a trigger for vault id {}", vault_data.id).as_str())
                     .map(|trigger| trigger.configuration),
                 &mut get_destinations(store, vault_data.id).expect("vault destinations"),
+                get_dca_plus_config(store, vault_data.id),
             )
         })
         .collect::<Vec<Vault>>())
@@ -224,6 +238,7 @@ where
         PAIRS.load(store, old_data.pair_address.clone())?,
         None,
         &mut get_destinations(store, old_data.id)?,
+        DCA_PLUS_CONFIGS.may_load(store, vault_id.into())?,
     );
     let new_vault = update_fn(Some(old_vault.clone()))?;
     DESTINATIONS.save(
@@ -231,6 +246,9 @@ where
         new_vault.id.into(),
         &to_binary(&new_vault.destinations).expect("serialised destinations"),
     )?;
+    if let Some(dca_plus_config) = new_vault.dca_plus_config.clone() {
+        DCA_PLUS_CONFIGS.save(store, new_vault.id.into(), &dca_plus_config)?;
+    }
     vault_store().replace(
         store,
         vault_id.into(),
@@ -281,6 +299,7 @@ mod destination_store_tests {
             None,
             None,
             TimeInterval::Daily,
+            None,
             None,
         )
     }

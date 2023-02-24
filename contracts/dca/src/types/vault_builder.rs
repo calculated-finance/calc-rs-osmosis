@@ -1,4 +1,4 @@
-use super::vault::Vault;
+use super::{dca_plus_config::DCAPlusConfig, vault::Vault};
 use base::{
     pair::Pair,
     triggers::trigger::TimeInterval,
@@ -21,6 +21,7 @@ pub struct VaultBuilder {
     pub minimum_receive_amount: Option<Uint128>,
     pub time_interval: TimeInterval,
     pub started_at: Option<Timestamp>,
+    pub dca_plus_config: Option<DCAPlusConfig>,
 }
 
 impl VaultBuilder {
@@ -38,6 +39,7 @@ impl VaultBuilder {
         minimum_receive_amount: Option<Uint128>,
         time_interval: TimeInterval,
         started_at: Option<Timestamp>,
+        dca_plus_config: Option<DCAPlusConfig>,
     ) -> VaultBuilder {
         VaultBuilder {
             created_at,
@@ -53,6 +55,7 @@ impl VaultBuilder {
             minimum_receive_amount,
             time_interval,
             started_at,
+            dca_plus_config,
         }
     }
 
@@ -80,6 +83,7 @@ impl VaultBuilder {
                 },
             ),
             trigger: None,
+            dca_plus_config: self.dca_plus_config,
         }
     }
 }

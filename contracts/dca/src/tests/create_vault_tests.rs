@@ -719,7 +719,8 @@ fn with_immediate_time_trigger_should_create_active_vault() {
                     .time
                     .plus_seconds(60 * 60)
                     .minus_nanos(mock.app.block_info().time.subsec_nanos()),
-            })
+            }),
+            dca_plus_config: None,
         }
     );
 }
@@ -979,7 +980,8 @@ fn with_time_trigger_should_create_vault() {
             received_amount: Coin::new(0, DENOM_UTEST.to_string()),
             trigger: Some(TriggerConfiguration::Time {
                 target_time: target_start_time.minus_nanos(target_start_time.subsec_nanos()),
-            })
+            }),
+            dca_plus_config: None,
         }
     );
 }
@@ -1225,6 +1227,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             trigger: Some(TriggerConfiguration::Time {
                 target_time: target_start_time.minus_nanos(target_start_time.subsec_nanos()),
             }),
+            dca_plus_config: None,
         }
     );
 }
@@ -1354,6 +1357,7 @@ fn with_multiple_destinations_should_succeed() {
                     .plus_seconds(10)
                     .minus_nanos(mock.app.block_info().time.subsec_nanos())
             }),
+            dca_plus_config: None,
         }
     );
 }
@@ -1904,7 +1908,8 @@ fn with_insufficient_funds_should_create_inactive_vault() {
             started_at: None,
             swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
             received_amount: Coin::new(0, DENOM_UTEST.to_string()),
-            trigger: None
+            trigger: None,
+            dca_plus_config: None,
         }
     );
 }

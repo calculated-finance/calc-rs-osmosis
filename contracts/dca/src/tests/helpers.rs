@@ -115,6 +115,7 @@ pub fn setup_vault(deps: DepsMut, env: Env, balance: Coin, swap_amount: Uint128)
             balance,
             time_interval: TimeInterval::Daily,
             started_at: None,
+            dca_plus_config: None,
         },
     )
     .unwrap();

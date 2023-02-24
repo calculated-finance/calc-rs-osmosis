@@ -104,6 +104,7 @@ pub fn create_vault(
         balance: info.funds[0].clone(),
         time_interval: time_interval.clone(),
         started_at: None,
+        dca_plus_config: None,
     };
 
     let vault = save_vault(deps.storage, vault_builder)?;
