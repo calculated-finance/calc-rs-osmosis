@@ -2112,6 +2112,7 @@ fn when_contract_is_paused_should_fail() {
                 staking_router_address: None,
                 page_limit: None,
                 paused: Some(true),
+                dca_plus_escrow_level: None,
             },
             &[],
         )

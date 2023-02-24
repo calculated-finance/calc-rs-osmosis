@@ -34,6 +34,7 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -55,6 +56,7 @@ pub fn instantiate_contract_with_community_pool_fee_collector(
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -74,6 +76,7 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();

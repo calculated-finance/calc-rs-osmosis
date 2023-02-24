@@ -19,6 +19,7 @@ pub struct InstantiateMsg {
     pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
+    pub dca_plus_escrow_level: Decimal,
 }
 
 #[cw_serde]
@@ -30,6 +31,7 @@ pub struct MigrateMsg {
     pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
+    pub dca_plus_escrow_level: Decimal,
 }
 
 #[cw_serde]
@@ -72,6 +74,7 @@ pub enum ExecuteMsg {
         staking_router_address: Option<Addr>,
         page_limit: Option<u16>,
         paused: Option<bool>,
+        dca_plus_escrow_level: Option<Decimal>,
     },
     UpdateVault {
         address: Addr,

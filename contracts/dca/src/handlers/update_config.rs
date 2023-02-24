@@ -2,6 +2,7 @@ use crate::{
     error::ContractError,
     state::config::{get_config, update_config, Config, FeeCollector},
     validation_helpers::{
+        assert_dca_plus_escrow_level_is_less_than_100_percent,
         assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
         assert_sender_is_admin,
     },
@@ -17,6 +18,7 @@ pub fn update_config_handler(
     staking_router_address: Option<Addr>,
     page_limit: Option<u16>,
     paused: Option<bool>,
+    dca_plus_escrow_level: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
     let existing_config = get_config(deps.storage)?;
@@ -34,10 +36,13 @@ pub fn update_config_handler(
         )?,
         page_limit: page_limit.unwrap_or(existing_config.page_limit),
         paused: paused.unwrap_or(existing_config.paused),
+        dca_plus_escrow_level: dca_plus_escrow_level
+            .unwrap_or(existing_config.dca_plus_escrow_level),
     };
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &config.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&config.fee_collectors)?;
+    assert_dca_plus_escrow_level_is_less_than_100_percent(config.dca_plus_escrow_level)?;
 
     let config = update_config(deps.storage, config)?;
 

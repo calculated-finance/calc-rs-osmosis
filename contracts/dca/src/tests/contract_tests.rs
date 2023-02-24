@@ -34,6 +34,7 @@ fn instantiation_with_valid_admin_address_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap();
@@ -64,6 +65,7 @@ fn instantiation_with_invalid_admin_address_should_fail() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -91,6 +93,7 @@ fn instantiation_with_invalid_fee_collector_address_should_fail() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -115,6 +118,7 @@ fn instantiation_with_fee_collector_amounts_not_equal_to_100_percent_should_fail
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -142,6 +146,7 @@ fn create_pair_with_valid_address_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -187,7 +192,9 @@ fn create_pair_that_already_exists_should_fail() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
+
     let _instantiate_result = instantiate(
         deps.as_mut(),
         env.clone(),
@@ -247,6 +254,7 @@ fn create_pair_with_invalid_address_should_fail() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -287,6 +295,7 @@ fn create_pair_with_unauthorised_sender_should_fail() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -331,6 +340,7 @@ fn delete_pair_with_valid_address_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -386,6 +396,7 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -437,6 +448,7 @@ fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
     let _instantiate_result = instantiate(
         deps.as_mut(),
@@ -469,6 +481,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let _instantiate_result = instantiate(
@@ -554,6 +567,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let _instantiate_result = instantiate(
@@ -634,6 +648,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let _instantiate_result = instantiate(
@@ -747,6 +762,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let _instantiate_result = instantiate(
@@ -832,6 +848,7 @@ fn get_all_events_by_vault_id_for_non_existent_vault_should_should_succeed() {
         staking_router_address: Addr::unchecked(VALID_ADDRESS_ONE),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let _instantiate_result = instantiate(

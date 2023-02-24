@@ -32,6 +32,7 @@ use crate::msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMs
 use crate::state::config::{get_config, update_config, Config};
 use crate::state::fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP;
 use crate::validation_helpers::{
+    assert_dca_plus_escrow_level_is_less_than_100_percent,
     assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
     assert_sender_is_admin,
 };
@@ -69,6 +70,7 @@ pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, Con
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
+    assert_dca_plus_escrow_level_is_less_than_100_percent(msg.dca_plus_escrow_level)?;
 
     update_config(
         deps.storage,
@@ -80,6 +82,7 @@ pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, Con
             staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
             paused: msg.paused,
+            dca_plus_escrow_level: msg.dca_plus_escrow_level,
         },
     )?;
 
@@ -101,6 +104,7 @@ pub fn instantiate(
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
+    assert_dca_plus_escrow_level_is_less_than_100_percent(msg.dca_plus_escrow_level)?;
 
     update_config(
         deps.storage,
@@ -112,6 +116,7 @@ pub fn instantiate(
             staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
             paused: msg.paused,
+            dca_plus_escrow_level: msg.dca_plus_escrow_level,
         },
     )?;
 
@@ -174,6 +179,7 @@ pub fn execute(
             staking_router_address,
             page_limit,
             paused,
+            dca_plus_escrow_level,
         } => update_config_handler(
             deps,
             info,
@@ -183,6 +189,7 @@ pub fn execute(
             staking_router_address,
             page_limit,
             paused,
+            dca_plus_escrow_level,
         ),
         ExecuteMsg::UpdateVault {
             address,
