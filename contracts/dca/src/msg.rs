@@ -92,6 +92,9 @@ pub enum ExecuteMsg {
     MigratePriceTrigger {
         vault_id: Uint128,
     },
+    UpdateSwapAdjustments {
+        adjustments: Vec<(u8, Decimal)>,
+    },
 }
 
 #[cw_serde]
