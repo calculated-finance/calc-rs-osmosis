@@ -3,6 +3,7 @@ use crate::contract::{
     AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID,
 };
 use crate::error::ContractError;
+use crate::helpers::vault_helpers::get_swap_amount;
 use crate::state::cache::{
     Cache, LimitOrderCache, SwapCache, CACHE, LIMIT_ORDER_CACHE, SWAP_CACHE,
 };
@@ -14,9 +15,9 @@ use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::VaultStatus;
+use cosmwasm_std::ReplyOn;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
-use cosmwasm_std::{ReplyOn, StdError};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 use fin_helpers::position_type::PositionType;
 use fin_helpers::queries::{query_base_price, query_order_details, query_quote_price};
@@ -38,26 +39,15 @@ pub fn execute_trigger(
     vault_id: Uint128,
     response: Response,
 ) -> Result<Response, ContractError> {
-    let vault = get_vault(deps.storage, vault_id.into())?;
-
-    let position_type = vault.get_position_type();
+    let mut vault = get_vault(deps.storage, vault_id.into())?;
 
     if vault.is_scheduled() {
-        update_vault(deps.storage, vault.id, |stored_value| match stored_value {
-            Some(mut existing_vault) => {
-                existing_vault.status = VaultStatus::Active;
-                existing_vault.started_at = Some(env.block.time);
-                Ok(existing_vault)
-            }
-            None => Err(StdError::NotFound {
-                kind: format!(
-                    "vault for address: {} with id: {}",
-                    vault.owner.clone(),
-                    vault.id
-                ),
-            }),
-        })?;
+        vault.status = VaultStatus::Active;
+        vault.started_at = Some(env.block.time);
+        update_vault(deps.storage, &vault)?;
     }
+
+    let position_type = vault.get_position_type();
 
     let fin_price = match position_type {
         PositionType::Enter => query_base_price(deps.querier, vault.pair.address.clone()),
@@ -150,7 +140,7 @@ pub fn execute_trigger(
             return Ok(response.add_submessage(create_fin_swap_message(
                 deps.querier,
                 vault.pair.clone(),
-                vault.get_swap_amount(),
+                get_swap_amount(vault.clone(), &deps.as_ref())?,
                 vault.slippage_tolerance,
                 Some(AFTER_FIN_SWAP_REPLY_ID),
                 Some(ReplyOn::Always),

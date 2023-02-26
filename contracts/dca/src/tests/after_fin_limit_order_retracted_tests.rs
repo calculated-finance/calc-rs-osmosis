@@ -7,6 +7,7 @@ use crate::{
     handlers::{
         after_fin_limit_order_retracted::after_fin_limit_order_retracted, get_vault::get_vault,
     },
+    helpers::vault_helpers::get_swap_amount,
     state::{
         cache::{LimitOrderCache, LIMIT_ORDER_CACHE},
         triggers::get_trigger,
@@ -148,7 +149,9 @@ fn with_unfilled_limit_order_should_set_vault_balance_to_zero() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let received_amount = vault.get_swap_amount().amount;
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
 
     deps.querier.update_balance(
         "cosmos2contract",
@@ -158,20 +161,30 @@ fn with_unfilled_limit_order_should_set_vault_balance_to_zero() {
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )
@@ -258,7 +271,9 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let received_amount = vault.get_swap_amount().amount;
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
 
     deps.querier.update_balance(
         "cosmos2contract",
@@ -268,20 +283,30 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )
@@ -313,7 +338,9 @@ fn with_unfilled_limit_order_should_set_vault_status_to_cancelled() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let received_amount = vault.get_swap_amount().amount;
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
 
     deps.querier.update_balance(
         "cosmos2contract",
@@ -323,20 +350,30 @@ fn with_unfilled_limit_order_should_set_vault_status_to_cancelled() {
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )
@@ -423,7 +460,9 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled(
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let received_amount = vault.get_swap_amount().amount;
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
 
     deps.querier.update_balance(
         "cosmos2contract",
@@ -433,20 +472,30 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled(
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )
@@ -478,7 +527,9 @@ fn with_unfilled_limit_order_should_delete_trigger() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let received_amount = vault.get_swap_amount().amount;
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
 
     deps.querier.update_balance(
         "cosmos2contract",
@@ -488,20 +539,30 @@ fn with_unfilled_limit_order_should_delete_trigger() {
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )
@@ -588,7 +649,9 @@ fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let received_amount = vault.get_swap_amount().amount;
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
 
     deps.querier.update_balance(
         "cosmos2contract",
@@ -598,20 +661,30 @@ fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )
@@ -655,6 +728,19 @@ fn with_partially_filled_limit_order_should_return_vault_balance_plus_retracted_
                 vault.get_receive_denom(),
             ),
         ],
+    );
+
+    let _original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let _swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
     );
 
     LIMIT_ORDER_CACHE
@@ -777,6 +863,19 @@ fn with_partially_filled_limit_order_and_low_funds_should_return_vault_balance_p
         ],
     );
 
+    let _original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let _swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
@@ -824,13 +923,21 @@ fn with_partially_filled_limit_order_should_withdraw_remainder() {
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
 
-    let received_amount = vault.get_swap_amount().amount / Uint128::new(2);
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount
+        / Uint128::new(2);
 
     deps.querier.update_balance(
         "cosmos2contract",
         vec![
             Coin::new(
-                (vault.balance.amount - vault.get_swap_amount().amount + received_amount).into(),
+                (vault.balance.amount
+                    - get_swap_amount(vault.clone(), &deps.as_ref())
+                        .unwrap()
+                        .amount
+                    + received_amount)
+                    .into(),
                 vault.get_swap_denom(),
             ),
             Coin::new(
@@ -840,20 +947,30 @@ fn with_partially_filled_limit_order_should_withdraw_remainder() {
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: received_amount,
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )
@@ -951,13 +1068,19 @@ fn with_filled_limit_order_should_withdraw_remainder() {
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
 
-    let received_amount = vault.get_swap_amount().amount;
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
 
     deps.querier.update_balance(
         "cosmos2contract",
         vec![
             Coin::new(
-                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                (vault.balance.amount
+                    - get_swap_amount(vault.clone(), &deps.as_ref())
+                        .unwrap()
+                        .amount)
+                    .into(),
                 vault.get_swap_denom(),
             ),
             Coin::new(
@@ -967,20 +1090,30 @@ fn with_filled_limit_order_should_withdraw_remainder() {
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )
@@ -1029,6 +1162,19 @@ fn with_filled_limit_order_and_low_funds_should_return_vault_balance() {
                 vault.get_receive_denom(),
             ),
         ],
+    );
+
+    let _original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let _swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
     );
 
     LIMIT_ORDER_CACHE
@@ -1083,13 +1229,19 @@ fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
 
-    let received_amount = vault.get_swap_amount().amount;
+    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
 
     deps.querier.update_balance(
         "cosmos2contract",
         vec![
             Coin::new(
-                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                (vault.balance.amount
+                    - get_swap_amount(vault.clone(), &deps.as_ref())
+                        .unwrap()
+                        .amount)
+                    .into(),
                 vault.get_swap_denom(),
             ),
             Coin::new(
@@ -1099,20 +1251,30 @@ fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
         ],
     );
 
+    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+        .unwrap()
+        .amount;
+
+    let swap_denom_balance = Coin::new(
+        (vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount)
+            .into(),
+        vault.get_swap_denom(),
+    );
+
     LIMIT_ORDER_CACHE
         .save(
             deps.as_mut().storage,
             &LimitOrderCache {
                 order_idx: Uint128::new(18),
                 offer_amount: Uint128::zero(),
-                original_offer_amount: vault.get_swap_amount().amount,
+                original_offer_amount,
                 filled: received_amount,
                 quote_price: Decimal256::one(),
                 created_at: env.block.time,
-                swap_denom_balance: Coin::new(
-                    (vault.balance.amount - vault.get_swap_amount().amount).into(),
-                    vault.get_swap_denom(),
-                ),
+                swap_denom_balance,
                 receive_denom_balance: vault.received_amount.clone(),
             },
         )

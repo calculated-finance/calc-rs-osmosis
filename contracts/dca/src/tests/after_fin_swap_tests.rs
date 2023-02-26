@@ -6,8 +6,8 @@ use base::{
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult,
-    Timestamp, Uint128,
+    BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp,
+    Uint128,
 };
 use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
 use std::{cmp::min, str::FromStr};
@@ -18,6 +18,7 @@ use crate::{
     handlers::{
         after_fin_swap::after_fin_swap, get_events_by_resource_id::get_events_by_resource_id,
     },
+    helpers::vault_helpers::get_swap_amount,
     state::{
         cache::{SwapCache, SWAP_CACHE},
         config::{create_custom_fee, get_config, FeeCollector},
@@ -314,7 +315,10 @@ fn with_succcesful_swap_adjusts_vault_balance() {
 
     assert_eq!(
         updated_vault.balance.amount,
-        vault.balance.amount - vault.get_swap_amount().amount
+        vault.balance.amount
+            - get_swap_amount(vault.clone(), &deps.as_ref())
+                .unwrap()
+                .amount
     );
 }
 
@@ -341,7 +345,11 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
         "cosmos2contract",
         vec![
             Coin::new(
-                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                (vault.balance.amount
+                    - get_swap_amount(vault.clone(), &deps.as_ref())
+                        .unwrap()
+                        .amount)
+                    .into(),
                 vault.get_swap_denom(),
             ),
             Coin::new(receive_amount.into(), vault.get_receive_denom()),
@@ -365,7 +373,9 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
 
     assert_eq!(
         updated_vault.swapped_amount.amount,
-        vault.get_swap_amount().amount
+        get_swap_amount(vault.clone(), &deps.as_ref())
+            .unwrap()
+            .amount
     );
 }
 

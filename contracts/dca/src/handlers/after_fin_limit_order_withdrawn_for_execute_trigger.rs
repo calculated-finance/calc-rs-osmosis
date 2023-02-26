@@ -1,5 +1,6 @@
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::error::ContractError;
+use crate::helpers::vault_helpers::get_swap_amount;
 use crate::state::cache::{SwapCache, CACHE, LIMIT_ORDER_CACHE, SWAP_CACHE};
 use crate::state::vaults::get_vault;
 use cosmwasm_std::{BankMsg, CosmosMsg, Env, ReplyOn};
@@ -61,7 +62,7 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 .add_submessage(create_fin_swap_message(
                     deps.querier,
                     vault.pair.clone(),
-                    vault.get_swap_amount(),
+                    get_swap_amount(vault.clone(), &deps.as_ref())?,
                     vault.slippage_tolerance,
                     Some(AFTER_FIN_SWAP_REPLY_ID),
                     Some(ReplyOn::Always),

@@ -50,16 +50,6 @@ impl Vault {
         self.pair.quote_denom.clone()
     }
 
-    pub fn get_swap_amount(&self) -> Coin {
-        Coin {
-            denom: self.get_swap_denom(),
-            amount: match self.low_funds() {
-                true => self.balance.amount,
-                false => self.swap_amount,
-            },
-        }
-    }
-
     pub fn get_target_price(
         &self,
         target_receive_amount: Uint128,
@@ -115,10 +105,6 @@ impl Vault {
         false
     }
 
-    pub fn has_sufficient_funds(&self) -> bool {
-        self.get_swap_amount().amount > Uint128::from(50000u128)
-    }
-
     pub fn low_funds(&self) -> bool {
         self.balance.amount < self.swap_amount
     }
@@ -138,57 +124,67 @@ impl Vault {
 
 #[cfg(test)]
 mod has_sufficient_funds_tests {
+    use crate::{
+        helpers::vault_helpers::has_sufficient_funds, state::vaults::save_vault,
+        types::vault_builder::VaultBuilder,
+    };
+
     use super::*;
-    use cosmwasm_std::coin;
+    use cosmwasm_std::{coin, testing::mock_dependencies};
 
     #[test]
     fn should_return_false_when_vault_has_insufficient_swap_amount() {
-        let vault = vault_with(100000, Uint128::new(50000));
-        assert!(!vault.has_sufficient_funds());
+        let mut deps = mock_dependencies();
+        let vault_builder = vault_with(100000, Uint128::new(50000));
+        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
+        assert!(!has_sufficient_funds(vault, &deps.as_ref()).unwrap());
     }
 
     #[test]
     fn should_return_false_when_vault_has_insufficient_balance() {
-        let vault = vault_with(50000, Uint128::new(50001));
-        assert!(!vault.has_sufficient_funds());
+        let mut deps = mock_dependencies();
+        let vault_builder = vault_with(50000, Uint128::new(50001));
+        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
+        assert!(!has_sufficient_funds(vault, &deps.as_ref()).unwrap());
     }
 
     #[test]
     fn should_return_true_when_vault_has_sufficient_swap_amount() {
-        let vault = vault_with(100000, Uint128::new(50001));
-        assert!(vault.has_sufficient_funds());
+        let mut deps = mock_dependencies();
+        let vault_builder = vault_with(100000, Uint128::new(50001));
+        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
+        assert!(has_sufficient_funds(vault, &deps.as_ref()).unwrap());
     }
 
     #[test]
     fn should_return_true_when_vault_has_sufficient_balance() {
-        let vault = vault_with(50001, Uint128::new(50002));
-        assert!(vault.has_sufficient_funds());
+        let mut deps = mock_dependencies();
+        let vault_builder = vault_with(50001, Uint128::new(50002));
+        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
+        assert!(has_sufficient_funds(vault, &deps.as_ref()).unwrap());
     }
 
-    fn vault_with(balance: u128, swap_amount: Uint128) -> Vault {
-        Vault {
-            id: Uint128::new(1),
-            created_at: Timestamp::from_seconds(0),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: coin(balance, "quote"),
-            pair: Pair {
+    fn vault_with(balance: u128, swap_amount: Uint128) -> VaultBuilder {
+        VaultBuilder::new(
+            Timestamp::from_seconds(0),
+            Addr::unchecked("owner"),
+            None,
+            vec![],
+            VaultStatus::Active,
+            coin(balance, "quote"),
+            Pair {
                 address: Addr::unchecked("pair"),
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
             swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: coin(0, "quote"),
-            received_amount: coin(0, "base"),
-            trigger: None,
-            dca_plus_config: None,
-        }
+            None,
+            None,
+            None,
+            TimeInterval::Daily,
+            None,
+            None,
+        )
     }
 }
 

@@ -228,34 +228,16 @@ pub fn get_vaults(
         .collect::<Vec<Vault>>())
 }
 
-pub fn update_vault<T>(store: &mut dyn Storage, vault_id: Uint128, update_fn: T) -> StdResult<Vault>
-where
-    T: FnOnce(Option<Vault>) -> StdResult<Vault>,
-{
-    let old_data = vault_store().load(store, vault_id.into())?;
-    let old_vault = vault_from(
-        &old_data,
-        PAIRS.load(store, old_data.pair_address.clone())?,
-        None,
-        &mut get_destinations(store, old_data.id)?,
-        DCA_PLUS_CONFIGS.may_load(store, vault_id.into())?,
-    );
-    let new_vault = update_fn(Some(old_vault.clone()))?;
+pub fn update_vault(store: &mut dyn Storage, vault: &Vault) -> StdResult<()> {
     DESTINATIONS.save(
         store,
-        new_vault.id.into(),
-        &to_binary(&new_vault.destinations).expect("serialised destinations"),
+        vault.id.into(),
+        &to_binary(&vault.destinations).expect("serialised destinations"),
     )?;
-    if let Some(dca_plus_config) = new_vault.dca_plus_config.clone() {
-        DCA_PLUS_CONFIGS.save(store, new_vault.id.into(), &dca_plus_config)?;
+    if let Some(dca_plus_config) = &vault.dca_plus_config {
+        DCA_PLUS_CONFIGS.save(store, vault.id.into(), dca_plus_config)?;
     }
-    vault_store().replace(
-        store,
-        vault_id.into(),
-        Some(&new_vault.clone().into()),
-        Some(&old_data),
-    )?;
-    Ok(new_vault)
+    vault_store().save(store, vault.id.into(), &vault.clone().into())
 }
 
 pub fn clear_vaults(store: &mut dyn Storage) {
@@ -360,16 +342,10 @@ mod destination_store_tests {
             .unwrap();
 
         let vault_builder = create_vault_builder(env);
-        let vault = save_vault(store, vault_builder).unwrap();
+        let mut vault = save_vault(store, vault_builder).unwrap();
 
-        update_vault(store, vault.id, |stored_vault| match stored_vault {
-            Some(mut vault) => {
-                vault.status = VaultStatus::Inactive;
-                Ok(vault)
-            }
-            None => panic!("Vault not found"),
-        })
-        .unwrap();
+        vault.status = VaultStatus::Inactive;
+        update_vault(store, &vault).unwrap();
 
         let fetched_vault = get_vault(store, vault.id).unwrap();
         assert_eq!(fetched_vault.destinations, vault.destinations);
@@ -428,7 +404,7 @@ mod destination_store_tests {
             .save(store, pair.address.clone(), &pair.clone())
             .unwrap();
 
-        let vault = create_vault_builder(env).build(Uint128::one());
+        let mut vault = create_vault_builder(env).build(Uint128::one());
 
         let mut vault_dto: VaultDTO = vault.clone().into();
         vault_dto.destinations = vault
@@ -443,14 +419,8 @@ mod destination_store_tests {
             .save(store, vault.id.into(), &vault_dto)
             .unwrap();
 
-        update_vault(store, vault.id, |stored_vault| match stored_vault {
-            Some(mut vault) => {
-                vault.status = VaultStatus::Inactive;
-                Ok(vault)
-            }
-            None => panic!("Vault not found"),
-        })
-        .unwrap();
+        vault.status = VaultStatus::Inactive;
+        update_vault(store, &vault).unwrap();
 
         let destinations: Vec<Destination> =
             from_binary(&DESTINATIONS.load(store, vault.id.into()).unwrap()).unwrap();
@@ -474,7 +444,7 @@ mod destination_store_tests {
             .save(store, pair.address.clone(), &pair.clone())
             .unwrap();
 
-        let vault = create_vault_builder(env).build(Uint128::one());
+        let mut vault = create_vault_builder(env).build(Uint128::one());
 
         let mut vault_dto: VaultDTO = vault.clone().into();
         vault_dto.destinations = vault
@@ -489,14 +459,8 @@ mod destination_store_tests {
             .save(store, vault.id.into(), &vault_dto)
             .unwrap();
 
-        update_vault(store, vault.id, |stored_vault| match stored_vault {
-            Some(mut vault) => {
-                vault.status = VaultStatus::Inactive;
-                Ok(vault)
-            }
-            None => panic!("Vault not found"),
-        })
-        .unwrap();
+        vault.status = VaultStatus::Inactive;
+        update_vault(store, &vault).unwrap();
 
         let fetched_vault = get_vault(store, vault.id).unwrap();
         assert_eq!(fetched_vault.destinations, vault.destinations);

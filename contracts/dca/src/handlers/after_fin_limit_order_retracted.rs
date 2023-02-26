@@ -3,11 +3,10 @@ use crate::error::ContractError;
 use crate::state::cache::{CACHE, LIMIT_ORDER_CACHE};
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
-use crate::types::vault::Vault;
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response, Uint128};
-use cosmwasm_std::{CosmosMsg, StdError, StdResult, SubMsgResult};
+use cosmwasm_std::{CosmosMsg, SubMsgResult};
 use fin_helpers::limit_orders::create_withdraw_limit_order_sub_msg;
 
 pub fn after_fin_limit_order_retracted(
@@ -16,7 +15,7 @@ pub fn after_fin_limit_order_retracted(
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
-    let vault = get_vault(deps.storage, cache.vault_id)?;
+    let mut vault = get_vault(deps.storage, cache.vault_id)?;
     let mut response = Response::new().add_attribute("method", "fin_limit_order_retracted");
 
     match reply.result {
@@ -65,26 +64,10 @@ pub fn after_fin_limit_order_retracted(
                     )],
                 }));
 
-                update_vault(
-                    deps.storage,
-                    vault.id.into(),
-                    |existing_vault| -> StdResult<Vault> {
-                        match existing_vault {
-                            Some(mut existing_vault) => {
-                                existing_vault.status = VaultStatus::Cancelled;
-                                existing_vault.balance =
-                                    Coin::new(0, existing_vault.get_swap_denom());
-                                Ok(existing_vault)
-                            }
-                            None => Err(StdError::NotFound {
-                                kind: format!(
-                                    "vault for address: {} with id: {}",
-                                    vault.owner, vault.id
-                                ),
-                            }),
-                        }
-                    },
-                )?;
+                vault.status = VaultStatus::Cancelled;
+                vault.balance = Coin::new(0, vault.get_swap_denom());
+
+                update_vault(deps.storage, &vault)?;
 
                 delete_trigger(deps.storage, vault.id)?;
 

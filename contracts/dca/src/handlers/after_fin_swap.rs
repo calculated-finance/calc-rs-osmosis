@@ -1,13 +1,11 @@
-use std::cmp::min;
-
 use crate::contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_Z_DELEGATION_REPLY_ID};
 use crate::error::ContractError;
+use crate::helpers::vault_helpers::{get_swap_amount, has_sufficient_funds};
 use crate::state::cache::{CACHE, SWAP_CACHE};
 use crate::state::config::{get_config, get_custom_fee};
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
-use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::community_pool::create_fund_community_pool_msg;
@@ -15,14 +13,15 @@ use base::helpers::math_helpers::checked_mul;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PostExecutionAction, VaultStatus};
-use cosmwasm_std::{to_binary, StdError, StdResult, SubMsg, SubMsgResult, WasmMsg};
+use cosmwasm_std::{to_binary, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
 use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
+use std::cmp::min;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
-    let vault = get_vault(deps.storage, cache.vault_id.into())?;
+    let mut vault = get_vault(deps.storage, cache.vault_id.into())?;
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut messages: Vec<CosmosMsg> = Vec::new();
@@ -174,39 +173,18 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 }
             });
 
-            let updated_vault = update_vault(
-                deps.storage,
-                vault.id.into(),
-                |stored_value: Option<Vault>| -> StdResult<Vault> {
-                    match stored_value {
-                        Some(mut existing_vault) => {
-                            existing_vault.balance.amount -=
-                                existing_vault.get_swap_amount().amount;
+            vault.balance.amount -= get_swap_amount(vault.clone(), &deps.as_ref())?.amount;
 
-                            if !existing_vault.has_sufficient_funds() {
-                                existing_vault.status = VaultStatus::Inactive;
-                            }
+            if !has_sufficient_funds(vault.clone(), &deps.as_ref())? {
+                vault.status = VaultStatus::Inactive;
+            }
 
-                            existing_vault.swapped_amount =
-                                add_to_coin(existing_vault.swapped_amount, coin_sent.amount)?;
+            vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount)?;
+            vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee)?;
 
-                            existing_vault.received_amount =
-                                add_to_coin(existing_vault.received_amount, total_after_total_fee)?;
+            update_vault(deps.storage, &vault)?;
 
-                            Ok(existing_vault)
-                        }
-                        None => Err(StdError::NotFound {
-                            kind: format!(
-                                "vault for address: {} with id: {}",
-                                vault.owner.clone(),
-                                vault.id
-                            ),
-                        }),
-                    }
-                },
-            )?;
-
-            if updated_vault.is_active() {
+            if vault.is_active() {
                 save_trigger(
                     deps.storage,
                     Trigger {
@@ -241,7 +219,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         SubMsgResult::Err(_) => {
-            if !vault.has_sufficient_funds() {
+            if !has_sufficient_funds(vault.clone(), &deps.as_ref())? {
                 create_event(
                     deps.storage,
                     EventBuilder::new(
@@ -253,25 +231,8 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                     ),
                 )?;
 
-                update_vault(
-                    deps.storage,
-                    vault.id.into(),
-                    |existing_vault| -> StdResult<Vault> {
-                        match existing_vault {
-                            Some(mut existing_vault) => {
-                                existing_vault.status = VaultStatus::Inactive;
-                                Ok(existing_vault)
-                            }
-                            None => Err(StdError::NotFound {
-                                kind: format!(
-                                    "vault for address: {} with id: {}",
-                                    vault.owner.clone(),
-                                    vault.id
-                                ),
-                            }),
-                        }
-                    },
-                )?;
+                vault.status = VaultStatus::Inactive;
+                update_vault(deps.storage, &vault)?;
             } else {
                 create_event(
                     deps.storage,

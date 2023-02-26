@@ -25,7 +25,7 @@ use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
-use crate::handlers::update_vault_label::update_vault_label;
+use crate::handlers::update_vault::update_vault_handler;
 use crate::msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::config::{get_config, update_config, Config};
 use crate::validation_helpers::{
@@ -183,10 +183,10 @@ pub fn execute(
             dca_plus_escrow_level,
         ),
         ExecuteMsg::UpdateVault {
-            address,
+            address: _,
             vault_id,
             label,
-        } => update_vault_label(deps, info, address, vault_id, label),
+        } => update_vault_handler(deps, info, vault_id, label),
         ExecuteMsg::CreateCustomSwapFee {
             denom,
             swap_fee_percent,

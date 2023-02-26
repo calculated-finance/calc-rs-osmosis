@@ -4,6 +4,7 @@ use crate::{
         AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID,
     },
     handlers::after_fin_limit_order_withdrawn_for_execute_trigger::after_fin_limit_order_withdrawn_for_execute_vault,
+    helpers::vault_helpers::get_swap_amount,
     state::cache::{LimitOrderCache, LIMIT_ORDER_CACHE},
     tests::{
         helpers::{instantiate_contract, setup_active_vault_with_funds},
@@ -77,7 +78,7 @@ fn after_succcesful_withdrawal_of_limit_order_invokes_a_fin_swap() {
                 to: None,
             })
             .unwrap(),
-            funds: vec![vault.get_swap_amount()]
+            funds: vec![get_swap_amount(vault.clone(), &deps.as_ref()).unwrap()]
         }),
         AFTER_FIN_SWAP_REPLY_ID
     )));

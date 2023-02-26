@@ -22,7 +22,7 @@ use base::events::event::{EventBuilder, EventData};
 use base::helpers::time_helpers::get_total_execution_duration;
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, StdError};
+use cosmwasm_std::{Addr, Coin, Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_submit_order_sub_msg;
@@ -235,7 +235,7 @@ fn create_time_trigger(
 
 fn create_fin_limit_order_trigger(
     deps: DepsMut,
-    vault: Vault,
+    mut vault: Vault,
     target_receive_amount: Uint128,
     response: Response,
 ) -> Result<Response, ContractError> {
@@ -258,15 +258,8 @@ fn create_fin_limit_order_trigger(
         },
     )?;
 
-    update_vault(deps.storage, vault.id, |stored_vault| match stored_vault {
-        Some(mut stored_vault) => {
-            stored_vault.balance.amount -= TWO_MICRONS;
-            Ok(stored_vault)
-        }
-        None => Err(StdError::GenericErr {
-            msg: format!("Vault ({}) not found", vault.id).to_string(),
-        }),
-    })?;
+    vault.balance.amount -= TWO_MICRONS;
+    update_vault(deps.storage, &vault)?;
 
     let fin_limit_order_sub_msg = create_submit_order_sub_msg(
         vault.pair.address.clone(),
