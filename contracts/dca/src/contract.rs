@@ -142,6 +142,7 @@ pub fn execute(
             time_interval,
             target_start_time_utc_seconds,
             target_receive_amount,
+            adjust_swap_amount,
         } => create_vault(
             deps,
             env,
@@ -157,6 +158,7 @@ pub fn execute(
             time_interval,
             target_start_time_utc_seconds,
             target_receive_amount,
+            adjust_swap_amount,
         ),
         ExecuteMsg::CancelVault { vault_id } => cancel_vault(deps, env, info, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),

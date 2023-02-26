@@ -13,6 +13,6 @@ pub fn update_swap_adjustments(
     Ok(())
 }
 
-pub fn get_buy_adjustment(storage: &dyn Storage, model: u8) -> StdResult<Decimal> {
+pub fn get_swap_adjustment(storage: &dyn Storage, model: u8) -> StdResult<Decimal> {
     SWAP_ADJUSTMENTS.load(storage, model)
 }

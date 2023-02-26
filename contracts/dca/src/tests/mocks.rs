@@ -215,6 +215,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
+                    adjust_swap_amount: None,
                 },
                 &vec![balance],
             )
@@ -256,6 +257,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
+                    adjust_swap_amount: None,
                 },
                 &vec![balance],
             )
@@ -314,6 +316,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
+                    adjust_swap_amount: None,
                 },
                 &vec![balance],
             )
@@ -380,6 +383,7 @@ impl MockApp {
                         self.app.block_info().time.plus_seconds(2).seconds(),
                     )),
                     target_receive_amount: None,
+                    adjust_swap_amount: None,
                 },
                 &vec![balance],
             )
@@ -422,6 +426,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_start_time_utc_seconds: None,
                     target_receive_amount: None,
+                    adjust_swap_amount: None,
                 },
                 &vec![balance],
             )
@@ -461,6 +466,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_start_time_utc_seconds: None,
                     target_receive_amount: None,
+                    adjust_swap_amount: None,
                 },
                 &vec![Coin::new(1, DENOM_UKUJI)],
             )

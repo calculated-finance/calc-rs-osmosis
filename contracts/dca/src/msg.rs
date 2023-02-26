@@ -56,6 +56,7 @@ pub enum ExecuteMsg {
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
         target_receive_amount: Option<Uint128>,
+        adjust_swap_amount: Option<bool>,
     },
     Deposit {
         address: Addr,

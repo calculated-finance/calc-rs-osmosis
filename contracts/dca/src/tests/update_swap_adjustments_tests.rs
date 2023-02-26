@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::{
     handlers::update_swap_adjustments_handler::update_swap_adjustments_handler,
-    state::swap_adjustments::get_buy_adjustment,
+    state::swap_adjustments::get_swap_adjustment,
 };
 
 #[test]
@@ -41,7 +41,7 @@ fn updates_swap_adjustments() {
 
     new_adjustments.iter().zip(old_adjustments.iter()).for_each(
         |((model, new_adjustment), (_, old_adjustment))| {
-            let stored_adjustment = get_buy_adjustment(deps.as_ref().storage, *model).unwrap();
+            let stored_adjustment = get_swap_adjustment(deps.as_ref().storage, *model).unwrap();
             assert_eq!(stored_adjustment, *new_adjustment);
             assert_ne!(stored_adjustment, *old_adjustment);
         },

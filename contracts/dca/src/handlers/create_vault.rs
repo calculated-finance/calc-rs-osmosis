@@ -2,10 +2,12 @@ use crate::constants::TWO_MICRONS;
 use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::state::cache::{Cache, CACHE};
+use crate::state::config::get_config;
 use crate::state::events::create_event;
 use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{save_vault, update_vault};
+use crate::types::dca_plus_config::DCAPlusConfig;
 use crate::types::vault::Vault;
 use crate::types::vault_builder::VaultBuilder;
 use crate::validation_helpers::{
@@ -17,6 +19,7 @@ use crate::validation_helpers::{
     assert_target_start_time_is_in_future,
 };
 use base::events::event::{EventBuilder, EventData};
+use base::helpers::time_helpers::get_total_execution_duration;
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, StdError};
@@ -43,6 +46,7 @@ pub fn create_vault(
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
     target_receive_amount: Option<Uint128>,
+    adjust_swap_amount: Option<bool>,
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
     assert_address_is_valid(deps.as_ref(), owner.clone(), "owner".to_string())?;
@@ -85,6 +89,41 @@ pub fn create_vault(
 
     assert_delegation_denom_is_stakeable(&destinations, receive_denom)?;
 
+    let config = get_config(deps.storage)?;
+
+    let dca_plus_config = adjust_swap_amount.map_or(None, |adjust_swap_amount| {
+        if !adjust_swap_amount {
+            return None;
+        };
+        Some(DCAPlusConfig {
+            escrow_level: config.dca_plus_escrow_level,
+            model_id: {
+                let execution_duration = get_total_execution_duration(
+                    env.block.time,
+                    (info.funds[0]
+                        .amount
+                        .checked_div(swap_amount)
+                        .expect("deposit divided by swap amount should be larger than 0"))
+                    .into(),
+                    &time_interval,
+                );
+
+                match execution_duration.num_days() {
+                    0..=32 => 30,
+                    33..=38 => 35,
+                    39..=44 => 40,
+                    45..=51 => 45,
+                    52..=57 => 50,
+                    58..=65 => 55,
+                    66..=77 => 60,
+                    78..=96 => 70,
+                    97..=123 => 80,
+                    _ => 90,
+                }
+            },
+        })
+    });
+
     let vault_builder = VaultBuilder {
         owner,
         label,
@@ -103,7 +142,7 @@ pub fn create_vault(
         balance: info.funds[0].clone(),
         time_interval: time_interval.clone(),
         started_at: None,
-        dca_plus_config: None,
+        dca_plus_config,
     };
 
     let vault = save_vault(deps.storage, vault_builder)?;
