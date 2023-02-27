@@ -121,6 +121,7 @@ pub fn create_vault(
                     _ => 90,
                 }
             },
+            amount_withdrawn: Uint128::zero(),
         })
     });
 

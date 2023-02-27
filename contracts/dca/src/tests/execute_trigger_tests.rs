@@ -721,6 +721,7 @@ fn for_ready_time_trigger_should_update_addess_balances() {
             swap_amount,
             "time",
             None,
+            None,
         );
 
     let swap_amount_after_fee =
@@ -796,6 +797,7 @@ fn for_ready_time_trigger_should_update_vault_balance() {
             swap_amount,
             "time",
             None,
+            None,
         );
 
     mock.elapse_time(10);
@@ -835,6 +837,7 @@ fn for_ready_time_trigger_should_update_vault_stats() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
+            None,
             None,
         );
 
@@ -886,6 +889,7 @@ fn for_ready_time_trigger_should_create_events() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
+            None,
             None,
         );
 
@@ -951,6 +955,7 @@ fn for_ready_time_trigger_should_delete_current_time_trigger() {
             swap_amount,
             "time",
             None,
+            None,
         );
 
     mock.elapse_time(10);
@@ -999,6 +1004,7 @@ fn for_ready_time_trigger_should_create_new_time_trigger() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
+            None,
             None,
         );
 
@@ -1055,6 +1061,7 @@ fn for_ready_time_trigger_should_distribute_to_multiple_destinations_properly() 
             swap_amount,
             "time",
             None,
+            None,
         );
 
     mock.elapse_time(10);
@@ -1104,6 +1111,7 @@ fn for_ready_time_trigger_within_price_threshold_should_succeed() {
             swap_amount,
             "time",
             Some(Uint128::new(99)),
+            None,
         );
 
     mock.elapse_time(10);
@@ -1153,6 +1161,93 @@ fn for_ready_time_trigger_within_price_threshold_should_succeed() {
 }
 
 #[test]
+fn for_ready_time_trigger_with_dca_plus_should_withhold_escrow() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_time_trigger(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "time",
+            None,
+            Some(true),
+        );
+
+    mock.elapse_time(10);
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::ExecuteTrigger {
+                trigger_id: Uint128::new(1),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(
+            &mock.dca_contract_address,
+            &&QueryMsg::GetVault {
+                vault_id: mock.vault_ids.get("time").unwrap().to_owned(),
+            },
+        )
+        .unwrap();
+
+    let receive_amount_after_fee =
+        swap_amount - checked_mul(swap_amount, mock.fee_percent).ok().unwrap();
+
+    let escrow_level = vault_response.vault.dca_plus_config.unwrap().escrow_level;
+
+    let receive_amount_after_escrow = receive_amount_after_fee
+        - checked_mul(receive_amount_after_fee, escrow_level)
+            .ok()
+            .unwrap();
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, Uint128::new(0)),
+            (&user_address, DENOM_UTEST, receive_amount_after_escrow),
+            (
+                &mock.dca_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + vault_deposit - swap_amount,
+            ),
+            (
+                &mock.dca_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND + (receive_amount_after_fee - receive_amount_after_escrow),
+            ),
+            (
+                &mock.fin_contract_address,
+                DENOM_UKUJI,
+                ONE_THOUSAND + swap_amount,
+            ),
+            (
+                &mock.fin_contract_address,
+                DENOM_UTEST,
+                ONE_THOUSAND - swap_amount,
+            ),
+        ],
+    );
+    assert_eq!(
+        escrow_level * receive_amount_after_fee,
+        receive_amount_after_fee - receive_amount_after_escrow
+    );
+    assert!(escrow_level > Decimal::zero());
+}
+
+#[test]
 fn for_ready_time_trigger_for_fin_buy_less_than_minimum_receive_amount_should_skip_execution() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
@@ -1168,6 +1263,7 @@ fn for_ready_time_trigger_for_fin_buy_less_than_minimum_receive_amount_should_sk
             swap_amount,
             "time",
             Some(ONE + Uint128::one()),
+            None,
         );
 
     assert_address_balances(
@@ -1269,6 +1365,7 @@ fn for_ready_time_trigger_for_fin_sell_less_than_minimum_receive_amount_should_s
             swap_amount,
             "time",
             Some(ONE + Uint128::one()),
+            None,
         );
 
     let vault_id = mock.vault_ids.get("time").unwrap().to_owned();
@@ -1338,6 +1435,7 @@ fn for_ready_time_trigger_for_less_than_minimum_receive_amount_should_set_new_ti
             swap_amount,
             "time",
             Some(ONE + Uint128::one()),
+            None,
         );
 
     mock.elapse_time(10);
@@ -1392,6 +1490,7 @@ fn for_ready_time_trigger_when_slippage_exceeds_limit_should_skip_execution() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
+            None,
             None,
         );
 
@@ -1463,6 +1562,7 @@ fn for_not_ready_time_trigger_should_fail() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
+            None,
             None,
         );
 
@@ -2049,6 +2149,7 @@ fn for_vault_with_insufficient_balance_should_set_vault_status_to_inactive() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "time",
+            None,
             None,
         );
 

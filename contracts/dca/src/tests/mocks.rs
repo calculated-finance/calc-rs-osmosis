@@ -363,6 +363,7 @@ impl MockApp {
         swap_amount: Uint128,
         label: &str,
         minimum_receive_amount: Option<Uint128>,
+        is_dca_plus: Option<bool>,
     ) -> MockApp {
         let response = self
             .app
@@ -383,7 +384,7 @@ impl MockApp {
                         self.app.block_info().time.plus_seconds(2).seconds(),
                     )),
                     target_receive_amount: None,
-                    adjust_swap_amount: None,
+                    adjust_swap_amount: is_dca_plus,
                 },
                 &vec![balance],
             )

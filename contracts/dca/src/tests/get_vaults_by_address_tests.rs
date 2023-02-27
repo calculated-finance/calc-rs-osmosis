@@ -87,6 +87,7 @@ fn with_one_vault_should_return_proper_vault_data() {
             swap_amount,
             "fin_1",
             None,
+            None,
         );
 
     let vaults_response: VaultsResponse = mock

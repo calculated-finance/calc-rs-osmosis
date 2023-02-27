@@ -149,7 +149,7 @@ fn with_unfilled_limit_order_should_set_vault_balance_to_zero() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
@@ -161,13 +161,13 @@ fn with_unfilled_limit_order_should_set_vault_balance_to_zero() {
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -271,7 +271,7 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
@@ -283,13 +283,13 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_balance_to_zero() {
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -338,7 +338,7 @@ fn with_unfilled_limit_order_should_set_vault_status_to_cancelled() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
@@ -350,13 +350,13 @@ fn with_unfilled_limit_order_should_set_vault_status_to_cancelled() {
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -460,7 +460,7 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled(
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
@@ -472,13 +472,13 @@ fn with_unfilled_limit_order_and_low_funds_should_set_vault_status_to_cancelled(
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -527,7 +527,7 @@ fn with_unfilled_limit_order_should_delete_trigger() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
@@ -539,13 +539,13 @@ fn with_unfilled_limit_order_should_delete_trigger() {
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -649,7 +649,7 @@ fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
 
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
@@ -661,13 +661,13 @@ fn with_unfilled_limit_order_and_low_funds_should_delete_trigger() {
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -730,13 +730,13 @@ fn with_partially_filled_limit_order_should_return_vault_balance_plus_retracted_
         ],
     );
 
-    let _original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let _original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let _swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -863,13 +863,13 @@ fn with_partially_filled_limit_order_and_low_funds_should_return_vault_balance_p
         ],
     );
 
-    let _original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let _original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let _swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -923,7 +923,7 @@ fn with_partially_filled_limit_order_should_withdraw_remainder() {
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount
         / Uint128::new(2);
@@ -933,7 +933,7 @@ fn with_partially_filled_limit_order_should_withdraw_remainder() {
         vec![
             Coin::new(
                 (vault.balance.amount
-                    - get_swap_amount(vault.clone(), &deps.as_ref())
+                    - get_swap_amount(&deps.as_ref(), vault.clone())
                         .unwrap()
                         .amount
                     + received_amount)
@@ -947,13 +947,13 @@ fn with_partially_filled_limit_order_should_withdraw_remainder() {
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -1068,7 +1068,7 @@ fn with_filled_limit_order_should_withdraw_remainder() {
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
@@ -1077,7 +1077,7 @@ fn with_filled_limit_order_should_withdraw_remainder() {
         vec![
             Coin::new(
                 (vault.balance.amount
-                    - get_swap_amount(vault.clone(), &deps.as_ref())
+                    - get_swap_amount(&deps.as_ref(), vault.clone())
                         .unwrap()
                         .amount)
                     .into(),
@@ -1090,13 +1090,13 @@ fn with_filled_limit_order_should_withdraw_remainder() {
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -1164,13 +1164,13 @@ fn with_filled_limit_order_and_low_funds_should_return_vault_balance() {
         ],
     );
 
-    let _original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let _original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let _swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),
@@ -1229,7 +1229,7 @@ fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
     let vault = setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
     let order_idx = Uint128::new(18);
 
-    let received_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let received_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
@@ -1238,7 +1238,7 @@ fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
         vec![
             Coin::new(
                 (vault.balance.amount
-                    - get_swap_amount(vault.clone(), &deps.as_ref())
+                    - get_swap_amount(&deps.as_ref(), vault.clone())
                         .unwrap()
                         .amount)
                     .into(),
@@ -1251,13 +1251,13 @@ fn with_filled_limit_order_and_low_funds_should_withdraw_remainder() {
         ],
     );
 
-    let original_offer_amount = get_swap_amount(vault.clone(), &deps.as_ref())
+    let original_offer_amount = get_swap_amount(&deps.as_ref(), vault.clone())
         .unwrap()
         .amount;
 
     let swap_denom_balance = Coin::new(
         (vault.balance.amount
-            - get_swap_amount(vault.clone(), &deps.as_ref())
+            - get_swap_amount(&deps.as_ref(), vault.clone())
                 .unwrap()
                 .amount)
             .into(),

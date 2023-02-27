@@ -62,7 +62,7 @@ pub fn after_fin_limit_order_withdrawn_for_execute_vault(
                 .add_submessage(create_fin_swap_message(
                     deps.querier,
                     vault.pair.clone(),
-                    get_swap_amount(vault.clone(), &deps.as_ref())?,
+                    get_swap_amount(&deps.as_ref(), vault.clone())?,
                     vault.slippage_tolerance,
                     Some(AFTER_FIN_SWAP_REPLY_ID),
                     Some(ReplyOn::Always),

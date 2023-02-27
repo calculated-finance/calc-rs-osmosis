@@ -1180,6 +1180,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             swap_amount,
             "time",
             None,
+            None,
         );
 
     let target_start_time = mock.app.block_info().time.plus_seconds(2);
@@ -2009,7 +2010,8 @@ fn with_adjust_swap_amount_true_should_create_dca_plus_config() {
         vault_response.vault.dca_plus_config,
         Some(DCAPlusConfig {
             escrow_level: Decimal::percent(5),
-            model_id: 30
+            model_id: 30,
+            amount_withdrawn: Uint128::zero(),
         })
     );
 }
@@ -2076,7 +2078,8 @@ fn with_long_execution_duration_should_select_longer_duration_model() {
         vault_response.vault.dca_plus_config,
         Some(DCAPlusConfig {
             escrow_level: Decimal::percent(5),
-            model_id: 80
+            model_id: 80,
+            amount_withdrawn: Uint128::zero(),
         })
     );
 }
@@ -2143,7 +2146,8 @@ fn with_small_deposit_should_select_shorter_duration_model() {
         vault_response.vault.dca_plus_config,
         Some(DCAPlusConfig {
             escrow_level: Decimal::percent(5),
-            model_id: 30
+            model_id: 30,
+            amount_withdrawn: Uint128::zero(),
         })
     );
 }

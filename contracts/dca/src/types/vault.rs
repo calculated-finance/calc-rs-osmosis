@@ -137,7 +137,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(100000, Uint128::new(50000));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(!has_sufficient_funds(vault, &deps.as_ref()).unwrap());
+        assert!(!has_sufficient_funds(&deps.as_ref(), vault).unwrap());
     }
 
     #[test]
@@ -145,7 +145,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(50000, Uint128::new(50001));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(!has_sufficient_funds(vault, &deps.as_ref()).unwrap());
+        assert!(!has_sufficient_funds(&deps.as_ref(), vault).unwrap());
     }
 
     #[test]
@@ -153,7 +153,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(100000, Uint128::new(50001));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(has_sufficient_funds(vault, &deps.as_ref()).unwrap());
+        assert!(has_sufficient_funds(&deps.as_ref(), vault).unwrap());
     }
 
     #[test]
@@ -161,7 +161,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(50001, Uint128::new(50002));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(has_sufficient_funds(vault, &deps.as_ref()).unwrap());
+        assert!(has_sufficient_funds(&deps.as_ref(), vault).unwrap());
     }
 
     fn vault_with(balance: u128, swap_amount: Uint128) -> VaultBuilder {

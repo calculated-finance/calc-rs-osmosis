@@ -78,7 +78,7 @@ fn after_succcesful_withdrawal_of_limit_order_invokes_a_fin_swap() {
                 to: None,
             })
             .unwrap(),
-            funds: vec![get_swap_amount(vault.clone(), &deps.as_ref()).unwrap()]
+            funds: vec![get_swap_amount(&deps.as_ref(), vault.clone()).unwrap()]
         }),
         AFTER_FIN_SWAP_REPLY_ID
     )));

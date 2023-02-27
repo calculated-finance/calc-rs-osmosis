@@ -127,7 +127,27 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             });
 
             let total_fee = swap_fee + automation_fee;
-            let total_after_total_fee = coin_received.amount - total_fee;
+            let mut total_after_total_fee = coin_received.amount - total_fee;
+
+            vault.balance.amount -= get_swap_amount(&deps.as_ref(), vault.clone())?.amount;
+
+            if !has_sufficient_funds(&deps.as_ref(), vault.clone())? {
+                vault.status = VaultStatus::Inactive;
+            }
+
+            vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount)?;
+            vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee)?;
+
+            update_vault(deps.storage, &vault)?;
+
+            let amount_to_escrow = vault
+                .dca_plus_config
+                .clone()
+                .map_or(Uint128::zero(), |dca_plus_config| {
+                    total_after_total_fee * dca_plus_config.escrow_level
+                });
+
+            total_after_total_fee = total_after_total_fee.checked_sub(amount_to_escrow)?;
 
             vault.destinations.iter().for_each(|destination| {
                 let allocation_amount = Coin::new(
@@ -173,17 +193,6 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 }
             });
 
-            vault.balance.amount -= get_swap_amount(vault.clone(), &deps.as_ref())?.amount;
-
-            if !has_sufficient_funds(vault.clone(), &deps.as_ref())? {
-                vault.status = VaultStatus::Inactive;
-            }
-
-            vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount)?;
-            vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee)?;
-
-            update_vault(deps.storage, &vault)?;
-
             if vault.is_active() {
                 save_trigger(
                     deps.storage,
@@ -219,7 +228,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         SubMsgResult::Err(_) => {
-            if !has_sufficient_funds(vault.clone(), &deps.as_ref())? {
+            if !has_sufficient_funds(&deps.as_ref(), vault.clone())? {
                 create_event(
                     deps.storage,
                     EventBuilder::new(

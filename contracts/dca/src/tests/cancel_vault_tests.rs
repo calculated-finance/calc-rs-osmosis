@@ -518,6 +518,7 @@ fn when_vault_has_time_trigger_should_update_address_balances() {
             swap_amount,
             "fin",
             None,
+            None,
         );
 
     assert_address_balances(
@@ -574,6 +575,7 @@ fn when_vault_has_time_trigger_should_publish_events() {
             swap_amount,
             "fin",
             None,
+            None,
         );
 
     let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
@@ -613,6 +615,7 @@ fn when_vault_has_time_trigger_should_cancel_vault() {
             swap_amount,
             "fin",
             None,
+            None,
         );
 
     let vault_id = mock.vault_ids.get("fin").unwrap().to_owned();
@@ -651,6 +654,7 @@ fn when_vault_has_time_trigger_should_empty_vault_balance() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "fin",
+            None,
             None,
         );
 
