@@ -2011,7 +2011,8 @@ fn with_adjust_swap_amount_true_should_create_dca_plus_config() {
         Some(DCAPlusConfig {
             escrow_level: Decimal::percent(5),
             model_id: 30,
-            amount_withdrawn: Uint128::zero(),
+            escrowed_balance: Uint128::zero(),
+            standard_dca_received_amount: Uint128::zero(),
         })
     );
 }
@@ -2079,7 +2080,8 @@ fn with_long_execution_duration_should_select_longer_duration_model() {
         Some(DCAPlusConfig {
             escrow_level: Decimal::percent(5),
             model_id: 80,
-            amount_withdrawn: Uint128::zero(),
+            escrowed_balance: Uint128::zero(),
+            standard_dca_received_amount: Uint128::zero(),
         })
     );
 }
@@ -2147,7 +2149,8 @@ fn with_small_deposit_should_select_shorter_duration_model() {
         Some(DCAPlusConfig {
             escrow_level: Decimal::percent(5),
             model_id: 30,
-            amount_withdrawn: Uint128::zero(),
+            escrowed_balance: Uint128::zero(),
+            standard_dca_received_amount: Uint128::zero(),
         })
     );
 }

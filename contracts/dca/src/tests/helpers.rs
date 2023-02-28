@@ -125,7 +125,8 @@ pub fn setup_vault(
                 Some(DCAPlusConfig {
                     escrow_level: Decimal::percent(5),
                     model_id: 30,
-                    amount_withdrawn: Uint128::zero(),
+                    escrowed_balance: Uint128::zero(),
+                    standard_dca_received_amount: Uint128::zero(),
                 })
             } else {
                 None

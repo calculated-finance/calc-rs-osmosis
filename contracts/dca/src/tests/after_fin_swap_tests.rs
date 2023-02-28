@@ -22,6 +22,7 @@ use crate::{
     state::{
         cache::{SwapCache, SWAP_CACHE},
         config::{create_custom_fee, get_config, FeeCollector},
+        swap_adjustments::update_swap_adjustments,
         triggers::{delete_trigger, get_trigger, save_trigger},
         vaults::get_vault,
     },
@@ -605,6 +606,23 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
+    update_swap_adjustments(
+        deps.as_mut().storage,
+        vec![
+            (30, Decimal::from_str("1.0").unwrap()),
+            (35, Decimal::from_str("1.0").unwrap()),
+            (40, Decimal::from_str("1.0").unwrap()),
+            (45, Decimal::from_str("1.0").unwrap()),
+            (50, Decimal::from_str("1.0").unwrap()),
+            (55, Decimal::from_str("1.0").unwrap()),
+            (60, Decimal::from_str("1.0").unwrap()),
+            (70, Decimal::from_str("1.0").unwrap()),
+            (80, Decimal::from_str("1.0").unwrap()),
+            (90, Decimal::from_str("1.0").unwrap()),
+        ],
+    )
+    .unwrap();
+
     let response = after_fin_swap(
         deps.as_mut(),
         env,
@@ -618,16 +636,17 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
     )
     .unwrap();
 
-    let fee = get_config(&deps.storage).unwrap().swap_fee_percent * receive_amount;
+    let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
 
+    let fee = get_config(&deps.storage).unwrap().swap_fee_percent * receive_amount;
     let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
 
-    let automation_fees = vault
+    let automation_fees = updated_vault
         .destinations
         .iter()
         .filter(|d| d.action == PostExecutionAction::ZDelegate)
         .fold(
-            Coin::new(0, vault.get_receive_denom()),
+            Coin::new(0, updated_vault.get_receive_denom()),
             |mut accum, destination| {
                 let allocation_amount =
                     checked_mul(receive_amount - fee, destination.allocation).unwrap();
@@ -639,21 +658,99 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
         );
 
     let amount_to_disburse = receive_amount - fee - automation_fees.amount;
-    let escrow_level = vault.dca_plus_config.clone().unwrap().escrow_level;
+    let escrow_level = updated_vault.dca_plus_config.clone().unwrap().escrow_level;
     let escrow_amount = escrow_level * amount_to_disburse;
 
+    assert_eq!(
+        escrow_amount,
+        updated_vault
+            .dca_plus_config
+            .clone()
+            .unwrap()
+            .escrowed_balance
+    );
     assert!(response.messages.contains(&SubMsg::reply_on_success(
         BankMsg::Send {
-            to_address: vault.destinations.first().unwrap().address.to_string(),
+            to_address: updated_vault
+                .destinations
+                .first()
+                .unwrap()
+                .address
+                .to_string(),
             amount: vec![Coin::new(
                 (amount_to_disburse - escrow_amount).into(),
-                vault.get_receive_denom(),
+                updated_vault.get_receive_denom(),
             )],
         },
         AFTER_BANK_SWAP_REPLY_ID,
     )));
     assert_ne!(escrow_level, Decimal::zero());
     assert_ne!(escrow_amount, Uint128::zero());
+}
+
+#[test]
+fn with_succcesful_swap_with_dca_plus_updates_standard_dca_received_amount() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
+    let receive_amount = Uint128::new(10000);
+
+    SWAP_CACHE
+        .save(
+            deps.as_mut().storage,
+            &SwapCache {
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+            },
+        )
+        .unwrap();
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+    );
+
+    update_swap_adjustments(
+        deps.as_mut().storage,
+        vec![
+            (30, Decimal::from_str("1.3").unwrap()),
+            (35, Decimal::from_str("1.3").unwrap()),
+            (40, Decimal::from_str("1.3").unwrap()),
+            (45, Decimal::from_str("1.3").unwrap()),
+            (50, Decimal::from_str("1.3").unwrap()),
+            (55, Decimal::from_str("1.3").unwrap()),
+            (60, Decimal::from_str("1.3").unwrap()),
+            (70, Decimal::from_str("1.3").unwrap()),
+            (80, Decimal::from_str("1.3").unwrap()),
+            (90, Decimal::from_str("1.3").unwrap()),
+        ],
+    )
+    .unwrap();
+
+    after_fin_swap(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_SWAP_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
+
+    assert_eq!(
+        updated_vault
+            .dca_plus_config
+            .unwrap()
+            .standard_dca_received_amount,
+        updated_vault.received_amount.amount * Decimal::from_str("1.3").unwrap()
+    );
 }
 
 #[test]

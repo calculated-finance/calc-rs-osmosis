@@ -5,5 +5,6 @@ use cosmwasm_std::{Decimal, Uint128};
 pub struct DCAPlusConfig {
     pub escrow_level: Decimal,
     pub model_id: u8,
-    pub amount_withdrawn: Uint128,
+    pub standard_dca_received_amount: Uint128,
+    pub escrowed_balance: Uint128,
 }
