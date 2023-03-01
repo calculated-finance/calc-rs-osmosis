@@ -1,17 +1,3 @@
-use base::{
-    events::event::{EventBuilder, EventData, ExecutionSkippedReason},
-    helpers::{community_pool::create_fund_community_pool_msg, math_helpers::checked_mul},
-    triggers::trigger::{Trigger, TriggerConfiguration},
-    vaults::vault::{PostExecutionAction, VaultStatus},
-};
-use cosmwasm_std::{
-    testing::{mock_dependencies, mock_env, mock_info},
-    BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp,
-    Uint128,
-};
-use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
-use std::{cmp::min, str::FromStr};
-
 use crate::{
     constants::TEN,
     contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID},
@@ -34,7 +20,21 @@ use crate::{
         },
         mocks::{ADMIN, DENOM_UKUJI},
     },
+    types::dca_plus_config::DCAPlusDirection,
 };
+use base::{
+    events::event::{EventBuilder, EventData, ExecutionSkippedReason},
+    helpers::{community_pool::create_fund_community_pool_msg, math_helpers::checked_mul},
+    triggers::trigger::{Trigger, TriggerConfiguration},
+    vaults::vault::{PostExecutionAction, VaultStatus},
+};
+use cosmwasm_std::{
+    testing::{mock_dependencies, mock_env, mock_info},
+    BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp,
+    Uint128,
+};
+use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
+use std::{cmp::min, str::FromStr};
 
 #[test]
 fn with_succcesful_swap_returns_funds_to_destination() {
@@ -608,6 +608,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
 
     update_swap_adjustments(
         deps.as_mut().storage,
+        DCAPlusDirection::In,
         vec![
             (30, Decimal::from_str("1.0").unwrap()),
             (35, Decimal::from_str("1.0").unwrap()),
@@ -714,6 +715,7 @@ fn with_succcesful_swap_with_dca_plus_updates_standard_dca_received_amount() {
 
     update_swap_adjustments(
         deps.as_mut().storage,
+        DCAPlusDirection::In,
         vec![
             (30, Decimal::from_str("1.3").unwrap()),
             (35, Decimal::from_str("1.3").unwrap()),

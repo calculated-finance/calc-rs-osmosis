@@ -2,6 +2,7 @@ use crate::constants::{ONE_THOUSAND, TWO_MICRONS};
 use crate::contract::reply;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VaultResponse};
 use crate::state::config::FeeCollector;
+use crate::types::dca_plus_config::DCAPlusDirection;
 use crate::types::vault::Vault;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
@@ -215,7 +216,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
-                    adjust_swap_amount: None,
+                    dca_plus_direction: None,
                 },
                 &vec![balance],
             )
@@ -257,7 +258,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
-                    adjust_swap_amount: None,
+                    dca_plus_direction: None,
                 },
                 &vec![balance],
             )
@@ -316,7 +317,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_receive_amount: Some(swap_amount),
                     target_start_time_utc_seconds: None,
-                    adjust_swap_amount: None,
+                    dca_plus_direction: None,
                 },
                 &vec![balance],
             )
@@ -363,7 +364,7 @@ impl MockApp {
         swap_amount: Uint128,
         label: &str,
         minimum_receive_amount: Option<Uint128>,
-        is_dca_plus: Option<bool>,
+        dca_plus_direction: Option<DCAPlusDirection>,
     ) -> MockApp {
         let response = self
             .app
@@ -384,7 +385,7 @@ impl MockApp {
                         self.app.block_info().time.plus_seconds(2).seconds(),
                     )),
                     target_receive_amount: None,
-                    adjust_swap_amount: is_dca_plus,
+                    dca_plus_direction,
                 },
                 &vec![balance],
             )
@@ -427,7 +428,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_start_time_utc_seconds: None,
                     target_receive_amount: None,
-                    adjust_swap_amount: None,
+                    dca_plus_direction: None,
                 },
                 &vec![balance],
             )
@@ -467,7 +468,7 @@ impl MockApp {
                     time_interval: TimeInterval::Hourly,
                     target_start_time_utc_seconds: None,
                     target_receive_amount: None,
-                    adjust_swap_amount: None,
+                    dca_plus_direction: None,
                 },
                 &vec![Coin::new(1, DENOM_UKUJI)],
             )

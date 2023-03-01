@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::{
     handlers::update_swap_adjustments_handler::update_swap_adjustments_handler,
-    state::swap_adjustments::get_swap_adjustment,
+    state::swap_adjustments::get_swap_adjustment, types::dca_plus_config::DCAPlusDirection,
 };
 
 #[test]
@@ -22,7 +22,8 @@ fn updates_swap_adjustments() {
     ];
 
     let mut deps = mock_dependencies();
-    update_swap_adjustments_handler(deps.as_mut(), old_adjustments.clone()).unwrap();
+    update_swap_adjustments_handler(deps.as_mut(), DCAPlusDirection::In, old_adjustments.clone())
+        .unwrap();
 
     let new_adjustments = vec![
         (30, Decimal::from_str("1.921").unwrap()),
@@ -37,11 +38,13 @@ fn updates_swap_adjustments() {
         (90, Decimal::from_str("1.981").unwrap()),
     ];
 
-    update_swap_adjustments_handler(deps.as_mut(), new_adjustments.clone()).unwrap();
+    update_swap_adjustments_handler(deps.as_mut(), DCAPlusDirection::In, new_adjustments.clone())
+        .unwrap();
 
     new_adjustments.iter().zip(old_adjustments.iter()).for_each(
         |((model, new_adjustment), (_, old_adjustment))| {
-            let stored_adjustment = get_swap_adjustment(deps.as_ref().storage, *model).unwrap();
+            let stored_adjustment =
+                get_swap_adjustment(deps.as_ref().storage, DCAPlusDirection::In, *model).unwrap();
             assert_eq!(stored_adjustment, *new_adjustment);
             assert_ne!(stored_adjustment, *old_adjustment);
         },

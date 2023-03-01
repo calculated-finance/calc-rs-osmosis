@@ -7,7 +7,7 @@ use crate::tests::helpers::{
 use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
-use crate::types::dca_plus_config::DCAPlusConfig;
+use crate::types::dca_plus_config::{DCAPlusConfig, DCAPlusDirection};
 use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::math_helpers::checked_mul;
@@ -61,7 +61,7 @@ fn with_price_trigger_should_update_address_balances() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string())],
         )
@@ -129,7 +129,7 @@ fn with_price_trigger_should_create_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -184,7 +184,7 @@ fn with_price_trigger_for_fin_buy_should_create_correct_trigger() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount * Uint128::new(10)),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -242,7 +242,7 @@ fn with_price_trigger_for_fin_sell_should_create_correct_trigger() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount * Uint128::new(10)),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UTEST))],
         )
@@ -298,7 +298,7 @@ fn with_price_trigger_should_publish_vault_created_event() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: Some(swap_amount),
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -345,7 +345,7 @@ fn with_price_trigger_should_publish_funds_deposited_event() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: Some(swap_amount),
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -400,7 +400,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -479,7 +479,7 @@ fn with_price_trigger_twice_for_user_should_succeed() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string())],
         )
@@ -574,7 +574,7 @@ fn with_immediate_time_trigger_should_update_address_balances() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -635,7 +635,7 @@ fn with_immediate_time_trigger_should_update_vault_balance() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -678,7 +678,7 @@ fn with_immediate_time_trigger_should_create_active_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -765,7 +765,7 @@ fn with_immediate_time_trigger_should_publish_events() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -858,7 +858,7 @@ fn with_immediate_time_trigger_and_slippage_failure_should_update_address_balanc
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -909,7 +909,7 @@ fn with_immediate_time_trigger_and_slippage_failure_should_update_vault_balance(
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -954,7 +954,7 @@ fn with_time_trigger_should_create_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1044,7 +1044,7 @@ fn with_time_trigger_should_update_address_balances() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1095,7 +1095,7 @@ fn with_time_trigger_should_publish_vault_created_event() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1143,7 +1143,7 @@ fn with_time_trigger_should_publish_funds_deposited_event() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1202,7 +1202,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1284,7 +1284,7 @@ fn with_time_trigger_with_target_time_in_the_past_should_fail() {
                     mock.app.block_info().time.seconds() - 60,
                 )),
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1336,7 +1336,7 @@ fn with_multiple_destinations_should_succeed() {
                     (mock.app.block_info().time.seconds() + 10).into(),
                 ),
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1416,7 +1416,7 @@ fn with_price_and_time_trigger_should_fail() {
                     mock.app.block_info().time.plus_seconds(2).seconds(),
                 )),
                 target_receive_amount: Some(swap_amount),
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1456,7 +1456,7 @@ fn with_no_assets_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![],
         )
@@ -1495,7 +1495,7 @@ fn with_multiple_assets_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![
                 Coin::new(vault_deposit.into(), DENOM_UTEST),
@@ -1539,7 +1539,7 @@ fn with_non_existent_pair_address_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1584,7 +1584,7 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1636,7 +1636,7 @@ fn with_destination_allocation_equal_to_zero_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1687,7 +1687,7 @@ fn with_more_than_10_destination_allocations_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1729,7 +1729,7 @@ fn with_passed_in_owner_should_succeed() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -1787,7 +1787,7 @@ fn with_swap_amount_less_than_50000_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1860,7 +1860,7 @@ fn when_contract_is_paused_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: None,
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -1902,7 +1902,7 @@ fn with_insufficient_funds_should_create_inactive_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1989,7 +1989,7 @@ fn with_adjust_swap_amount_true_should_create_dca_plus_config() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: Some(true),
+                dca_plus_direction: Some(DCAPlusDirection::In),
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -2009,6 +2009,7 @@ fn with_adjust_swap_amount_true_should_create_dca_plus_config() {
     assert_eq!(
         vault_response.vault.dca_plus_config,
         Some(DCAPlusConfig {
+            direction: DCAPlusDirection::In,
             escrow_level: Decimal::percent(5),
             model_id: 30,
             escrowed_balance: Uint128::zero(),
@@ -2058,7 +2059,7 @@ fn with_long_execution_duration_should_select_longer_duration_model() {
                 time_interval: TimeInterval::Daily,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: Some(true),
+                dca_plus_direction: Some(DCAPlusDirection::In),
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -2078,6 +2079,7 @@ fn with_long_execution_duration_should_select_longer_duration_model() {
     assert_eq!(
         vault_response.vault.dca_plus_config,
         Some(DCAPlusConfig {
+            direction: DCAPlusDirection::In,
             escrow_level: Decimal::percent(5),
             model_id: 80,
             escrowed_balance: Uint128::zero(),
@@ -2127,7 +2129,7 @@ fn with_small_deposit_should_select_shorter_duration_model() {
                 time_interval: TimeInterval::Daily,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
-                adjust_swap_amount: Some(true),
+                dca_plus_direction: Some(DCAPlusDirection::In),
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -2147,6 +2149,7 @@ fn with_small_deposit_should_select_shorter_duration_model() {
     assert_eq!(
         vault_response.vault.dca_plus_config,
         Some(DCAPlusConfig {
+            direction: DCAPlusDirection::In,
             escrow_level: Decimal::percent(5),
             model_id: 30,
             escrowed_balance: Uint128::zero(),

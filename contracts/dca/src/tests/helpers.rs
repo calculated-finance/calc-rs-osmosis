@@ -12,7 +12,11 @@ use crate::{
         triggers::save_trigger,
         vaults::save_vault,
     },
-    types::{dca_plus_config::DCAPlusConfig, vault::Vault, vault_builder::VaultBuilder},
+    types::{
+        dca_plus_config::{DCAPlusConfig, DCAPlusDirection},
+        vault::Vault,
+        vault_builder::VaultBuilder,
+    },
 };
 use base::{
     events::event::Event,
@@ -123,6 +127,7 @@ pub fn setup_vault(
             started_at: None,
             dca_plus_config: if is_dca_plus {
                 Some(DCAPlusConfig {
+                    direction: DCAPlusDirection::In,
                     escrow_level: Decimal::percent(5),
                     model_id: 30,
                     escrowed_balance: Uint128::zero(),

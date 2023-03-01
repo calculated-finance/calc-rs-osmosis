@@ -37,7 +37,7 @@ fn should_return_active_triggers_only() {
                     mock.app.block_info().time.seconds() + 100,
                 )),
                 target_receive_amount: None,
-                adjust_swap_amount: None,
+                dca_plus_direction: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )

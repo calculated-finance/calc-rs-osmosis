@@ -146,7 +146,11 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 dca_plus_config.escrowed_balance += amount_to_escrow;
 
                 let fee_percentage = Decimal::from_ratio(total_fee, coin_received.amount);
-                let swap_adjustment = get_swap_adjustment(deps.storage, dca_plus_config.model_id)?;
+                let swap_adjustment = get_swap_adjustment(
+                    deps.storage,
+                    dca_plus_config.direction,
+                    dca_plus_config.model_id,
+                )?;
                 let unadjusted_received_amount = coin_received.amount * swap_adjustment;
                 let unadjusted_received_amount_after_fee =
                     unadjusted_received_amount * (Decimal::one() - fee_percentage);

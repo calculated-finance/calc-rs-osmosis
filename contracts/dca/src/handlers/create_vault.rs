@@ -8,7 +8,7 @@ use crate::state::events::create_event;
 use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{save_vault, update_vault};
-use crate::types::dca_plus_config::DCAPlusConfig;
+use crate::types::dca_plus_config::{DCAPlusConfig, DCAPlusDirection};
 use crate::types::vault::Vault;
 use crate::types::vault_builder::VaultBuilder;
 use crate::validation_helpers::{
@@ -46,7 +46,7 @@ pub fn create_vault(
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
     target_receive_amount: Option<Uint128>,
-    use_dca_plus: Option<bool>,
+    dca_plus_direction: Option<DCAPlusDirection>,
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
     assert_address_is_valid(deps.as_ref(), owner.clone(), "owner".to_string())?;
@@ -91,11 +91,9 @@ pub fn create_vault(
 
     let config = get_config(deps.storage)?;
 
-    let dca_plus_config = use_dca_plus.map_or(None, |adjust_swap_amount| {
-        if !adjust_swap_amount {
-            return None;
-        };
+    let dca_plus_config = dca_plus_direction.map_or(None, |direction| {
         Some(DCAPlusConfig {
+            direction,
             escrow_level: config.dca_plus_escrow_level,
             model_id: get_dca_plus_model_id(
                 &env.block.time,

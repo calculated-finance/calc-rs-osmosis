@@ -12,10 +12,14 @@ pub fn get_swap_amount(deps: &Deps, vault: Vault) -> StdResult<Coin> {
         .clone()
         .dca_plus_config
         .map_or(initial_amount, |dca_plus_config| {
-            get_swap_adjustment(deps.storage, dca_plus_config.model_id)
-                .map_or(initial_amount, |adjustment_coefficient| {
-                    adjustment_coefficient * initial_amount
-                })
+            get_swap_adjustment(
+                deps.storage,
+                dca_plus_config.direction,
+                dca_plus_config.model_id,
+            )
+            .map_or(initial_amount, |adjustment_coefficient| {
+                adjustment_coefficient * initial_amount
+            })
         });
 
     Ok(Coin {
