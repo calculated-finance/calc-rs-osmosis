@@ -27,6 +27,7 @@ fn should_update_address_balances() {
             swap_amount,
             "vault",
             None,
+            None,
         );
 
     mock.app
@@ -73,6 +74,7 @@ fn should_update_vault_balance() {
             swap_amount,
             "vault",
             None,
+            None,
         );
 
     let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
@@ -112,6 +114,7 @@ fn should_create_event() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "vault",
+            None,
             None,
         );
 
@@ -157,6 +160,7 @@ fn when_vault_is_scheduled_should_not_change_status() {
             Coin::new(vault_deposit.into(), DENOM_UKUJI),
             swap_amount,
             "vault",
+            None,
             None,
         );
 
@@ -508,6 +512,7 @@ fn when_contract_is_paused_should_fail() {
             swap_amount,
             "vault",
             None,
+            None,
         );
 
     let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
@@ -526,6 +531,7 @@ fn when_contract_is_paused_should_fail() {
                 staking_router_address: None,
                 page_limit: None,
                 paused: Some(true),
+                dca_plus_escrow_level: None,
             },
             &[],
         )

@@ -1,5 +1,5 @@
 use crate::state::vaults::get_vaults;
-use crate::{msg::VaultsResponse, validation_helpers::assert_page_limit_is_valid};
+use crate::{helpers::validation_helpers::assert_page_limit_is_valid, msg::VaultsResponse};
 use cosmwasm_std::{Deps, StdResult};
 
 pub fn get_vaults_handler(

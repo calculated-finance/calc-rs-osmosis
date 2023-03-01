@@ -50,6 +50,22 @@ pub fn get_next_target_time(
     Timestamp::from_seconds(next_execution_time.timestamp().try_into().unwrap())
 }
 
+pub fn get_total_execution_duration(
+    block_time: Timestamp,
+    iterations: u128,
+    interval: &TimeInterval,
+) -> Duration {
+    let mut start_time = Utc
+        .timestamp_opt(block_time.seconds().try_into().unwrap(), 0)
+        .unwrap();
+
+    (0..iterations).fold(Duration::zero(), |acc, _| {
+        let duration = get_duration(start_time, interval);
+        start_time = start_time + duration;
+        acc + duration
+    })
+}
+
 fn get_duration(previous: DateTime<Utc>, interval: &TimeInterval) -> Duration {
     match interval {
         TimeInterval::HalfHourly => Duration::minutes(30),
@@ -125,7 +141,7 @@ mod tests {
         current_time: DateTime<Utc>,
         interval: TimeInterval,
         expected_next_execution_time: DateTime<Utc>,
-    ) -> () {
+    ) {
         let current_timestamp =
             Timestamp::from_seconds(current_time.timestamp().try_into().unwrap());
         let last_execution_timestamp =
@@ -147,7 +163,7 @@ mod tests {
         interval: &TimeInterval,
         last_execution_time: DateTime<Utc>,
         scenarios: Vec<(DateTime<Utc>, DateTime<Utc>)>,
-    ) -> () {
+    ) {
         for (current_time, expected_next_execution_time) in scenarios {
             assert_expected_next_execution_time(
                 last_execution_time.to_owned(),
@@ -507,5 +523,91 @@ mod tests {
         let result = get_next_time(current_time, &TimeInterval::Hourly);
 
         assert_eq!(result.timestamp(), expected_time.timestamp());
+    }
+}
+
+#[cfg(test)]
+mod get_total_execution_duration_tests {
+    use super::{get_total_execution_duration, shift_months};
+    use crate::triggers::trigger::TimeInterval;
+    use chrono::{Duration, TimeZone, Utc};
+    use cosmwasm_std::Timestamp;
+
+    fn assert_total_execution_duration(
+        block_time: Timestamp,
+        iterations: u128,
+        execution_interval: TimeInterval,
+        expected_duration: Duration,
+    ) {
+        let result = get_total_execution_duration(block_time, iterations, &execution_interval);
+        assert_eq!(result, expected_duration);
+    }
+
+    #[test]
+    fn get_total_execution_duration_tests() {
+        let block_time_utc = Utc.with_ymd_and_hms(2022, 10, 1, 10, 0, 0).unwrap();
+        let block_timestamp =
+            Timestamp::from_seconds(block_time_utc.timestamp().try_into().unwrap());
+
+        assert_total_execution_duration(
+            block_timestamp,
+            1,
+            TimeInterval::Hourly,
+            Duration::hours(1),
+        );
+        assert_total_execution_duration(
+            block_timestamp,
+            2,
+            TimeInterval::Hourly,
+            Duration::hours(2),
+        );
+        assert_total_execution_duration(
+            block_timestamp,
+            3,
+            TimeInterval::Hourly,
+            Duration::hours(3),
+        );
+
+        assert_total_execution_duration(block_timestamp, 1, TimeInterval::Daily, Duration::days(1));
+        assert_total_execution_duration(block_timestamp, 2, TimeInterval::Daily, Duration::days(2));
+        assert_total_execution_duration(block_timestamp, 3, TimeInterval::Daily, Duration::days(3));
+
+        assert_total_execution_duration(
+            block_timestamp,
+            1,
+            TimeInterval::Weekly,
+            Duration::weeks(1),
+        );
+        assert_total_execution_duration(
+            block_timestamp,
+            2,
+            TimeInterval::Weekly,
+            Duration::weeks(2),
+        );
+        assert_total_execution_duration(
+            block_timestamp,
+            3,
+            TimeInterval::Weekly,
+            Duration::weeks(3),
+        );
+
+        assert_total_execution_duration(
+            block_timestamp,
+            1,
+            TimeInterval::Monthly,
+            shift_months(block_time_utc, 1) - block_time_utc,
+        );
+        assert_total_execution_duration(
+            block_timestamp,
+            2,
+            TimeInterval::Monthly,
+            shift_months(block_time_utc, 2) - block_time_utc,
+        );
+        assert_total_execution_duration(
+            block_timestamp,
+            3,
+            TimeInterval::Monthly,
+            shift_months(block_time_utc, 3) - block_time_utc,
+        );
     }
 }

@@ -30,6 +30,7 @@ fn get_config_should_succeed() {
         staking_router_address: Addr::unchecked("staking-router"),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
     };
 
     let _instantiate_result = instantiate(

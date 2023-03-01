@@ -240,6 +240,17 @@ pub fn assert_fee_collector_allocations_add_up_to_one(
     Ok(())
 }
 
+pub fn assert_dca_plus_escrow_level_is_less_than_100_percent(
+    dca_plus_escrow_level: Decimal,
+) -> Result<(), ContractError> {
+    if dca_plus_escrow_level > Decimal::percent(100) {
+        return Err(ContractError::CustomError {
+            val: "dca_plus_escrow_level cannot be greater than 100%".to_string(),
+        });
+    }
+    Ok(())
+}
+
 pub fn assert_no_destination_allocations_are_zero(
     destinations: &[Destination],
 ) -> Result<(), ContractError> {

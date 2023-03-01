@@ -1,3 +1,26 @@
+use crate::{
+    constants::TEN,
+    contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID},
+    handlers::{
+        after_fin_swap::after_fin_swap, get_events_by_resource_id::get_events_by_resource_id,
+    },
+    helpers::vault_helpers::get_swap_amount,
+    state::{
+        cache::{SwapCache, SWAP_CACHE},
+        config::{create_custom_fee, get_config, FeeCollector},
+        swap_adjustments::update_swap_adjustments,
+        triggers::{delete_trigger, get_trigger, save_trigger},
+        vaults::get_vault,
+    },
+    tests::{
+        helpers::{
+            instantiate_contract, instantiate_contract_with_multiple_fee_collectors,
+            setup_active_dca_plus_vault_with_funds, setup_active_vault_with_funds,
+            setup_active_vault_with_low_funds, setup_active_vault_with_slippage_funds, setup_vault,
+        },
+        mocks::{ADMIN, DENOM_UKUJI},
+    },
+};
 use base::{
     events::event::{EventBuilder, EventData, ExecutionSkippedReason},
     helpers::{community_pool::create_fund_community_pool_msg, math_helpers::checked_mul},
@@ -6,33 +29,11 @@ use base::{
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult,
-    Timestamp, Uint128,
+    BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp,
+    Uint128,
 };
-use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
+use fin_helpers::{codes::ERROR_SWAP_SLIPPAGE_EXCEEDED, position_type::PositionType};
 use std::{cmp::min, str::FromStr};
-
-use crate::{
-    constants::TEN,
-    contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID},
-    handlers::{
-        after_fin_swap::after_fin_swap, get_events_by_resource_id::get_events_by_resource_id,
-    },
-    state::{
-        cache::{SwapCache, SWAP_CACHE},
-        config::{create_custom_fee, get_config, FeeCollector},
-        triggers::{delete_trigger, get_trigger, save_trigger},
-        vaults::get_vault,
-    },
-    tests::{
-        helpers::{
-            instantiate_contract, instantiate_contract_with_multiple_fee_collectors,
-            setup_active_vault_with_funds, setup_active_vault_with_low_funds,
-            setup_active_vault_with_slippage_funds, setup_vault,
-        },
-        mocks::{ADMIN, DENOM_UKUJI},
-    },
-};
 
 #[test]
 fn with_succcesful_swap_returns_funds_to_destination() {
@@ -252,25 +253,21 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
         )]
     })));
 
-    assert!(response
-        .messages
-        .contains(&SubMsg::new(create_fund_community_pool_msg(
-            env.contract.address.to_string(),
-            vec![Coin::new(
-                checked_mul(swap_fee, fee_allocation).unwrap().into(),
-                vault.get_receive_denom()
-            )]
-        ))));
+    assert!(response.messages.contains(&create_fund_community_pool_msg(
+        env.contract.address.to_string(),
+        vec![Coin::new(
+            checked_mul(swap_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
+    )));
 
-    assert!(response
-        .messages
-        .contains(&SubMsg::new(create_fund_community_pool_msg(
-            env.contract.address.to_string(),
-            vec![Coin::new(
-                checked_mul(automation_fee, fee_allocation).unwrap().into(),
-                vault.get_receive_denom()
-            )]
-        ))));
+    assert!(response.messages.contains(&create_fund_community_pool_msg(
+        env.contract.address.to_string(),
+        vec![Coin::new(
+            checked_mul(automation_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
+    )));
 }
 
 #[test]
@@ -314,7 +311,10 @@ fn with_succcesful_swap_adjusts_vault_balance() {
 
     assert_eq!(
         updated_vault.balance.amount,
-        vault.balance.amount - vault.get_swap_amount().amount
+        vault.balance.amount
+            - get_swap_amount(&deps.as_ref(), vault.clone())
+                .unwrap()
+                .amount
     );
 }
 
@@ -341,7 +341,11 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
         "cosmos2contract",
         vec![
             Coin::new(
-                (vault.balance.amount - vault.get_swap_amount().amount).into(),
+                (vault.balance.amount
+                    - get_swap_amount(&deps.as_ref(), vault.clone())
+                        .unwrap()
+                        .amount)
+                    .into(),
                 vault.get_swap_denom(),
             ),
             Coin::new(receive_amount.into(), vault.get_receive_denom()),
@@ -365,7 +369,9 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
 
     assert_eq!(
         updated_vault.swapped_amount.amount,
-        vault.get_swap_amount().amount
+        get_swap_amount(&deps.as_ref(), vault.clone())
+            .unwrap()
+            .amount
     );
 }
 
@@ -484,6 +490,7 @@ fn with_successful_swap_resulting_in_low_funds_sets_vault_to_inactive() {
         env.clone(),
         Coin::new(100000, DENOM_UKUJI),
         Uint128::new(60000),
+        false,
     );
 
     let receive_amount = Uint128::new(234312312);
@@ -532,6 +539,7 @@ fn with_successful_swap_resulting_in_low_funds_does_not_create_time_trigger() {
         env.clone(),
         Coin::new(100000, DENOM_UKUJI),
         Uint128::new(60000),
+        false,
     );
 
     let receive_amount = Uint128::new(234312312);
@@ -567,6 +575,183 @@ fn with_successful_swap_resulting_in_low_funds_does_not_create_time_trigger() {
     let vault = get_vault(&deps.storage, vault.id).unwrap();
 
     assert_eq!(vault.trigger, None);
+}
+
+#[test]
+fn with_succcesful_swap_with_dca_plus_escrows_funds() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
+    let receive_amount = Uint128::new(10000);
+
+    SWAP_CACHE
+        .save(
+            deps.as_mut().storage,
+            &SwapCache {
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+            },
+        )
+        .unwrap();
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+    );
+
+    update_swap_adjustments(
+        deps.as_mut().storage,
+        PositionType::Exit,
+        vec![
+            (30, Decimal::from_str("1.0").unwrap()),
+            (35, Decimal::from_str("1.0").unwrap()),
+            (40, Decimal::from_str("1.0").unwrap()),
+            (45, Decimal::from_str("1.0").unwrap()),
+            (50, Decimal::from_str("1.0").unwrap()),
+            (55, Decimal::from_str("1.0").unwrap()),
+            (60, Decimal::from_str("1.0").unwrap()),
+            (70, Decimal::from_str("1.0").unwrap()),
+            (80, Decimal::from_str("1.0").unwrap()),
+            (90, Decimal::from_str("1.0").unwrap()),
+        ],
+    )
+    .unwrap();
+
+    let response = after_fin_swap(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_SWAP_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
+
+    let fee = get_config(&deps.storage).unwrap().swap_fee_percent * receive_amount;
+    let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
+
+    let automation_fees = updated_vault
+        .destinations
+        .iter()
+        .filter(|d| d.action == PostExecutionAction::ZDelegate)
+        .fold(
+            Coin::new(0, updated_vault.get_receive_denom()),
+            |mut accum, destination| {
+                let allocation_amount =
+                    checked_mul(receive_amount - fee, destination.allocation).unwrap();
+                let allocation_automation_fee =
+                    checked_mul(allocation_amount, automation_fee).unwrap();
+                accum.amount = accum.amount.checked_add(allocation_automation_fee).unwrap();
+                accum
+            },
+        );
+
+    let amount_to_disburse = receive_amount - fee - automation_fees.amount;
+    let escrow_level = updated_vault.dca_plus_config.clone().unwrap().escrow_level;
+    let escrow_amount = escrow_level * amount_to_disburse;
+
+    assert_eq!(
+        escrow_amount,
+        updated_vault
+            .dca_plus_config
+            .clone()
+            .unwrap()
+            .escrowed_balance
+    );
+    assert!(response.messages.contains(&SubMsg::reply_on_success(
+        BankMsg::Send {
+            to_address: updated_vault
+                .destinations
+                .first()
+                .unwrap()
+                .address
+                .to_string(),
+            amount: vec![Coin::new(
+                (amount_to_disburse - escrow_amount).into(),
+                updated_vault.get_receive_denom(),
+            )],
+        },
+        AFTER_BANK_SWAP_REPLY_ID,
+    )));
+    assert_ne!(escrow_level, Decimal::zero());
+    assert_ne!(escrow_amount, Uint128::zero());
+}
+
+#[test]
+fn with_succcesful_swap_with_dca_plus_updates_standard_dca_amounts() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
+    let receive_amount = Uint128::new(10000);
+
+    SWAP_CACHE
+        .save(
+            deps.as_mut().storage,
+            &SwapCache {
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+            },
+        )
+        .unwrap();
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+    );
+
+    let coefficient = Decimal::from_str("1.3").unwrap();
+
+    update_swap_adjustments(
+        deps.as_mut().storage,
+        PositionType::Exit,
+        vec![
+            (30, coefficient),
+            (35, coefficient),
+            (40, coefficient),
+            (45, coefficient),
+            (50, coefficient),
+            (55, coefficient),
+            (60, coefficient),
+            (70, coefficient),
+            (80, coefficient),
+            (90, coefficient),
+        ],
+    )
+    .unwrap();
+
+    after_fin_swap(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_SWAP_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
+    let dca_plus_config = updated_vault.dca_plus_config.unwrap();
+
+    assert_eq!(
+        dca_plus_config.standard_dca_swapped_amount,
+        updated_vault.swapped_amount.amount * (Decimal::one() / coefficient)
+    );
+    assert_eq!(
+        dca_plus_config.standard_dca_received_amount,
+        updated_vault.received_amount.amount * (Decimal::one() / coefficient) - Uint128::one() // account for rounding
+    );
 }
 
 #[test]

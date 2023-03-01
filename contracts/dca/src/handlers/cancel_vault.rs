@@ -1,19 +1,19 @@
 use crate::contract::AFTER_FIN_LIMIT_ORDER_RETRACTED_REPLY_ID;
 use crate::error::ContractError;
+use crate::helpers::validation_helpers::{
+    assert_sender_is_admin_or_vault_owner, assert_vault_is_not_cancelled,
+};
 use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
 use crate::state::events::create_event;
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::vault::Vault;
-use crate::validation_helpers::{
-    assert_sender_is_admin_or_vault_owner, assert_vault_is_not_cancelled,
-};
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
-use cosmwasm_std::{Coin, CosmosMsg, Env, MessageInfo, StdError, StdResult};
+use cosmwasm_std::{Coin, CosmosMsg, Env, MessageInfo};
 use fin_helpers::limit_orders::create_retract_order_sub_msg;
 use fin_helpers::queries::query_order_details;
 
@@ -51,7 +51,7 @@ pub fn cancel_vault(
     }
 }
 
-fn refund_vault_balance(deps: DepsMut, vault: Vault) -> Result<Response, ContractError> {
+fn refund_vault_balance(deps: DepsMut, mut vault: Vault) -> Result<Response, ContractError> {
     let mut response = Response::new()
         .add_attribute("method", "cancel_vault")
         .add_attribute("owner", vault.owner.to_string())
@@ -64,22 +64,10 @@ fn refund_vault_balance(deps: DepsMut, vault: Vault) -> Result<Response, Contrac
         }))
     }
 
-    update_vault(
-        deps.storage,
-        vault.id.into(),
-        |existing_vault| -> StdResult<Vault> {
-            match existing_vault {
-                Some(mut existing_vault) => {
-                    existing_vault.status = VaultStatus::Cancelled;
-                    existing_vault.balance = Coin::new(0, existing_vault.get_swap_denom());
-                    Ok(existing_vault)
-                }
-                None => Err(StdError::NotFound {
-                    kind: format!("vault for address: {} with id: {}", vault.owner, vault.id),
-                }),
-            }
-        },
-    )?;
+    vault.status = VaultStatus::Cancelled;
+    vault.balance = Coin::new(0, vault.get_swap_denom());
+
+    update_vault(deps.storage, &vault)?;
 
     Ok(response)
 }

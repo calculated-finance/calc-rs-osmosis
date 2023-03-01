@@ -6,6 +6,7 @@ use crate::handlers::after_fin_limit_order_withdrawn_for_execute_trigger::after_
 use crate::handlers::after_fin_swap::after_fin_swap;
 use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
+use crate::handlers::claim_escrowed_funds::claim_escrowed_funds_handler;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
@@ -22,19 +23,16 @@ use crate::handlers::get_trigger_id_by_fin_limit_order_idx::get_trigger_id_by_fi
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults::get_vaults_handler;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
-use crate::handlers::migrate_fin_limit_order::{
-    after_fin_limit_order_submitted_for_migrate_trigger, migrate_price_trigger,
-};
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
-use crate::handlers::update_vault_label::update_vault_label;
+use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
+use crate::handlers::update_vault::update_vault_handler;
+use crate::helpers::validation_helpers::{
+    assert_dca_plus_escrow_level_is_less_than_100_percent,
+    assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
+};
 use crate::msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::config::{get_config, update_config, Config};
-use crate::state::fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP;
-use crate::validation_helpers::{
-    assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
-    assert_sender_is_admin,
-};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
@@ -55,20 +53,14 @@ pub const AFTER_FIN_LIMIT_ORDER_RETRACTED_FOR_MIGRATE_REPLY_ID: u64 = 8;
 pub const AFTER_FIN_LIMIT_ORDER_SUBMITTED_FOR_MIGRATE_REPLY_ID: u64 = 9;
 
 #[entry_point]
-pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
-    if FIN_LIMIT_ORDER_CHANGE_TIMESTAMP
-        .may_load(deps.storage)?
-        .is_none()
-    {
-        FIN_LIMIT_ORDER_CHANGE_TIMESTAMP.save(deps.storage, &env.block.time)?;
-    }
-
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     deps.api.addr_validate(&msg.admin.to_string())?;
     deps.api
         .addr_validate(&msg.staking_router_address.to_string())?;
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
+    assert_dca_plus_escrow_level_is_less_than_100_percent(msg.dca_plus_escrow_level)?;
 
     update_config(
         deps.storage,
@@ -80,6 +72,7 @@ pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, Con
             staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
             paused: msg.paused,
+            dca_plus_escrow_level: msg.dca_plus_escrow_level,
         },
     )?;
 
@@ -101,6 +94,7 @@ pub fn instantiate(
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
+    assert_dca_plus_escrow_level_is_less_than_100_percent(msg.dca_plus_escrow_level)?;
 
     update_config(
         deps.storage,
@@ -112,6 +106,7 @@ pub fn instantiate(
             staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
             paused: msg.paused,
+            dca_plus_escrow_level: msg.dca_plus_escrow_level,
         },
     )?;
 
@@ -148,6 +143,7 @@ pub fn execute(
             time_interval,
             target_start_time_utc_seconds,
             target_receive_amount,
+            use_dca_plus,
         } => create_vault(
             deps,
             env,
@@ -163,6 +159,7 @@ pub fn execute(
             time_interval,
             target_start_time_utc_seconds,
             target_receive_amount,
+            use_dca_plus,
         ),
         ExecuteMsg::CancelVault { vault_id } => cancel_vault(deps, env, info, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),
@@ -174,6 +171,7 @@ pub fn execute(
             staking_router_address,
             page_limit,
             paused,
+            dca_plus_escrow_level,
         } => update_config_handler(
             deps,
             info,
@@ -183,26 +181,24 @@ pub fn execute(
             staking_router_address,
             page_limit,
             paused,
+            dca_plus_escrow_level,
         ),
         ExecuteMsg::UpdateVault {
-            address,
+            address: _,
             vault_id,
             label,
-        } => update_vault_label(deps, info, address, vault_id, label),
+        } => update_vault_handler(deps, info, vault_id, label),
         ExecuteMsg::CreateCustomSwapFee {
             denom,
             swap_fee_percent,
         } => create_custom_swap_fee(deps, info, denom, swap_fee_percent),
         ExecuteMsg::RemoveCustomSwapFee { denom } => remove_custom_swap_fee(deps, info, denom),
-        ExecuteMsg::SetFinLimitOrderTimestamp {} => {
-            assert_sender_is_admin(deps.storage, info.sender)?;
-            FIN_LIMIT_ORDER_CHANGE_TIMESTAMP.save(deps.storage, &env.block.time)?;
-            Ok(Response::new()
-                .add_attribute("fin_limit_order_timestamp", &env.block.time.to_string()))
-        }
-        ExecuteMsg::MigratePriceTrigger { vault_id } => {
-            assert_sender_is_admin(deps.storage, info.sender)?;
-            migrate_price_trigger(deps, vault_id)
+        ExecuteMsg::UpdateSwapAdjustments {
+            position_type,
+            adjustments,
+        } => update_swap_adjustments_handler(deps, position_type, adjustments),
+        ExecuteMsg::ClaimEscrowedFunds { vault_id } => {
+            claim_escrowed_funds_handler(deps, env, info, vault_id)
         }
     }
 }
@@ -226,9 +222,6 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
         AFTER_FIN_LIMIT_ORDER_RETRACTED_FOR_MIGRATE_REPLY_ID => {
             Ok(Response::new()
                 .add_attribute("method", "after_fin_limit_order_retracted_for_migrate"))
-        }
-        AFTER_FIN_LIMIT_ORDER_SUBMITTED_FOR_MIGRATE_REPLY_ID => {
-            after_fin_limit_order_submitted_for_migrate_trigger(deps, reply)
         }
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),

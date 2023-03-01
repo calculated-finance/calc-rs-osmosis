@@ -41,6 +41,7 @@ fn should_succeed() {
                 time_interval: TimeInterval::Daily,
                 target_receive_amount: None,
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -102,6 +103,7 @@ fn cancelled_vault_should_fail() {
                 time_interval: TimeInterval::Daily,
                 target_receive_amount: None,
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )

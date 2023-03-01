@@ -1,10 +1,10 @@
-use super::vault::Vault;
+use super::{dca_plus_config::DCAPlusConfig, vault::Vault};
 use base::{
     pair::Pair,
     triggers::trigger::TimeInterval,
     vaults::vault::{Destination, VaultStatus},
 };
-use cosmwasm_std::{coin, Addr, Coin, Decimal256, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal256, Timestamp, Uint128};
 use fin_helpers::position_type::PositionType;
 
 pub struct VaultBuilder {
@@ -21,6 +21,9 @@ pub struct VaultBuilder {
     pub minimum_receive_amount: Option<Uint128>,
     pub time_interval: TimeInterval,
     pub started_at: Option<Timestamp>,
+    pub swapped_amount: Coin,
+    pub received_amount: Coin,
+    pub dca_plus_config: Option<DCAPlusConfig>,
 }
 
 impl VaultBuilder {
@@ -38,6 +41,9 @@ impl VaultBuilder {
         minimum_receive_amount: Option<Uint128>,
         time_interval: TimeInterval,
         started_at: Option<Timestamp>,
+        swapped_amount: Coin,
+        received_amount: Coin,
+        dca_plus_config: Option<DCAPlusConfig>,
     ) -> VaultBuilder {
         VaultBuilder {
             created_at,
@@ -53,6 +59,9 @@ impl VaultBuilder {
             minimum_receive_amount,
             time_interval,
             started_at,
+            swapped_amount,
+            received_amount,
+            dca_plus_config,
         }
     }
 
@@ -71,15 +80,10 @@ impl VaultBuilder {
             minimum_receive_amount: self.minimum_receive_amount,
             time_interval: self.time_interval,
             started_at: self.started_at,
-            swapped_amount: coin(0, self.balance.denom.clone()),
-            received_amount: coin(
-                0,
-                match self.balance.denom == self.pair.quote_denom {
-                    true => self.pair.base_denom,
-                    false => self.pair.quote_denom,
-                },
-            ),
+            swapped_amount: self.swapped_amount,
+            received_amount: self.received_amount,
             trigger: None,
+            dca_plus_config: self.dca_plus_config,
         }
     }
 }

@@ -3,7 +3,10 @@ use std::str::FromStr;
 use cosmwasm_std::{Addr, Decimal};
 use cw_multi_test::Executor;
 
-use crate::{msg::ExecuteMsg, state::config::FeeCollector};
+use crate::{
+    msg::{ConfigResponse, ExecuteMsg, QueryMsg},
+    state::config::FeeCollector,
+};
 
 use super::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN};
 
@@ -25,6 +28,7 @@ fn update_fee_percent_with_valid_value_should_succeed() {
                 staking_router_address: None,
                 page_limit: None,
                 paused: None,
+                dca_plus_escrow_level: None,
             },
             &[],
         )
@@ -50,6 +54,7 @@ fn update_swap_fee_percent_more_than_100_percent_should_fail() {
                 staking_router_address: None,
                 page_limit: None,
                 paused: None,
+                dca_plus_escrow_level: None,
             },
             &[],
         )
@@ -76,6 +81,7 @@ fn update_fee_collectors_with_no_value_should_succeed() {
                 staking_router_address: None,
                 page_limit: None,
                 paused: None,
+                dca_plus_escrow_level: None,
             },
             &[],
         )
@@ -106,6 +112,7 @@ fn update_fee_collectors_with_valid_value_should_succeed() {
                 staking_router_address: None,
                 page_limit: None,
                 paused: None,
+                dca_plus_escrow_level: None,
             },
             &[],
         )
@@ -137,6 +144,7 @@ fn update_fee_collectors_with_total_allocations_more_than_100_percent_should_fai
                 staking_router_address: None,
                 page_limit: None,
                 paused: None,
+                dca_plus_escrow_level: None,
             },
             &[],
         )
@@ -145,5 +153,69 @@ fn update_fee_collectors_with_total_allocations_more_than_100_percent_should_fai
     assert_eq!(
         error.root_cause().to_string(),
         "Error: fee collector allocations must add up to 1"
+    )
+}
+
+#[test]
+fn update_dca_plus_escrow_level_with_valid_value_should_succeed() {
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order());
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::UpdateConfig {
+                fee_collectors: None,
+                swap_fee_percent: None,
+                delegation_fee_percent: None,
+                staking_router_address: None,
+                page_limit: None,
+                paused: None,
+                dca_plus_escrow_level: Some(Decimal::percent(19)),
+            },
+            &[],
+        )
+        .unwrap();
+
+    let config_response = mock
+        .app
+        .wrap()
+        .query_wasm_smart::<ConfigResponse>(
+            mock.dca_contract_address.clone(),
+            &QueryMsg::GetConfig {},
+        )
+        .unwrap();
+
+    assert_eq!(
+        config_response.config.dca_plus_escrow_level,
+        Decimal::percent(19)
+    );
+}
+
+#[test]
+fn update_dca_plus_escrow_level_more_than_100_percent_should_fail() {
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order());
+
+    let error = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::UpdateConfig {
+                fee_collectors: None,
+                swap_fee_percent: None,
+                delegation_fee_percent: None,
+                staking_router_address: None,
+                page_limit: None,
+                paused: None,
+                dca_plus_escrow_level: Some(Decimal::percent(150)),
+            },
+            &[],
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        error.root_cause().to_string(),
+        "Error: dca_plus_escrow_level cannot be greater than 100%"
     )
 }

@@ -24,10 +24,15 @@ export type Decimal = string;
 
 export interface InstantiateMsg {
   admin: Addr;
+  dca_plus_escrow_level: Decimal;
   delegation_fee_percent: Decimal;
-  fee_collector: Addr;
+  fee_collectors: FeeCollector[];
   page_limit: number;
   paused: boolean;
   staking_router_address: Addr;
   swap_fee_percent: Decimal;
+}
+export interface FeeCollector {
+  address: string;
+  allocation: Decimal;
 }

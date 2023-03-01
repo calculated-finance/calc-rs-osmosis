@@ -1,6 +1,6 @@
 use crate::{
-    error::ContractError, state::config::create_custom_fee,
-    validation_helpers::assert_sender_is_admin,
+    error::ContractError, helpers::validation_helpers::assert_sender_is_admin,
+    state::config::create_custom_fee,
 };
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::Response;

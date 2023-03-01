@@ -1,15 +1,7 @@
 use crate::constants::TWO_MICRONS;
 use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
-use crate::state::cache::{Cache, CACHE};
-use crate::state::events::create_event;
-use crate::state::fin_limit_order_change_timestamp::FIN_LIMIT_ORDER_CHANGE_TIMESTAMP;
-use crate::state::pairs::PAIRS;
-use crate::state::triggers::save_trigger;
-use crate::state::vaults::{save_vault, update_vault};
-use crate::types::vault::Vault;
-use crate::types::vault_builder::VaultBuilder;
-use crate::validation_helpers::{
+use crate::helpers::validation_helpers::{
     assert_address_is_valid, assert_contract_is_not_paused, assert_delegation_denom_is_stakeable,
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
     assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
@@ -17,10 +9,20 @@ use crate::validation_helpers::{
     assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_greater_than_50000,
     assert_target_start_time_is_in_future,
 };
+use crate::helpers::vault_helpers::get_dca_plus_model_id;
+use crate::state::cache::{Cache, CACHE};
+use crate::state::config::get_config;
+use crate::state::events::create_event;
+use crate::state::pairs::PAIRS;
+use crate::state::triggers::save_trigger;
+use crate::state::vaults::{save_vault, update_vault};
+use crate::types::dca_plus_config::DCAPlusConfig;
+use crate::types::vault::Vault;
+use crate::types::vault_builder::VaultBuilder;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, StdError};
+use cosmwasm_std::{coin, Addr, Coin, Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_submit_order_sub_msg;
@@ -44,6 +46,7 @@ pub fn create_vault(
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
     target_receive_amount: Option<Uint128>,
+    use_dca_plus: Option<bool>,
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
     assert_address_is_valid(deps.as_ref(), owner.clone(), "owner".to_string())?;
@@ -86,6 +89,26 @@ pub fn create_vault(
 
     assert_delegation_denom_is_stakeable(&destinations, receive_denom)?;
 
+    let config = get_config(deps.storage)?;
+
+    let dca_plus_config = use_dca_plus.map_or(None, |use_dca_plus| {
+        if !use_dca_plus {
+            return None;
+        }
+        Some(DCAPlusConfig {
+            escrow_level: config.dca_plus_escrow_level,
+            model_id: get_dca_plus_model_id(
+                &env.block.time,
+                &info.funds[0],
+                &swap_amount,
+                &time_interval,
+            ),
+            escrowed_balance: Uint128::zero(),
+            standard_dca_swapped_amount: Uint128::zero(),
+            standard_dca_received_amount: Uint128::zero(),
+        })
+    });
+
     let vault_builder = VaultBuilder {
         owner,
         label,
@@ -96,7 +119,7 @@ pub fn create_vault(
         } else {
             VaultStatus::Scheduled
         },
-        pair,
+        pair: pair.clone(),
         swap_amount,
         position_type,
         slippage_tolerance,
@@ -104,6 +127,15 @@ pub fn create_vault(
         balance: info.funds[0].clone(),
         time_interval: time_interval.clone(),
         started_at: None,
+        swapped_amount: coin(0, info.funds[0].clone().denom.clone()),
+        received_amount: coin(
+            0,
+            match info.funds[0].clone().denom == pair.quote_denom {
+                true => pair.base_denom,
+                false => pair.quote_denom,
+            },
+        ),
+        dca_plus_config,
     };
 
     let vault = save_vault(deps.storage, vault_builder)?;
@@ -196,7 +228,7 @@ fn create_time_trigger(
 
 fn create_fin_limit_order_trigger(
     deps: DepsMut,
-    vault: Vault,
+    mut vault: Vault,
     target_receive_amount: Uint128,
     response: Response,
 ) -> Result<Response, ContractError> {
@@ -219,31 +251,13 @@ fn create_fin_limit_order_trigger(
         },
     )?;
 
-    let fin_limit_order_change_timestamp =
-        FIN_LIMIT_ORDER_CHANGE_TIMESTAMP.may_load(deps.storage)?;
-
-    let is_new_fin_limit_order = fin_limit_order_change_timestamp.is_some();
-
-    if is_new_fin_limit_order {
-        update_vault(deps.storage, vault.id, |stored_vault| match stored_vault {
-            Some(mut stored_vault) => {
-                stored_vault.balance.amount -= TWO_MICRONS;
-                Ok(stored_vault)
-            }
-            None => Err(StdError::GenericErr {
-                msg: format!("Vault ({}) not found", vault.id).to_string(),
-            }),
-        })?;
-    }
+    vault.balance.amount -= TWO_MICRONS;
+    update_vault(deps.storage, &vault)?;
 
     let fin_limit_order_sub_msg = create_submit_order_sub_msg(
         vault.pair.address.clone(),
         target_price,
-        if is_new_fin_limit_order {
-            Coin::new(TWO_MICRONS.into(), vault.get_swap_denom())
-        } else {
-            vault.get_swap_amount()
-        },
+        Coin::new(TWO_MICRONS.into(), vault.get_swap_denom()),
         AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID,
     );
 

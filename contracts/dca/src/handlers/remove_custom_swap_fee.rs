@@ -1,4 +1,4 @@
-use crate::validation_helpers::assert_sender_is_admin;
+use crate::helpers::validation_helpers::assert_sender_is_admin;
 use crate::{error::ContractError, state::config::remove_custom_fee};
 use cosmwasm_std::DepsMut;
 #[cfg(not(feature = "library"))]

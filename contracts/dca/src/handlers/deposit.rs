@@ -1,17 +1,16 @@
 use crate::error::ContractError;
-use crate::state::events::create_event;
-use crate::state::triggers::save_trigger;
-use crate::state::vaults::{get_vault, update_vault};
-use crate::types::vault::Vault;
-use crate::validation_helpers::{
+use crate::helpers::validation_helpers::{
     assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
     assert_exactly_one_asset, assert_vault_is_not_cancelled,
 };
+use crate::helpers::vault_helpers::has_sufficient_funds;
+use crate::state::events::create_event;
+use crate::state::triggers::save_trigger;
+use crate::state::vaults::{get_vault, update_vault};
 use base::events::event::{EventBuilder, EventData};
-
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Env, StdError, StdResult};
+use cosmwasm_std::{Addr, Env};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
 
@@ -28,7 +27,7 @@ pub fn deposit(
     deps.api.addr_validate(address.as_str())?;
     assert_exactly_one_asset(info.funds.clone())?;
 
-    let vault = get_vault(deps.storage, vault_id.into())?;
+    let mut vault = get_vault(deps.storage, vault_id.into())?;
     let vault_was_inactive = vault.is_inactive();
 
     if address != vault.owner {
@@ -41,30 +40,18 @@ pub fn deposit(
     }
 
     assert_vault_is_not_cancelled(&vault)?;
-    assert_deposited_denom_matches_send_denom(info.funds[0].denom.clone(), vault.balance.denom)?;
-
-    update_vault(
-        deps.storage,
-        vault.id.into(),
-        |existing_vault| -> StdResult<Vault> {
-            match existing_vault {
-                Some(mut existing_vault) => {
-                    existing_vault.balance.amount += info.funds[0].amount;
-                    if !existing_vault.is_scheduled() && existing_vault.has_sufficient_funds() {
-                        existing_vault.status = VaultStatus::Active
-                    }
-                    Ok(existing_vault)
-                }
-                None => Err(StdError::NotFound {
-                    kind: format!(
-                        "vault for address: {} with id: {}",
-                        vault.owner.clone(),
-                        vault.id
-                    ),
-                }),
-            }
-        },
+    assert_deposited_denom_matches_send_denom(
+        info.funds[0].denom.clone(),
+        vault.clone().balance.denom,
     )?;
+
+    vault.balance.amount += info.funds[0].amount;
+
+    if !vault.is_scheduled() && has_sufficient_funds(&deps.as_ref(), vault.clone())? {
+        vault.status = VaultStatus::Active
+    }
+
+    update_vault(deps.storage, &vault)?;
 
     create_event(
         deps.storage,

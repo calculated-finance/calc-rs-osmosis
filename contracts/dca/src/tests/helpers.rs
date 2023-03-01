@@ -12,7 +12,7 @@ use crate::{
         triggers::save_trigger,
         vaults::save_vault,
     },
-    types::{vault::Vault, vault_builder::VaultBuilder},
+    types::{dca_plus_config::DCAPlusConfig, vault::Vault, vault_builder::VaultBuilder},
 };
 use base::{
     events::event::Event,
@@ -34,6 +34,7 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -55,6 +56,7 @@ pub fn instantiate_contract_with_community_pool_fee_collector(
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -74,12 +76,19 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
         staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,
+        dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
 }
 
-pub fn setup_vault(deps: DepsMut, env: Env, balance: Coin, swap_amount: Uint128) -> Vault {
+pub fn setup_vault(
+    deps: DepsMut,
+    env: Env,
+    balance: Coin,
+    swap_amount: Uint128,
+    is_dca_plus: bool,
+) -> Vault {
     let pair = Pair {
         address: Addr::unchecked("pair"),
         base_denom: "base".to_string(),
@@ -112,6 +121,25 @@ pub fn setup_vault(deps: DepsMut, env: Env, balance: Coin, swap_amount: Uint128)
             balance,
             time_interval: TimeInterval::Daily,
             started_at: None,
+            swapped_amount: Coin {
+                denom: "quote".to_string(),
+                amount: Uint128::new(0),
+            },
+            received_amount: Coin {
+                denom: "base".to_string(),
+                amount: Uint128::new(0),
+            },
+            dca_plus_config: if is_dca_plus {
+                Some(DCAPlusConfig {
+                    escrow_level: Decimal::percent(5),
+                    model_id: 30,
+                    escrowed_balance: Uint128::zero(),
+                    standard_dca_swapped_amount: Uint128::zero(),
+                    standard_dca_received_amount: Uint128::zero(),
+                })
+            } else {
+                None
+            },
         },
     )
     .unwrap();
@@ -141,7 +169,11 @@ pub fn setup_vault(deps: DepsMut, env: Env, balance: Coin, swap_amount: Uint128)
 }
 
 pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, Coin::new(TEN.into(), "base"), ONE)
+    setup_vault(deps, env, Coin::new(TEN.into(), "base"), ONE, false)
+}
+
+pub fn setup_active_dca_plus_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
+    setup_vault(deps, env, Coin::new(TEN.into(), "base"), ONE, true)
 }
 
 pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault {
@@ -150,6 +182,7 @@ pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault 
         env,
         Coin::new(Uint128::new(500000).into(), "base"),
         Uint128::new(500000),
+        false,
     )
 }
 
@@ -159,6 +192,7 @@ pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
         env,
         Coin::new(Uint128::new(10).into(), "base"),
         Uint128::new(100),
+        false,
     )
 }
 

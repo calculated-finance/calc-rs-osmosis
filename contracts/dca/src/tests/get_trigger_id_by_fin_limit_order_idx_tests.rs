@@ -39,6 +39,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )

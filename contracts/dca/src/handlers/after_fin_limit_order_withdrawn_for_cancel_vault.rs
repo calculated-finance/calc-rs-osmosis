@@ -5,12 +5,11 @@ use crate::{
         triggers::delete_trigger,
         vaults::{get_vault, update_vault},
     },
-    types::vault::Vault,
 };
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, Coin, DepsMut, Env, Reply, Response};
-use cosmwasm_std::{CosmosMsg, StdError, StdResult, SubMsgResult, Uint128};
+use cosmwasm_std::{CosmosMsg, SubMsgResult, Uint128};
 
 pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
     deps: DepsMut,
@@ -18,7 +17,7 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
     reply: Reply,
 ) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
-    let vault = get_vault(deps.storage, cache.vault_id.into())?;
+    let mut vault = get_vault(deps.storage, cache.vault_id.into())?;
     match reply.result {
         SubMsgResult::Ok(_) => {
             let limit_order_cache = LIMIT_ORDER_CACHE.load(deps.storage)?;
@@ -47,25 +46,10 @@ pub fn after_fin_limit_order_withdrawn_for_cancel_vault(
                 }));
             }
 
-            update_vault(
-                deps.storage,
-                vault.id.into(),
-                |existing_vault| -> StdResult<Vault> {
-                    match existing_vault {
-                        Some(mut existing_vault) => {
-                            existing_vault.status = VaultStatus::Cancelled;
-                            existing_vault.balance = Coin::new(0, existing_vault.get_swap_denom());
-                            Ok(existing_vault)
-                        }
-                        None => Err(StdError::NotFound {
-                            kind: format!(
-                                "vault for address: {} with id: {}",
-                                vault.owner, vault.id
-                            ),
-                        }),
-                    }
-                },
-            )?;
+            vault.status = VaultStatus::Cancelled;
+            vault.balance = Coin::new(0, vault.get_swap_denom());
+
+            update_vault(deps.storage, &vault)?;
 
             delete_trigger(deps.storage, vault.id.into())?;
 

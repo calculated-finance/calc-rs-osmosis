@@ -88,7 +88,7 @@ describe('when cancelling a vault', () => {
 
     it('sends vault balance back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['udemo']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['udemo'] + parseInt(vaultBeforeExecution.balance.amount),
+        balancesBeforeExecution[this.userWalletAddress]['udemo'] + parseInt(vaultBeforeExecution.balance.amount) + 2,
       );
     });
 

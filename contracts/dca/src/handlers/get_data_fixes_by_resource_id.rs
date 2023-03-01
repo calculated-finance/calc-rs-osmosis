@@ -1,6 +1,6 @@
+use crate::helpers::validation_helpers::assert_page_limit_is_valid;
 use crate::msg::DataFixesResponse;
 use crate::state::data_fixes::{data_fix_store, DataFix};
-use crate::validation_helpers::assert_page_limit_is_valid;
 use cosmwasm_std::{from_binary, Deps, Order, StdResult, Uint128};
 use cw_storage_plus::Bound;
 

@@ -1,3 +1,4 @@
+use super::dca_plus_config::DCAPlusConfig;
 use base::{
     pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
@@ -27,6 +28,7 @@ pub struct Vault {
     pub swapped_amount: Coin,
     pub received_amount: Coin,
     pub trigger: Option<TriggerConfiguration>,
+    pub dca_plus_config: Option<DCAPlusConfig>,
 }
 
 impl Vault {
@@ -48,14 +50,8 @@ impl Vault {
         self.pair.quote_denom.clone()
     }
 
-    pub fn get_swap_amount(&self) -> Coin {
-        Coin {
-            denom: self.get_swap_denom(),
-            amount: match self.low_funds() {
-                true => self.balance.amount,
-                false => self.swap_amount,
-            },
-        }
+    pub fn get_total_deposit_amount(&self) -> Uint128 {
+        self.balance.amount + self.swapped_amount.amount
     }
 
     pub fn get_target_price(
@@ -113,11 +109,7 @@ impl Vault {
         false
     }
 
-    pub fn has_sufficient_funds(&self) -> bool {
-        self.get_swap_amount().amount > Uint128::from(50000u128)
-    }
-
-    pub fn low_funds(&self) -> bool {
+    pub fn has_low_funds(&self) -> bool {
         self.balance.amount < self.swap_amount
     }
 
@@ -136,56 +128,75 @@ impl Vault {
 
 #[cfg(test)]
 mod has_sufficient_funds_tests {
+    use crate::{
+        helpers::vault_helpers::has_sufficient_funds, state::vaults::save_vault,
+        types::vault_builder::VaultBuilder,
+    };
+
     use super::*;
-    use cosmwasm_std::coin;
+    use cosmwasm_std::{coin, testing::mock_dependencies};
 
     #[test]
     fn should_return_false_when_vault_has_insufficient_swap_amount() {
-        let vault = vault_with(100000, Uint128::new(50000));
-        assert!(!vault.has_sufficient_funds());
+        let mut deps = mock_dependencies();
+        let vault_builder = vault_with(100000, Uint128::new(50000));
+        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
+        assert!(!has_sufficient_funds(&deps.as_ref(), vault).unwrap());
     }
 
     #[test]
     fn should_return_false_when_vault_has_insufficient_balance() {
-        let vault = vault_with(50000, Uint128::new(50001));
-        assert!(!vault.has_sufficient_funds());
+        let mut deps = mock_dependencies();
+        let vault_builder = vault_with(50000, Uint128::new(50001));
+        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
+        assert!(!has_sufficient_funds(&deps.as_ref(), vault).unwrap());
     }
 
     #[test]
     fn should_return_true_when_vault_has_sufficient_swap_amount() {
-        let vault = vault_with(100000, Uint128::new(50001));
-        assert!(vault.has_sufficient_funds());
+        let mut deps = mock_dependencies();
+        let vault_builder = vault_with(100000, Uint128::new(50001));
+        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
+        assert!(has_sufficient_funds(&deps.as_ref(), vault).unwrap());
     }
 
     #[test]
     fn should_return_true_when_vault_has_sufficient_balance() {
-        let vault = vault_with(50001, Uint128::new(50002));
-        assert!(vault.has_sufficient_funds());
+        let mut deps = mock_dependencies();
+        let vault_builder = vault_with(50001, Uint128::new(50002));
+        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
+        assert!(has_sufficient_funds(&deps.as_ref(), vault).unwrap());
     }
 
-    fn vault_with(balance: u128, swap_amount: Uint128) -> Vault {
-        Vault {
-            id: Uint128::new(1),
-            created_at: Timestamp::from_seconds(0),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: coin(balance, "quote"),
-            pair: Pair {
+    fn vault_with(balance: u128, swap_amount: Uint128) -> VaultBuilder {
+        VaultBuilder::new(
+            Timestamp::from_seconds(0),
+            Addr::unchecked("owner"),
+            None,
+            vec![],
+            VaultStatus::Active,
+            coin(balance, "quote"),
+            Pair {
                 address: Addr::unchecked("pair"),
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
             swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: coin(0, "quote"),
-            received_amount: coin(0, "base"),
-            trigger: None,
-        }
+            None,
+            None,
+            None,
+            TimeInterval::Daily,
+            None,
+            Coin {
+                denom: "quote".to_string(),
+                amount: Uint128::new(0),
+            },
+            Coin {
+                denom: "base".to_string(),
+                amount: Uint128::new(0),
+            },
+            None,
+        )
     }
 }
 
@@ -299,6 +310,7 @@ mod price_threshold_exceeded_tests {
                 },
             ),
             trigger: None,
+            dca_plus_config: None,
         }
     }
 }
@@ -386,46 +398,6 @@ mod get_target_price_tests {
         );
     }
 
-    // #[test]
-    // fn for_fin_buy_with_negative_decimal_delta_should_truncate() {
-    //     let position_type = PositionType::Enter;
-    //     let swap_amount = Uint128::new(1);
-    //     let target_receive_amount = Uint128::new(1000);
-    //     let decimal_delta = -6;
-    //     let precision = Precision::DecimalPlaces(2);
-    //     let vault = vault_with(swap_amount, position_type);
-    //     assert_eq!(
-    //         Decimal256::from_ratio(swap_amount, target_receive_amount).to_string(),
-    //         "0.001"
-    //     );
-    //     assert_eq!(
-    //         vault
-    //             .get_target_price(target_receive_amount, decimal_delta, precision)
-    //             .to_string(),
-    //         "0"
-    //     );
-    // }
-
-    // #[test]
-    // fn for_fin_sell_with_negative_decimal_delta_should_truncate() {
-    //     let position_type = PositionType::Exit;
-    //     let swap_amount = Uint128::new(1);
-    //     let target_receive_amount = Uint128::new(1000);
-    //     let decimal_delta = -6;
-    //     let precision = Precision::DecimalPlaces(2);
-    //     let vault = vault_with(swap_amount, position_type);
-    //     assert_eq!(
-    //         Decimal256::from_ratio(swap_amount, target_receive_amount).to_string(),
-    //         "0.001"
-    //     );
-    //     assert_eq!(
-    //         vault
-    //             .get_target_price(target_receive_amount, decimal_delta, precision)
-    //             .to_string(),
-    //         "0"
-    //     );
-    // }
-
     fn vault_with(swap_amount: Uint128, position_type: PositionType) -> Vault {
         Vault {
             id: Uint128::new(1),
@@ -466,6 +438,7 @@ mod get_target_price_tests {
                 },
             ),
             trigger: None,
+            dca_plus_config: None,
         }
     }
 }

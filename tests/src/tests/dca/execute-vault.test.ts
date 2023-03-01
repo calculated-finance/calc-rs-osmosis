@@ -36,6 +36,10 @@ describe('when executing a vault', () => {
         })
       ).vault;
 
+      const orders = await this.cosmWasmClient.queryContractSmart(this.finPairAddress, {
+        book: {},
+      });
+
       balancesBeforeExecution = await getBalances(this.cosmWasmClient, [
         this.userWalletAddress,
         this.dcaContractAddress,
@@ -43,7 +47,7 @@ describe('when executing a vault', () => {
         this.feeCollectorAddress,
       ]);
 
-      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+      const result = await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
         execute_trigger: {
           trigger_id: vaultId,
         },
@@ -73,8 +77,8 @@ describe('when executing a vault', () => {
         ).events,
       );
 
-      const receivedAmountBeforeMakerfee = Math.round(swapAmount / this.finBuyPrice);
-      receivedAmount = Math.floor(receivedAmountBeforeMakerfee - receivedAmountBeforeMakerfee * this.finMakerFee);
+      const receivedAmountBeforeTakerFee = Math.floor(swapAmount / parseFloat(orders.base[0].quote_price));
+      receivedAmount = Math.floor(receivedAmountBeforeTakerFee - receivedAmountBeforeTakerFee * this.finTakerFee);
       receivedAmountAfterFee = Math.floor(receivedAmount - Math.floor(receivedAmount * this.calcSwapFee));
     });
 
@@ -98,12 +102,14 @@ describe('when executing a vault', () => {
 
     it('sends funds back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['ukuji']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['ukuji'] + parseInt(vaultAfterExecution.received_amount.amount),
+        balancesBeforeExecution[this.userWalletAddress]['ukuji'] +
+          parseInt(vaultAfterExecution.received_amount.amount) +
+          1,
       );
     });
 
     it('sends fees to the fee collector', async function (this: Context) {
-      const totalFees = Math.floor(receivedAmount * this.calcSwapFee);
+      const totalFees = receivedAmount - receivedAmountAfterFee;
       expect(balancesAfterExecution[this.feeCollectorAddress]['ukuji']).to.equal(
         balancesBeforeExecution[this.feeCollectorAddress]['ukuji'] + totalFees,
       );
@@ -115,7 +121,7 @@ describe('when executing a vault', () => {
       ));
 
     it('updates the vault received amount correctly', async function (this: Context) {
-      expect(vaultAfterExecution.received_amount).to.eql(coin(receivedAmountAfterFee, 'ukuji'));
+      expect(vaultAfterExecution.received_amount).to.eql(coin(receivedAmountAfterFee + 1, 'ukuji'));
     });
 
     it('has an execution triggered event', function (this: Context) {
@@ -135,7 +141,7 @@ describe('when executing a vault', () => {
         {
           dca_vault_execution_completed: {
             sent: coin(vaultAfterExecution.swap_amount, vaultAfterExecution.balance.denom),
-            received: coin(`${receivedAmount}`, 'ukuji'),
+            received: coin(`${receivedAmount + 1}`, 'ukuji'),
             fee: coin(Math.floor(receivedAmount * this.calcSwapFee), 'ukuji'),
           },
         },

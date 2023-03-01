@@ -8,6 +8,7 @@ use fin_helpers::position_type::PositionType;
 
 use crate::state::config::{Config, FeeCollector};
 use crate::state::data_fixes::DataFix;
+
 use crate::types::vault::Vault;
 
 #[cw_serde]
@@ -19,6 +20,7 @@ pub struct InstantiateMsg {
     pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
+    pub dca_plus_escrow_level: Decimal,
 }
 
 #[cw_serde]
@@ -30,6 +32,7 @@ pub struct MigrateMsg {
     pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
+    pub dca_plus_escrow_level: Decimal,
 }
 
 #[cw_serde]
@@ -54,6 +57,7 @@ pub enum ExecuteMsg {
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
         target_receive_amount: Option<Uint128>,
+        use_dca_plus: Option<bool>,
     },
     Deposit {
         address: Addr,
@@ -72,6 +76,7 @@ pub enum ExecuteMsg {
         staking_router_address: Option<Addr>,
         page_limit: Option<u16>,
         paused: Option<bool>,
+        dca_plus_escrow_level: Option<Decimal>,
     },
     UpdateVault {
         address: Addr,
@@ -85,8 +90,11 @@ pub enum ExecuteMsg {
     RemoveCustomSwapFee {
         denom: String,
     },
-    SetFinLimitOrderTimestamp {},
-    MigratePriceTrigger {
+    UpdateSwapAdjustments {
+        position_type: PositionType,
+        adjustments: Vec<(u8, Decimal)>,
+    },
+    ClaimEscrowedFunds {
         vault_id: Uint128,
     },
 }

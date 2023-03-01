@@ -1,4 +1,4 @@
-use crate::constants::{ONE, ONE_THOUSAND, TEN};
+use crate::constants::{ONE, ONE_THOUSAND, TEN, TWO_MICRONS};
 use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
 use crate::state::config::FeeCollector;
 use crate::tests::helpers::{
@@ -7,6 +7,7 @@ use crate::tests::helpers::{
 use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
+use crate::types::dca_plus_config::DCAPlusConfig;
 use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::math_helpers::checked_mul;
@@ -60,6 +61,7 @@ fn with_price_trigger_should_update_address_balances() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string())],
         )
@@ -73,13 +75,13 @@ fn with_price_trigger_should_update_address_balances() {
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + user_balance - swap_amount,
+                ONE_THOUSAND + user_balance - TWO_MICRONS,
             ),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (
                 &mock.fin_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + swap_amount,
+                ONE_THOUSAND + TWO_MICRONS,
             ),
             (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
         ],
@@ -127,6 +129,7 @@ fn with_price_trigger_should_create_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -146,7 +149,7 @@ fn with_price_trigger_should_create_vault() {
     assert_eq!(vault_response.vault.id, Uint128::one());
     assert_eq!(
         vault_response.vault.balance,
-        Coin::new(vault_deposit.into(), DENOM_UKUJI)
+        Coin::new((vault_deposit - TWO_MICRONS).into(), DENOM_UKUJI)
     );
     assert_eq!(vault_response.vault.swap_amount, swap_amount);
     assert_eq!(vault_response.vault.pair.address, mock.fin_contract_address);
@@ -181,6 +184,7 @@ fn with_price_trigger_for_fin_buy_should_create_correct_trigger() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount * Uint128::new(10)),
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -238,6 +242,7 @@ fn with_price_trigger_for_fin_sell_should_create_correct_trigger() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount * Uint128::new(10)),
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UTEST))],
         )
@@ -293,6 +298,7 @@ fn with_price_trigger_should_publish_vault_created_event() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: Some(swap_amount),
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -339,6 +345,7 @@ fn with_price_trigger_should_publish_funds_deposited_event() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: Some(swap_amount),
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -393,6 +400,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -412,7 +420,7 @@ fn with_price_trigger_with_existing_vault_should_create_vault() {
     assert_eq!(vault_response.vault.id, Uint128::new(2));
     assert_eq!(
         vault_response.vault.balance,
-        Coin::new(vault_deposit.into(), DENOM_UKUJI)
+        Coin::new((vault_deposit - TWO_MICRONS).into(), DENOM_UKUJI)
     );
     assert_eq!(vault_response.vault.swap_amount, swap_amount);
     assert_eq!(vault_response.vault.pair.address, mock.fin_contract_address);
@@ -442,14 +450,14 @@ fn with_price_trigger_twice_for_user_should_succeed() {
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit - swap_amount,
+                ONE_THOUSAND + vault_deposit - TWO_MICRONS,
             ),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
             (
                 &mock.fin_contract_address,
                 DENOM_UTEST,
-                ONE_THOUSAND + swap_amount,
+                ONE_THOUSAND + TWO_MICRONS,
             ),
         ],
     );
@@ -471,6 +479,7 @@ fn with_price_trigger_twice_for_user_should_succeed() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string())],
         )
@@ -484,18 +493,18 @@ fn with_price_trigger_twice_for_user_should_succeed() {
             (
                 &mock.dca_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + vault_deposit + vault_deposit - swap_amount - swap_amount,
+                ONE_THOUSAND + vault_deposit + vault_deposit - TWO_MICRONS - TWO_MICRONS,
             ),
             (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
             (
                 &mock.fin_contract_address,
                 DENOM_UKUJI,
-                ONE_THOUSAND + swap_amount, // from newly created fin limit order (unfilled)
+                ONE_THOUSAND + TWO_MICRONS, // from newly created fin limit order (unfilled)
             ),
             (
                 &mock.fin_contract_address,
                 DENOM_UTEST,
-                ONE_THOUSAND + swap_amount, // from initial limit order (filled)
+                ONE_THOUSAND + TWO_MICRONS, // from initial limit order (filled)
             ),
         ],
     );
@@ -521,7 +530,7 @@ fn with_price_trigger_twice_for_user_should_succeed() {
         &mock.dca_contract_address,
         user_address,
         Uint128::new(1),
-        vault_deposit,
+        vault_deposit - TWO_MICRONS,
     );
 }
 
@@ -565,6 +574,7 @@ fn with_immediate_time_trigger_should_update_address_balances() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -625,6 +635,7 @@ fn with_immediate_time_trigger_should_update_vault_balance() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -667,6 +678,7 @@ fn with_immediate_time_trigger_should_create_active_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -719,7 +731,8 @@ fn with_immediate_time_trigger_should_create_active_vault() {
                     .time
                     .plus_seconds(60 * 60)
                     .minus_nanos(mock.app.block_info().time.subsec_nanos()),
-            })
+            }),
+            dca_plus_config: None,
         }
     );
 }
@@ -752,6 +765,7 @@ fn with_immediate_time_trigger_should_publish_events() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -844,6 +858,7 @@ fn with_immediate_time_trigger_and_slippage_failure_should_update_address_balanc
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -894,6 +909,7 @@ fn with_immediate_time_trigger_and_slippage_failure_should_update_vault_balance(
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -938,6 +954,7 @@ fn with_time_trigger_should_create_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -979,7 +996,8 @@ fn with_time_trigger_should_create_vault() {
             received_amount: Coin::new(0, DENOM_UTEST.to_string()),
             trigger: Some(TriggerConfiguration::Time {
                 target_time: target_start_time.minus_nanos(target_start_time.subsec_nanos()),
-            })
+            }),
+            dca_plus_config: None,
         }
     );
 }
@@ -1026,6 +1044,7 @@ fn with_time_trigger_should_update_address_balances() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1076,6 +1095,7 @@ fn with_time_trigger_should_publish_vault_created_event() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1123,6 +1143,7 @@ fn with_time_trigger_should_publish_funds_deposited_event() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1159,6 +1180,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             swap_amount,
             "time",
             None,
+            None,
         );
 
     let target_start_time = mock.app.block_info().time.plus_seconds(2);
@@ -1180,6 +1202,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1225,6 +1248,7 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
             trigger: Some(TriggerConfiguration::Time {
                 target_time: target_start_time.minus_nanos(target_start_time.subsec_nanos()),
             }),
+            dca_plus_config: None,
         }
     );
 }
@@ -1260,6 +1284,7 @@ fn with_time_trigger_with_target_time_in_the_past_should_fail() {
                     mock.app.block_info().time.seconds() - 60,
                 )),
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1311,6 +1336,7 @@ fn with_multiple_destinations_should_succeed() {
                     (mock.app.block_info().time.seconds() + 10).into(),
                 ),
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1354,6 +1380,7 @@ fn with_multiple_destinations_should_succeed() {
                     .plus_seconds(10)
                     .minus_nanos(mock.app.block_info().time.subsec_nanos())
             }),
+            dca_plus_config: None,
         }
     );
 }
@@ -1389,6 +1416,7 @@ fn with_price_and_time_trigger_should_fail() {
                     mock.app.block_info().time.plus_seconds(2).seconds(),
                 )),
                 target_receive_amount: Some(swap_amount),
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1428,6 +1456,7 @@ fn with_no_assets_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![],
         )
@@ -1466,6 +1495,7 @@ fn with_multiple_assets_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![
                 Coin::new(vault_deposit.into(), DENOM_UTEST),
@@ -1509,6 +1539,7 @@ fn with_non_existent_pair_address_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1553,6 +1584,7 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1604,6 +1636,7 @@ fn with_destination_allocation_equal_to_zero_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1654,6 +1687,7 @@ fn with_more_than_10_destination_allocations_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1695,6 +1729,7 @@ fn with_passed_in_owner_should_succeed() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: Some(swap_amount),
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -1752,6 +1787,7 @@ fn with_swap_amount_less_than_50000_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: None,
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1801,6 +1837,7 @@ fn when_contract_is_paused_should_fail() {
                 staking_router_address: None,
                 page_limit: None,
                 paused: Some(true),
+                dca_plus_escrow_level: None,
             },
             &[],
         )
@@ -1823,6 +1860,7 @@ fn when_contract_is_paused_should_fail() {
                 time_interval: TimeInterval::Hourly,
                 target_receive_amount: None,
                 target_start_time_utc_seconds: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
         )
@@ -1864,6 +1902,7 @@ fn with_insufficient_funds_should_create_inactive_vault() {
                 time_interval: TimeInterval::Hourly,
                 target_start_time_utc_seconds: Some(Uint64::from(target_start_time.seconds())),
                 target_receive_amount: None,
+                use_dca_plus: None,
             },
             &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
         )
@@ -1903,7 +1942,218 @@ fn with_insufficient_funds_should_create_inactive_vault() {
             started_at: None,
             swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
             received_amount: Coin::new(0, DENOM_UTEST.to_string()),
-            trigger: None
+            trigger: None,
+            dca_plus_config: None,
         }
+    );
+}
+
+#[test]
+fn with_adjust_swap_amount_true_should_create_dca_plus_config() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance),
+            (&user_address, DENOM_UTEST, Uint128::new(0)),
+            (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+        ],
+    );
+
+    let create_vault_response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                minimum_receive_amount: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Hourly,
+                target_receive_amount: Some(swap_amount),
+                target_start_time_utc_seconds: None,
+                use_dca_plus: Some(true),
+            },
+            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::from_str(
+        &get_flat_map_for_event_type(&create_vault_response.events, "wasm").unwrap()["vault_id"],
+    )
+    .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .unwrap();
+
+    assert_eq!(
+        vault_response.vault.dca_plus_config,
+        Some(DCAPlusConfig {
+            escrow_level: Decimal::percent(5),
+            model_id: 30,
+            escrowed_balance: Uint128::zero(),
+            standard_dca_swapped_amount: Uint128::zero(),
+            standard_dca_received_amount: Uint128::zero(),
+        })
+    );
+}
+
+#[test]
+fn with_long_execution_duration_should_select_longer_duration_model() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = TEN;
+    let swap_amount = ONE / Uint128::new(10);
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance),
+            (&user_address, DENOM_UTEST, Uint128::new(0)),
+            (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+        ],
+    );
+
+    let create_vault_response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                minimum_receive_amount: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Daily,
+                target_receive_amount: Some(swap_amount),
+                target_start_time_utc_seconds: None,
+                use_dca_plus: Some(true),
+            },
+            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::from_str(
+        &get_flat_map_for_event_type(&create_vault_response.events, "wasm").unwrap()["vault_id"],
+    )
+    .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .unwrap();
+
+    assert_eq!(
+        vault_response.vault.dca_plus_config,
+        Some(DCAPlusConfig {
+            escrow_level: Decimal::percent(5),
+            model_id: 80,
+            escrowed_balance: Uint128::zero(),
+            standard_dca_swapped_amount: Uint128::zero(),
+            standard_dca_received_amount: Uint128::zero(),
+        })
+    );
+}
+
+#[test]
+fn with_small_deposit_should_select_shorter_duration_model() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = TEN;
+    let vault_deposit = ONE;
+    let swap_amount = TEN;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
+        &user_address,
+        user_balance,
+        DENOM_UKUJI,
+    );
+
+    assert_address_balances(
+        &mock,
+        &[
+            (&user_address, DENOM_UKUJI, user_balance),
+            (&user_address, DENOM_UTEST, Uint128::new(0)),
+            (&mock.dca_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+        ],
+    );
+
+    let create_vault_response = mock
+        .app
+        .execute_contract(
+            Addr::unchecked(USER),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::CreateVault {
+                owner: None,
+                minimum_receive_amount: None,
+                label: Some("label".to_string()),
+                destinations: None,
+                pair_address: mock.fin_contract_address.clone(),
+                position_type: None,
+                slippage_tolerance: None,
+                swap_amount,
+                time_interval: TimeInterval::Daily,
+                target_receive_amount: Some(swap_amount),
+                target_start_time_utc_seconds: None,
+                use_dca_plus: Some(true),
+            },
+            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+        )
+        .unwrap();
+
+    let vault_id = Uint128::from_str(
+        &get_flat_map_for_event_type(&create_vault_response.events, "wasm").unwrap()["vault_id"],
+    )
+    .unwrap();
+
+    let vault_response: VaultResponse = mock
+        .app
+        .wrap()
+        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
+        .unwrap();
+
+    assert_eq!(
+        vault_response.vault.dca_plus_config,
+        Some(DCAPlusConfig {
+            escrow_level: Decimal::percent(5),
+            model_id: 30,
+            escrowed_balance: Uint128::zero(),
+            standard_dca_swapped_amount: Uint128::zero(),
+            standard_dca_received_amount: Uint128::zero(),
+        })
     );
 }
