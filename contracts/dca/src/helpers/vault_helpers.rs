@@ -63,7 +63,7 @@ pub fn get_dca_plus_model_id(
     }
 }
 
-pub fn get_dca_plus_fee(vault: Vault, current_price: Decimal) -> StdResult<Coin> {
+pub fn get_dca_plus_fee(vault: &Vault, current_price: Decimal) -> StdResult<Coin> {
     let dca_plus_config = vault
         .dca_plus_config
         .clone()
@@ -155,7 +155,7 @@ mod tests {
             trigger: None,
         };
 
-        let fee = get_dca_plus_fee(vault, current_price).unwrap();
+        let fee = get_dca_plus_fee(&vault, current_price).unwrap();
 
         assert_eq!(fee.amount, expected_fee);
     }

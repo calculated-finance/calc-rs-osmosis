@@ -31,6 +31,7 @@ export type ExecuteMsg =
         target_receive_amount?: Uint128 | null;
         target_start_time_utc_seconds?: Uint64 | null;
         time_interval: TimeInterval;
+        use_dca_plus?: boolean | null;
       };
     }
   | {
@@ -51,8 +52,9 @@ export type ExecuteMsg =
     }
   | {
       update_config: {
+        dca_plus_escrow_level?: Decimal | null;
         delegation_fee_percent?: Decimal | null;
-        fee_collector?: Addr | null;
+        fee_collectors?: FeeCollector[] | null;
         page_limit?: number | null;
         paused?: boolean | null;
         staking_router_address?: Addr | null;
@@ -75,6 +77,17 @@ export type ExecuteMsg =
   | {
       remove_custom_swap_fee: {
         denom: string;
+      };
+    }
+  | {
+      update_swap_adjustments: {
+        adjustments: [number, Decimal][];
+        position_type: PositionType;
+      };
+    }
+  | {
+      claim_escrowed_funds: {
+        vault_id: Uint128;
       };
     };
 /**
@@ -132,5 +145,9 @@ export type TimeInterval = "half_hourly" | "hourly" | "half_daily" | "daily" | "
 export interface Destination {
   action: PostExecutionAction;
   address: Addr;
+  allocation: Decimal;
+}
+export interface FeeCollector {
+  address: string;
   allocation: Decimal;
 }

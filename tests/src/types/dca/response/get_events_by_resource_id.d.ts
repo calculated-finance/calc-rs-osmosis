@@ -71,6 +71,13 @@ export type ExecutionSkippedReason =
       price_threshold_exceeded: {
         price: Decimal256;
       };
+    }
+  | {
+      price_delta_limit_exceeded: {
+        actual_price_delta: Decimal256;
+        duration_in_seconds: number;
+        max_price_delta: Decimal256;
+      };
     };
 /**
  * A point in time in nanosecond precision.

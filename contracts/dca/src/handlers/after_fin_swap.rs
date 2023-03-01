@@ -1,5 +1,5 @@
-use crate::contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_Z_DELEGATION_REPLY_ID};
 use crate::error::ContractError;
+use crate::helpers::disbursement_helpers::{get_disbursement_messages, get_fee_messages};
 use crate::helpers::vault_helpers::{get_swap_amount, has_sufficient_funds};
 use crate::state::cache::{CACHE, SWAP_CACHE};
 use crate::state::config::{get_config, get_custom_fee};
@@ -9,15 +9,13 @@ use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
-use base::helpers::community_pool::create_fund_community_pool_msg;
 use base::helpers::math_helpers::checked_mul;
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PostExecutionAction, VaultStatus};
-use cosmwasm_std::{to_binary, Decimal, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::{Attribute, BankMsg, Coin, CosmosMsg, DepsMut, Env, Reply, Response, Uint128};
-use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
+use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response, Uint128};
+use cosmwasm_std::{Decimal, SubMsg, SubMsgResult};
 use std::cmp::min;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
@@ -25,7 +23,6 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
     let mut vault = get_vault(deps.storage, cache.vault_id.into())?;
 
     let mut attributes: Vec<Attribute> = Vec::new();
-    let mut messages: Vec<CosmosMsg> = Vec::new();
     let mut sub_msgs: Vec<SubMsg> = Vec::new();
 
     delete_trigger(deps.storage, vault.id)?;
@@ -78,57 +75,15 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             let swap_fee = checked_mul(coin_received.amount, fee_percent)?;
             let total_after_swap_fee = coin_received.amount - swap_fee;
             let automation_fee = checked_mul(total_after_swap_fee, automation_fee_rate)?;
-
-            config.fee_collectors.iter().for_each(|fee_collector| {
-                let swap_fee_allocation = Coin::new(
-                    checked_mul(swap_fee, fee_collector.allocation)
-                        .ok()
-                        .expect("amount to be distributed should be valid")
-                        .into(),
-                    coin_received.denom.clone(),
-                );
-
-                if swap_fee_allocation.amount.gt(&Uint128::zero()) {
-                    match fee_collector.address.as_str() {
-                        "community_pool" => messages.push(create_fund_community_pool_msg(
-                            env.contract.address.to_string(),
-                            vec![swap_fee_allocation.clone()],
-                        )),
-                        _ => {
-                            messages.push(CosmosMsg::Bank(BankMsg::Send {
-                                to_address: fee_collector.address.to_string(),
-                                amount: vec![swap_fee_allocation],
-                            }));
-                        }
-                    }
-                }
-
-                let automation_fee_allocation = Coin::new(
-                    checked_mul(automation_fee, fee_collector.allocation)
-                        .ok()
-                        .expect("amount to be distributed should be valid")
-                        .into(),
-                    coin_received.denom.clone(),
-                );
-
-                if automation_fee_allocation.amount.gt(&Uint128::zero()) {
-                    match fee_collector.address.as_str() {
-                        "community_pool" => messages.push(create_fund_community_pool_msg(
-                            env.contract.address.to_string(),
-                            vec![automation_fee_allocation.clone()],
-                        )),
-                        _ => {
-                            messages.push(CosmosMsg::Bank(BankMsg::Send {
-                                to_address: fee_collector.address.to_string(),
-                                amount: vec![automation_fee_allocation],
-                            }));
-                        }
-                    }
-                }
-            });
-
             let total_fee = swap_fee + automation_fee;
             let mut total_after_total_fee = coin_received.amount - total_fee;
+
+            sub_msgs.append(&mut get_fee_messages(
+                deps.as_ref(),
+                env.clone(),
+                vec![swap_fee, automation_fee],
+                coin_received.denom.clone(),
+            )?);
 
             vault.balance.amount -= get_swap_amount(&deps.as_ref(), vault.clone())?.amount;
 
@@ -169,49 +124,11 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
             total_after_total_fee = total_after_total_fee.checked_sub(amount_to_escrow)?;
 
-            vault.destinations.iter().for_each(|destination| {
-                let allocation_amount = Coin::new(
-                    checked_mul(total_after_total_fee, destination.allocation)
-                        .ok()
-                        .expect("amount to be distributed should be valid")
-                        .into(),
-                    coin_received.denom.clone(),
-                );
-
-                if allocation_amount.amount.gt(&Uint128::zero()) {
-                    match destination.action {
-                        PostExecutionAction::Send => {
-                            messages.push(CosmosMsg::Bank(BankMsg::Send {
-                                to_address: destination.address.to_string(),
-                                amount: vec![allocation_amount],
-                            }))
-                        }
-                        PostExecutionAction::ZDelegate => {
-                            sub_msgs.push(SubMsg::reply_on_success(
-                                BankMsg::Send {
-                                    to_address: vault.owner.to_string(),
-                                    amount: vec![allocation_amount.clone()],
-                                },
-                                AFTER_BANK_SWAP_REPLY_ID,
-                            ));
-                            sub_msgs.push(SubMsg::reply_always(
-                                CosmosMsg::Wasm(WasmMsg::Execute {
-                                    contract_addr: config.staking_router_address.to_string(),
-                                    msg: to_binary(&StakingRouterExecuteMsg::ZDelegate {
-                                        delegator_address: vault.owner.clone(),
-                                        validator_address: destination.address.clone(),
-                                        denom: allocation_amount.denom.clone(),
-                                        amount: allocation_amount.amount.clone(),
-                                    })
-                                    .unwrap(),
-                                    funds: vec![],
-                                }),
-                                AFTER_Z_DELEGATION_REPLY_ID,
-                            ));
-                        }
-                    }
-                }
-            });
+            sub_msgs.append(&mut get_disbursement_messages(
+                deps.as_ref(),
+                &vault,
+                total_after_total_fee,
+            )?);
 
             if vault.is_active() {
                 save_trigger(
@@ -301,6 +218,5 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id)
         .add_attributes(attributes)
-        .add_messages(messages)
         .add_submessages(sub_msgs))
 }

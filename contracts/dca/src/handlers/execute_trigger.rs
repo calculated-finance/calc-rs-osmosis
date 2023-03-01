@@ -3,6 +3,9 @@ use crate::contract::{
     AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID,
 };
 use crate::error::ContractError;
+use crate::helpers::validation_helpers::{
+    assert_contract_is_not_paused, assert_target_time_is_in_past,
+};
 use crate::helpers::vault_helpers::get_swap_amount;
 use crate::state::cache::{
     Cache, LimitOrderCache, SwapCache, CACHE, LIMIT_ORDER_CACHE, SWAP_CACHE,
@@ -10,7 +13,6 @@ use crate::state::cache::{
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
-use crate::validation_helpers::{assert_contract_is_not_paused, assert_target_time_is_in_past};
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};

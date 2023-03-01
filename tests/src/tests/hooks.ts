@@ -106,6 +106,7 @@ const instantiateDCAContract = async (
       paused: false,
       staking_router_address: adminContractAddress,
       swap_fee_percent: `${calcSwapFee}`,
+      dca_plus_escrow_level: '0.05',
     },
     'dca',
   );
@@ -120,6 +121,26 @@ const instantiateDCAContract = async (
         base_denom: pair.denoms[0].native,
         quote_denom: pair.denoms[1].native,
         address,
+      },
+    });
+  }
+
+  for (const position_type of ['enter', 'exit']) {
+    await execute(cosmWasmClient, adminContractAddress, dcaContractAddress, {
+      update_swap_adjustments: {
+        position_type,
+        adjustments: [
+          [30, '1.3'],
+          [35, '1.3'],
+          [40, '1.3'],
+          [45, '1.3'],
+          [50, '1.3'],
+          [55, '1.3'],
+          [60, '1.3'],
+          [70, '1.3'],
+          [80, '1.3'],
+          [90, '1.3'],
+        ],
       },
     });
   }

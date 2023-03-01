@@ -1,12 +1,12 @@
 use crate::error::ContractError;
+use crate::helpers::validation_helpers::{
+    assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
+    assert_exactly_one_asset, assert_vault_is_not_cancelled,
+};
 use crate::helpers::vault_helpers::has_sufficient_funds;
 use crate::state::events::create_event;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{get_vault, update_vault};
-use crate::validation_helpers::{
-    assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
-    assert_exactly_one_asset, assert_vault_is_not_cancelled,
-};
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::VaultStatus;

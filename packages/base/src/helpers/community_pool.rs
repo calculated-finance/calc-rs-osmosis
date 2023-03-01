@@ -1,11 +1,8 @@
 use cosmos_sdk_proto::cosmos::base::v1beta1::Coin as Protocoin;
 use cosmos_sdk_proto::{cosmos::distribution::v1beta1::MsgFundCommunityPool, traits::Message};
-use cosmwasm_std::{Binary, CosmosMsg, Coin};
+use cosmwasm_std::{Binary, Coin, CosmosMsg, SubMsg};
 
-pub fn create_fund_community_pool_msg(
-    from_address: String,
-    funds: Vec<Coin>,
-) -> CosmosMsg {
+pub fn create_fund_community_pool_msg(from_address: String, funds: Vec<Coin>) -> SubMsg {
     let amount: Vec<Protocoin> = funds
         .iter()
         .map(|coin| Protocoin {
@@ -23,8 +20,8 @@ pub fn create_fund_community_pool_msg(
     .encode(&mut buffer)
     .unwrap();
 
-    CosmosMsg::Stargate {
+    SubMsg::new(CosmosMsg::Stargate {
         type_url: "/cosmos.distribution.v1beta1.MsgFundCommunityPool".to_string(),
         value: Binary::from(buffer),
-    }
+    })
 }

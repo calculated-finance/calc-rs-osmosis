@@ -12,11 +12,7 @@ use crate::{
         triggers::save_trigger,
         vaults::save_vault,
     },
-    types::{
-        dca_plus_config::{DCAPlusConfig},
-        vault::Vault,
-        vault_builder::VaultBuilder,
-    },
+    types::{dca_plus_config::DCAPlusConfig, vault::Vault, vault_builder::VaultBuilder},
 };
 use base::{
     events::event::Event,
@@ -125,6 +121,14 @@ pub fn setup_vault(
             balance,
             time_interval: TimeInterval::Daily,
             started_at: None,
+            swapped_amount: Coin {
+                denom: "quote".to_string(),
+                amount: Uint128::new(0),
+            },
+            received_amount: Coin {
+                denom: "base".to_string(),
+                amount: Uint128::new(0),
+            },
             dca_plus_config: if is_dca_plus {
                 Some(DCAPlusConfig {
                     escrow_level: Decimal::percent(5),

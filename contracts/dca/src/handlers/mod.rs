@@ -5,6 +5,7 @@ pub mod after_fin_limit_order_withdrawn_for_execute_trigger;
 pub mod after_fin_swap;
 pub mod after_z_delegation;
 pub mod cancel_vault;
+pub mod claim_escrowed_funds;
 pub mod create_custom_swap_fee;
 pub mod create_pair;
 pub mod create_vault;

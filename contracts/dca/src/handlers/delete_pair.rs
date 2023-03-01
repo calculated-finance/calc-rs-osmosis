@@ -1,6 +1,6 @@
 use crate::error::ContractError;
+use crate::helpers::validation_helpers::assert_sender_is_admin;
 use crate::state::pairs::PAIRS;
-use crate::validation_helpers::assert_sender_is_admin;
 use cosmwasm_std::{Addr, DepsMut};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Env, MessageInfo, Response};

@@ -6,6 +6,7 @@ use crate::handlers::after_fin_limit_order_withdrawn_for_execute_trigger::after_
 use crate::handlers::after_fin_swap::after_fin_swap;
 use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
+use crate::handlers::claim_escrowed_funds::claim_escrowed_funds_handler;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
@@ -26,12 +27,12 @@ use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
 use crate::handlers::update_vault::update_vault_handler;
-use crate::msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::state::config::{get_config, update_config, Config};
-use crate::validation_helpers::{
+use crate::helpers::validation_helpers::{
     assert_dca_plus_escrow_level_is_less_than_100_percent,
     assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
 };
+use crate::msg::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
+use crate::state::config::{get_config, update_config, Config};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
@@ -196,6 +197,9 @@ pub fn execute(
             position_type,
             adjustments,
         } => update_swap_adjustments_handler(deps, position_type, adjustments),
+        ExecuteMsg::ClaimEscrowedFunds { vault_id } => {
+            claim_escrowed_funds_handler(deps, env, info, vault_id)
+        }
     }
 }
 

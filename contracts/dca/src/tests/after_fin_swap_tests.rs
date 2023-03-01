@@ -253,25 +253,21 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
         )]
     })));
 
-    assert!(response
-        .messages
-        .contains(&SubMsg::new(create_fund_community_pool_msg(
-            env.contract.address.to_string(),
-            vec![Coin::new(
-                checked_mul(swap_fee, fee_allocation).unwrap().into(),
-                vault.get_receive_denom()
-            )]
-        ))));
+    assert!(response.messages.contains(&create_fund_community_pool_msg(
+        env.contract.address.to_string(),
+        vec![Coin::new(
+            checked_mul(swap_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
+    )));
 
-    assert!(response
-        .messages
-        .contains(&SubMsg::new(create_fund_community_pool_msg(
-            env.contract.address.to_string(),
-            vec![Coin::new(
-                checked_mul(automation_fee, fee_allocation).unwrap().into(),
-                vault.get_receive_denom()
-            )]
-        ))));
+    assert!(response.messages.contains(&create_fund_community_pool_msg(
+        env.contract.address.to_string(),
+        vec![Coin::new(
+            checked_mul(automation_fee, fee_allocation).unwrap().into(),
+            vault.get_receive_denom()
+        )]
+    )));
 }
 
 #[test]

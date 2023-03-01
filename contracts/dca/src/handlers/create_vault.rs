@@ -1,17 +1,7 @@
 use crate::constants::TWO_MICRONS;
 use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
-use crate::helpers::vault_helpers::get_dca_plus_model_id;
-use crate::state::cache::{Cache, CACHE};
-use crate::state::config::get_config;
-use crate::state::events::create_event;
-use crate::state::pairs::PAIRS;
-use crate::state::triggers::save_trigger;
-use crate::state::vaults::{save_vault, update_vault};
-use crate::types::dca_plus_config::{DCAPlusConfig};
-use crate::types::vault::Vault;
-use crate::types::vault_builder::VaultBuilder;
-use crate::validation_helpers::{
+use crate::helpers::validation_helpers::{
     assert_address_is_valid, assert_contract_is_not_paused, assert_delegation_denom_is_stakeable,
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
     assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
@@ -19,10 +9,20 @@ use crate::validation_helpers::{
     assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_greater_than_50000,
     assert_target_start_time_is_in_future,
 };
+use crate::helpers::vault_helpers::get_dca_plus_model_id;
+use crate::state::cache::{Cache, CACHE};
+use crate::state::config::get_config;
+use crate::state::events::create_event;
+use crate::state::pairs::PAIRS;
+use crate::state::triggers::save_trigger;
+use crate::state::vaults::{save_vault, update_vault};
+use crate::types::dca_plus_config::DCAPlusConfig;
+use crate::types::vault::Vault;
+use crate::types::vault_builder::VaultBuilder;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{Addr, Coin, Decimal, Decimal256};
+use cosmwasm_std::{coin, Addr, Coin, Decimal, Decimal256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_submit_order_sub_msg;
@@ -119,7 +119,7 @@ pub fn create_vault(
         } else {
             VaultStatus::Scheduled
         },
-        pair,
+        pair: pair.clone(),
         swap_amount,
         position_type,
         slippage_tolerance,
@@ -127,6 +127,14 @@ pub fn create_vault(
         balance: info.funds[0].clone(),
         time_interval: time_interval.clone(),
         started_at: None,
+        swapped_amount: coin(0, info.funds[0].clone().denom.clone()),
+        received_amount: coin(
+            0,
+            match info.funds[0].clone().denom == pair.quote_denom {
+                true => pair.base_denom,
+                false => pair.quote_denom,
+            },
+        ),
         dca_plus_config,
     };
 

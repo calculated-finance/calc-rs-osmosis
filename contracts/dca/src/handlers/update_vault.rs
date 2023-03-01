@@ -1,7 +1,7 @@
 use crate::{
     error::ContractError,
+    helpers::validation_helpers::{assert_vault_is_not_cancelled, asset_sender_is_vault_owner},
     state::vaults::{get_vault, update_vault},
-    validation_helpers::{assert_vault_is_not_cancelled, asset_sender_is_vault_owner},
 };
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
 

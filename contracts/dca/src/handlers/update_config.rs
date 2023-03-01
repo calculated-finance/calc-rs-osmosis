@@ -1,11 +1,11 @@
 use crate::{
     error::ContractError,
-    state::config::{get_config, update_config, Config, FeeCollector},
-    validation_helpers::{
+    helpers::validation_helpers::{
         assert_dca_plus_escrow_level_is_less_than_100_percent,
         assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
         assert_sender_is_admin,
     },
+    state::config::{get_config, update_config, Config, FeeCollector},
 };
 use cosmwasm_std::{Addr, Decimal, DepsMut, MessageInfo, Response};
 

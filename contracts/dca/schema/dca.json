@@ -8,6 +8,7 @@
     "type": "object",
     "required": [
       "admin",
+      "dca_plus_escrow_level",
       "delegation_fee_percent",
       "fee_collectors",
       "page_limit",
@@ -18,6 +19,9 @@
     "properties": {
       "admin": {
         "$ref": "#/definitions/Addr"
+      },
+      "dca_plus_escrow_level": {
+        "$ref": "#/definitions/Decimal"
       },
       "delegation_fee_percent": {
         "$ref": "#/definitions/Decimal"
@@ -222,6 +226,12 @@
               },
               "time_interval": {
                 "$ref": "#/definitions/TimeInterval"
+              },
+              "use_dca_plus": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               }
             },
             "additionalProperties": false
@@ -305,6 +315,16 @@
           "update_config": {
             "type": "object",
             "properties": {
+              "dca_plus_escrow_level": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "delegation_fee_percent": {
                 "anyOf": [
                   {
@@ -444,11 +464,38 @@
       {
         "type": "object",
         "required": [
-          "set_fin_limit_order_timestamp"
+          "update_swap_adjustments"
         ],
         "properties": {
-          "set_fin_limit_order_timestamp": {
+          "update_swap_adjustments": {
             "type": "object",
+            "required": [
+              "adjustments",
+              "position_type"
+            ],
+            "properties": {
+              "adjustments": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": [
+                    {
+                      "type": "integer",
+                      "format": "uint8",
+                      "minimum": 0.0
+                    },
+                    {
+                      "$ref": "#/definitions/Decimal"
+                    }
+                  ],
+                  "maxItems": 2,
+                  "minItems": 2
+                }
+              },
+              "position_type": {
+                "$ref": "#/definitions/PositionType"
+              }
+            },
             "additionalProperties": false
           }
         },
@@ -457,10 +504,10 @@
       {
         "type": "object",
         "required": [
-          "migrate_price_trigger"
+          "claim_escrowed_funds"
         ],
         "properties": {
-          "migrate_price_trigger": {
+          "claim_escrowed_funds": {
             "type": "object",
             "required": [
               "vault_id"
@@ -898,6 +945,7 @@
           "type": "object",
           "required": [
             "admin",
+            "dca_plus_escrow_level",
             "delegation_fee_percent",
             "fee_collectors",
             "page_limit",
@@ -908,6 +956,9 @@
           "properties": {
             "admin": {
               "$ref": "#/definitions/Addr"
+            },
+            "dca_plus_escrow_level": {
+              "$ref": "#/definitions/Decimal"
             },
             "delegation_fee_percent": {
               "$ref": "#/definitions/Decimal"
@@ -1903,6 +1954,36 @@
             }
           }
         },
+        "DCAPlusConfig": {
+          "type": "object",
+          "required": [
+            "escrow_level",
+            "escrowed_balance",
+            "model_id",
+            "standard_dca_received_amount",
+            "standard_dca_swapped_amount"
+          ],
+          "properties": {
+            "escrow_level": {
+              "$ref": "#/definitions/Decimal"
+            },
+            "escrowed_balance": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "model_id": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "standard_dca_received_amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "standard_dca_swapped_amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          },
+          "additionalProperties": false
+        },
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
           "type": "string"
@@ -2063,6 +2144,16 @@
             },
             "created_at": {
               "$ref": "#/definitions/Timestamp"
+            },
+            "dca_plus_config": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DCAPlusConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "destinations": {
               "type": "array",
@@ -2190,6 +2281,36 @@
             }
           }
         },
+        "DCAPlusConfig": {
+          "type": "object",
+          "required": [
+            "escrow_level",
+            "escrowed_balance",
+            "model_id",
+            "standard_dca_received_amount",
+            "standard_dca_swapped_amount"
+          ],
+          "properties": {
+            "escrow_level": {
+              "$ref": "#/definitions/Decimal"
+            },
+            "escrowed_balance": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "model_id": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "standard_dca_received_amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "standard_dca_swapped_amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          },
+          "additionalProperties": false
+        },
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
           "type": "string"
@@ -2350,6 +2471,16 @@
             },
             "created_at": {
               "$ref": "#/definitions/Timestamp"
+            },
+            "dca_plus_config": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DCAPlusConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "destinations": {
               "type": "array",
@@ -2477,6 +2608,36 @@
             }
           }
         },
+        "DCAPlusConfig": {
+          "type": "object",
+          "required": [
+            "escrow_level",
+            "escrowed_balance",
+            "model_id",
+            "standard_dca_received_amount",
+            "standard_dca_swapped_amount"
+          ],
+          "properties": {
+            "escrow_level": {
+              "$ref": "#/definitions/Decimal"
+            },
+            "escrowed_balance": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "model_id": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "standard_dca_received_amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "standard_dca_swapped_amount": {
+              "$ref": "#/definitions/Uint128"
+            }
+          },
+          "additionalProperties": false
+        },
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
           "type": "string"
@@ -2637,6 +2798,16 @@
             },
             "created_at": {
               "$ref": "#/definitions/Timestamp"
+            },
+            "dca_plus_config": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DCAPlusConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "destinations": {
               "type": "array",

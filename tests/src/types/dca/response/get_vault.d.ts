@@ -43,6 +43,12 @@ export type Timestamp = Uint64;
  * let b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```
  */
 export type Uint64 = string;
+/**
+ * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
+ *
+ * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
+ */
+export type Decimal = string;
 export type PostExecutionAction = "send" | "z_delegate";
 /**
  * A human readable address.
@@ -54,12 +60,6 @@ export type PostExecutionAction = "send" | "z_delegate";
  * This type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.
  */
 export type Addr = string;
-/**
- * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
- *
- * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
- */
-export type Decimal = string;
 /**
  * A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0
  *
@@ -87,6 +87,7 @@ export interface VaultResponse {
 export interface Vault {
   balance: Coin;
   created_at: Timestamp;
+  dca_plus_config?: DCAPlusConfig | null;
   destinations: Destination[];
   id: Uint128;
   label?: string | null;
@@ -106,6 +107,13 @@ export interface Coin {
   amount: Uint128;
   denom: string;
   [k: string]: unknown;
+}
+export interface DCAPlusConfig {
+  escrow_level: Decimal;
+  escrowed_balance: Uint128;
+  model_id: number;
+  standard_dca_received_amount: Uint128;
+  standard_dca_swapped_amount: Uint128;
 }
 export interface Destination {
   action: PostExecutionAction;

@@ -94,6 +94,9 @@ pub enum ExecuteMsg {
         position_type: PositionType,
         adjustments: Vec<(u8, Decimal)>,
     },
+    ClaimEscrowedFunds {
+        vault_id: Uint128,
+    },
 }
 
 #[cw_serde]

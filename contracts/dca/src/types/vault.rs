@@ -187,6 +187,14 @@ mod has_sufficient_funds_tests {
             None,
             TimeInterval::Daily,
             None,
+            Coin {
+                denom: "quote".to_string(),
+                amount: Uint128::new(0),
+            },
+            Coin {
+                denom: "base".to_string(),
+                amount: Uint128::new(0),
+            },
             None,
         )
     }

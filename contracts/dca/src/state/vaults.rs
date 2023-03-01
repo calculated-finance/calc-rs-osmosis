@@ -282,6 +282,14 @@ mod destination_store_tests {
             None,
             TimeInterval::Daily,
             None,
+            Coin {
+                denom: "demo".to_string(),
+                amount: Uint128::zero(),
+            },
+            Coin {
+                denom: "ukuji".to_string(),
+                amount: Uint128::zero(),
+            },
             None,
         )
     }
