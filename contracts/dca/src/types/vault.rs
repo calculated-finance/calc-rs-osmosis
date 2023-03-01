@@ -50,6 +50,10 @@ impl Vault {
         self.pair.quote_denom.clone()
     }
 
+    pub fn get_total_deposit_amount(&self) -> Uint128 {
+        self.balance.amount + self.swapped_amount.amount
+    }
+
     pub fn get_target_price(
         &self,
         target_receive_amount: Uint128,
@@ -105,7 +109,7 @@ impl Vault {
         false
     }
 
-    pub fn low_funds(&self) -> bool {
+    pub fn has_low_funds(&self) -> bool {
         self.balance.amount < self.swap_amount
     }
 

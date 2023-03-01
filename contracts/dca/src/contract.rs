@@ -142,7 +142,7 @@ pub fn execute(
             time_interval,
             target_start_time_utc_seconds,
             target_receive_amount,
-            dca_plus_direction,
+            use_dca_plus,
         } => create_vault(
             deps,
             env,
@@ -158,7 +158,7 @@ pub fn execute(
             time_interval,
             target_start_time_utc_seconds,
             target_receive_amount,
-            dca_plus_direction,
+            use_dca_plus,
         ),
         ExecuteMsg::CancelVault { vault_id } => cancel_vault(deps, env, info, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),
@@ -193,9 +193,9 @@ pub fn execute(
         } => create_custom_swap_fee(deps, info, denom, swap_fee_percent),
         ExecuteMsg::RemoveCustomSwapFee { denom } => remove_custom_swap_fee(deps, info, denom),
         ExecuteMsg::UpdateSwapAdjustments {
-            direction,
+            position_type,
             adjustments,
-        } => update_swap_adjustments_handler(deps, direction, adjustments),
+        } => update_swap_adjustments_handler(deps, position_type, adjustments),
     }
 }
 

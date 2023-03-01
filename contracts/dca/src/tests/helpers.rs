@@ -13,7 +13,7 @@ use crate::{
         vaults::save_vault,
     },
     types::{
-        dca_plus_config::{DCAPlusConfig, DCAPlusDirection},
+        dca_plus_config::{DCAPlusConfig},
         vault::Vault,
         vault_builder::VaultBuilder,
     },
@@ -127,10 +127,10 @@ pub fn setup_vault(
             started_at: None,
             dca_plus_config: if is_dca_plus {
                 Some(DCAPlusConfig {
-                    direction: DCAPlusDirection::In,
                     escrow_level: Decimal::percent(5),
                     model_id: 30,
                     escrowed_balance: Uint128::zero(),
+                    standard_dca_swapped_amount: Uint128::zero(),
                     standard_dca_received_amount: Uint128::zero(),
                 })
             } else {

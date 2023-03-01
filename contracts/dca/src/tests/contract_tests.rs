@@ -517,7 +517,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
         target_receive_amount: None,
         minimum_receive_amount: None,
-        dca_plus_direction: None,
+        use_dca_plus: None,
     };
 
     let coin = Coin {
@@ -604,7 +604,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
         target_receive_amount: None,
         minimum_receive_amount: None,
-        dca_plus_direction: None,
+        use_dca_plus: None,
     };
 
     let coin = Coin {
@@ -686,7 +686,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
         target_receive_amount: None,
         minimum_receive_amount: None,
-        dca_plus_direction: None,
+        use_dca_plus: None,
     };
 
     let coin_one = Coin {
@@ -715,7 +715,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         target_start_time_utc_seconds: Some(Uint64::new(1662770365)),
         target_receive_amount: None,
         minimum_receive_amount: None,
-        dca_plus_direction: None,
+        use_dca_plus: None,
     };
 
     let coin_two = Coin {
@@ -802,7 +802,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
         target_start_time_utc_seconds: Some(Uint64::new(1762770365)),
         target_receive_amount: None,
         minimum_receive_amount: None,
-        dca_plus_direction: None,
+        use_dca_plus: None,
     };
 
     let coin = Coin {

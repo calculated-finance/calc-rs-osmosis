@@ -8,7 +8,7 @@ use fin_helpers::position_type::PositionType;
 
 use crate::state::config::{Config, FeeCollector};
 use crate::state::data_fixes::DataFix;
-use crate::types::dca_plus_config::DCAPlusDirection;
+
 use crate::types::vault::Vault;
 
 #[cw_serde]
@@ -57,7 +57,7 @@ pub enum ExecuteMsg {
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
         target_receive_amount: Option<Uint128>,
-        dca_plus_direction: Option<DCAPlusDirection>,
+        use_dca_plus: Option<bool>,
     },
     Deposit {
         address: Addr,
@@ -91,7 +91,7 @@ pub enum ExecuteMsg {
         denom: String,
     },
     UpdateSwapAdjustments {
-        direction: DCAPlusDirection,
+        position_type: PositionType,
         adjustments: Vec<(u8, Decimal)>,
     },
 }

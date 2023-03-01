@@ -20,7 +20,6 @@ use crate::{
         },
         mocks::{ADMIN, DENOM_UKUJI},
     },
-    types::dca_plus_config::DCAPlusDirection,
 };
 use base::{
     events::event::{EventBuilder, EventData, ExecutionSkippedReason},
@@ -33,7 +32,7 @@ use cosmwasm_std::{
     BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp,
     Uint128,
 };
-use fin_helpers::codes::ERROR_SWAP_SLIPPAGE_EXCEEDED;
+use fin_helpers::{codes::ERROR_SWAP_SLIPPAGE_EXCEEDED, position_type::PositionType};
 use std::{cmp::min, str::FromStr};
 
 #[test]
@@ -608,7 +607,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
 
     update_swap_adjustments(
         deps.as_mut().storage,
-        DCAPlusDirection::In,
+        PositionType::Exit,
         vec![
             (30, Decimal::from_str("1.0").unwrap()),
             (35, Decimal::from_str("1.0").unwrap()),
@@ -690,7 +689,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
 }
 
 #[test]
-fn with_succcesful_swap_with_dca_plus_updates_standard_dca_received_amount() {
+fn with_succcesful_swap_with_dca_plus_updates_standard_dca_amounts() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
@@ -713,20 +712,22 @@ fn with_succcesful_swap_with_dca_plus_updates_standard_dca_received_amount() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
+    let coefficient = Decimal::from_str("1.3").unwrap();
+
     update_swap_adjustments(
         deps.as_mut().storage,
-        DCAPlusDirection::In,
+        PositionType::Exit,
         vec![
-            (30, Decimal::from_str("1.3").unwrap()),
-            (35, Decimal::from_str("1.3").unwrap()),
-            (40, Decimal::from_str("1.3").unwrap()),
-            (45, Decimal::from_str("1.3").unwrap()),
-            (50, Decimal::from_str("1.3").unwrap()),
-            (55, Decimal::from_str("1.3").unwrap()),
-            (60, Decimal::from_str("1.3").unwrap()),
-            (70, Decimal::from_str("1.3").unwrap()),
-            (80, Decimal::from_str("1.3").unwrap()),
-            (90, Decimal::from_str("1.3").unwrap()),
+            (30, coefficient),
+            (35, coefficient),
+            (40, coefficient),
+            (45, coefficient),
+            (50, coefficient),
+            (55, coefficient),
+            (60, coefficient),
+            (70, coefficient),
+            (80, coefficient),
+            (90, coefficient),
         ],
     )
     .unwrap();
@@ -745,13 +746,15 @@ fn with_succcesful_swap_with_dca_plus_updates_standard_dca_received_amount() {
     .unwrap();
 
     let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
+    let dca_plus_config = updated_vault.dca_plus_config.unwrap();
 
     assert_eq!(
-        updated_vault
-            .dca_plus_config
-            .unwrap()
-            .standard_dca_received_amount,
-        updated_vault.received_amount.amount * Decimal::from_str("1.3").unwrap()
+        dca_plus_config.standard_dca_swapped_amount,
+        updated_vault.swapped_amount.amount * (Decimal::one() / coefficient)
+    );
+    assert_eq!(
+        dca_plus_config.standard_dca_received_amount,
+        updated_vault.received_amount.amount * (Decimal::one() / coefficient) - Uint128::one() // account for rounding
     );
 }
 

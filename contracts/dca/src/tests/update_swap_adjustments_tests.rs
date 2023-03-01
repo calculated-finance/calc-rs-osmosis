@@ -1,9 +1,10 @@
 use cosmwasm_std::{testing::mock_dependencies, Decimal};
+use fin_helpers::position_type::PositionType;
 use std::str::FromStr;
 
 use crate::{
     handlers::update_swap_adjustments_handler::update_swap_adjustments_handler,
-    state::swap_adjustments::get_swap_adjustment, types::dca_plus_config::DCAPlusDirection,
+    state::swap_adjustments::get_swap_adjustment,
 };
 
 #[test]
@@ -22,7 +23,7 @@ fn updates_swap_adjustments() {
     ];
 
     let mut deps = mock_dependencies();
-    update_swap_adjustments_handler(deps.as_mut(), DCAPlusDirection::In, old_adjustments.clone())
+    update_swap_adjustments_handler(deps.as_mut(), PositionType::Enter, old_adjustments.clone())
         .unwrap();
 
     let new_adjustments = vec![
@@ -38,13 +39,13 @@ fn updates_swap_adjustments() {
         (90, Decimal::from_str("1.981").unwrap()),
     ];
 
-    update_swap_adjustments_handler(deps.as_mut(), DCAPlusDirection::In, new_adjustments.clone())
+    update_swap_adjustments_handler(deps.as_mut(), PositionType::Enter, new_adjustments.clone())
         .unwrap();
 
     new_adjustments.iter().zip(old_adjustments.iter()).for_each(
         |((model, new_adjustment), (_, old_adjustment))| {
             let stored_adjustment =
-                get_swap_adjustment(deps.as_ref().storage, DCAPlusDirection::In, *model).unwrap();
+                get_swap_adjustment(deps.as_ref().storage, PositionType::Enter, *model).unwrap();
             assert_eq!(stored_adjustment, *new_adjustment);
             assert_ne!(stored_adjustment, *old_adjustment);
         },
