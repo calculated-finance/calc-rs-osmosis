@@ -1,5 +1,8 @@
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
-use crate::types::{dca_plus_config::DCAPlusConfig, vault::Vault, vault_builder::VaultBuilder};
+use crate::types::{
+    dca_plus_config::DCAPlusConfig, price_delta_limit::PriceDeltaLimit, vault::Vault,
+    vault_builder::VaultBuilder,
+};
 use base::{
     pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
@@ -30,6 +33,7 @@ struct VaultDTO {
     pub started_at: Option<Timestamp>,
     pub swapped_amount: Coin,
     pub received_amount: Coin,
+    pub price_delta_limits: Vec<PriceDeltaLimit>,
 }
 
 impl From<Vault> for VaultDTO {
@@ -50,6 +54,7 @@ impl From<Vault> for VaultDTO {
             started_at: vault.started_at,
             swapped_amount: vault.swapped_amount,
             received_amount: vault.received_amount,
+            price_delta_limits: vec![],
         }
     }
 }
