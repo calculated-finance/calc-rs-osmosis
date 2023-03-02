@@ -57,7 +57,7 @@ fn after_succcesful_withdrawal_of_limit_order_invokes_a_fin_swap() {
 
     let response = after_fin_limit_order_withdrawn_for_execute_vault(
         deps.as_mut(),
-        env,
+        env.clone(),
         Reply {
             id: AFTER_FIN_LIMIT_ORDER_WITHDRAWN_FOR_EXECUTE_VAULT_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -78,7 +78,7 @@ fn after_succcesful_withdrawal_of_limit_order_invokes_a_fin_swap() {
                 to: None,
             })
             .unwrap(),
-            funds: vec![get_swap_amount(&deps.as_ref(), vault.clone()).unwrap()]
+            funds: vec![get_swap_amount(&deps.as_ref(), &env, vault.clone()).unwrap()]
         }),
         AFTER_FIN_SWAP_REPLY_ID
     )));

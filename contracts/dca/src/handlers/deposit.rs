@@ -47,7 +47,7 @@ pub fn deposit(
 
     vault.balance.amount += info.funds[0].amount;
 
-    if !vault.is_scheduled() && has_sufficient_funds(&deps.as_ref(), vault.clone())? {
+    if !vault.is_scheduled() && has_sufficient_funds(&deps.as_ref(), &env, vault.clone())? {
         vault.status = VaultStatus::Active
     }
 

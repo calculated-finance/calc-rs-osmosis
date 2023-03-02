@@ -134,14 +134,17 @@ mod has_sufficient_funds_tests {
     };
 
     use super::*;
-    use cosmwasm_std::{coin, testing::mock_dependencies};
+    use cosmwasm_std::{
+        coin,
+        testing::{mock_dependencies, mock_env},
+    };
 
     #[test]
     fn should_return_false_when_vault_has_insufficient_swap_amount() {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(100000, Uint128::new(50000));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(!has_sufficient_funds(&deps.as_ref(), vault).unwrap());
+        assert!(!has_sufficient_funds(&deps.as_ref(), &mock_env(), vault).unwrap());
     }
 
     #[test]
@@ -149,7 +152,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(50000, Uint128::new(50001));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(!has_sufficient_funds(&deps.as_ref(), vault).unwrap());
+        assert!(!has_sufficient_funds(&deps.as_ref(), &mock_env(), vault).unwrap());
     }
 
     #[test]
@@ -157,7 +160,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(100000, Uint128::new(50001));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(has_sufficient_funds(&deps.as_ref(), vault).unwrap());
+        assert!(has_sufficient_funds(&deps.as_ref(), &mock_env(), vault).unwrap());
     }
 
     #[test]
@@ -165,7 +168,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(50001, Uint128::new(50002));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(has_sufficient_funds(&deps.as_ref(), vault).unwrap());
+        assert!(has_sufficient_funds(&deps.as_ref(), &mock_env(), vault).unwrap());
     }
 
     fn vault_with(balance: u128, swap_amount: Uint128) -> VaultBuilder {

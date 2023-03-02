@@ -85,9 +85,9 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 coin_received.denom.clone(),
             )?);
 
-            vault.balance.amount -= get_swap_amount(&deps.as_ref(), vault.clone())?.amount;
+            vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, vault.clone())?.amount;
 
-            if !has_sufficient_funds(&deps.as_ref(), vault.clone())? {
+            if !has_sufficient_funds(&deps.as_ref(), &env, vault.clone())? {
                 vault.status = VaultStatus::Inactive;
             }
 
@@ -106,6 +106,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                         deps.storage,
                         vault.get_position_type(),
                         dca_plus_config.model_id,
+                        env.block.time,
                     )?;
 
                 let unadjusted_swap_amount = coin_sent.amount * swap_unadjustment;
@@ -165,7 +166,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         SubMsgResult::Err(_) => {
-            if !has_sufficient_funds(&deps.as_ref(), vault.clone())? {
+            if !has_sufficient_funds(&deps.as_ref(), &env, vault.clone())? {
                 create_event(
                     deps.storage,
                     EventBuilder::new(

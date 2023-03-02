@@ -296,7 +296,7 @@ fn with_succcesful_swap_adjusts_vault_balance() {
 
     after_fin_swap(
         deps.as_mut(),
-        env,
+        env.clone(),
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -312,7 +312,7 @@ fn with_succcesful_swap_adjusts_vault_balance() {
     assert_eq!(
         updated_vault.balance.amount,
         vault.balance.amount
-            - get_swap_amount(&deps.as_ref(), vault.clone())
+            - get_swap_amount(&deps.as_ref(), &env, vault.clone())
                 .unwrap()
                 .amount
     );
@@ -342,7 +342,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
         vec![
             Coin::new(
                 (vault.balance.amount
-                    - get_swap_amount(&deps.as_ref(), vault.clone())
+                    - get_swap_amount(&deps.as_ref(), &env, vault.clone())
                         .unwrap()
                         .amount)
                     .into(),
@@ -354,7 +354,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
 
     after_fin_swap(
         deps.as_mut(),
-        env,
+        env.clone(),
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -369,7 +369,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
 
     assert_eq!(
         updated_vault.swapped_amount.amount,
-        get_swap_amount(&deps.as_ref(), vault.clone())
+        get_swap_amount(&deps.as_ref(), &env, vault.clone())
             .unwrap()
             .amount
     );
@@ -616,6 +616,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
             (80, Decimal::from_str("1.0").unwrap()),
             (90, Decimal::from_str("1.0").unwrap()),
         ],
+        env.block.time,
     )
     .unwrap();
 
@@ -725,6 +726,7 @@ fn with_succcesful_swap_with_dca_plus_updates_standard_dca_amounts() {
             (80, coefficient),
             (90, coefficient),
         ],
+        env.block.time,
     )
     .unwrap();
 

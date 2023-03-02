@@ -196,7 +196,7 @@ pub fn execute(
         ExecuteMsg::UpdateSwapAdjustments {
             position_type,
             adjustments,
-        } => update_swap_adjustments_handler(deps, position_type, adjustments),
+        } => update_swap_adjustments_handler(deps, env, position_type, adjustments),
         ExecuteMsg::ClaimEscrowedFunds { vault_id } => {
             claim_escrowed_funds_handler(deps, env, info, vault_id)
         }

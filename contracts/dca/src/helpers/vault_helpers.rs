@@ -1,9 +1,9 @@
 use crate::{state::swap_adjustments::get_swap_adjustment, types::vault::Vault};
 use base::{helpers::time_helpers::get_total_execution_duration, triggers::trigger::TimeInterval};
-use cosmwasm_std::{Coin, Decimal, Deps, StdResult, Timestamp, Uint128};
+use cosmwasm_std::{Coin, Decimal, Deps, Env, StdResult, Timestamp, Uint128};
 use std::cmp::min;
 
-pub fn get_swap_amount(deps: &Deps, vault: Vault) -> StdResult<Coin> {
+pub fn get_swap_amount(deps: &Deps, env: &Env, vault: Vault) -> StdResult<Coin> {
     let initial_amount = match vault.has_low_funds() {
         true => vault.balance.amount,
         false => vault.swap_amount,
@@ -17,6 +17,7 @@ pub fn get_swap_amount(deps: &Deps, vault: Vault) -> StdResult<Coin> {
                 deps.storage,
                 vault.get_position_type(),
                 dca_plus_config.model_id,
+                env.block.time,
             )
             .map_or(initial_amount, |adjustment_coefficient| {
                 adjustment_coefficient * initial_amount
@@ -29,8 +30,8 @@ pub fn get_swap_amount(deps: &Deps, vault: Vault) -> StdResult<Coin> {
     })
 }
 
-pub fn has_sufficient_funds(deps: &Deps, vault: Vault) -> StdResult<bool> {
-    get_swap_amount(deps, vault).map(|swap_amount| swap_amount.amount > Uint128::new(50000))
+pub fn has_sufficient_funds(deps: &Deps, env: &Env, vault: Vault) -> StdResult<bool> {
+    get_swap_amount(deps, env, vault).map(|swap_amount| swap_amount.amount > Uint128::new(50000))
 }
 
 pub fn get_dca_plus_model_id(

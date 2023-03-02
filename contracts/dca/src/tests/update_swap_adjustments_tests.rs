@@ -1,4 +1,7 @@
-use cosmwasm_std::{testing::mock_dependencies, Decimal};
+use cosmwasm_std::{
+    testing::{mock_dependencies, mock_env},
+    Decimal,
+};
 use fin_helpers::position_type::PositionType;
 use std::str::FromStr;
 
@@ -23,8 +26,14 @@ fn updates_swap_adjustments() {
     ];
 
     let mut deps = mock_dependencies();
-    update_swap_adjustments_handler(deps.as_mut(), PositionType::Enter, old_adjustments.clone())
-        .unwrap();
+
+    update_swap_adjustments_handler(
+        deps.as_mut(),
+        mock_env(),
+        PositionType::Enter,
+        old_adjustments.clone(),
+    )
+    .unwrap();
 
     let new_adjustments = vec![
         (30, Decimal::from_str("1.921").unwrap()),
@@ -39,13 +48,23 @@ fn updates_swap_adjustments() {
         (90, Decimal::from_str("1.981").unwrap()),
     ];
 
-    update_swap_adjustments_handler(deps.as_mut(), PositionType::Enter, new_adjustments.clone())
-        .unwrap();
+    update_swap_adjustments_handler(
+        deps.as_mut(),
+        mock_env(),
+        PositionType::Enter,
+        new_adjustments.clone(),
+    )
+    .unwrap();
 
     new_adjustments.iter().zip(old_adjustments.iter()).for_each(
         |((model, new_adjustment), (_, old_adjustment))| {
-            let stored_adjustment =
-                get_swap_adjustment(deps.as_ref().storage, PositionType::Enter, *model).unwrap();
+            let stored_adjustment = get_swap_adjustment(
+                deps.as_ref().storage,
+                PositionType::Enter,
+                *model,
+                mock_env().block.time,
+            )
+            .unwrap();
             assert_eq!(stored_adjustment, *new_adjustment);
             assert_ne!(stored_adjustment, *old_adjustment);
         },
