@@ -1,15 +1,13 @@
+use crate::state::config::{Config, FeeCollector};
+use crate::state::data_fixes::DataFix;
+use crate::types::vault::Vault;
 use base::events::event::Event;
 use base::pair::Pair;
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::{Destination, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Decimal, Decimal256, Uint128, Uint64};
+use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128, Uint64};
 use fin_helpers::position_type::PositionType;
-
-use crate::state::config::{Config, FeeCollector};
-use crate::state::data_fixes::DataFix;
-
-use crate::types::vault::Vault;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -143,6 +141,8 @@ pub enum QueryMsg {
         start_after: Option<u64>,
         limit: Option<u16>,
     },
+    #[returns(DCAPlusPerformanceResponse)]
+    GetDCAPlusPerformance { vault_id: Uint128 },
 }
 
 #[cw_serde]
@@ -168,6 +168,12 @@ pub struct TriggerIdsResponse {
 #[cw_serde]
 pub struct VaultResponse {
     pub vault: Vault,
+}
+
+#[cw_serde]
+pub struct DCAPlusPerformanceResponse {
+    pub performance_fee: Coin,
+    pub performance_factor: Decimal,
 }
 
 #[cw_serde]

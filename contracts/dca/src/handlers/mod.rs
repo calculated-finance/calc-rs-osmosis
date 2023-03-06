@@ -14,6 +14,7 @@ pub mod deposit;
 pub mod execute_trigger;
 pub mod get_custom_swap_fees;
 pub mod get_data_fixes_by_resource_id;
+pub mod get_dca_plus_performance;
 pub mod get_events;
 pub mod get_events_by_resource_id;
 pub mod get_pairs;

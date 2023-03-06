@@ -15,6 +15,7 @@ use crate::handlers::deposit::deposit;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_custom_swap_fees::get_custom_swap_fees;
 use crate::handlers::get_data_fixes_by_resource_id::get_data_fixes_by_resource_id;
+use crate::handlers::get_dca_plus_performance::get_dca_plus_performance_handler;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
@@ -282,5 +283,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetConfig {} => to_binary(&ConfigResponse {
             config: get_config(deps.storage)?,
         }),
+        QueryMsg::GetDCAPlusPerformance { vault_id } => {
+            to_binary(&get_dca_plus_performance_handler(deps, vault_id)?)
+        }
     }
 }

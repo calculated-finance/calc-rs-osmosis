@@ -3,7 +3,7 @@ use crate::{
     helpers::validation_helpers::assert_sender_is_admin_or_vault_owner,
     helpers::{
         disbursement_helpers::{get_disbursement_messages, get_fee_messages},
-        vault_helpers::get_dca_plus_fee,
+        vault_helpers::get_dca_plus_performance_fee,
     },
     state::vaults::{get_vault, update_vault},
 };
@@ -39,7 +39,7 @@ pub fn claim_escrowed_funds_handler(
         PriceType::Belief,
     )?;
 
-    let performance_fee = get_dca_plus_fee(&vault, current_price)?;
+    let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
     let amount_to_disburse = dca_plus_config.escrowed_balance - performance_fee.amount;
 
     dca_plus_config.escrowed_balance = Uint128::zero();

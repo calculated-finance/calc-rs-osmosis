@@ -4,7 +4,5 @@ use cosmwasm_std::{Deps, StdResult, Uint128};
 pub fn get_vault(deps: Deps, vault_id: Uint128) -> StdResult<VaultResponse> {
     let vault = fetch_vault(deps.storage, vault_id.into())?;
 
-    Ok(VaultResponse {
-        vault: vault.clone(),
-    })
+    Ok(VaultResponse { vault })
 }
