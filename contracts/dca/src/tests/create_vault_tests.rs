@@ -7,7 +7,7 @@ use crate::tests::helpers::{
 use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
-use crate::types::dca_plus_config::DCAPlusConfig;
+use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::helpers::math_helpers::checked_mul;
@@ -2008,7 +2008,7 @@ fn with_adjust_swap_amount_true_should_create_dca_plus_config() {
 
     assert_eq!(
         vault_response.vault.dca_plus_config,
-        Some(DCAPlusConfig {
+        Some(DcaPlusConfig {
             escrow_level: Decimal::percent(5),
             model_id: 30,
             escrowed_balance: Uint128::zero(),
@@ -2078,7 +2078,7 @@ fn with_long_execution_duration_should_select_longer_duration_model() {
 
     assert_eq!(
         vault_response.vault.dca_plus_config,
-        Some(DCAPlusConfig {
+        Some(DcaPlusConfig {
             escrow_level: Decimal::percent(5),
             model_id: 80,
             escrowed_balance: Uint128::zero(),
@@ -2148,7 +2148,7 @@ fn with_small_deposit_should_select_shorter_duration_model() {
 
     assert_eq!(
         vault_response.vault.dca_plus_config,
-        Some(DCAPlusConfig {
+        Some(DcaPlusConfig {
             escrow_level: Decimal::percent(5),
             model_id: 30,
             escrowed_balance: Uint128::zero(),

@@ -31,7 +31,7 @@
         }
       }
     },
-    "DCAPlusConfig": {
+    "DcaPlusConfig": {
       "type": "object",
       "required": [
         "escrow_level",
@@ -225,7 +225,7 @@
         "dca_plus_config": {
           "anyOf": [
             {
-              "$ref": "#/definitions/DCAPlusConfig"
+              "$ref": "#/definitions/DcaPlusConfig"
             },
             {
               "type": "null"

@@ -141,8 +141,8 @@ pub enum QueryMsg {
         start_after: Option<u64>,
         limit: Option<u16>,
     },
-    #[returns(DCAPlusPerformanceResponse)]
-    GetDCAPlusPerformance { vault_id: Uint128 },
+    #[returns(DcaPlusPerformanceResponse)]
+    GetDcaPlusPerformance { vault_id: Uint128 },
 }
 
 #[cw_serde]
@@ -171,9 +171,9 @@ pub struct VaultResponse {
 }
 
 #[cw_serde]
-pub struct DCAPlusPerformanceResponse {
-    pub performance_fee: Coin,
-    pub performance_factor: Decimal,
+pub struct DcaPlusPerformanceResponse {
+    pub fee: Coin,
+    pub factor: Decimal,
 }
 
 #[cw_serde]

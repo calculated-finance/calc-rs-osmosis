@@ -288,6 +288,27 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "get_dca_plus_performance"
+      ],
+      "properties": {
+        "get_dca_plus_performance": {
+          "type": "object",
+          "required": [
+            "vault_id"
+          ],
+          "properties": {
+            "vault_id": {
+              "$ref": "#/definitions/Uint128"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {

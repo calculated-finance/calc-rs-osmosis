@@ -345,7 +345,6 @@ describe('when creating a vault', () => {
 
   describe('with dca plus & a time trigger', () => {
     let vault: Vault;
-    let eventPayloads: EventData[];
 
     before(async function (this: Context) {
       const vault_id = await createVault(this, {
@@ -360,15 +359,6 @@ describe('when creating a vault', () => {
           },
         })
       ).vault;
-
-      eventPayloads = map(
-        (event) => event.data,
-        (
-          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-            get_events_by_resource_id: { resource_id: vault_id },
-          })
-        ).events,
-      );
     });
 
     it('has an empty escrowed balance', async function (this: Context) {

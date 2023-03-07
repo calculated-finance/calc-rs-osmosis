@@ -16,7 +16,7 @@ use crate::state::events::create_event;
 use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{save_vault, update_vault};
-use crate::types::dca_plus_config::DCAPlusConfig;
+use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::vault::Vault;
 use crate::types::vault_builder::VaultBuilder;
 use base::events::event::{EventBuilder, EventData};
@@ -95,7 +95,7 @@ pub fn create_vault(
         if !use_dca_plus {
             return None;
         }
-        Some(DCAPlusConfig {
+        Some(DcaPlusConfig {
             escrow_level: config.dca_plus_escrow_level,
             model_id: get_dca_plus_model_id(
                 &env.block.time,

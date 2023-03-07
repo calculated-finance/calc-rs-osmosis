@@ -380,7 +380,8 @@ impl MockApp {
                     position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
-                    time_interval: TimeInterval::Daily,
+                    time_interval: use_dca_plus
+                        .map_or(TimeInterval::Hourly, |_| TimeInterval::Daily),
                     target_start_time_utc_seconds: Some(Uint64::from(
                         self.app.block_info().time.plus_seconds(2).seconds(),
                     )),

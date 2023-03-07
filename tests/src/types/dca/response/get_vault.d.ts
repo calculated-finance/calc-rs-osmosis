@@ -49,7 +49,7 @@ export type Uint64 = string;
  * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
  */
 export type Decimal = string;
-export type PostExecutionAction = "send" | "z_delegate";
+export type PostExecutionAction = 'send' | 'z_delegate';
 /**
  * A human readable address.
  *
@@ -66,8 +66,8 @@ export type Addr = string;
  * The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)
  */
 export type Decimal256 = string;
-export type VaultStatus = "scheduled" | "active" | "inactive" | "cancelled";
-export type TimeInterval = "half_hourly" | "hourly" | "half_daily" | "daily" | "weekly" | "fortnightly" | "monthly";
+export type VaultStatus = 'scheduled' | 'active' | 'inactive' | 'cancelled';
+export type TimeInterval = 'half_hourly' | 'hourly' | 'half_daily' | 'daily' | 'weekly' | 'fortnightly' | 'monthly';
 export type TriggerConfiguration =
   | {
       time: {
@@ -87,7 +87,7 @@ export interface VaultResponse {
 export interface Vault {
   balance: Coin;
   created_at: Timestamp;
-  dca_plus_config?: DCAPlusConfig | null;
+  dca_plus_config?: DcaPlusConfig | null;
   destinations: Destination[];
   id: Uint128;
   label?: string | null;
@@ -108,7 +108,7 @@ export interface Coin {
   denom: string;
   [k: string]: unknown;
 }
-export interface DCAPlusConfig {
+export interface DcaPlusConfig {
   escrow_level: Decimal;
   escrowed_balance: Uint128;
   model_id: number;

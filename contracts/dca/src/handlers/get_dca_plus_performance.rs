@@ -1,6 +1,6 @@
 use crate::{
     helpers::vault_helpers::{get_dca_plus_performance_factor, get_dca_plus_performance_fee},
-    msg::DCAPlusPerformanceResponse,
+    msg::DcaPlusPerformanceResponse,
     state::vaults::get_vault,
 };
 use base::price_type::PriceType;
@@ -10,7 +10,7 @@ use fin_helpers::queries::query_price;
 pub fn get_dca_plus_performance_handler(
     deps: Deps,
     vault_id: Uint128,
-) -> StdResult<DCAPlusPerformanceResponse> {
+) -> StdResult<DcaPlusPerformanceResponse> {
     let vault = get_vault(deps.storage, vault_id)?;
 
     let current_price = query_price(
@@ -25,9 +25,9 @@ pub fn get_dca_plus_performance_handler(
             msg: format!("Vault {} is not a DCA Plus vault", vault_id),
         }),
         |_| {
-            Ok(DCAPlusPerformanceResponse {
-                performance_fee: get_dca_plus_performance_fee(&vault, current_price)?,
-                performance_factor: get_dca_plus_performance_factor(&vault, current_price)?,
+            Ok(DcaPlusPerformanceResponse {
+                fee: get_dca_plus_performance_fee(&vault, current_price)?,
+                factor: get_dca_plus_performance_factor(&vault, current_price)?,
             })
         },
     )

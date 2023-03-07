@@ -1,4 +1,4 @@
-use super::{dca_plus_config::DCAPlusConfig, vault::Vault};
+use super::{dca_plus_config::DcaPlusConfig, vault::Vault};
 use base::{
     pair::Pair,
     triggers::trigger::TimeInterval,
@@ -23,7 +23,7 @@ pub struct VaultBuilder {
     pub started_at: Option<Timestamp>,
     pub swapped_amount: Coin,
     pub received_amount: Coin,
-    pub dca_plus_config: Option<DCAPlusConfig>,
+    pub dca_plus_config: Option<DcaPlusConfig>,
 }
 
 impl VaultBuilder {
@@ -43,7 +43,7 @@ impl VaultBuilder {
         started_at: Option<Timestamp>,
         swapped_amount: Coin,
         received_amount: Coin,
-        dca_plus_config: Option<DCAPlusConfig>,
+        dca_plus_config: Option<DcaPlusConfig>,
     ) -> VaultBuilder {
         VaultBuilder {
             created_at,

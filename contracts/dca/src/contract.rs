@@ -283,7 +283,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetConfig {} => to_binary(&ConfigResponse {
             config: get_config(deps.storage)?,
         }),
-        QueryMsg::GetDCAPlusPerformance { vault_id } => {
+        QueryMsg::GetDcaPlusPerformance { vault_id } => {
             to_binary(&get_dca_plus_performance_handler(deps, vault_id)?)
         }
     }

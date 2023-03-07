@@ -123,7 +123,7 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
 mod tests {
     use crate::{
         helpers::vault_helpers::{get_dca_plus_performance_factor, get_dca_plus_performance_fee},
-        types::{dca_plus_config::DCAPlusConfig, vault::Vault},
+        types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
     use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
     use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
@@ -151,7 +151,7 @@ mod tests {
                 denom: "receive_denom".to_string(),
                 amount: received_amount,
             },
-            dca_plus_config: Some(DCAPlusConfig {
+            dca_plus_config: Some(DcaPlusConfig {
                 standard_dca_swapped_amount,
                 standard_dca_received_amount,
                 escrowed_balance: received_amount * escrow_level,

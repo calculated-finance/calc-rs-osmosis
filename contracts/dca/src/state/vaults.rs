@@ -1,6 +1,6 @@
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
 use crate::types::{
-    dca_plus_config::DCAPlusConfig, price_delta_limit::PriceDeltaLimit, vault::Vault,
+    dca_plus_config::DcaPlusConfig, price_delta_limit::PriceDeltaLimit, vault::Vault,
     vault_builder::VaultBuilder,
 };
 use base::{
@@ -64,7 +64,7 @@ fn vault_from(
     pair: Pair,
     trigger: Option<TriggerConfiguration>,
     destinations: &mut Vec<Destination>,
-    dca_plus_config: Option<DCAPlusConfig>,
+    dca_plus_config: Option<DcaPlusConfig>,
 ) -> Vault {
     destinations.append(
         &mut data
@@ -105,9 +105,9 @@ fn get_destinations(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vec<Des
     }
 }
 
-const DCA_PLUS_CONFIGS: Map<u128, DCAPlusConfig> = Map::new("dca_plus_configs_v20");
+const DCA_PLUS_CONFIGS: Map<u128, DcaPlusConfig> = Map::new("dca_plus_configs_v20");
 
-fn get_dca_plus_config(store: &dyn Storage, vault_id: Uint128) -> Option<DCAPlusConfig> {
+fn get_dca_plus_config(store: &dyn Storage, vault_id: Uint128) -> Option<DcaPlusConfig> {
     DCA_PLUS_CONFIGS
         .may_load(store, vault_id.into())
         .unwrap_or(None)
