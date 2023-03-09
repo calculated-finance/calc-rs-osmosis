@@ -118,7 +118,7 @@ pub fn setup_vault(
             position_type: None,
             slippage_tolerance: None,
             minimum_receive_amount: None,
-            balance,
+            balance: balance.clone(),
             time_interval: TimeInterval::Daily,
             started_at: None,
             swapped_amount: Coin {
@@ -134,6 +134,7 @@ pub fn setup_vault(
                     escrow_level: Decimal::percent(5),
                     model_id: 30,
                     escrowed_balance: Uint128::zero(),
+                    total_deposit: balance.amount,
                     standard_dca_swapped_amount: Uint128::zero(),
                     standard_dca_received_amount: Uint128::zero(),
                 })
@@ -193,6 +194,21 @@ pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
         Coin::new(Uint128::new(10).into(), "base"),
         Uint128::new(100),
         false,
+    )
+}
+
+pub fn setup_active_dca_plus_vault_with_low_funds(
+    deps: DepsMut,
+    env: Env,
+    balance: Uint128,
+    swap_amount: Uint128,
+) -> Vault {
+    setup_vault(
+        deps,
+        env,
+        Coin::new(balance.into(), "base"),
+        swap_amount,
+        true,
     )
 }
 

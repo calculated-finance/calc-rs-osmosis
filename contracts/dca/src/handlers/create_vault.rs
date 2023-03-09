@@ -104,6 +104,7 @@ pub fn create_vault(
                 &time_interval,
             ),
             escrowed_balance: Uint128::zero(),
+            total_deposit: info.funds[0].amount,
             standard_dca_swapped_amount: Uint128::zero(),
             standard_dca_received_amount: Uint128::zero(),
         })

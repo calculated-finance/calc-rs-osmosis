@@ -4,7 +4,6 @@ use crate::helpers::vault_helpers::{get_swap_amount, has_sufficient_funds};
 use crate::state::cache::{CACHE, SWAP_CACHE};
 use crate::state::config::{get_config, get_custom_fee};
 use crate::state::events::create_event;
-use crate::state::swap_adjustments::get_swap_adjustment;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
@@ -14,7 +13,7 @@ use base::helpers::time_helpers::get_next_target_time;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::{PostExecutionAction, VaultStatus};
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response, Uint128};
+use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
 use cosmwasm_std::{Decimal, SubMsg, SubMsgResult};
 use std::cmp::min;
 
@@ -94,36 +93,25 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount)?;
             vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee)?;
 
-            let mut amount_to_escrow = Uint128::zero();
-
             if let Some(mut dca_plus_config) = vault.dca_plus_config.clone() {
-                amount_to_escrow = total_after_total_fee * dca_plus_config.escrow_level;
+                let standard_dca_swapped_amount =
+                    min(dca_plus_config.total_deposit, vault.swap_amount);
+
+                let standard_dca_received_amount = coin_received.amount
+                    * Decimal::from_ratio(standard_dca_swapped_amount, coin_sent.amount)
+                    * Decimal::from_ratio(total_after_total_fee, coin_received.amount);
+
+                dca_plus_config.standard_dca_swapped_amount += standard_dca_swapped_amount;
+                dca_plus_config.standard_dca_received_amount += standard_dca_received_amount;
+
+                let amount_to_escrow = total_after_total_fee * dca_plus_config.escrow_level;
                 dca_plus_config.escrowed_balance += amount_to_escrow;
 
-                let fee_percentage = Decimal::from_ratio(total_fee, coin_received.amount);
-                let swap_unadjustment = Decimal::one()
-                    / get_swap_adjustment(
-                        deps.storage,
-                        vault.get_position_type(),
-                        dca_plus_config.model_id,
-                        env.block.time,
-                    )?;
-
-                let unadjusted_swap_amount = coin_sent.amount * swap_unadjustment;
-                let unadjusted_received_amount = coin_received.amount * swap_unadjustment;
-                let unadjusted_received_amount_after_fee =
-                    unadjusted_received_amount * (Decimal::one() - fee_percentage);
-
-                dca_plus_config.standard_dca_swapped_amount += unadjusted_swap_amount;
-                dca_plus_config.standard_dca_received_amount +=
-                    unadjusted_received_amount_after_fee;
-
+                total_after_total_fee -= amount_to_escrow;
                 vault.dca_plus_config = Some(dca_plus_config);
             }
 
             update_vault(deps.storage, &vault)?;
-
-            total_after_total_fee = total_after_total_fee.checked_sub(amount_to_escrow)?;
 
             sub_msgs.append(&mut get_disbursement_messages(
                 deps.as_ref(),

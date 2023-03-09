@@ -2012,6 +2012,7 @@ fn with_adjust_swap_amount_true_should_create_dca_plus_config() {
             escrow_level: Decimal::percent(5),
             model_id: 30,
             escrowed_balance: Uint128::zero(),
+            total_deposit: vault_deposit,
             standard_dca_swapped_amount: Uint128::zero(),
             standard_dca_received_amount: Uint128::zero(),
         })
@@ -2019,7 +2020,7 @@ fn with_adjust_swap_amount_true_should_create_dca_plus_config() {
 }
 
 #[test]
-fn with_long_execution_duration_should_select_longer_duration_model() {
+fn with_large_deposit_should_select_longer_duration_model() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
     let vault_deposit = TEN;
@@ -2076,16 +2077,7 @@ fn with_long_execution_duration_should_select_longer_duration_model() {
         .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
-    assert_eq!(
-        vault_response.vault.dca_plus_config,
-        Some(DcaPlusConfig {
-            escrow_level: Decimal::percent(5),
-            model_id: 80,
-            escrowed_balance: Uint128::zero(),
-            standard_dca_swapped_amount: Uint128::zero(),
-            standard_dca_received_amount: Uint128::zero(),
-        })
-    );
+    assert_eq!(vault_response.vault.dca_plus_config.unwrap().model_id, 80);
 }
 
 #[test]
@@ -2146,14 +2138,5 @@ fn with_small_deposit_should_select_shorter_duration_model() {
         .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
         .unwrap();
 
-    assert_eq!(
-        vault_response.vault.dca_plus_config,
-        Some(DcaPlusConfig {
-            escrow_level: Decimal::percent(5),
-            model_id: 30,
-            escrowed_balance: Uint128::zero(),
-            standard_dca_swapped_amount: Uint128::zero(),
-            standard_dca_received_amount: Uint128::zero(),
-        })
-    );
+    assert_eq!(vault_response.vault.dca_plus_config.unwrap().model_id, 30);
 }

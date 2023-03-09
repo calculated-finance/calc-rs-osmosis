@@ -614,3 +614,65 @@ fn with_dca_plus_should_update_model_id() {
     assert_eq!(vault_before_deposit.dca_plus_config.unwrap().model_id, 30);
     assert_eq!(vault_after_deposit.dca_plus_config.unwrap().model_id, 80);
 }
+
+#[test]
+fn with_dca_plus_should_update_total_deposit() {
+    let user_address = Addr::unchecked(USER);
+    let user_balance = ONE_HUNDRED;
+    let swap_amount = ONE;
+    let vault_deposit = TEN;
+    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
+        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_vault_with_time_trigger(
+            &user_address,
+            None,
+            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            swap_amount,
+            "vault",
+            None,
+            Some(true),
+        );
+
+    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+
+    let vault_before_deposit = mock
+        .app
+        .wrap()
+        .query_wasm_smart::<VaultResponse>(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault { vault_id },
+        )
+        .unwrap()
+        .vault;
+
+    mock.app
+        .execute_contract(
+            Addr::unchecked(ADMIN),
+            mock.dca_contract_address.clone(),
+            &ExecuteMsg::Deposit {
+                address: user_address.clone(),
+                vault_id,
+            },
+            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+        )
+        .unwrap();
+
+    let vault_after_deposit = mock
+        .app
+        .wrap()
+        .query_wasm_smart::<VaultResponse>(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault { vault_id },
+        )
+        .unwrap()
+        .vault;
+
+    assert_eq!(
+        vault_before_deposit.dca_plus_config.unwrap().total_deposit,
+        vault_deposit
+    );
+    assert_eq!(
+        vault_after_deposit.dca_plus_config.unwrap().total_deposit,
+        vault_deposit + vault_deposit
+    );
+}

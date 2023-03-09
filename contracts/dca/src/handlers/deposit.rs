@@ -51,16 +51,16 @@ pub fn deposit(
         vault.status = VaultStatus::Active
     }
 
-    if let Some(mut dca_plus_config) = vault.dca_plus_config.clone() {
+    vault.dca_plus_config = vault.dca_plus_config.clone().map(|mut dca_plus_config| {
+        dca_plus_config.total_deposit += info.funds[0].amount;
         dca_plus_config.model_id = get_dca_plus_model_id(
             &env.block.time,
             &vault.balance,
             &vault.swap_amount,
             &vault.time_interval,
         );
-
-        vault.dca_plus_config = Some(dca_plus_config);
-    }
+        dca_plus_config
+    });
 
     update_vault(deps.storage, &vault)?;
 
