@@ -1,8 +1,9 @@
 use crate::error::ContractError;
 use crate::helpers::disbursement_helpers::{get_disbursement_messages, get_fee_messages};
-use crate::helpers::vault_helpers::{get_swap_amount, has_sufficient_funds};
+use crate::helpers::vault_helpers::get_swap_amount;
 use crate::state::cache::{CACHE, SWAP_CACHE};
 use crate::state::config::{get_config, get_custom_fee};
+use crate::state::disburse_escrow_tasks::save_disburse_escrow_task;
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
@@ -86,7 +87,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
             vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, vault.clone())?.amount;
 
-            if !has_sufficient_funds(&deps.as_ref(), &env, vault.clone())? {
+            if !vault.has_sufficient_funds() {
                 vault.status = VaultStatus::Inactive;
             }
 
@@ -131,7 +132,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                                     Some(TriggerConfiguration::Time { target_time }) => target_time,
                                     _ => env.block.time,
                                 },
-                                vault.time_interval,
+                                vault.time_interval.clone(),
                             ),
                         },
                     },
@@ -142,7 +143,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 deps.storage,
                 EventBuilder::new(
                     vault.id,
-                    env.block,
+                    env.block.clone(),
                     EventData::DcaVaultExecutionCompleted {
                         sent: coin_sent.clone(),
                         received: coin_received.clone(),
@@ -154,7 +155,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         SubMsgResult::Err(_) => {
-            if !has_sufficient_funds(&deps.as_ref(), &env, vault.clone())? {
+            if !vault.has_sufficient_funds() {
                 create_event(
                     deps.storage,
                     EventBuilder::new(
@@ -187,11 +188,11 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                         configuration: TriggerConfiguration::Time {
                             target_time: get_next_target_time(
                                 env.block.time,
-                                match vault.trigger.expect("msg") {
+                                match vault.trigger.clone().expect("msg") {
                                     TriggerConfiguration::Time { target_time } => target_time,
                                     _ => env.block.time,
                                 },
-                                vault.time_interval,
+                                vault.time_interval.clone(),
                             ),
                         },
                     },
@@ -199,6 +200,16 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             }
 
             attributes.push(Attribute::new("status", "skipped"));
+        }
+    }
+
+    if vault.is_inactive() {
+        if let Some(_) = vault.dca_plus_config {
+            save_disburse_escrow_task(
+                deps.storage,
+                vault.id,
+                vault.get_expected_execution_completed_date(env.block.time),
+            )?;
         }
     }
 

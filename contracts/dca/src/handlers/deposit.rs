@@ -4,7 +4,7 @@ use crate::helpers::validation_helpers::{
     assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
     assert_exactly_one_asset, assert_vault_is_not_cancelled,
 };
-use crate::helpers::vault_helpers::{get_dca_plus_model_id, has_sufficient_funds};
+use crate::helpers::vault_helpers::get_dca_plus_model_id;
 use crate::state::events::create_event;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{get_vault, update_vault};
@@ -46,7 +46,7 @@ pub fn deposit(
 
     vault.balance.amount += info.funds[0].amount;
 
-    if !vault.is_scheduled() && has_sufficient_funds(&deps.as_ref(), &env, vault.clone())? {
+    if !vault.is_scheduled() && vault.has_sufficient_funds() {
         vault.status = VaultStatus::Active
     }
 

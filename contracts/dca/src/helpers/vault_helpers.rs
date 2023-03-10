@@ -30,10 +30,6 @@ pub fn get_swap_amount(deps: &Deps, env: &Env, vault: Vault) -> StdResult<Coin> 
     })
 }
 
-pub fn has_sufficient_funds(deps: &Deps, env: &Env, vault: Vault) -> StdResult<bool> {
-    get_swap_amount(deps, env, vault).map(|swap_amount| swap_amount.amount > Uint128::new(50000))
-}
-
 pub fn get_dca_plus_model_id(
     block_time: &Timestamp,
     balance: &Coin,

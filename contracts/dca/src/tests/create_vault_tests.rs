@@ -1,5 +1,5 @@
 use crate::constants::{ONE, ONE_THOUSAND, TEN, TWO_MICRONS};
-use crate::msg::{DisburseEscrowTasksResponse, ExecuteMsg, QueryMsg, VaultResponse};
+use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
 use crate::state::config::FeeCollector;
 use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance,
@@ -2016,74 +2016,6 @@ fn with_use_dca_plus_true_should_create_dca_plus_config() {
             standard_dca_swapped_amount: Uint128::zero(),
             standard_dca_received_amount: Uint128::zero(),
         })
-    );
-}
-
-#[test]
-fn with_use_dca_plus_true_should_create_disburse_escrow_task() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UKUJI,
-    );
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pair_address: mock.fin_contract_address.clone(),
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_receive_amount: Some(swap_amount),
-                target_start_time_utc_seconds: None,
-                use_dca_plus: Some(true),
-            },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
-        )
-        .unwrap();
-
-    let vault_id = Uint128::one();
-
-    mock.elapse_time(60 * 60 * 9);
-
-    let get_disburse_escrow_tasks_response_before_due = mock
-        .app
-        .wrap()
-        .query_wasm_smart::<DisburseEscrowTasksResponse>(
-            &mock.dca_contract_address,
-            &QueryMsg::GetDisburseEscrowTasks {},
-        )
-        .unwrap();
-
-    assert!(get_disburse_escrow_tasks_response_before_due
-        .vault_ids
-        .is_empty());
-
-    mock.elapse_time(60 * 60 * 10);
-
-    let get_disburse_escrow_tasks_response_after_due = mock
-        .app
-        .wrap()
-        .query_wasm_smart::<DisburseEscrowTasksResponse>(
-            &mock.dca_contract_address,
-            &QueryMsg::GetDisburseEscrowTasks {},
-        )
-        .unwrap();
-
-    assert_eq!(
-        get_disburse_escrow_tasks_response_after_due.vault_ids,
-        vec![vault_id]
     );
 }
 

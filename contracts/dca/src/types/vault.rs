@@ -51,9 +51,9 @@ impl Vault {
         self.pair.quote_denom.clone()
     }
 
-    pub fn get_expected_execution_completed_date(&self) -> Timestamp {
+    pub fn get_expected_execution_completed_date(&self, current_time: Timestamp) -> Timestamp {
         let execution_duration = get_total_execution_duration(
-            self.created_at,
+            current_time,
             self.balance
                 .amount
                 .checked_div(self.swap_amount)
@@ -62,7 +62,7 @@ impl Vault {
             &self.time_interval,
         );
 
-        self.created_at.plus_seconds(
+        current_time.plus_seconds(
             execution_duration
                 .num_seconds()
                 .try_into()
@@ -129,6 +129,10 @@ impl Vault {
         self.balance.amount < self.swap_amount
     }
 
+    pub fn has_sufficient_funds(&self) -> bool {
+        self.balance.amount >= Uint128::new(50000)
+    }
+
     pub fn is_active(&self) -> bool {
         self.status == VaultStatus::Active
     }
@@ -144,23 +148,17 @@ impl Vault {
 
 #[cfg(test)]
 mod has_sufficient_funds_tests {
-    use crate::{
-        helpers::vault_helpers::has_sufficient_funds, state::vaults::save_vault,
-        types::vault_builder::VaultBuilder,
-    };
+    use crate::{state::vaults::save_vault, types::vault_builder::VaultBuilder};
 
     use super::*;
-    use cosmwasm_std::{
-        coin,
-        testing::{mock_dependencies, mock_env},
-    };
+    use cosmwasm_std::{coin, testing::mock_dependencies};
 
     #[test]
     fn should_return_false_when_vault_has_insufficient_swap_amount() {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(100000, Uint128::new(50000));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(!has_sufficient_funds(&deps.as_ref(), &mock_env(), vault).unwrap());
+        assert!(!vault.has_sufficient_funds());
     }
 
     #[test]
@@ -168,7 +166,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(50000, Uint128::new(50001));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(!has_sufficient_funds(&deps.as_ref(), &mock_env(), vault).unwrap());
+        assert!(!vault.has_sufficient_funds());
     }
 
     #[test]
@@ -176,7 +174,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(100000, Uint128::new(50001));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(has_sufficient_funds(&deps.as_ref(), &mock_env(), vault).unwrap());
+        assert!(vault.has_sufficient_funds());
     }
 
     #[test]
@@ -184,7 +182,7 @@ mod has_sufficient_funds_tests {
         let mut deps = mock_dependencies();
         let vault_builder = vault_with(50001, Uint128::new(50002));
         let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(has_sufficient_funds(&deps.as_ref(), &mock_env(), vault).unwrap());
+        assert!(vault.has_sufficient_funds());
     }
 
     fn vault_with(balance: u128, swap_amount: Uint128) -> VaultBuilder {
@@ -456,6 +454,75 @@ mod get_target_price_tests {
                     PositionType::Exit => "quote",
                 },
             ),
+            trigger: None,
+            dca_plus_config: None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod get_expected_execution_completed_date_tests {
+    use super::Vault;
+    use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
+    use cosmwasm_std::{coin, testing::mock_env, Addr, Coin, Timestamp, Uint128};
+
+    #[test]
+    fn expected_execution_end_date_is_now_when_vault_is_empty() {
+        let env = mock_env();
+        let created_at = env.block.time.minus_seconds(60 * 60 * 24);
+        let vault = vault_with(
+            created_at,
+            Uint128::zero(),
+            Uint128::new(100),
+            TimeInterval::Daily,
+        );
+        assert_eq!(
+            vault.get_expected_execution_completed_date(env.block.time),
+            env.block.time
+        );
+    }
+
+    #[test]
+    fn expected_execution_end_date_is_in_future_when_vault_is_not_empty() {
+        let env = mock_env();
+        let vault = vault_with(
+            env.block.time,
+            Uint128::new(1000),
+            Uint128::new(100),
+            TimeInterval::Daily,
+        );
+        assert_eq!(
+            vault.get_expected_execution_completed_date(env.block.time),
+            env.block.time.plus_seconds(1000 / 100 * 24 * 60 * 60)
+        );
+    }
+
+    fn vault_with(
+        created_at: Timestamp,
+        balance: Uint128,
+        swap_amount: Uint128,
+        time_interval: TimeInterval,
+    ) -> Vault {
+        Vault {
+            id: Uint128::new(1),
+            created_at,
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            balance: Coin::new(balance.into(), "quote"),
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            swap_amount,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval,
+            started_at: None,
+            swapped_amount: coin(0, "quote"),
+            received_amount: coin(0, "base"),
             trigger: None,
             dca_plus_config: None,
         }

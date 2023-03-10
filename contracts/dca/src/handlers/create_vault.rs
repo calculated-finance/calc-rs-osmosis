@@ -12,7 +12,6 @@ use crate::helpers::validation_helpers::{
 use crate::helpers::vault_helpers::get_dca_plus_model_id;
 use crate::state::cache::{Cache, CACHE};
 use crate::state::config::get_config;
-use crate::state::disburse_escrow_tasks::save_disburse_escrow_task;
 use crate::state::events::create_event;
 use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
@@ -142,14 +141,6 @@ pub fn create_vault(
     };
 
     let vault = save_vault(deps.storage, vault_builder)?;
-
-    if let Some(_) = vault.dca_plus_config {
-        save_disburse_escrow_task(
-            deps.storage,
-            vault.id,
-            vault.get_expected_execution_completed_date(),
-        )?;
-    }
 
     CACHE.save(
         deps.storage,
