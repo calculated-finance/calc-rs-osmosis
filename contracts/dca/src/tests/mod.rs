@@ -62,7 +62,7 @@ pub mod get_vaults_tests;
 pub mod get_config_tests;
 
 #[cfg(test)]
-pub mod claim_escrowed_funds_tests;
+pub mod disburse_escrow_tests;
 
 #[cfg(test)]
 pub mod update_swap_adjustments_tests;

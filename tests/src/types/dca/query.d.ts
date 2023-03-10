@@ -63,6 +63,14 @@ export type QueryMsg =
         resource_id: Uint128;
         start_after?: number | null;
       };
+    }
+  | {
+      get_dca_plus_performance: {
+        vault_id: Uint128;
+      };
+    }
+  | {
+      get_disburse_escrow_tasks: {};
     };
 /**
  * A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.

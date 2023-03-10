@@ -93,7 +93,7 @@ fn should_disburse_escrowed_amount_to_the_vault_destinations() {
         .execute_contract(
             Addr::unchecked(ADMIN),
             mock.dca_contract_address.clone(),
-            &ExecuteMsg::ClaimEscrowedFunds {
+            &ExecuteMsg::DisburseEscrow {
                 vault_id: Uint128::new(1),
             },
             &[],

@@ -427,10 +427,10 @@
     {
       "type": "object",
       "required": [
-        "claim_escrowed_funds"
+        "disburse_escrow"
       ],
       "properties": {
-        "claim_escrowed_funds": {
+        "disburse_escrow": {
           "type": "object",
           "required": [
             "vault_id"

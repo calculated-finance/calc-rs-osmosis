@@ -1,5 +1,6 @@
 use super::dca_plus_config::DcaPlusConfig;
 use base::{
+    helpers::time_helpers::get_total_execution_duration,
     pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
     vaults::vault::{Destination, VaultStatus},
@@ -50,8 +51,23 @@ impl Vault {
         self.pair.quote_denom.clone()
     }
 
-    pub fn get_total_deposit_amount(&self) -> Uint128 {
-        self.balance.amount + self.swapped_amount.amount
+    pub fn get_expected_execution_completed_date(&self) -> Timestamp {
+        let execution_duration = get_total_execution_duration(
+            self.created_at,
+            self.balance
+                .amount
+                .checked_div(self.swap_amount)
+                .unwrap()
+                .into(),
+            &self.time_interval,
+        );
+
+        self.created_at.plus_seconds(
+            execution_duration
+                .num_seconds()
+                .try_into()
+                .expect("exected duration should be >= 0 seconds"),
+        )
     }
 
     pub fn get_target_price(

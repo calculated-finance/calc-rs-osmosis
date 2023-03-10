@@ -6,16 +6,17 @@ use crate::handlers::after_fin_limit_order_withdrawn_for_execute_trigger::after_
 use crate::handlers::after_fin_swap::after_fin_swap;
 use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
-use crate::handlers::claim_escrowed_funds::claim_escrowed_funds_handler;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
 use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
+use crate::handlers::disburse_escrow::disburse_escrow_handler;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_custom_swap_fees::get_custom_swap_fees;
 use crate::handlers::get_data_fixes_by_resource_id::get_data_fixes_by_resource_id;
 use crate::handlers::get_dca_plus_performance::get_dca_plus_performance_handler;
+use crate::handlers::get_disburse_escrow_tasks_handler::get_disburse_escrow_tasks_handler;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
@@ -198,8 +199,8 @@ pub fn execute(
             position_type,
             adjustments,
         } => update_swap_adjustments_handler(deps, env, position_type, adjustments),
-        ExecuteMsg::ClaimEscrowedFunds { vault_id } => {
-            claim_escrowed_funds_handler(deps, env, info, vault_id)
+        ExecuteMsg::DisburseEscrow { vault_id } => {
+            disburse_escrow_handler(deps, env, info, vault_id)
         }
     }
 }
@@ -285,6 +286,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }),
         QueryMsg::GetDcaPlusPerformance { vault_id } => {
             to_binary(&get_dca_plus_performance_handler(deps, vault_id)?)
+        }
+        QueryMsg::GetDisburseEscrowTasks {} => {
+            to_binary(&get_disburse_escrow_tasks_handler(deps, env)?)
         }
     }
 }

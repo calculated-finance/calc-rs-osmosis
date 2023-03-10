@@ -38,7 +38,8 @@
         "escrowed_balance",
         "model_id",
         "standard_dca_received_amount",
-        "standard_dca_swapped_amount"
+        "standard_dca_swapped_amount",
+        "total_deposit"
       ],
       "properties": {
         "escrow_level": {
@@ -56,6 +57,9 @@
           "$ref": "#/definitions/Uint128"
         },
         "standard_dca_swapped_amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "total_deposit": {
           "$ref": "#/definitions/Uint128"
         }
       },

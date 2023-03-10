@@ -1,3 +1,4 @@
+use super::execute_trigger::execute_trigger;
 use crate::error::ContractError;
 use crate::helpers::validation_helpers::{
     assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
@@ -13,8 +14,6 @@ use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{Addr, Env};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
-
-use super::execute_trigger::execute_trigger;
 
 pub fn deposit(
     deps: DepsMut,

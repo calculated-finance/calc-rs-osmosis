@@ -86,7 +86,7 @@ export type ExecuteMsg =
       };
     }
   | {
-      claim_escrowed_funds: {
+      disburse_escrow: {
         vault_id: Uint128;
       };
     };

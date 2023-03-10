@@ -49,7 +49,7 @@ export type Uint64 = string;
  * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
  */
 export type Decimal = string;
-export type PostExecutionAction = 'send' | 'z_delegate';
+export type PostExecutionAction = "send" | "z_delegate";
 /**
  * A human readable address.
  *
@@ -66,8 +66,8 @@ export type Addr = string;
  * The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)
  */
 export type Decimal256 = string;
-export type VaultStatus = 'scheduled' | 'active' | 'inactive' | 'cancelled';
-export type TimeInterval = 'half_hourly' | 'hourly' | 'half_daily' | 'daily' | 'weekly' | 'fortnightly' | 'monthly';
+export type VaultStatus = "scheduled" | "active" | "inactive" | "cancelled";
+export type TimeInterval = "half_hourly" | "hourly" | "half_daily" | "daily" | "weekly" | "fortnightly" | "monthly";
 export type TriggerConfiguration =
   | {
       time: {
@@ -114,6 +114,7 @@ export interface DcaPlusConfig {
   model_id: number;
   standard_dca_received_amount: Uint128;
   standard_dca_swapped_amount: Uint128;
+  total_deposit: Uint128;
 }
 export interface Destination {
   action: PostExecutionAction;

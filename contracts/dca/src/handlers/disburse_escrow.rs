@@ -11,7 +11,7 @@ use base::price_type::PriceType;
 use cosmwasm_std::{Coin, DepsMut, Env, MessageInfo, Response, Uint128};
 use fin_helpers::queries::query_price;
 
-pub fn claim_escrowed_funds_handler(
+pub fn disburse_escrow_handler(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,

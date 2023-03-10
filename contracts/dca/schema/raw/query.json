@@ -309,6 +309,19 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "get_disburse_escrow_tasks"
+      ],
+      "properties": {
+        "get_disburse_escrow_tasks": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {

@@ -7,7 +7,7 @@ import { Vault } from '../../types/dca/response/get_vault';
 import { createVault, getBalances } from '../helpers';
 import { expect } from '../shared.test';
 
-describe('when claiming escrowed funds', () => {
+describe('when disbursing escrow', () => {
   describe('with dca plus & no trigger', () => {
     let deposit = coin(1000000, 'ukuji');
     let vaultBeforeExecution: Vault;
@@ -28,7 +28,7 @@ describe('when claiming escrowed funds', () => {
       ).vault;
 
       await execute(this.userCosmWasmClient, this.userWalletAddress, this.dcaContractAddress, {
-        claim_escrowed_funds: { vault_id },
+        disburse_escrow: { vault_id },
       });
 
       balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['udemo']);
