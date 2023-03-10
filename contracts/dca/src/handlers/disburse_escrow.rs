@@ -61,5 +61,6 @@ pub fn disburse_escrow_handler(
             env,
             vec![performance_fee.amount],
             vault.get_receive_denom(),
+            true,
         )?))
 }

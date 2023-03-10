@@ -83,6 +83,7 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 env.clone(),
                 vec![swap_fee, automation_fee],
                 coin_received.denom.clone(),
+                false,
             )?);
 
             vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, vault.clone())?.amount;

@@ -130,7 +130,12 @@ impl Vault {
     }
 
     pub fn has_sufficient_funds(&self) -> bool {
-        self.balance.amount >= Uint128::new(50000)
+        let swap_amount = match self.has_low_funds() {
+            true => self.balance.amount,
+            false => self.swap_amount,
+        };
+
+        swap_amount > Uint128::new(50000)
     }
 
     pub fn is_active(&self) -> bool {
