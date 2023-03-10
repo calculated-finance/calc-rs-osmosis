@@ -4,6 +4,7 @@ use crate::helpers::validation_helpers::{
     assert_sender_is_admin_or_vault_owner, assert_vault_is_not_cancelled,
 };
 use crate::state::cache::{Cache, LimitOrderCache, CACHE, LIMIT_ORDER_CACHE};
+use crate::state::disburse_escrow_tasks::save_disburse_escrow_task;
 use crate::state::events::create_event;
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
@@ -32,6 +33,14 @@ pub fn cancel_vault(
         deps.storage,
         EventBuilder::new(vault.id, env.block.clone(), EventData::DcaVaultCancelled {}),
     )?;
+
+    if let Some(_) = vault.dca_plus_config {
+        save_disburse_escrow_task(
+            deps.storage,
+            vault.id,
+            vault.get_expected_execution_completed_date(env.block.time),
+        )?;
+    };
 
     match vault.trigger {
         Some(TriggerConfiguration::Time { .. }) => {

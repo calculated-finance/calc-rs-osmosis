@@ -1,6 +1,6 @@
 use crate::{
     error::ContractError,
-    helpers::validation_helpers::assert_sender_is_admin_or_vault_owner,
+    helpers::validation_helpers::assert_sender_is_admin,
     helpers::{
         disbursement_helpers::{get_disbursement_messages, get_fee_messages},
         vault_helpers::get_dca_plus_performance_fee,
@@ -17,13 +17,13 @@ pub fn disburse_escrow_handler(
     info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
+    assert_sender_is_admin(deps.storage, info.sender)?;
+
     let mut vault = get_vault(deps.storage, vault_id)?;
 
     if vault.is_active() || vault.is_scheduled() {
         return Ok(Response::new());
     }
-
-    assert_sender_is_admin_or_vault_owner(deps.storage, vault.owner.clone(), info.sender)?;
 
     if vault.dca_plus_config.is_none() {
         return Err(ContractError::CustomError {

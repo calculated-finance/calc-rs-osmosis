@@ -1,5 +1,8 @@
+use super::helpers::{instantiate_contract, setup_active_dca_plus_vault_with_funds};
 use crate::constants::{ONE, ONE_THOUSAND, TEN, TWO_MICRONS};
+use crate::handlers::cancel_vault::cancel_vault;
 use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
+use crate::state::disburse_escrow_tasks::get_disburse_escrow_tasks;
 use crate::tests::helpers::{assert_address_balances, assert_events_published};
 use crate::tests::mocks::{
     fin_contract_partially_filled_order, fin_contract_unfilled_limit_order, MockApp, ADMIN,
@@ -7,6 +10,7 @@ use crate::tests::mocks::{
 };
 use base::events::event::{EventBuilder, EventData};
 use base::vaults::vault::VaultStatus;
+use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
@@ -843,4 +847,37 @@ fn when_vault_has_no_trigger_should_publish_events() {
         )
         .build(3)],
     );
+}
+
+#[test]
+fn with_dca_plus_should_save_disburse_escrow_task() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(ADMIN, &[]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
+
+    cancel_vault(deps.as_mut(), env.clone(), info, vault.id).unwrap();
+
+    let disburse_escrow_tasks_before = get_disburse_escrow_tasks(
+        deps.as_ref().storage,
+        vault
+            .get_expected_execution_completed_date(env.block.time)
+            .minus_seconds(10),
+    )
+    .unwrap();
+
+    assert!(disburse_escrow_tasks_before.is_empty());
+
+    let disburse_escrow_tasks_after = get_disburse_escrow_tasks(
+        deps.as_ref().storage,
+        vault
+            .get_expected_execution_completed_date(env.block.time)
+            .plus_seconds(10),
+    )
+    .unwrap();
+
+    assert!(disburse_escrow_tasks_after.contains(&vault.id));
 }
