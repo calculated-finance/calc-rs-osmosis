@@ -144,7 +144,7 @@ pub enum QueryMsg {
     #[returns(DcaPlusPerformanceResponse)]
     GetDcaPlusPerformance { vault_id: Uint128 },
     #[returns(DisburseEscrowTasksResponse)]
-    GetDisburseEscrowTasks {},
+    GetDisburseEscrowTasks { limit: Option<u16> },
 }
 
 #[cw_serde]

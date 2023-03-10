@@ -866,6 +866,7 @@ fn with_dca_plus_should_save_disburse_escrow_task() {
         vault
             .get_expected_execution_completed_date(env.block.time)
             .minus_seconds(10),
+        Some(100),
     )
     .unwrap();
 
@@ -876,6 +877,7 @@ fn with_dca_plus_should_save_disburse_escrow_task() {
         vault
             .get_expected_execution_completed_date(env.block.time)
             .plus_seconds(10),
+        Some(100),
     )
     .unwrap();
 

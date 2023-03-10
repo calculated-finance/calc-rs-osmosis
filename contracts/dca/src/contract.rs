@@ -287,8 +287,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetDcaPlusPerformance { vault_id } => {
             to_binary(&get_dca_plus_performance_handler(deps, vault_id)?)
         }
-        QueryMsg::GetDisburseEscrowTasks {} => {
-            to_binary(&get_disburse_escrow_tasks_handler(deps, env)?)
+        QueryMsg::GetDisburseEscrowTasks { limit } => {
+            to_binary(&get_disburse_escrow_tasks_handler(deps, env, limit)?)
         }
     }
 }

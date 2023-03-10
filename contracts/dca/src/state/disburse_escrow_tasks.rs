@@ -20,6 +20,7 @@ pub fn save_disburse_escrow_task(
 pub fn get_disburse_escrow_tasks(
     store: &dyn Storage,
     due_before: Timestamp,
+    limit: Option<u16>,
 ) -> StdResult<Vec<Uint128>> {
     Ok(DISBURSE_ESCROW_TASKS
         .prefix_range(
@@ -28,6 +29,7 @@ pub fn get_disburse_escrow_tasks(
             Some(PrefixBound::Inclusive((due_before.seconds(), PhantomData))),
             Order::Ascending,
         )
+        .take(limit.unwrap_or(30) as usize)
         .flat_map(|result| result.map(|(_, vault_id)| vault_id.into()))
         .collect::<Vec<Uint128>>())
 }
@@ -48,7 +50,8 @@ mod tests {
         save_disburse_escrow_task(&mut deps.storage, vault_id, env.block.time).unwrap();
 
         let vault_ids =
-            get_disburse_escrow_tasks(&deps.storage, env.block.time.plus_seconds(10)).unwrap();
+            get_disburse_escrow_tasks(&deps.storage, env.block.time.plus_seconds(10), Some(100))
+                .unwrap();
 
         assert_eq!(vault_ids, vec![vault_id]);
     }
@@ -65,7 +68,8 @@ mod tests {
         )
         .unwrap();
 
-        let vault_ids = get_disburse_escrow_tasks(&deps.storage, env.block.time).unwrap();
+        let vault_ids =
+            get_disburse_escrow_tasks(&deps.storage, env.block.time, Some(100)).unwrap();
 
         assert!(vault_ids.is_empty());
     }
@@ -82,7 +86,8 @@ mod tests {
         save_disburse_escrow_task(&mut deps.storage, vault_id_2, env.block.time).unwrap();
 
         let vault_ids =
-            get_disburse_escrow_tasks(&deps.storage, env.block.time.plus_seconds(10)).unwrap();
+            get_disburse_escrow_tasks(&deps.storage, env.block.time.plus_seconds(10), Some(100))
+                .unwrap();
 
         assert_eq!(vault_ids, vec![vault_id_1, vault_id_2]);
     }
