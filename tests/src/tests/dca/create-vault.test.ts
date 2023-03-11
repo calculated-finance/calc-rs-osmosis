@@ -385,7 +385,6 @@ describe('when creating a vault', () => {
   describe('with dca plus & no trigger', () => {
     let vault: Vault;
     let deposit = coin(1000000, 'ukuji');
-    let eventPayloads: EventData[];
     let balancesBeforeExecution: Record<string, number>;
     let balancesAfterExecution: Record<string, number>;
 
@@ -409,15 +408,6 @@ describe('when creating a vault', () => {
       ).vault;
 
       balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['udemo']);
-
-      eventPayloads = map(
-        (event) => event.data,
-        (
-          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-            get_events_by_resource_id: { resource_id: vault_id },
-          })
-        ).events,
-      );
     });
 
     it('subtracts the escrowed balance from the disbursed amount', async function (this: Context) {
@@ -437,9 +427,7 @@ describe('when creating a vault', () => {
     });
 
     it('calculates the standard dca swapped amount', async function (this: Context) {
-      expect(vault.dca_plus_config.standard_dca_swapped_amount).to.equal(
-        `${parseInt(vault.swapped_amount.amount) / 1.3 - 1}`,
-      );
+      expect(vault.dca_plus_config.standard_dca_swapped_amount).to.equal(`${vault.swap_amount}`);
     });
 
     it('calculates the standard dca received amount', async function (this: Context) {

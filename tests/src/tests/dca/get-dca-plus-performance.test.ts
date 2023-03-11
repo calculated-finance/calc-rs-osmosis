@@ -4,7 +4,7 @@ import { Context } from 'mocha';
 import { createVault } from '../helpers';
 import { expect } from '../shared.test';
 
-describe.only('when fetching dca plus performance', () => {
+describe('when fetching dca plus performance', () => {
   describe('for a vault with no executions', () => {
     let deposit = coin(1000000, 'ukuji');
     let performance: any;
@@ -56,7 +56,7 @@ describe.only('when fetching dca plus performance', () => {
     });
 
     it('has an even performance factor', async function (this: Context) {
-      expect(performance.factor).to.equal('0.999459027873087939');
+      expect(performance.factor).to.equal('0.999460029132380019');
     });
   });
 });

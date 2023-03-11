@@ -17,7 +17,7 @@ describe('when disbursing escrow', () => {
     let balancesAfterExecution: Record<string, number>;
 
     before(async function (this: Context) {
-      const vault_id = await createVault(this, { use_dca_plus: true }, [deposit]);
+      const vault_id = await createVault(this, { swap_amount: deposit.amount, use_dca_plus: true }, [deposit]);
 
       balancesBeforeExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['udemo']);
 
@@ -27,7 +27,7 @@ describe('when disbursing escrow', () => {
         })
       ).vault;
 
-      await execute(this.userCosmWasmClient, this.userWalletAddress, this.dcaContractAddress, {
+      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
         disburse_escrow: { vault_id },
       });
 
