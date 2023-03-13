@@ -7,9 +7,8 @@ use crate::{
     },
     state::vaults::{get_vault, update_vault},
 };
-use base::price_type::PriceType;
-use cosmwasm_std::{Coin, DepsMut, Env, MessageInfo, Response, Uint128};
-use fin_helpers::queries::query_price;
+use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
+use fin_helpers::queries::query_belief_price;
 
 pub fn disburse_escrow_handler(
     deps: DepsMut,
@@ -33,15 +32,8 @@ pub fn disburse_escrow_handler(
 
     let mut dca_plus_config = vault.dca_plus_config.clone().unwrap();
 
-    let current_price = query_price(
-        deps.querier,
-        vault.pair.clone(),
-        &Coin {
-            denom: vault.get_swap_denom(),
-            amount: Uint128::one(),
-        },
-        PriceType::Belief,
-    )?;
+    let current_price =
+        query_belief_price(deps.querier, vault.pair.clone(), &vault.get_swap_denom())?;
 
     let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
     let amount_to_disburse = dca_plus_config.escrowed_balance - performance_fee.amount;
