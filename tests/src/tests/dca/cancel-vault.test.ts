@@ -1,11 +1,10 @@
-import { coin } from '@cosmjs/proto-signing';
 import dayjs from 'dayjs';
 import { Context } from 'mocha';
 import { map } from 'ramda';
 import { execute } from '../../shared/cosmwasm';
 import { EventData } from '../../types/dca/response/get_events';
 import { Vault } from '../../types/dca/response/get_vault';
-import { createVault, getBalances, provideAuthGrant } from '../helpers';
+import { createVault, getBalances } from '../helpers';
 import { expect } from '../shared.test';
 
 describe('when cancelling a vault', () => {
@@ -88,7 +87,7 @@ describe('when cancelling a vault', () => {
 
     it('sends vault balance back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['udemo']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['udemo'] + parseInt(vaultBeforeExecution.balance.amount) + 2,
+        balancesBeforeExecution[this.userWalletAddress]['udemo'] + parseInt(vaultBeforeExecution.balance.amount),
       );
     });
 

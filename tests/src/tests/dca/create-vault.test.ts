@@ -427,7 +427,9 @@ describe('when creating a vault', () => {
     });
 
     it('calculates the standard dca swapped amount', async function (this: Context) {
-      expect(vault.dca_plus_config.standard_dca_swapped_amount).to.equal(`${vault.swap_amount}`);
+      expect(vault.dca_plus_config.standard_dca_swapped_amount).to.equal(
+        `${parseInt(vault.swapped_amount.amount) / 1.3}`,
+      );
     });
 
     it('calculates the standard dca received amount', async function (this: Context) {

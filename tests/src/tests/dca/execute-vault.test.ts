@@ -102,9 +102,7 @@ describe('when executing a vault', () => {
 
     it('sends funds back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['ukuji']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['ukuji'] +
-          parseInt(vaultAfterExecution.received_amount.amount) +
-          1,
+        balancesBeforeExecution[this.userWalletAddress]['ukuji'] + parseInt(vaultAfterExecution.received_amount.amount),
       );
     });
 
@@ -121,7 +119,7 @@ describe('when executing a vault', () => {
       ));
 
     it('updates the vault received amount correctly', async function (this: Context) {
-      expect(vaultAfterExecution.received_amount).to.eql(coin(receivedAmountAfterFee + 1, 'ukuji'));
+      expect(vaultAfterExecution.received_amount).to.eql(coin(receivedAmountAfterFee + 2, 'ukuji'));
     });
 
     it('has an execution triggered event', function (this: Context) {
@@ -141,7 +139,7 @@ describe('when executing a vault', () => {
         {
           dca_vault_execution_completed: {
             sent: coin(vaultAfterExecution.swap_amount, vaultAfterExecution.balance.denom),
-            received: coin(`${receivedAmount + 1}`, 'ukuji'),
+            received: coin(`${receivedAmount + 2}`, 'ukuji'),
             fee: coin(Math.floor(receivedAmount * this.calcSwapFee), 'ukuji'),
           },
         },

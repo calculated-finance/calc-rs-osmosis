@@ -195,7 +195,7 @@ fn for_filled_fin_limit_order_trigger_should_update_vault_stats() {
         )
         .unwrap();
 
-    let received_amount_after_swap_fee = swap_amount - swap_amount * mock.fee_percent;
+    let received_amount_after_swap_fee = swap_amount - swap_amount * mock.fee_percent + TWO_MICRONS;
 
     assert_eq!(vault_response.vault.swapped_amount.amount, swap_amount);
     assert_eq!(vault_response.vault.swapped_amount.denom, DENOM_UKUJI);
@@ -265,7 +265,7 @@ fn for_filled_fin_limit_order_trigger_should_publish_events() {
                 mock.app.block_info(),
                 EventData::DcaVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
-                    received: Coin::new(swap_amount.into(), DENOM_UTEST),
+                    received: Coin::new((swap_amount + TWO_MICRONS).into(), DENOM_UTEST),
                     fee: Coin::new(
                         (swap_amount - received_amount_after_swap_fee).into(),
                         DENOM_UTEST,
@@ -2044,8 +2044,9 @@ fn until_vault_is_empty_should_update_vault_stats() {
         .unwrap();
 
     let vault_deposit_after_limit_order = vault_deposit - TWO_MICRONS;
-    let vault_deposit_after_swap_fees =
-        vault_deposit_after_limit_order - vault_deposit_after_limit_order * mock.fee_percent;
+    let vault_deposit_after_swap_fees = vault_deposit_after_limit_order
+        - vault_deposit_after_limit_order * mock.fee_percent
+        + TWO_MICRONS;
 
     assert_eq!(
         vault_response.vault.swapped_amount.amount,
@@ -2133,7 +2134,7 @@ fn until_vault_is_empty_should_create_events() {
                 initial_block_info.clone(),
                 EventData::DcaVaultExecutionCompleted {
                     sent: Coin::new(swap_amount.into(), DENOM_UKUJI),
-                    received: Coin::new(swap_amount.into(), DENOM_UTEST),
+                    received: Coin::new((swap_amount + TWO_MICRONS).into(), DENOM_UTEST),
                     fee: Coin::new((swap_amount * mock.fee_percent).into(), DENOM_UTEST),
                 },
             )

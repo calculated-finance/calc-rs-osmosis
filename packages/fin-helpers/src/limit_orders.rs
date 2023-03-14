@@ -19,41 +19,27 @@ pub fn create_submit_order_sub_msg(
     )
 }
 
-pub fn create_withdraw_limit_order_sub_msg(
-    pair_address: Addr,
-    order_idx: Uint128,
-    reply_id: u64,
-) -> SubMsg {
+pub fn create_withdraw_limit_order_msg(pair_address: Addr, order_idx: Uint128) -> CosmosMsg {
     let fin_withdraw_order_msg = FINExecuteMsg::WithdrawOrders {
         order_idxs: Some(vec![order_idx]),
     };
 
-    SubMsg::reply_always(
-        CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: pair_address.to_string(),
-            msg: to_binary(&fin_withdraw_order_msg).unwrap(),
-            funds: vec![],
-        }),
-        reply_id,
-    )
+    CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: pair_address.to_string(),
+        msg: to_binary(&fin_withdraw_order_msg).unwrap(),
+        funds: vec![],
+    })
 }
 
-pub fn create_retract_order_sub_msg(
-    pair_address: Addr,
-    order_idx: Uint128,
-    reply_id: u64,
-) -> SubMsg {
+pub fn create_retract_order_msg(pair_address: Addr, order_idx: Uint128) -> CosmosMsg {
     let fin_retract_order_msg = FINExecuteMsg::RetractOrder {
         order_idx,
         amount: None,
     };
 
-    SubMsg::reply_always(
-        CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: pair_address.to_string(),
-            msg: to_binary(&fin_retract_order_msg).unwrap(),
-            funds: vec![],
-        }),
-        reply_id,
-    )
+    CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: pair_address.to_string(),
+        msg: to_binary(&fin_retract_order_msg).unwrap(),
+        funds: vec![],
+    })
 }

@@ -95,7 +95,7 @@ pub fn get_fee_messages(
                         .fee_collectors
                         .iter()
                         .find(|fee_collector| fee_collector.address == "community_pool")
-                        .map_or(Decimal::zero(), |fee_collector| fee_collector.allocation);
+                        .map_or(Decimal::zero(), |community_pool| community_pool.allocation);
                     fee_collector.allocation / (Decimal::one() - community_pool_allocation)
                 } else {
                     fee_collector.allocation

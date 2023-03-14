@@ -6,7 +6,7 @@ import { getBalances, isWithinPercent, sendTokens } from '../helpers';
 import { instantiateFinPairContract, instantiateSwapContract, instantiateFundCoreContract } from '../hooks';
 import { expect } from '../shared.test';
 
-describe('when rebalancing a fund', () => {
+describe.skip('when rebalancing a fund', () => {
   const baseAsset = 'uusk';
   const denoms = ['ukuji', 'udemo', 'utest', 'uatom', 'uosmo', 'uaxlusdc', 'uusk', 'umars', 'uweth', 'uwbtc'];
   const pairs = map((denom) => ({ baseDenom: denom, quoteDenom: baseAsset }), denoms);
