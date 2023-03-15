@@ -383,10 +383,11 @@ describe('when creating a vault', () => {
   });
 
   describe('with dca plus & no trigger', () => {
+    const deposit = coin(1000000, 'ukuji');
     let vault: Vault;
-    let deposit = coin(1000000, 'ukuji');
     let balancesBeforeExecution: Record<string, number>;
     let balancesAfterExecution: Record<string, number>;
+    let expectedPrice: number;
 
     before(async function (this: Context) {
       balancesBeforeExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['udemo']);
@@ -406,6 +407,14 @@ describe('when creating a vault', () => {
           },
         })
       ).vault;
+
+      expectedPrice = await this.cosmWasmClient.queryContractSmart(this.swapContractAddress, {
+        get_price: {
+          swap_amount: coin(vault.swap_amount, 'ukuji'),
+          target_denom: 'udemo',
+          price_type: 'actual',
+        },
+      });
 
       balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['udemo']);
     });
@@ -428,13 +437,13 @@ describe('when creating a vault', () => {
 
     it('calculates the standard dca swapped amount', async function (this: Context) {
       expect(vault.dca_plus_config.standard_dca_swapped_amount).to.equal(
-        `${parseInt(vault.swapped_amount.amount) / 1.3}`,
+        `${parseInt(vault.swapped_amount.amount) / this.swapAdjustment}`,
       );
     });
 
     it('calculates the standard dca received amount', async function (this: Context) {
       expect(vault.dca_plus_config.standard_dca_received_amount).to.equal(
-        `${Math.round(parseInt(vault.received_amount.amount) / 1.3 - 1)}`,
+        `${Math.round((parseInt(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee))}`,
       );
     });
   });

@@ -9,29 +9,25 @@ use crate::{
         cache::{SwapCache, SWAP_CACHE},
         config::{create_custom_fee, get_config, FeeCollector},
         swap_adjustments::update_swap_adjustments,
-        triggers::{delete_trigger, get_trigger, save_trigger},
         vaults::get_vault,
     },
     tests::{
         helpers::{
             instantiate_contract, instantiate_contract_with_multiple_fee_collectors,
-            setup_active_dca_plus_vault_with_funds, setup_active_dca_plus_vault_with_low_funds,
-            setup_active_vault_with_funds, setup_active_vault_with_low_funds,
-            setup_active_vault_with_slippage_funds, setup_vault,
+            setup_active_dca_plus_vault_with_funds, setup_active_vault_with_funds,
+            setup_active_vault_with_low_funds, setup_active_vault_with_slippage_funds,
         },
-        mocks::{ADMIN, DENOM_UKUJI},
+        mocks::ADMIN,
     },
 };
 use base::{
     events::event::{EventBuilder, EventData, ExecutionSkippedReason},
     helpers::{community_pool::create_fund_community_pool_msg, math_helpers::checked_mul},
-    triggers::trigger::{Trigger, TriggerConfiguration},
     vaults::vault::{PostExecutionAction, VaultStatus},
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    BankMsg, Coin, Decimal, Decimal256, Reply, SubMsg, SubMsgResponse, SubMsgResult, Timestamp,
-    Uint128,
+    BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
 };
 use fin_helpers::{codes::ERROR_SWAP_SLIPPAGE_EXCEEDED, position_type::PositionType};
 use std::{cmp::min, str::FromStr};
@@ -434,151 +430,6 @@ fn with_succcesful_swap_adjusts_received_amount_stat() {
 }
 
 #[test]
-fn with_successful_swap_creates_a_new_time_trigger() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
-    let receive_amount = Uint128::new(234312312);
-
-    SWAP_CACHE
-        .save(
-            deps.as_mut().storage,
-            &SwapCache {
-                swap_denom_balance: vault.balance.clone(),
-                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
-            },
-        )
-        .unwrap();
-
-    deps.querier.update_balance(
-        "cosmos2contract",
-        vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
-    );
-
-    after_fin_swap(
-        deps.as_mut(),
-        env.clone(),
-        Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
-            result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![],
-                data: None,
-            }),
-        },
-    )
-    .unwrap();
-
-    let trigger = get_trigger(&mut deps.storage, vault.id).unwrap();
-
-    assert_eq!(
-        trigger.unwrap().configuration,
-        TriggerConfiguration::Time {
-            target_time: Timestamp::from_seconds(env.block.time.seconds() + 60 * 60 * 24)
-        }
-    );
-}
-
-#[test]
-fn with_successful_swap_resulting_in_low_funds_sets_vault_to_inactive() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Coin::new(100000, DENOM_UKUJI),
-        Uint128::new(60000),
-        false,
-    );
-
-    let receive_amount = Uint128::new(234312312);
-
-    SWAP_CACHE
-        .save(
-            deps.as_mut().storage,
-            &SwapCache {
-                swap_denom_balance: vault.balance.clone(),
-                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
-            },
-        )
-        .unwrap();
-
-    deps.querier.update_balance(
-        "cosmos2contract",
-        vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
-    );
-
-    after_fin_swap(
-        deps.as_mut(),
-        env.clone(),
-        Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
-            result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![],
-                data: None,
-            }),
-        },
-    )
-    .unwrap();
-
-    let vault = get_vault(&deps.storage, vault.id).unwrap();
-
-    assert_eq!(vault.status, VaultStatus::Inactive);
-}
-
-#[test]
-fn with_successful_swap_resulting_in_low_funds_does_not_create_time_trigger() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Coin::new(100000, DENOM_UKUJI),
-        Uint128::new(60000),
-        false,
-    );
-
-    let receive_amount = Uint128::new(234312312);
-
-    SWAP_CACHE
-        .save(
-            deps.as_mut().storage,
-            &SwapCache {
-                swap_denom_balance: vault.balance.clone(),
-                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
-            },
-        )
-        .unwrap();
-
-    deps.querier.update_balance(
-        "cosmos2contract",
-        vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
-    );
-
-    after_fin_swap(
-        deps.as_mut(),
-        env.clone(),
-        Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
-            result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![],
-                data: None,
-            }),
-        },
-    )
-    .unwrap();
-
-    let vault = get_vault(&deps.storage, vault.id).unwrap();
-
-    assert_eq!(vault.trigger, None);
-}
-
-#[test]
 fn with_succcesful_swap_with_dca_plus_escrows_funds() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -636,28 +487,8 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
 
     let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
 
-    let fee = get_config(&deps.storage).unwrap().swap_fee_percent * receive_amount;
-    let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
-
-    let automation_fees = updated_vault
-        .destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
-        .fold(
-            Coin::new(0, updated_vault.get_receive_denom()),
-            |mut accum, destination| {
-                let allocation_amount =
-                    checked_mul(receive_amount - fee, destination.allocation).unwrap();
-                let allocation_automation_fee =
-                    checked_mul(allocation_amount, automation_fee).unwrap();
-                accum.amount = accum.amount.checked_add(allocation_automation_fee).unwrap();
-                accum
-            },
-        );
-
-    let amount_to_disburse = receive_amount - fee - automation_fees.amount;
     let escrow_level = updated_vault.dca_plus_config.clone().unwrap().escrow_level;
-    let escrow_amount = escrow_level * amount_to_disburse;
+    let escrow_amount = escrow_level * receive_amount;
 
     assert_eq!(
         escrow_amount,
@@ -676,7 +507,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
                 .address
                 .to_string(),
             amount: vec![Coin::new(
-                (amount_to_disburse - escrow_amount).into(),
+                (receive_amount - escrow_amount).into(),
                 updated_vault.get_receive_denom(),
             )],
         },
@@ -684,241 +515,6 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
     )));
     assert_ne!(escrow_level, Decimal::zero());
     assert_ne!(escrow_amount, Uint128::zero());
-}
-
-#[test]
-fn with_succcesful_swap_with_dca_plus_updates_standard_dca_amounts() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    let vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
-    let coefficient = Decimal::from_str("1.3").unwrap();
-
-    SWAP_CACHE
-        .save(
-            deps.as_mut().storage,
-            &SwapCache {
-                swap_denom_balance: vault.balance.clone(),
-                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
-            },
-        )
-        .unwrap();
-
-    deps.querier.update_balance(
-        "cosmos2contract",
-        vec![
-            Coin::new(
-                (vault.balance.amount - (vault.swap_amount * coefficient)).into(),
-                vault.get_swap_denom(),
-            ),
-            Coin::new(vault.swap_amount.into(), vault.get_receive_denom()),
-        ],
-    );
-
-    update_swap_adjustments(
-        deps.as_mut().storage,
-        PositionType::Exit,
-        vec![
-            (30, coefficient),
-            (35, coefficient),
-            (40, coefficient),
-            (45, coefficient),
-            (50, coefficient),
-            (55, coefficient),
-            (60, coefficient),
-            (70, coefficient),
-            (80, coefficient),
-            (90, coefficient),
-        ],
-        env.block.time,
-    )
-    .unwrap();
-
-    after_fin_swap(
-        deps.as_mut(),
-        env,
-        Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
-            result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![],
-                data: None,
-            }),
-        },
-    )
-    .unwrap();
-
-    let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
-    let dca_plus_config = updated_vault.dca_plus_config.unwrap();
-
-    assert_eq!(
-        dca_plus_config.standard_dca_swapped_amount * coefficient,
-        updated_vault.swapped_amount.amount
-    );
-    assert_eq!(
-        dca_plus_config.standard_dca_received_amount,
-        updated_vault.received_amount.amount * (Decimal::one() / coefficient) - Uint128::one() // account for rounding
-    );
-}
-
-#[test]
-fn with_low_funds_and_dca_plus_and_high_swap_adjustment_updates_standard_dca_amounts() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    let vault = setup_active_dca_plus_vault_with_low_funds(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::new(12),
-        Uint128::new(10),
-    );
-    let coefficient = Decimal::from_str("1.3").unwrap();
-
-    SWAP_CACHE
-        .save(
-            deps.as_mut().storage,
-            &SwapCache {
-                swap_denom_balance: vault.balance.clone(),
-                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
-            },
-        )
-        .unwrap();
-
-    deps.querier.update_balance(
-        "cosmos2contract",
-        vec![
-            Coin::new(0, vault.get_swap_denom()),
-            Coin::new(vault.balance.amount.into(), vault.get_receive_denom()),
-        ],
-    );
-
-    update_swap_adjustments(
-        deps.as_mut().storage,
-        PositionType::Exit,
-        vec![
-            (30, coefficient),
-            (35, coefficient),
-            (40, coefficient),
-            (45, coefficient),
-            (50, coefficient),
-            (55, coefficient),
-            (60, coefficient),
-            (70, coefficient),
-            (80, coefficient),
-            (90, coefficient),
-        ],
-        env.block.time,
-    )
-    .unwrap();
-
-    after_fin_swap(
-        deps.as_mut(),
-        env,
-        Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
-            result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![],
-                data: None,
-            }),
-        },
-    )
-    .unwrap();
-
-    let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
-    let dca_plus_config = updated_vault.dca_plus_config.unwrap();
-
-    assert_eq!(
-        dca_plus_config.standard_dca_swapped_amount,
-        min(vault.balance.amount, updated_vault.swap_amount)
-    );
-    assert_eq!(
-        dca_plus_config.standard_dca_received_amount,
-        updated_vault.received_amount.amount * (Decimal::one() / coefficient)
-    );
-}
-
-#[test]
-fn with_low_funds_and_dca_plus_and_low_swap_adjustment_updates_standard_dca_amounts() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    let vault = setup_active_dca_plus_vault_with_low_funds(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::new(10),
-        Uint128::new(10),
-    );
-    let coefficient = Decimal::from_str("0.7").unwrap();
-
-    SWAP_CACHE
-        .save(
-            deps.as_mut().storage,
-            &SwapCache {
-                swap_denom_balance: vault.balance.clone(),
-                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
-            },
-        )
-        .unwrap();
-
-    deps.querier.update_balance(
-        "cosmos2contract",
-        vec![
-            Coin::new(
-                (vault.balance.amount - vault.swap_amount * coefficient).into(),
-                vault.get_swap_denom(),
-            ),
-            Coin::new(
-                (vault.swap_amount * coefficient).into(),
-                vault.get_receive_denom(),
-            ),
-        ],
-    );
-
-    update_swap_adjustments(
-        deps.as_mut().storage,
-        PositionType::Exit,
-        vec![
-            (30, coefficient),
-            (35, coefficient),
-            (40, coefficient),
-            (45, coefficient),
-            (50, coefficient),
-            (55, coefficient),
-            (60, coefficient),
-            (70, coefficient),
-            (80, coefficient),
-            (90, coefficient),
-        ],
-        env.block.time,
-    )
-    .unwrap();
-
-    after_fin_swap(
-        deps.as_mut(),
-        env,
-        Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
-            result: SubMsgResult::Ok(SubMsgResponse {
-                events: vec![],
-                data: None,
-            }),
-        },
-    )
-    .unwrap();
-
-    let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
-    let dca_plus_config = updated_vault.dca_plus_config.unwrap();
-
-    assert_eq!(
-        dca_plus_config.standard_dca_swapped_amount,
-        min(vault.balance.amount, updated_vault.swap_amount)
-    );
-    assert_eq!(
-        dca_plus_config.standard_dca_received_amount,
-        updated_vault.received_amount.amount * (Decimal::one() / coefficient)
-    );
 }
 
 #[test]
@@ -942,45 +538,6 @@ fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
 }
 
 #[test]
-fn with_failed_swap_and_insufficient_funds_does_not_create_a_new_time_trigger() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-
-    setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
-
-    let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err("Generic failure".to_string()),
-    };
-
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
-
-    let trigger = get_trigger(&mut deps.storage, vault_id).unwrap();
-    assert!(trigger.is_none());
-}
-
-#[test]
-fn with_failed_swap_and_insufficient_funds_sets_vault_to_inactive() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-
-    setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
-
-    let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err("Generic failure".to_string()),
-    };
-
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
-
-    let vault = get_vault(&mut deps.storage, vault_id).unwrap();
-
-    assert_eq!(vault.status, VaultStatus::Inactive);
-}
-
-#[test]
 fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_failure() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -1000,6 +557,8 @@ fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_
         .unwrap()
         .events;
 
+    println!("{:?}", events);
+
     assert!(events.contains(
         &EventBuilder::new(
             vault_id,
@@ -1010,31 +569,6 @@ fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_
         )
         .build(1)
     ));
-}
-
-#[test]
-fn with_failed_swap_creates_a_new_time_trigger() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-
-    setup_active_vault_with_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
-
-    let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
-    };
-
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
-
-    let trigger = get_trigger(&mut deps.storage, vault_id).unwrap();
-
-    assert_eq!(
-        trigger.unwrap().configuration,
-        TriggerConfiguration::Time {
-            target_time: Timestamp::from_seconds(env.block.time.seconds() + 60 * 60 * 24)
-        }
-    );
 }
 
 #[test]
@@ -1086,44 +620,6 @@ fn with_failed_swap_leaves_vault_active() {
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
     assert_eq!(vault.status, VaultStatus::Active);
-}
-
-#[test]
-fn with_failed_swap_and_low_funds_and_price_trigger_creates_new_time_trigger() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-
-    let vault = setup_active_vault_with_slippage_funds(deps.as_mut(), env.clone());
-
-    delete_trigger(deps.as_mut().storage, vault.id).unwrap();
-
-    save_trigger(
-        deps.as_mut().storage,
-        Trigger {
-            vault_id: vault.id,
-            configuration: TriggerConfiguration::FinLimitOrder {
-                target_price: Decimal256::one(),
-                order_idx: Some(Uint128::one()),
-            },
-        },
-    )
-    .unwrap();
-
-    let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
-    };
-
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
-
-    let vault = get_vault(&mut deps.storage, vault.id).unwrap();
-
-    assert_eq!(
-        vault.trigger.clone(),
-        Some(TriggerConfiguration::Time {
-            target_time: Timestamp::from_seconds(env.block.time.seconds() + 60 * 60 * 24)
-        })
-    );
 }
 
 #[test]

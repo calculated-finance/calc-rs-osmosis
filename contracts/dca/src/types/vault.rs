@@ -149,6 +149,10 @@ impl Vault {
     pub fn is_inactive(&self) -> bool {
         self.status == VaultStatus::Inactive
     }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.status == VaultStatus::Cancelled
+    }
 }
 
 #[cfg(test)]

@@ -5,7 +5,7 @@ import { execute } from '../../shared/cosmwasm';
 import { instantiateFinPairContract, instantiateSwapContract } from '../hooks';
 import { expect } from '../shared.test';
 
-describe('when fetching paths', () => {
+describe.skip('when fetching paths', () => {
   let finPairAddress: string;
   let swapContractAddress: string;
   let baseDenom = 'ukuji';

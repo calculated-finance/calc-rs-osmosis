@@ -82,41 +82,13 @@ pub fn get_dca_plus_performance_factor(
     ))
 }
 
-pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> StdResult<Coin> {
-    let dca_plus_config = vault
-        .dca_plus_config
-        .clone()
-        .expect("Only DCA plus vaults should try to get fee");
-
-    let dca_plus_total_value = dca_plus_config.total_deposit - vault.swapped_amount.amount
-        + vault.received_amount.amount * current_price;
-
-    let standard_dca_total_value = dca_plus_config.total_deposit
-        - dca_plus_config.standard_dca_swapped_amount
-        + dca_plus_config.standard_dca_received_amount * current_price;
-
-    if standard_dca_total_value > dca_plus_total_value {
-        return Ok(Coin {
-            denom: vault.get_swap_denom(),
-            amount: Uint128::zero(),
-        });
-    }
-
-    let value_difference_in_terms_of_receive_denom =
-        (dca_plus_total_value - standard_dca_total_value) * (Decimal::one() / current_price);
-
-    let fee = value_difference_in_terms_of_receive_denom * Decimal::percent(20);
-
-    Ok(Coin {
-        denom: vault.get_swap_denom(),
-        amount: min(fee, dca_plus_config.escrowed_balance),
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
-        helpers::vault_helpers::{get_dca_plus_performance_factor, get_dca_plus_performance_fee},
+        helpers::{
+            fee_helpers::get_dca_plus_performance_fee,
+            vault_helpers::get_dca_plus_performance_factor,
+        },
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
     use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};

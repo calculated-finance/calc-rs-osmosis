@@ -16,6 +16,7 @@ declare module 'mocha' {
     feeCollectorAddress: Addr;
     userWalletAddress: Addr;
     stakingRouterContractAddress: Addr;
+    swapContractAddress: Addr;
     finPairAddress: Addr;
     finBuyPrice: number;
     finSellPrice: number;
@@ -23,5 +24,6 @@ declare module 'mocha' {
     finTakerFee: number;
     pair: Pair;
     validatorAddress: string;
+    swapAdjustment: number;
   }
 }

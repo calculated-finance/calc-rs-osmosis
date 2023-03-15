@@ -1,7 +1,8 @@
-use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Decimal, Uint128};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-#[cw_serde]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, Copy)]
 pub struct DcaPlusConfig {
     pub escrow_level: Decimal,
     pub model_id: u8,
@@ -11,9 +12,8 @@ pub struct DcaPlusConfig {
     pub escrowed_balance: Uint128,
 }
 
-#[cw_serde]
-#[derive(Copy)]
-pub enum DcaPlusDirection {
-    In = 0,
-    Out = 1,
+impl DcaPlusConfig {
+    pub fn has_sufficient_funds(self) -> bool {
+        self.total_deposit - self.standard_dca_swapped_amount > Uint128::new(50000)
+    }
 }

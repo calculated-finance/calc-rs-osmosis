@@ -639,13 +639,13 @@ fn book_response_handler(
     let pool_response_quote = PoolResponse {
         quote_price,
         offer_denom: Denom::Native(quote_denom.clone()),
-        total_offer_amount: Uint256::zero(),
+        total_offer_amount: Uint256::from_uint128(ONE_THOUSAND),
     };
 
     let pool_response_base = PoolResponse {
         quote_price: base_price,
         offer_denom: Denom::Native(quote_denom),
-        total_offer_amount: Uint256::zero(),
+        total_offer_amount: Uint256::from_uint128(ONE_THOUSAND),
     };
 
     to_binary(&BookResponse {

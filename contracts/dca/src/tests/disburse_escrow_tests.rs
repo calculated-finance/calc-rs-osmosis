@@ -6,7 +6,7 @@ use super::{
     mocks::ADMIN,
 };
 use crate::{
-    constants::TEN,
+    constants::{ONE_DECIMAL, TEN},
     contract::AFTER_BANK_SWAP_REPLY_ID,
     handlers::disburse_escrow::disburse_escrow_handler,
     state::vaults::update_vault,
@@ -19,8 +19,6 @@ use cosmwasm_std::{
     BankMsg, Coin, CosmosMsg, Decimal, SubMsg, Uint128,
 };
 
-const ONE: Decimal = Decimal::new(Uint128::new(1000000000000000000));
-
 #[test]
 fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
     let mut deps = mock_dependencies();
@@ -32,7 +30,7 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
         env.clone(),
         info.clone(),
     );
-    set_fin_price(&mut deps, &ONE);
+    set_fin_price(&mut deps, &ONE_DECIMAL);
 
     let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -78,7 +76,7 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
         env.clone(),
         info.clone(),
     );
-    set_fin_price(&mut deps, &ONE);
+    set_fin_price(&mut deps, &ONE_DECIMAL);
 
     let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
 

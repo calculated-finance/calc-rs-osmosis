@@ -14,6 +14,7 @@ const finTakerFee = 0.0015;
 const finMakerFee = 0.00075;
 const finBuyPrice = 1.01;
 const finSellPrice = 0.99;
+const swapAdjustment = 1.3;
 
 export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
   dotenv.config();
@@ -46,6 +47,8 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
     dcaContractAddress,
   );
 
+  const swapContractAddress = await instantiateSwapContract(cosmWasmClient, adminContractAddress, finPairAddress);
+
   const userWallet = await createWallet(config);
   const userWalletAddress = (await userWallet.getAccounts())[0].address;
   const userCosmWasmClient = await createCosmWasmClientForWallet(
@@ -71,6 +74,7 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
         userWalletAddress,
         stakingRouterContractAddress,
         finPairAddress,
+        swapContractAddress,
         finBuyPrice,
         finSellPrice,
         finMakerFee,
@@ -81,6 +85,7 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
           quote_denom: 'udemo',
         },
         validatorAddress,
+        swapAdjustment,
       };
 
       Object.assign(this, context);
@@ -130,16 +135,16 @@ const instantiateDCAContract = async (
       update_swap_adjustments: {
         position_type,
         adjustments: [
-          [30, '1.3'],
-          [35, '1.3'],
-          [40, '1.3'],
-          [45, '1.3'],
-          [50, '1.3'],
-          [55, '1.3'],
-          [60, '1.3'],
-          [70, '1.3'],
-          [80, '1.3'],
-          [90, '1.3'],
+          [30, `${swapAdjustment}`],
+          [35, `${swapAdjustment}`],
+          [40, `${swapAdjustment}`],
+          [45, `${swapAdjustment}`],
+          [50, `${swapAdjustment}`],
+          [55, `${swapAdjustment}`],
+          [60, `${swapAdjustment}`],
+          [70, `${swapAdjustment}`],
+          [80, `${swapAdjustment}`],
+          [90, `${swapAdjustment}`],
         ],
       },
     });
@@ -222,8 +227,9 @@ export const instantiateFinPairContract = async (
 export const instantiateSwapContract = async (
   cosmWasmClient: SigningCosmWasmClient,
   adminContractAddress: string,
-): Promise<string> =>
-  uploadAndInstantiate(
+  finPairAddress?: string,
+): Promise<string> => {
+  const swapContractAddress = await uploadAndInstantiate(
     '../artifacts/swap.wasm',
     cosmWasmClient,
     adminContractAddress,
@@ -232,6 +238,23 @@ export const instantiateSwapContract = async (
     },
     'swap',
   );
+
+  if (finPairAddress) {
+    let pair = await cosmWasmClient.queryContractSmart(finPairAddress, {
+      config: {},
+    });
+
+    await execute(cosmWasmClient, adminContractAddress, swapContractAddress, {
+      add_path: {
+        pair: {
+          fin: { address: finPairAddress, base_denom: pair.denoms[0].native, quote_denom: pair.denoms[1].native },
+        },
+      },
+    });
+  }
+
+  return swapContractAddress;
+};
 
 export const instantiateFundCoreContract = async (
   cosmWasmClient: SigningCosmWasmClient,

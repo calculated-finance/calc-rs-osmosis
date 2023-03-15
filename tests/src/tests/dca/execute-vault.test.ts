@@ -645,7 +645,7 @@ describe('when executing a vault', () => {
       ]);
     });
 
-    it('updates the vault status', () =>
+    it('makes the vault active', () =>
       expect(vaultBeforeExecution.status).to.eql('scheduled') && expect(vaultAfterExecution.status).to.eql('active'));
   });
 
@@ -791,8 +791,5 @@ describe('when executing a vault', () => {
         },
       ]);
     });
-
-    it('makes the vault inactive', () =>
-      expect(vaultBeforeExecution.status).to.eql('scheduled') && expect(vaultAfterExecution.status).to.eql('inactive'));
   });
 });

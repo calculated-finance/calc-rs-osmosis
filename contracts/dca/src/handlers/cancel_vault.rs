@@ -53,36 +53,36 @@ pub fn cancel_vault(
 
     update_vault(deps.storage, &vault)?;
 
-    match vault.trigger {
-        Some(TriggerConfiguration::FinLimitOrder { order_idx, .. }) => {
-            if let Some(order_idx) = order_idx {
-                let limit_order =
-                    query_order_details(deps.querier, vault.pair.address.clone(), order_idx)
-                        .expect(&format!(
-                            "Fin limit order exists at pair {}",
-                            vault.pair.address.clone()
+    if let Some(trigger) = vault.trigger {
+        match trigger {
+            TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
+                if let Some(order_idx) = order_idx {
+                    let limit_order =
+                        query_order_details(deps.querier, vault.pair.address.clone(), order_idx)
+                            .expect(&format!(
+                                "Fin limit order exists at pair {}",
+                                vault.pair.address.clone()
+                            ));
+
+                    if limit_order.offer_amount > Uint128::zero() {
+                        messages.push(create_retract_order_msg(
+                            vault.pair.address.clone(),
+                            order_idx,
                         ));
+                    }
 
-                if limit_order.offer_amount > Uint128::zero() {
-                    messages.push(create_retract_order_msg(
-                        vault.pair.address.clone(),
-                        order_idx,
-                    ));
-                }
-
-                if limit_order.filled_amount > Uint128::zero() {
-                    messages.push(create_withdraw_limit_order_msg(
-                        vault.pair.address.clone(),
-                        order_idx,
-                    ));
+                    if limit_order.filled_amount > Uint128::zero() {
+                        messages.push(create_withdraw_limit_order_msg(
+                            vault.pair.address.clone(),
+                            order_idx,
+                        ));
+                    }
                 }
             }
+            _ => {}
         }
-        _ => {}
-    };
 
-    if vault.trigger.is_some() {
-        delete_trigger(deps.storage, vault.id.into())?;
+        delete_trigger(deps.storage, vault.id)?;
     }
 
     Ok(Response::new()

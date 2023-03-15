@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use super::mocks::{MockApp, ADMIN, FEE_COLLECTOR};
+use super::mocks::{MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, FEE_COLLECTOR};
 use crate::{
     constants::{ONE, TEN},
     contract::instantiate,
@@ -100,12 +100,13 @@ pub fn setup_vault(
     env: Env,
     balance: Coin,
     swap_amount: Uint128,
+    status: VaultStatus,
     is_dca_plus: bool,
 ) -> Vault {
     let pair = Pair {
         address: Addr::unchecked("pair"),
-        base_denom: "base".to_string(),
-        quote_denom: "quote".to_string(),
+        base_denom: DENOM_UKUJI.to_string(),
+        quote_denom: DENOM_UTEST.to_string(),
     };
 
     PAIRS
@@ -125,7 +126,7 @@ pub fn setup_vault(
                 action: PostExecutionAction::ZDelegate,
             }],
             created_at: env.block.time.clone(),
-            status: VaultStatus::Active,
+            status,
             pair,
             swap_amount,
             position_type: None,
@@ -183,11 +184,25 @@ pub fn setup_vault(
 }
 
 pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, Coin::new(TEN.into(), "base"), ONE, false)
+    setup_vault(
+        deps,
+        env,
+        Coin::new(TEN.into(), "base"),
+        ONE,
+        VaultStatus::Active,
+        false,
+    )
 }
 
 pub fn setup_active_dca_plus_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, Coin::new(TEN.into(), "base"), ONE, true)
+    setup_vault(
+        deps,
+        env,
+        Coin::new(TEN.into(), "base"),
+        ONE,
+        VaultStatus::Active,
+        true,
+    )
 }
 
 pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault {
@@ -196,6 +211,7 @@ pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault 
         env,
         Coin::new(Uint128::new(500000).into(), "base"),
         Uint128::new(500000),
+        VaultStatus::Active,
         false,
     )
 }
@@ -206,6 +222,7 @@ pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
         env,
         Coin::new(Uint128::new(10).into(), "base"),
         Uint128::new(100),
+        VaultStatus::Active,
         false,
     )
 }
@@ -221,6 +238,7 @@ pub fn setup_active_dca_plus_vault_with_low_funds(
         env,
         Coin::new(balance.into(), "base"),
         swap_amount,
+        VaultStatus::Active,
         true,
     )
 }

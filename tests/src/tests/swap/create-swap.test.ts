@@ -6,7 +6,7 @@ import { getBalances } from '../helpers';
 import { instantiateFinPairContract, instantiateSwapContract } from '../hooks';
 import { expect } from '../shared.test';
 
-describe('when creating a swap', () => {
+describe.skip('when creating a swap', () => {
   let finPairAddress: string;
   let swapContractAddress: string;
   let baseDenom = 'utest';

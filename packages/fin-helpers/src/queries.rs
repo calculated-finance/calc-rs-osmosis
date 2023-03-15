@@ -131,6 +131,10 @@ pub fn query_price(
             }
         });
 
+        if spent == swap_amount.amount {
+            break;
+        }
+
         if Decimal::from_ratio(spent, swap_amount.amount) < Decimal::percent(50) {
             limit = limit * 2;
         }

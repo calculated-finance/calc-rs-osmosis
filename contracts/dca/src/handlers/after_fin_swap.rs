@@ -1,22 +1,16 @@
 use crate::error::ContractError;
-use crate::helpers::disbursement_helpers::{get_disbursement_messages, get_fee_messages};
+use crate::helpers::disbursement_helpers::get_disbursement_messages;
+use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_fee_messages, get_swap_fee_rate};
 use crate::helpers::vault_helpers::get_swap_amount;
 use crate::state::cache::{CACHE, SWAP_CACHE};
-use crate::state::config::{get_config, get_custom_fee};
-use crate::state::disburse_escrow_tasks::save_disburse_escrow_task;
 use crate::state::events::create_event;
-use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;
-use base::helpers::time_helpers::get_next_target_time;
-use base::triggers::trigger::{Trigger, TriggerConfiguration};
-use base::vaults::vault::{PostExecutionAction, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
 use cosmwasm_std::{Decimal, SubMsg, SubMsgResult};
-use std::cmp::min;
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
@@ -24,8 +18,6 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut sub_msgs: Vec<SubMsg> = Vec::new();
-
-    delete_trigger(deps.storage, vault.id)?;
 
     match reply.result {
         SubMsgResult::Ok(_) => {
@@ -49,30 +41,17 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 receive_denom_balance.denom.clone(),
             );
 
-            let config = get_config(deps.storage)?;
-
-            let fee_percent = match (
-                get_custom_fee(deps.storage, vault.get_swap_denom()),
-                get_custom_fee(deps.storage, vault.get_receive_denom()),
-            ) {
-                (Some(swap_denom_fee_percent), Some(receive_denom_fee_percent)) => {
-                    min(swap_denom_fee_percent, receive_denom_fee_percent)
-                }
-                (Some(swap_denom_fee_percent), None) => swap_denom_fee_percent,
-                (None, Some(receive_denom_fee_percent)) => receive_denom_fee_percent,
-                (None, None) => config.swap_fee_percent,
+            let swap_fee_rate = match vault.dca_plus_config {
+                Some(_) => Decimal::zero(),
+                None => get_swap_fee_rate(&deps, &vault)?,
             };
 
-            let automation_fee_rate = config.delegation_fee_percent.checked_mul(
-                vault
-                    .destinations
-                    .iter()
-                    .filter(|destination| destination.action == PostExecutionAction::ZDelegate)
-                    .map(|destination| destination.allocation)
-                    .sum(),
-            )?;
+            let automation_fee_rate = match vault.dca_plus_config {
+                Some(_) => Decimal::zero(),
+                None => get_delegation_fee_rate(&deps, &vault)?,
+            };
 
-            let swap_fee = checked_mul(coin_received.amount, fee_percent)?;
+            let swap_fee = checked_mul(coin_received.amount, swap_fee_rate)?;
             let total_after_swap_fee = coin_received.amount - swap_fee;
             let automation_fee = checked_mul(total_after_swap_fee, automation_fee_rate)?;
             let total_fee = swap_fee + automation_fee;
@@ -87,25 +66,10 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             )?);
 
             vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, vault.clone())?.amount;
-
-            if !vault.has_sufficient_funds() {
-                vault.status = VaultStatus::Inactive;
-            }
-
             vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount)?;
             vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee)?;
 
             if let Some(mut dca_plus_config) = vault.dca_plus_config.clone() {
-                let standard_dca_swapped_amount =
-                    min(dca_plus_config.total_deposit, vault.swap_amount);
-
-                let standard_dca_received_amount = coin_received.amount
-                    * Decimal::from_ratio(standard_dca_swapped_amount, coin_sent.amount)
-                    * Decimal::from_ratio(total_after_total_fee, coin_received.amount);
-
-                dca_plus_config.standard_dca_swapped_amount += standard_dca_swapped_amount;
-                dca_plus_config.standard_dca_received_amount += standard_dca_received_amount;
-
                 let amount_to_escrow = total_after_total_fee * dca_plus_config.escrow_level;
                 dca_plus_config.escrowed_balance += amount_to_escrow;
 
@@ -120,25 +84,6 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 &vault,
                 total_after_total_fee,
             )?);
-
-            if vault.is_active() {
-                save_trigger(
-                    deps.storage,
-                    Trigger {
-                        vault_id: vault.id,
-                        configuration: TriggerConfiguration::Time {
-                            target_time: get_next_target_time(
-                                env.block.time,
-                                match vault.trigger {
-                                    Some(TriggerConfiguration::Time { target_time }) => target_time,
-                                    _ => env.block.time,
-                                },
-                                vault.time_interval.clone(),
-                            ),
-                        },
-                    },
-                )?;
-            }
 
             create_event(
                 deps.storage,
@@ -156,61 +101,21 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         SubMsgResult::Err(_) => {
-            if !vault.has_sufficient_funds() {
-                create_event(
-                    deps.storage,
-                    EventBuilder::new(
-                        vault.id,
-                        env.block.to_owned(),
-                        EventData::DcaVaultExecutionSkipped {
-                            reason: ExecutionSkippedReason::UnknownFailure,
-                        },
-                    ),
-                )?;
-
-                vault.status = VaultStatus::Inactive;
-                update_vault(deps.storage, &vault)?;
-            } else {
-                create_event(
-                    deps.storage,
-                    EventBuilder::new(
-                        vault.id,
-                        env.block.to_owned(),
-                        EventData::DcaVaultExecutionSkipped {
-                            reason: ExecutionSkippedReason::SlippageToleranceExceeded,
-                        },
-                    ),
-                )?;
-
-                save_trigger(
-                    deps.storage,
-                    Trigger {
-                        vault_id: vault.id,
-                        configuration: TriggerConfiguration::Time {
-                            target_time: get_next_target_time(
-                                env.block.time,
-                                match vault.trigger.clone().expect("msg") {
-                                    TriggerConfiguration::Time { target_time } => target_time,
-                                    _ => env.block.time,
-                                },
-                                vault.time_interval.clone(),
-                            ),
+            create_event(
+                deps.storage,
+                EventBuilder::new(
+                    vault.id,
+                    env.block.to_owned(),
+                    EventData::DcaVaultExecutionSkipped {
+                        reason: match vault.has_sufficient_funds() {
+                            true => ExecutionSkippedReason::SlippageToleranceExceeded,
+                            false => ExecutionSkippedReason::UnknownFailure,
                         },
                     },
-                )?;
-            }
+                ),
+            )?;
 
             attributes.push(Attribute::new("status", "skipped"));
-        }
-    }
-
-    if vault.is_inactive() {
-        if let Some(_) = vault.dca_plus_config {
-            save_disburse_escrow_task(
-                deps.storage,
-                vault.id,
-                vault.get_expected_execution_completed_date(env.block.time),
-            )?;
         }
     }
 

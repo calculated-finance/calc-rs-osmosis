@@ -15,6 +15,7 @@ describe('when disbursing escrow', () => {
     let eventPayloads: EventData[];
     let balancesBeforeExecution: Record<string, number>;
     let balancesAfterExecution: Record<string, number>;
+    let performanceFee: number;
 
     before(async function (this: Context) {
       const vault_id = await createVault(this, { swap_amount: deposit.amount, use_dca_plus: true }, [deposit]);
@@ -26,6 +27,14 @@ describe('when disbursing escrow', () => {
           get_vault: { vault_id },
         })
       ).vault;
+
+      performanceFee = parseInt(
+        (
+          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+            get_dca_plus_performance: { vault_id },
+          })
+        ).fee.amount,
+      );
 
       await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
         disburse_escrow: { vault_id },
@@ -56,7 +65,8 @@ describe('when disbursing escrow', () => {
     it('sends the funds back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['udemo']).to.equal(
         balancesBeforeExecution[this.userWalletAddress]['udemo'] +
-          parseInt(vaultBeforeExecution.dca_plus_config.escrowed_balance),
+          parseInt(vaultBeforeExecution.dca_plus_config.escrowed_balance) -
+          performanceFee,
       );
     });
   });

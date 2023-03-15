@@ -14,8 +14,8 @@ Vaults store information relating to the overall DCA strategy the user has reque
 - `balance`: the current balance of the vault
 - `pair`: the FIN pair address and denomination ordering for execution swaps and limit orders
 - `swap_amount`: the amount to be swapped
-- `position_type`: whether the vault is DCA in (investing) or DCA out (profit-taking)
 - `time_interval`: the time interval at which the executions should take place once the vault executions have started
+- `model_id`: the DCA+ model id to use for swap adjustments (auto selected based on expected execution duration)
 
 Triggers store the information required decide whether to execute a vault or not. Currently, there are 2 trigger types:.
 
@@ -62,10 +62,12 @@ Vaults are created by users via the CALC frontend application.
 
 ### Execute Trigger
 
-Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal to the vault `id`. An off chain scheduler obtains `trigger_id`s for triggers that are ready to be executed via FIN and the `GetTriggerIdByFinLimitOrderIdx` query for price triggers, and via the `GetTimeTriggerIds` query for time triggers.
+Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal to the vault `id`. An off chain scheduler obtains `trigger_id`s for triggers that are ready to be executed via a combination of Fin order queries and the `GetTriggerIdByFinLimitOrderIdx` query for price triggers, and via the `GetTimeTriggerIds` query for time triggers.
 
 #### Validation
 
+- the vault must not be cancelled
+- the vault must have a trigger
 - if the trigger is a time trigger:
   - the `target_time` must be in the past
   - if the vault `position_type` is `PositionType::Enter`:
@@ -73,31 +75,42 @@ Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal 
   - if the vault `position_type` is `PositionType::Exit`:
     - the current price of the swap asset must be higher than the price threshold (if there is one)
 - if the trigger is a fin limit order trigger:
+  - the fin limit `order_idx` must be stored against the trigger
   - the fin limit order must be completely filled
 
 #### Domain Logic
 
-- if the trigger is a time trigger:
-  - execute a fin swap for the vault pair
-  - if the fin swap is successful:
-    - delete the current time trigger
-    - if the vault balance > 0:
-      - save a new time trigger using the vault `time_interval`
-  - else:
-    - publish a `DCAVaultExecutionSkipped` event with the relevant skipped reason
-- if the trigger is a fin limit order trigger:
+- delete the current trigger
+- if the trigger was a fin limit order trigger:
   - withdraw the limit order from fin
-  - if the fin limit withdrawal is successful:
-    - delete the fin limit order trigger
-    - if the vault balance > 0:
-      - save a new time trigger using the vault `time_interval`
-  - else:
-    - return an error to be logged by the off-chain scheduler
-- reduce the vault balance by the swap amount
-- send the CALC fee to the `fee_collector` address
-- distribute remaining swapped funds to all vault `destinations` based on destination allocations
-- use `authz` permissions to delegate funds from destination addresses to validators for destinations with action type `PostExecutionAction:Delegate`
-- save a `DCAVaultExecutionCompleted` event
+- if the vault was scheduled
+  - make the vault active
+  - set the vault started time to the current block time
+- if the vault does not have sufficient funds (> 50000)
+  - make the vault inactive
+- if the vault is a DCA+ vault
+  - update the standard DCA execution stats
+- if the vault is active OR the vault is a DCA+ vault and it standard DCA would still be running
+  - create a new time trigger
+- if the vault is not active
+  - finish execution
+- create a execution triggered event
+- if the vault has a price threshold & it is exceeded
+  - create an execution skipped event
+  - abort execution
+- execute a fin swap
+- if the swap is successful:
+  - create an execution completed event
+  - if the vault is a DCA+ vault
+    - store the escrowed amount
+  - reduce the vault balance by the swap amount
+  - distribute the swap and automation fees to the fee collectors
+  - distribute remaining swapped funds to all vault `destinations` based on destination allocations
+  - use `authz` permissions to delegate funds from destination addresses to validators for destinations with action type `PostExecutionAction:Delegate`
+- else
+  - create an execution skipped event with reason:
+    - `SlippageToleranceExceeded` when the vault has enough funds to make the swap
+    - `UnknownFailure` when the vault may not have had enough funds to make the swap
 
 #### Assertions
 
@@ -105,32 +118,29 @@ Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal 
 - no execution should redistribute more funds than the vault swap amount
 - no execution should redistribute more funds than the vault balance
 - every execution should reduce the vault balance by the amount of funds redistributed + calc fee
-- no inactive or cancelled vault should have a trigger
 
 ### Cancel Vault
 
 #### Validation
 
 - the sender address must be the vault owner or admin
-- the vault to be cancelled must not be already cancelled
+- the vault must not already be cancelled
 
 #### Domain Logic
 
 - update the vault to have `status == VaultStatus::Cancelled`
-- if the vault has a time trigger:
-  - delete the trigger and return the vault balance to the vault owner address
+- update the vault balance to 0
 - if the vault has a price trigger:
-  - withdraw and the associated fin limit order trigger
-  - if the fin limit order has a non-zero filled amount:
-    - retract the filled portion of the fin limit order
-  - return the withdrawn and filled funds from the fin limit order to the vault owner address
-  - return the remaining balance to the vault owner address
+  - retract & withdraw and the associated fin limit order trigger
+- delete the vault trigger
+- return the remaining vault balance to the vault owner
 
 #### Assertions
 
 - all cancelled vaults must have a balance of 0
 - all cancelled vaults must have a status of cancelled
-- all funds are to be redistributed to the vault owner address, including any partially filled fin limit orders
+- all cancelled vaults must not have a trigger
+- all funds are to be redistributed to the vault owner address
 
 ### Deposit
 
