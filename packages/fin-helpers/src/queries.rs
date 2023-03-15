@@ -77,7 +77,7 @@ pub fn query_price(
         )));
     }
 
-    if price_type == PriceType::Belief {
+    if price_type == PriceType::Belief || swap_amount.amount == Uint128::zero() {
         return query_belief_price(querier, pair, &swap_amount.denom);
     }
 

@@ -5,16 +5,18 @@ use crate::helpers::validation_helpers::{
     assert_contract_is_not_paused, assert_target_time_is_in_past,
 };
 use crate::helpers::vault_helpers::get_swap_amount;
+use crate::msg::ExecuteMsg;
 use crate::state::cache::{Cache, SwapCache, CACHE, SWAP_CACHE};
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
+use crate::types::dca_plus_config::DcaPlusConfig;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::time_helpers::get_next_target_time;
 use base::price_type::PriceType;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Coin, Decimal, ReplyOn, StdResult};
+use cosmwasm_std::{to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_msg;
@@ -103,34 +105,39 @@ pub fn execute_trigger(
         vault.status = VaultStatus::Inactive;
     }
 
-    let standard_dca_still_active = vault.dca_plus_config.clone().map_or(
-        Ok(false),
-        |mut dca_plus_config| -> StdResult<bool> {
-            let swap_amount = min(dca_plus_config.total_deposit, vault.swap_amount);
+    let standard_dca_still_active =
+        vault
+            .dca_plus_config
+            .clone()
+            .map_or(Ok(false), |dca_plus_config| -> StdResult<bool> {
+                let swap_amount = min(dca_plus_config.standard_dca_balance(), vault.swap_amount);
 
-            let price = query_price(
-                deps.querier,
-                vault.pair.clone(),
-                &Coin::new(swap_amount.into(), vault.get_swap_denom()),
-                PriceType::Actual,
-            )?;
+                let price = query_price(
+                    deps.querier,
+                    vault.pair.clone(),
+                    &Coin::new(swap_amount.into(), vault.get_swap_denom()),
+                    PriceType::Actual,
+                )?;
 
-            let fee_rate =
-                get_swap_fee_rate(&deps, &vault)? + get_delegation_fee_rate(&deps, &vault)?;
-            let receive_amount =
-                swap_amount * (Decimal::one() / price) * (Decimal::one() - fee_rate);
+                let fee_rate =
+                    get_swap_fee_rate(&deps, &vault)? + get_delegation_fee_rate(&deps, &vault)?;
+                let receive_amount =
+                    swap_amount * (Decimal::one() / price) * (Decimal::one() - fee_rate);
 
-            dca_plus_config.standard_dca_swapped_amount += swap_amount;
-            dca_plus_config.standard_dca_received_amount += receive_amount;
-            vault.dca_plus_config = Some(dca_plus_config);
+                vault.dca_plus_config = Some(DcaPlusConfig {
+                    standard_dca_swapped_amount: dca_plus_config.standard_dca_swapped_amount
+                        + swap_amount,
+                    standard_dca_received_amount: dca_plus_config.standard_dca_received_amount
+                        + receive_amount,
+                    ..dca_plus_config
+                });
 
-            Ok(dca_plus_config.has_sufficient_funds())
-        },
-    )?;
+                Ok(dca_plus_config.has_sufficient_funds())
+            })?;
 
     update_vault(deps.storage, &vault)?;
 
-    if vault.is_active() || standard_dca_still_active {
+    if vault.is_active() || (vault.is_dca_plus() && standard_dca_still_active) {
         save_trigger(
             deps.storage,
             Trigger {
@@ -150,6 +157,14 @@ pub fn execute_trigger(
     }
 
     if !vault.is_active() {
+        if vault.is_dca_plus() && !standard_dca_still_active {
+            response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: env.contract.address.to_string(),
+                msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
+                funds: vec![],
+            }))
+        }
+
         return Ok(response.to_owned());
     }
 

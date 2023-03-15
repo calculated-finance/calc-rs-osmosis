@@ -5,6 +5,7 @@ use crate::helpers::vault_helpers::get_swap_amount;
 use crate::state::cache::{CACHE, SWAP_CACHE};
 use crate::state::events::create_event;
 use crate::state::vaults::{get_vault, update_vault};
+use crate::types::dca_plus_config::DcaPlusConfig;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;
@@ -69,12 +70,14 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount)?;
             vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee)?;
 
-            if let Some(mut dca_plus_config) = vault.dca_plus_config.clone() {
+            if let Some(dca_plus_config) = vault.dca_plus_config.clone() {
                 let amount_to_escrow = total_after_total_fee * dca_plus_config.escrow_level;
-                dca_plus_config.escrowed_balance += amount_to_escrow;
-
                 total_after_total_fee -= amount_to_escrow;
-                vault.dca_plus_config = Some(dca_plus_config);
+
+                vault.dca_plus_config = Some(DcaPlusConfig {
+                    escrowed_balance: dca_plus_config.escrowed_balance + amount_to_escrow,
+                    ..dca_plus_config
+                });
             }
 
             update_vault(deps.storage, &vault)?;

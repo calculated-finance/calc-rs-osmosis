@@ -3,7 +3,7 @@ use crate::state::config::{get_config, FeeCollector};
 use crate::types::vault::Vault;
 use base::pair::Pair;
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{Addr, Coin, Decimal, Deps, Storage, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, Storage, Timestamp, Uint128};
 
 pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {
     if funds.is_empty() || funds.len() > 1 {
@@ -49,6 +49,18 @@ pub fn assert_sender_is_admin_or_vault_owner(
 ) -> Result<(), ContractError> {
     let config = get_config(storage)?;
     if sender != config.admin && sender != vault_owner {
+        return Err(ContractError::Unauthorized {});
+    }
+    Ok(())
+}
+
+pub fn assert_sender_is_contract_or_admin(
+    storage: &mut dyn Storage,
+    sender: &Addr,
+    env: &Env,
+) -> Result<(), ContractError> {
+    let config = get_config(storage)?;
+    if sender != &config.admin && sender != &env.contract.address {
         return Err(ContractError::Unauthorized {});
     }
     Ok(())

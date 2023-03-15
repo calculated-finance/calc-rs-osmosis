@@ -97,7 +97,10 @@ Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal 
 - create a execution triggered event
 - if the vault has a price threshold & it is exceeded
   - create an execution skipped event
-  - abort execution
+  - finish execution
+- if the vault is a DCA+ vault AND it is inactive AND standard DCA would have finished
+  - disburse the escrowed funds
+  - finish execution
 - execute a fin swap
 - if the swap is successful:
   - create an execution completed event

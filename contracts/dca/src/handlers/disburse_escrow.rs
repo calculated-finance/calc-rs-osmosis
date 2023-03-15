@@ -1,11 +1,12 @@
 use crate::{
     error::ContractError,
-    helpers::validation_helpers::assert_sender_is_admin,
     helpers::{
         disbursement_helpers::get_disbursement_messages,
         fee_helpers::{get_dca_plus_performance_fee, get_fee_messages},
+        validation_helpers::assert_sender_is_contract_or_admin,
     },
     state::vaults::{get_vault, update_vault},
+    types::dca_plus_config::DcaPlusConfig,
 };
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
 use fin_helpers::queries::query_belief_price;
@@ -16,7 +17,7 @@ pub fn disburse_escrow_handler(
     info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    assert_sender_is_admin(deps.storage, info.sender)?;
+    assert_sender_is_contract_or_admin(deps.storage, &info.sender, &env)?;
 
     let mut vault = get_vault(deps.storage, vault_id)?;
 
@@ -26,7 +27,7 @@ pub fn disburse_escrow_handler(
         });
     }
 
-    let mut dca_plus_config = vault.dca_plus_config.clone().unwrap();
+    let dca_plus_config = vault.dca_plus_config.clone().unwrap();
 
     let current_price =
         query_belief_price(deps.querier, vault.pair.clone(), &vault.get_swap_denom())?;
@@ -34,8 +35,10 @@ pub fn disburse_escrow_handler(
     let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
     let amount_to_disburse = dca_plus_config.escrowed_balance - performance_fee.amount;
 
-    dca_plus_config.escrowed_balance = Uint128::zero();
-    vault.dca_plus_config = Some(dca_plus_config);
+    vault.dca_plus_config = Some(DcaPlusConfig {
+        escrowed_balance: Uint128::zero(),
+        ..dca_plus_config
+    });
 
     update_vault(deps.storage, &vault)?;
 

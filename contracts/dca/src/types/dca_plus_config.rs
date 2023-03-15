@@ -13,7 +13,11 @@ pub struct DcaPlusConfig {
 }
 
 impl DcaPlusConfig {
+    pub fn standard_dca_balance(self) -> Uint128 {
+        self.total_deposit - self.standard_dca_swapped_amount
+    }
+
     pub fn has_sufficient_funds(self) -> bool {
-        self.total_deposit - self.standard_dca_swapped_amount > Uint128::new(50000)
+        self.standard_dca_balance() > Uint128::new(50000)
     }
 }

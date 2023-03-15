@@ -138,6 +138,10 @@ impl Vault {
         swap_amount > Uint128::new(50000)
     }
 
+    pub fn is_dca_plus(&self) -> bool {
+        self.dca_plus_config.is_some()
+    }
+
     pub fn is_active(&self) -> bool {
         self.status == VaultStatus::Active
     }
