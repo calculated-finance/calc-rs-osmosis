@@ -67,15 +67,18 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             )?);
 
             vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, vault.clone())?.amount;
-            vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount)?;
-            vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee)?;
+            vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount);
+            vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee);
 
             if let Some(dca_plus_config) = vault.dca_plus_config.clone() {
                 let amount_to_escrow = total_after_total_fee * dca_plus_config.escrow_level;
                 total_after_total_fee -= amount_to_escrow;
 
                 vault.dca_plus_config = Some(DcaPlusConfig {
-                    escrowed_balance: dca_plus_config.escrowed_balance + amount_to_escrow,
+                    escrowed_balance: add_to_coin(
+                        dca_plus_config.escrowed_balance,
+                        amount_to_escrow,
+                    ),
                     ..dca_plus_config
                 });
             }

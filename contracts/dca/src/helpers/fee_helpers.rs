@@ -118,12 +118,12 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
         .clone()
         .expect("Only DCA plus vaults should try to get fee");
 
-    let dca_plus_total_value = dca_plus_config.total_deposit - vault.swapped_amount.amount
+    let dca_plus_total_value = dca_plus_config.total_deposit.amount - vault.swapped_amount.amount
         + vault.received_amount.amount * current_price;
 
-    let standard_dca_total_value = dca_plus_config.total_deposit
-        - dca_plus_config.standard_dca_swapped_amount
-        + dca_plus_config.standard_dca_received_amount * current_price;
+    let standard_dca_total_value = dca_plus_config.total_deposit.amount
+        - dca_plus_config.standard_dca_swapped_amount.amount
+        + dca_plus_config.standard_dca_received_amount.amount * current_price;
 
     if standard_dca_total_value > dca_plus_total_value {
         return Ok(Coin {
@@ -139,6 +139,6 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
 
     Ok(Coin {
         denom: vault.get_swap_denom(),
-        amount: min(fee, dca_plus_config.escrowed_balance),
+        amount: min(fee, dca_plus_config.escrowed_balance.amount),
     })
 }

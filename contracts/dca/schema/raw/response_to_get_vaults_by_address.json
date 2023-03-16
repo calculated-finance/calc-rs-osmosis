@@ -49,7 +49,7 @@
           "$ref": "#/definitions/Decimal"
         },
         "escrowed_balance": {
-          "$ref": "#/definitions/Uint128"
+          "$ref": "#/definitions/Coin"
         },
         "model_id": {
           "type": "integer",
@@ -57,16 +57,15 @@
           "minimum": 0.0
         },
         "standard_dca_received_amount": {
-          "$ref": "#/definitions/Uint128"
+          "$ref": "#/definitions/Coin"
         },
         "standard_dca_swapped_amount": {
-          "$ref": "#/definitions/Uint128"
+          "$ref": "#/definitions/Coin"
         },
         "total_deposit": {
-          "$ref": "#/definitions/Uint128"
+          "$ref": "#/definitions/Coin"
         }
-      },
-      "additionalProperties": false
+      }
     },
     "Decimal": {
       "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",

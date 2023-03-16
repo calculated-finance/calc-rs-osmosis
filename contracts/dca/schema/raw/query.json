@@ -318,6 +318,16 @@
       "properties": {
         "get_disburse_escrow_tasks": {
           "type": "object",
+          "properties": {
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint16",
+              "minimum": 0.0
+            }
+          },
           "additionalProperties": false
         }
       },

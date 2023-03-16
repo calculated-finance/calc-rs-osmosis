@@ -8,6 +8,7 @@ use crate::{
     state::vaults::{get_vault, update_vault},
     types::dca_plus_config::DcaPlusConfig,
 };
+use base::helpers::coin_helpers::empty_of;
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
 use fin_helpers::queries::query_belief_price;
 
@@ -32,10 +33,10 @@ pub fn disburse_escrow_handler(
     let current_price = query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
 
     let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
-    let amount_to_disburse = dca_plus_config.escrowed_balance - performance_fee.amount;
+    let amount_to_disburse = dca_plus_config.escrowed_balance.amount - performance_fee.amount;
 
     vault.dca_plus_config = Some(DcaPlusConfig {
-        escrowed_balance: Uint128::zero(),
+        escrowed_balance: empty_of(dca_plus_config.escrowed_balance),
         ..dca_plus_config
     });
 

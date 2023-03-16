@@ -69,12 +69,12 @@ pub fn get_dca_plus_performance_factor(
         .clone()
         .expect("Only DCA plus vaults should try to get performance");
 
-    let dca_plus_total_value = dca_plus_config.total_deposit - vault.swapped_amount.amount
+    let dca_plus_total_value = dca_plus_config.total_deposit.amount - vault.swapped_amount.amount
         + vault.received_amount.amount * current_price;
 
-    let standard_dca_total_value = dca_plus_config.total_deposit
-        - dca_plus_config.standard_dca_swapped_amount
-        + dca_plus_config.standard_dca_received_amount * current_price;
+    let standard_dca_total_value = dca_plus_config.total_deposit.amount
+        - dca_plus_config.standard_dca_swapped_amount.amount
+        + dca_plus_config.standard_dca_received_amount.amount * current_price;
 
     Ok(Decimal::from_ratio(
         dca_plus_total_value,
@@ -106,7 +106,7 @@ mod tests {
 
         Vault {
             balance: Coin {
-                denom: "denom".to_string(),
+                denom: "swap_denom".to_string(),
                 amount: total_deposit - swapped_amount,
             },
             swapped_amount: Coin {
@@ -118,10 +118,19 @@ mod tests {
                 amount: received_amount,
             },
             dca_plus_config: Some(DcaPlusConfig {
-                total_deposit,
-                standard_dca_swapped_amount,
-                standard_dca_received_amount,
-                escrowed_balance: received_amount * escrow_level,
+                total_deposit: Coin::new(total_deposit.into(), "swap_denom".to_string()),
+                standard_dca_swapped_amount: Coin::new(
+                    standard_dca_swapped_amount.into(),
+                    "swap_denom".to_string(),
+                ),
+                standard_dca_received_amount: Coin::new(
+                    standard_dca_received_amount.into(),
+                    "receive_denom".to_string(),
+                ),
+                escrowed_balance: Coin::new(
+                    (received_amount * escrow_level).into(),
+                    "denom".to_string(),
+                ),
                 model_id: 30,
                 escrow_level,
             }),

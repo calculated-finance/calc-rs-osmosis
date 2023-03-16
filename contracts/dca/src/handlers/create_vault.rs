@@ -87,7 +87,7 @@ pub fn create_vault(
         pair.quote_denom.clone()
     };
 
-    assert_delegation_denom_is_stakeable(&destinations, receive_denom)?;
+    assert_delegation_denom_is_stakeable(&destinations, receive_denom.clone())?;
 
     let config = get_config(deps.storage)?;
 
@@ -96,19 +96,17 @@ pub fn create_vault(
             return None;
         }
 
-        Some(DcaPlusConfig {
-            escrow_level: config.dca_plus_escrow_level,
-            model_id: get_dca_plus_model_id(
+        Some(DcaPlusConfig::new(
+            config.dca_plus_escrow_level,
+            get_dca_plus_model_id(
                 &env.block.time,
                 &info.funds[0],
                 &swap_amount,
                 &time_interval,
             ),
-            escrowed_balance: Uint128::zero(),
-            total_deposit: info.funds[0].amount,
-            standard_dca_swapped_amount: Uint128::zero(),
-            standard_dca_received_amount: Uint128::zero(),
-        })
+            info.funds[0].clone(),
+            receive_denom,
+        ))
     });
 
     let vault_builder = VaultBuilder {

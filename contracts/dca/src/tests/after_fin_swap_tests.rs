@@ -497,6 +497,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
             .clone()
             .unwrap()
             .escrowed_balance
+            .amount
     );
     assert!(response.messages.contains(&SubMsg::reply_on_success(
         BankMsg::Send {

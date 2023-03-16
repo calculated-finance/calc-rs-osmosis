@@ -8,7 +8,9 @@ use crate::helpers::vault_helpers::get_dca_plus_model_id;
 use crate::state::events::create_event;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{get_vault, update_vault};
+use crate::types::dca_plus_config::DcaPlusConfig;
 use base::events::event::{EventBuilder, EventData};
+use base::helpers::coin_helpers::add_to_coin;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{Addr, Env};
@@ -50,16 +52,19 @@ pub fn deposit(
         vault.status = VaultStatus::Active
     }
 
-    vault.dca_plus_config = vault.dca_plus_config.clone().map(|mut dca_plus_config| {
-        dca_plus_config.total_deposit += info.funds[0].amount;
-        dca_plus_config.model_id = get_dca_plus_model_id(
-            &env.block.time,
-            &vault.balance,
-            &vault.swap_amount,
-            &vault.time_interval,
-        );
-        dca_plus_config
-    });
+    vault.dca_plus_config = vault
+        .dca_plus_config
+        .clone()
+        .map(|dca_plus_config| DcaPlusConfig {
+            total_deposit: add_to_coin(dca_plus_config.total_deposit, info.funds[0].amount),
+            model_id: get_dca_plus_model_id(
+                &env.block.time,
+                &vault.balance,
+                &vault.swap_amount,
+                &vault.time_interval,
+            ),
+            ..dca_plus_config
+        });
 
     update_vault(deps.storage, &vault)?;
 

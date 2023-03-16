@@ -38,10 +38,16 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
     vault.dca_plus_config = Some(DcaPlusConfig {
         escrow_level: Decimal::percent(5),
         model_id: 50,
-        total_deposit: TEN,
-        standard_dca_swapped_amount: vault.swap_amount,
-        standard_dca_received_amount: vault.swap_amount,
-        escrowed_balance: vault.swap_amount * Decimal::percent(5),
+        total_deposit: Coin::new(TEN.into(), vault.get_swap_denom()),
+        standard_dca_swapped_amount: Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
+        standard_dca_received_amount: Coin::new(
+            vault.swap_amount.into(),
+            vault.get_receive_denom(),
+        ),
+        escrowed_balance: Coin::new(
+            (vault.swap_amount * Decimal::percent(5)).into(),
+            vault.get_receive_denom(),
+        ),
     });
 
     update_vault(deps.as_mut().storage, &vault).unwrap();
@@ -51,15 +57,7 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
     assert!(response.messages.contains(&SubMsg::reply_on_success(
         CosmosMsg::Bank(BankMsg::Send {
             to_address: vault.destinations[0].address.to_string(),
-            amount: vec![Coin::new(
-                vault
-                    .dca_plus_config
-                    .clone()
-                    .unwrap()
-                    .escrowed_balance
-                    .into(),
-                vault.get_receive_denom()
-            )]
+            amount: vec![vault.dca_plus_config.clone().unwrap().escrowed_balance]
         }),
         AFTER_BANK_SWAP_REPLY_ID
     )));
@@ -84,10 +82,16 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
     vault.dca_plus_config = Some(DcaPlusConfig {
         escrow_level: Decimal::percent(5),
         model_id: 50,
-        total_deposit: TEN,
-        standard_dca_swapped_amount: vault.swap_amount,
-        standard_dca_received_amount: vault.swap_amount / Uint128::new(10),
-        escrowed_balance: vault.swap_amount / Uint128::new(10) * Decimal::percent(5),
+        total_deposit: Coin::new(TEN.into(), vault.get_swap_denom()),
+        standard_dca_swapped_amount: Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
+        standard_dca_received_amount: Coin::new(
+            (vault.swap_amount / Uint128::new(10)).into(),
+            vault.get_receive_denom(),
+        ),
+        escrowed_balance: Coin::new(
+            (vault.swap_amount / Uint128::new(10) * Decimal::percent(5)).into(),
+            vault.get_receive_denom(),
+        ),
     });
 
     update_vault(deps.as_mut().storage, &vault).unwrap();
@@ -98,14 +102,6 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
         .messages
         .contains(&SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
             to_address: FEE_COLLECTOR.to_string(),
-            amount: vec![Coin::new(
-                vault
-                    .dca_plus_config
-                    .clone()
-                    .unwrap()
-                    .escrowed_balance
-                    .into(),
-                vault.get_receive_denom()
-            )]
+            amount: vec![vault.dca_plus_config.clone().unwrap().escrowed_balance]
         }))));
 }

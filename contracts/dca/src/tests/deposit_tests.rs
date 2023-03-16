@@ -668,11 +668,19 @@ fn with_dca_plus_should_update_total_deposit() {
         .vault;
 
     assert_eq!(
-        vault_before_deposit.dca_plus_config.unwrap().total_deposit,
+        vault_before_deposit
+            .dca_plus_config
+            .unwrap()
+            .total_deposit
+            .amount,
         vault_deposit
     );
     assert_eq!(
-        vault_after_deposit.dca_plus_config.unwrap().total_deposit,
+        vault_after_deposit
+            .dca_plus_config
+            .unwrap()
+            .total_deposit
+            .amount,
         vault_deposit + vault_deposit
     );
 }

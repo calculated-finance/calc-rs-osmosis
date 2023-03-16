@@ -110,11 +110,12 @@ export interface Coin {
 }
 export interface DcaPlusConfig {
   escrow_level: Decimal;
-  escrowed_balance: Uint128;
+  escrowed_balance: Coin;
   model_id: number;
-  standard_dca_received_amount: Uint128;
-  standard_dca_swapped_amount: Uint128;
-  total_deposit: Uint128;
+  standard_dca_received_amount: Coin;
+  standard_dca_swapped_amount: Coin;
+  total_deposit: Coin;
+  [k: string]: unknown;
 }
 export interface Destination {
   action: PostExecutionAction;

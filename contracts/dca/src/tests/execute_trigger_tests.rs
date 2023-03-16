@@ -2419,11 +2419,11 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
         + get_delegation_fee_rate(&deps.as_mut(), &vault).unwrap();
 
     assert_eq!(
-        updated_dca_plus_config.standard_dca_swapped_amount,
+        updated_dca_plus_config.standard_dca_swapped_amount.amount,
         vault.swap_amount
     );
     assert_eq!(
-        updated_dca_plus_config.standard_dca_received_amount,
+        updated_dca_plus_config.standard_dca_received_amount.amount,
         vault.swap_amount * (Decimal::one() / price) * (Decimal::one() - fee_rate)
     );
 }
@@ -2507,11 +2507,14 @@ fn for_active_dca_plus_vault_with_finished_standard_dca_does_not_update_stats() 
         true,
     );
 
-    vault.dca_plus_config = vault.dca_plus_config.map(|dca_plus_config| DcaPlusConfig {
-        standard_dca_swapped_amount: TEN,
-        standard_dca_received_amount: TEN,
-        ..dca_plus_config
-    });
+    vault.dca_plus_config = vault
+        .dca_plus_config
+        .clone()
+        .map(|dca_plus_config| DcaPlusConfig {
+            standard_dca_swapped_amount: Coin::new(TEN.into(), vault.get_swap_denom()),
+            standard_dca_received_amount: Coin::new(TEN.into(), vault.get_receive_denom()),
+            ..dca_plus_config
+        });
 
     update_vault(deps.as_mut().storage, &vault).unwrap();
 
@@ -2521,8 +2524,8 @@ fn for_active_dca_plus_vault_with_finished_standard_dca_does_not_update_stats() 
 
     assert_eq!(
         DcaPlusConfig {
-            standard_dca_swapped_amount: TEN,
-            standard_dca_received_amount: TEN,
+            standard_dca_swapped_amount: Coin::new(TEN.into(), vault.get_swap_denom()),
+            standard_dca_received_amount: Coin::new(TEN.into(), vault.get_receive_denom()),
             ..vault.dca_plus_config.unwrap()
         },
         updated_vault.dca_plus_config.unwrap()
@@ -2712,11 +2715,11 @@ fn for_inactive_vault_with_dca_plus_updates_standard_performance_data() {
         + get_delegation_fee_rate(&deps.as_mut(), &vault).unwrap();
 
     assert_eq!(
-        updated_dca_plus_config.standard_dca_swapped_amount,
+        updated_dca_plus_config.standard_dca_swapped_amount.amount,
         vault.swap_amount
     );
     assert_eq!(
-        updated_dca_plus_config.standard_dca_received_amount,
+        updated_dca_plus_config.standard_dca_received_amount.amount,
         vault.swap_amount * (Decimal::one() / price) * (Decimal::one() - fee_rate)
     );
 }

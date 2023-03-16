@@ -59,13 +59,13 @@ describe('when disbursing escrow', () => {
     });
 
     it('empties the escrowed balance', async function (this: Context) {
-      expect(vaultAfterExecution.dca_plus_config.escrowed_balance).to.equal('0');
+      expect(vaultAfterExecution.dca_plus_config.escrowed_balance.amount).to.equal('0');
     });
 
     it('sends the funds back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['udemo']).to.equal(
         balancesBeforeExecution[this.userWalletAddress]['udemo'] +
-          parseInt(vaultBeforeExecution.dca_plus_config.escrowed_balance) -
+          parseInt(vaultBeforeExecution.dca_plus_config.escrowed_balance.amount) -
           performanceFee,
       );
     });

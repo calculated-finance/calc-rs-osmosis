@@ -10,8 +10,8 @@ use crate::state::cache::{Cache, SwapCache, CACHE, SWAP_CACHE};
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
-use crate::types::dca_plus_config::DcaPlusConfig;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
+use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::time_helpers::get_next_target_time;
 use base::price_type::PriceType;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
@@ -104,35 +104,37 @@ pub fn execute_trigger(
         vault.status = VaultStatus::Inactive;
     }
 
-    let standard_dca_still_active =
-        vault
-            .dca_plus_config
-            .clone()
-            .map_or(Ok(false), |dca_plus_config| -> StdResult<bool> {
-                let swap_amount = min(dca_plus_config.standard_dca_balance(), vault.swap_amount);
+    let standard_dca_still_active = vault.dca_plus_config.clone().map_or(
+        Ok(false),
+        |mut dca_plus_config| -> StdResult<bool> {
+            let swap_amount = min(
+                dca_plus_config.clone().standard_dca_balance().amount,
+                vault.swap_amount,
+            );
 
-                let price = query_price(
-                    deps.querier,
-                    vault.pair.clone(),
-                    &Coin::new(swap_amount.into(), vault.get_swap_denom()),
-                    PriceType::Actual,
-                )?;
+            let price = query_price(
+                deps.querier,
+                vault.pair.clone(),
+                &Coin::new(swap_amount.into(), vault.get_swap_denom()),
+                PriceType::Actual,
+            )?;
 
-                let fee_rate =
-                    get_swap_fee_rate(&deps, &vault)? + get_delegation_fee_rate(&deps, &vault)?;
-                let receive_amount =
-                    swap_amount * (Decimal::one() / price) * (Decimal::one() - fee_rate);
+            let fee_rate =
+                get_swap_fee_rate(&deps, &vault)? + get_delegation_fee_rate(&deps, &vault)?;
+            let receive_amount =
+                swap_amount * (Decimal::one() / price) * (Decimal::one() - fee_rate);
 
-                vault.dca_plus_config = Some(DcaPlusConfig {
-                    standard_dca_swapped_amount: dca_plus_config.standard_dca_swapped_amount
-                        + swap_amount,
-                    standard_dca_received_amount: dca_plus_config.standard_dca_received_amount
-                        + receive_amount,
-                    ..dca_plus_config
-                });
+            dca_plus_config.standard_dca_swapped_amount =
+                add_to_coin(dca_plus_config.standard_dca_swapped_amount, swap_amount);
 
-                Ok(dca_plus_config.has_sufficient_funds())
-            })?;
+            dca_plus_config.standard_dca_received_amount =
+                add_to_coin(dca_plus_config.standard_dca_received_amount, receive_amount);
+
+            vault.dca_plus_config = Some(dca_plus_config.clone());
+
+            Ok(dca_plus_config.has_sufficient_funds())
+        },
+    )?;
 
     update_vault(deps.storage, &vault)?;
 

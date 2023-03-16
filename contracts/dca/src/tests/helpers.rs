@@ -144,14 +144,12 @@ pub fn setup_vault(
                 amount: Uint128::new(0),
             },
             dca_plus_config: if is_dca_plus {
-                Some(DcaPlusConfig {
-                    escrow_level: Decimal::percent(5),
-                    model_id: 30,
-                    escrowed_balance: Uint128::zero(),
-                    total_deposit: balance.amount,
-                    standard_dca_swapped_amount: Uint128::zero(),
-                    standard_dca_received_amount: Uint128::zero(),
-                })
+                Some(DcaPlusConfig::new(
+                    Decimal::percent(5),
+                    30,
+                    balance,
+                    "base".to_string(),
+                ))
             } else {
                 None
             },

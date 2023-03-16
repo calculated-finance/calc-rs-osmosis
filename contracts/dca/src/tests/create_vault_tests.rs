@@ -2000,22 +2000,24 @@ fn with_use_dca_plus_true_should_create_dca_plus_config() {
     )
     .unwrap();
 
-    let vault_response: VaultResponse = mock
+    let vault = mock
         .app
         .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
+        .query_wasm_smart::<VaultResponse>(
+            &mock.dca_contract_address,
+            &QueryMsg::GetVault { vault_id },
+        )
+        .unwrap()
+        .vault;
 
     assert_eq!(
-        vault_response.vault.dca_plus_config,
-        Some(DcaPlusConfig {
-            escrow_level: Decimal::percent(5),
-            model_id: 30,
-            escrowed_balance: Uint128::zero(),
-            total_deposit: vault_deposit,
-            standard_dca_swapped_amount: Uint128::zero(),
-            standard_dca_received_amount: Uint128::zero(),
-        })
+        vault.dca_plus_config,
+        Some(DcaPlusConfig::new(
+            Decimal::percent(5),
+            30,
+            Coin::new(vault_deposit.into(), vault.get_swap_denom(),),
+            vault.get_receive_denom()
+        ))
     );
 }
 

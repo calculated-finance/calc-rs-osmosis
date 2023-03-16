@@ -70,7 +70,9 @@ export type QueryMsg =
       };
     }
   | {
-      get_disburse_escrow_tasks: {};
+      get_disburse_escrow_tasks: {
+        limit?: number | null;
+      };
     };
 /**
  * A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.

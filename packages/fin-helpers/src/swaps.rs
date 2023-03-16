@@ -23,7 +23,7 @@ pub fn create_fin_swap_message(
         msg: to_binary(&ExecuteMsg::Swap {
             belief_price: belief_price
                 .map(|price| Decimal256::from_str(&price.to_string()).unwrap()),
-            max_spread: slippage_tolerance,
+            max_spread: slippage_tolerance.clone(),
             to: None,
             offer_asset: None,
         })?,

@@ -928,6 +928,16 @@
         "properties": {
           "get_disburse_escrow_tasks": {
             "type": "object",
+            "properties": {
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint16",
+                "minimum": 0.0
+              }
+            },
             "additionalProperties": false
           }
         },
@@ -1333,8 +1343,8 @@
             }
           }
         },
-        "Decimal256": {
-          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)",
+        "Decimal": {
+          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
           "type": "string"
         },
         "Event": {
@@ -1420,7 +1430,7 @@
                   ],
                   "properties": {
                     "asset_price": {
-                      "$ref": "#/definitions/Decimal256"
+                      "$ref": "#/definitions/Decimal"
                     },
                     "base_denom": {
                       "type": "string"
@@ -1559,7 +1569,7 @@
                   ],
                   "properties": {
                     "price": {
-                      "$ref": "#/definitions/Decimal256"
+                      "$ref": "#/definitions/Decimal"
                     }
                   },
                   "additionalProperties": false
@@ -1582,7 +1592,7 @@
                   ],
                   "properties": {
                     "actual_price_delta": {
-                      "$ref": "#/definitions/Decimal256"
+                      "$ref": "#/definitions/Decimal"
                     },
                     "duration_in_seconds": {
                       "type": "integer",
@@ -1590,7 +1600,7 @@
                       "minimum": 0.0
                     },
                     "max_price_delta": {
-                      "$ref": "#/definitions/Decimal256"
+                      "$ref": "#/definitions/Decimal"
                     }
                   },
                   "additionalProperties": false
@@ -1650,8 +1660,8 @@
             }
           }
         },
-        "Decimal256": {
-          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)",
+        "Decimal": {
+          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
           "type": "string"
         },
         "Event": {
@@ -1737,7 +1747,7 @@
                   ],
                   "properties": {
                     "asset_price": {
-                      "$ref": "#/definitions/Decimal256"
+                      "$ref": "#/definitions/Decimal"
                     },
                     "base_denom": {
                       "type": "string"
@@ -1876,7 +1886,7 @@
                   ],
                   "properties": {
                     "price": {
-                      "$ref": "#/definitions/Decimal256"
+                      "$ref": "#/definitions/Decimal"
                     }
                   },
                   "additionalProperties": false
@@ -1899,7 +1909,7 @@
                   ],
                   "properties": {
                     "actual_price_delta": {
-                      "$ref": "#/definitions/Decimal256"
+                      "$ref": "#/definitions/Decimal"
                     },
                     "duration_in_seconds": {
                       "type": "integer",
@@ -1907,7 +1917,7 @@
                       "minimum": 0.0
                     },
                     "max_price_delta": {
-                      "$ref": "#/definitions/Decimal256"
+                      "$ref": "#/definitions/Decimal"
                     }
                   },
                   "additionalProperties": false
@@ -2069,7 +2079,7 @@
               "$ref": "#/definitions/Decimal"
             },
             "escrowed_balance": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "model_id": {
               "type": "integer",
@@ -2077,16 +2087,15 @@
               "minimum": 0.0
             },
             "standard_dca_received_amount": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "standard_dca_swapped_amount": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "total_deposit": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             }
-          },
-          "additionalProperties": false
+          }
         },
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
@@ -2400,7 +2409,7 @@
               "$ref": "#/definitions/Decimal"
             },
             "escrowed_balance": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "model_id": {
               "type": "integer",
@@ -2408,16 +2417,15 @@
               "minimum": 0.0
             },
             "standard_dca_received_amount": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "standard_dca_swapped_amount": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "total_deposit": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             }
-          },
-          "additionalProperties": false
+          }
         },
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
@@ -2731,7 +2739,7 @@
               "$ref": "#/definitions/Decimal"
             },
             "escrowed_balance": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "model_id": {
               "type": "integer",
@@ -2739,16 +2747,15 @@
               "minimum": 0.0
             },
             "standard_dca_received_amount": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "standard_dca_swapped_amount": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             },
             "total_deposit": {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/Coin"
             }
-          },
-          "additionalProperties": false
+          }
         },
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",

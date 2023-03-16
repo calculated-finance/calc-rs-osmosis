@@ -16,7 +16,7 @@ export type EventData =
     }
   | {
       dca_vault_execution_triggered: {
-        asset_price: Decimal256;
+        asset_price: Decimal;
         base_denom: string;
         quote_denom: string;
       };
@@ -60,23 +60,23 @@ export type EventData =
  */
 export type Uint128 = string;
 /**
- * A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0
+ * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
  *
- * The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)
+ * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
  */
-export type Decimal256 = string;
+export type Decimal = string;
 export type ExecutionSkippedReason =
   | ("slippage_tolerance_exceeded" | "unknown_failure")
   | {
       price_threshold_exceeded: {
-        price: Decimal256;
+        price: Decimal;
       };
     }
   | {
       price_delta_limit_exceeded: {
-        actual_price_delta: Decimal256;
+        actual_price_delta: Decimal;
         duration_in_seconds: number;
-        max_price_delta: Decimal256;
+        max_price_delta: Decimal;
       };
     };
 /**
