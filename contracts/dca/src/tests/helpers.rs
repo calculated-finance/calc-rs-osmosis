@@ -98,7 +98,7 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
 pub fn setup_vault(
     deps: DepsMut,
     env: Env,
-    balance: Coin,
+    balance: Uint128,
     swap_amount: Uint128,
     status: VaultStatus,
     is_dca_plus: bool,
@@ -132,23 +132,23 @@ pub fn setup_vault(
             position_type: None,
             slippage_tolerance: None,
             minimum_receive_amount: None,
-            balance: balance.clone(),
+            balance: Coin::new(balance.into(), DENOM_UKUJI),
             time_interval: TimeInterval::Daily,
             started_at: None,
             swapped_amount: Coin {
-                denom: "quote".to_string(),
+                denom: DENOM_UKUJI.to_string(),
                 amount: Uint128::new(0),
             },
             received_amount: Coin {
-                denom: "base".to_string(),
+                denom: DENOM_UTEST.to_string(),
                 amount: Uint128::new(0),
             },
             dca_plus_config: if is_dca_plus {
                 Some(DcaPlusConfig::new(
                     Decimal::percent(5),
                     30,
-                    balance,
-                    "base".to_string(),
+                    Coin::new(balance.into(), DENOM_UKUJI),
+                    DENOM_UTEST.to_string(),
                 ))
             } else {
                 None
@@ -182,32 +182,18 @@ pub fn setup_vault(
 }
 
 pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(
-        deps,
-        env,
-        Coin::new(TEN.into(), "base"),
-        ONE,
-        VaultStatus::Active,
-        false,
-    )
+    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, false)
 }
 
 pub fn setup_active_dca_plus_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(
-        deps,
-        env,
-        Coin::new(TEN.into(), "base"),
-        ONE,
-        VaultStatus::Active,
-        true,
-    )
+    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, true)
 }
 
 pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault {
     setup_vault(
         deps,
         env,
-        Coin::new(Uint128::new(500000).into(), "base"),
+        Uint128::new(500000),
         Uint128::new(500000),
         VaultStatus::Active,
         false,
@@ -218,7 +204,7 @@ pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
     setup_vault(
         deps,
         env,
-        Coin::new(Uint128::new(10).into(), "base"),
+        Uint128::new(10),
         Uint128::new(100),
         VaultStatus::Active,
         false,
@@ -231,14 +217,7 @@ pub fn setup_active_dca_plus_vault_with_low_funds(
     balance: Uint128,
     swap_amount: Uint128,
 ) -> Vault {
-    setup_vault(
-        deps,
-        env,
-        Coin::new(balance.into(), "base"),
-        swap_amount,
-        VaultStatus::Active,
-        true,
-    )
+    setup_vault(deps, env, balance, swap_amount, VaultStatus::Active, true)
 }
 
 pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {

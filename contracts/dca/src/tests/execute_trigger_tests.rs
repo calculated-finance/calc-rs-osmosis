@@ -6,9 +6,10 @@ use super::mocks::{
 use crate::constants::{ONE, ONE_DECIMAL, ONE_HUNDRED, ONE_THOUSAND, TEN, TWO_MICRONS};
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::handlers::execute_trigger::execute_trigger_handler;
+use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
 use crate::msg::{ExecuteMsg, QueryMsg, TriggerIdsResponse, VaultResponse};
-use crate::state::config::FeeCollector;
+use crate::state::config::{get_config, FeeCollector};
 use crate::state::vaults::{get_vault, update_vault};
 use crate::tests::helpers::{
     assert_address_balances, assert_events_published, assert_vault_balance, set_fin_price,
@@ -18,7 +19,7 @@ use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use crate::types::dca_plus_config::DcaPlusConfig;
-use base::events::event::{EventBuilder, EventData};
+use base::events::event::{Event, EventBuilder, EventData};
 use base::helpers::math_helpers::checked_mul;
 use base::helpers::time_helpers::get_next_target_time;
 use base::price_type::PriceType;
@@ -2364,7 +2365,7 @@ fn for_active_vault_creates_new_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Active,
         false,
@@ -2394,7 +2395,7 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Active,
         true,
@@ -2429,6 +2430,52 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
 }
 
 #[test]
+fn for_active_vault_with_dca_plus_publishes_standard_dca_execution_completed_event() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(ADMIN, &[]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info);
+    set_fin_price(&mut deps, &ONE_DECIMAL);
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        TEN,
+        ONE,
+        VaultStatus::Active,
+        true,
+    );
+
+    execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+        .unwrap()
+        .events;
+
+    let dca_plus_config = get_vault(deps.as_ref().storage, vault.id)
+        .unwrap()
+        .dca_plus_config
+        .unwrap();
+
+    let config = get_config(deps.as_ref().storage).unwrap();
+
+    let fee = config.swap_fee_percent * dca_plus_config.standard_dca_received_amount.amount;
+
+    assert!(events.contains(&Event {
+        id: 3,
+        timestamp: env.block.time,
+        block_height: env.block.height,
+        resource_id: vault.id,
+        data: EventData::DcaVaultExecutionCompleted {
+            sent: dca_plus_config.standard_dca_swapped_amount,
+            received: dca_plus_config.standard_dca_received_amount,
+            fee: Coin::new(fee.into(), vault.get_receive_denom())
+        },
+    }));
+}
+
+#[test]
 fn for_active_vault_sends_fin_swap_message() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -2440,7 +2487,7 @@ fn for_active_vault_sends_fin_swap_message() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Active,
         false,
@@ -2476,7 +2523,7 @@ fn for_active_vault_with_insufficient_funds_sets_status_to_inactive() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(49999, DENOM_UKUJI),
+        Uint128::new(49999),
         ONE,
         VaultStatus::Active,
         false,
@@ -2501,7 +2548,7 @@ fn for_active_dca_plus_vault_with_finished_standard_dca_does_not_update_stats() 
     let mut vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Active,
         true,
@@ -2544,7 +2591,7 @@ fn for_scheduled_vault_updates_status_to_active() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Scheduled,
         false,
@@ -2569,7 +2616,7 @@ fn for_scheduled_vault_creates_new_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Scheduled,
         false,
@@ -2599,7 +2646,7 @@ fn for_scheduled_vault_sends_fin_swap_message() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Scheduled,
         false,
@@ -2635,7 +2682,7 @@ fn for_inactive_vault_does_not_create_a_new_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Inactive,
         false,
@@ -2660,7 +2707,7 @@ fn for_inactive_vault_with_dca_plus_creates_new_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Inactive,
         true,
@@ -2690,7 +2737,7 @@ fn for_inactive_vault_with_dca_plus_updates_standard_performance_data() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Inactive,
         true,
@@ -2736,7 +2783,7 @@ fn for_inactive_dca_plus_vault_with_finished_standard_dca_disburses_escrow() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(Uint128::new(40000).into(), DENOM_UKUJI),
+        Uint128::new(40000),
         ONE,
         VaultStatus::Inactive,
         true,
@@ -2765,7 +2812,7 @@ fn for_cancelled_vault_deletes_trigger() {
     setup_vault(
         deps.as_mut(),
         env.clone(),
-        Coin::new(TEN.into(), DENOM_UKUJI),
+        TEN,
         ONE,
         VaultStatus::Cancelled,
         true,

@@ -121,6 +121,7 @@ pub fn execute_trigger(
 
             let fee_rate =
                 get_swap_fee_rate(&deps, &vault)? + get_delegation_fee_rate(&deps, &vault)?;
+
             let receive_amount =
                 swap_amount * (Decimal::one() / price) * (Decimal::one() - fee_rate);
 
@@ -131,6 +132,19 @@ pub fn execute_trigger(
                 add_to_coin(dca_plus_config.standard_dca_received_amount, receive_amount);
 
             vault.dca_plus_config = Some(dca_plus_config.clone());
+
+            create_event(
+                deps.storage,
+                EventBuilder::new(
+                    vault.id,
+                    env.block.clone(),
+                    EventData::DcaVaultExecutionCompleted {
+                        sent: Coin::new(swap_amount.into(), vault.get_swap_denom()),
+                        received: Coin::new(receive_amount.into(), vault.get_receive_denom()),
+                        fee: Coin::new((fee_rate * receive_amount).into(), vault.get_swap_denom()),
+                    },
+                ),
+            )?;
 
             Ok(dca_plus_config.has_sufficient_funds())
         },

@@ -31,6 +31,11 @@ pub enum EventData {
         received: Coin,
         fee: Coin,
     },
+    DcaPlusVaultExecutionCompleted {
+        sent: Coin,
+        received: Coin,
+        fee: Coin,
+    },
     DcaVaultExecutionSkipped {
         reason: ExecutionSkippedReason,
     },

@@ -96,10 +96,17 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 EventBuilder::new(
                     vault.id,
                     env.block.clone(),
-                    EventData::DcaVaultExecutionCompleted {
-                        sent: coin_sent.clone(),
-                        received: coin_received.clone(),
-                        fee: Coin::new(total_fee.into(), coin_received.denom.clone()),
+                    match vault.dca_plus_config {
+                        Some(_) => EventData::DcaPlusVaultExecutionCompleted {
+                            sent: coin_sent.clone(),
+                            received: coin_received.clone(),
+                            fee: Coin::new(total_fee.into(), coin_received.denom.clone()),
+                        },
+                        None => EventData::DcaVaultExecutionCompleted {
+                            sent: coin_sent.clone(),
+                            received: coin_received.clone(),
+                            fee: Coin::new(total_fee.into(), coin_received.denom.clone()),
+                        },
                     },
                 ),
             )?;
