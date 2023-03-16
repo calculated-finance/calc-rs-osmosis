@@ -1,16 +1,16 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{BlockInfo, Coin, Decimal256, Timestamp, Uint128};
+use cosmwasm_std::{BlockInfo, Coin, Decimal, Timestamp, Uint128};
 
 #[cw_serde]
 pub enum ExecutionSkippedReason {
     SlippageToleranceExceeded,
     PriceThresholdExceeded {
-        price: Decimal256,
+        price: Decimal,
     },
     PriceDeltaLimitExceeded {
         duration_in_seconds: u64,
-        max_price_delta: Decimal256,
-        actual_price_delta: Decimal256,
+        max_price_delta: Decimal,
+        actual_price_delta: Decimal,
     },
     UnknownFailure,
 }
@@ -24,7 +24,7 @@ pub enum EventData {
     DcaVaultExecutionTriggered {
         base_denom: String,
         quote_denom: String,
-        asset_price: Decimal256,
+        asset_price: Decimal,
     },
     DcaVaultExecutionCompleted {
         sent: Coin,

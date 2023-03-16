@@ -20,8 +20,7 @@ use cosmwasm_std::{to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdResult, Wasm
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_msg;
-use fin_helpers::position_type::PositionType;
-use fin_helpers::queries::{query_base_price, query_order_details, query_price, query_quote_price};
+use fin_helpers::queries::{query_order_details, query_price, query_quote_price};
 use fin_helpers::swaps::create_fin_swap_message;
 use std::cmp::min;
 
@@ -168,12 +167,7 @@ pub fn execute_trigger(
         return Ok(response.to_owned());
     }
 
-    let position_type = vault.get_position_type();
-
-    let fin_price = match position_type {
-        PositionType::Enter => query_base_price(deps.querier, vault.pair.address.clone()),
-        PositionType::Exit => query_quote_price(deps.querier, vault.pair.address.clone()),
-    };
+    let fin_price = query_quote_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
 
     create_event(
         deps.storage,

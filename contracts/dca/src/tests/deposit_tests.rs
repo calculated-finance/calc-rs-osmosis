@@ -6,7 +6,7 @@ use crate::state::config::FeeCollector;
 use crate::tests::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, USER};
 use base::events::event::EventBuilder;
 use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
 use cw_multi_test::Executor;
 
 use super::helpers::{assert_address_balances, assert_events_published, assert_vault_balance};
@@ -340,7 +340,7 @@ fn when_vault_is_inactive_should_execute_vault() {
             base::events::event::EventData::DcaVaultExecutionTriggered {
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
-                asset_price: Decimal256::one(),
+                asset_price: Decimal::one(),
             },
         )
         .build(4)],

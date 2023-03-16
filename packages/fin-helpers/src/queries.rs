@@ -3,38 +3,12 @@ use crate::{
     position_type::PositionType,
 };
 use base::{pair::Pair, price_type::PriceType};
-use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, QuerierWrapper, StdError, StdResult, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, QuerierWrapper, StdError, StdResult, Uint128};
 use kujira::fin::QueryMsg as FinQueryMsg;
 
-pub fn query_base_price(querier: QuerierWrapper, pair_address: Addr) -> Decimal256 {
-    let book_query_msg = FinQueryMsg::Book {
-        limit: Some(1),
-        offset: None,
-    };
-
-    let book_response: FinBookResponse = querier
-        .query_wasm_smart(pair_address, &book_query_msg)
-        .unwrap();
-
-    book_response.base[0].quote_price.into()
-}
-
-pub fn query_quote_price(querier: QuerierWrapper, pair_address: Addr) -> Decimal256 {
-    let book_query_msg = FinQueryMsg::Book {
-        limit: Some(1),
-        offset: None,
-    };
-
-    let book_response: FinBookResponse = querier
-        .query_wasm_smart(pair_address, &book_query_msg)
-        .unwrap();
-
-    book_response.quote[0].quote_price.into()
-}
-
-pub fn query_belief_price(
+pub fn query_quote_price(
     querier: QuerierWrapper,
-    pair: Pair,
+    pair: &Pair,
     swap_denom: &str,
 ) -> StdResult<Decimal> {
     let position_type = match swap_denom == pair.quote_denom {
@@ -43,18 +17,31 @@ pub fn query_belief_price(
     };
 
     let book_response = querier.query_wasm_smart::<FinBookResponse>(
-        pair.address,
+        pair.address.clone(),
         &FinQueryMsg::Book {
             limit: Some(1),
             offset: None,
         },
     )?;
 
-    let book_price = match position_type {
+    Ok(match position_type {
         PositionType::Enter => book_response.base,
         PositionType::Exit => book_response.quote,
     }[0]
-    .quote_price;
+    .quote_price)
+}
+
+pub fn query_belief_price(
+    querier: QuerierWrapper,
+    pair: &Pair,
+    swap_denom: &str,
+) -> StdResult<Decimal> {
+    let position_type = match swap_denom == pair.quote_denom {
+        true => PositionType::Enter,
+        false => PositionType::Exit,
+    };
+
+    let book_price = query_quote_price(querier, &pair, swap_denom)?;
 
     Ok(match position_type {
         PositionType::Enter => book_price,
@@ -78,7 +65,7 @@ pub fn query_price(
     }
 
     if price_type == PriceType::Belief || swap_amount.amount == Uint128::zero() {
-        return query_belief_price(querier, pair, &swap_amount.denom);
+        return query_belief_price(querier, &pair, &swap_amount.denom);
     }
 
     let position_type = match swap_amount.denom == pair.quote_denom {

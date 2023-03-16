@@ -797,7 +797,7 @@ fn with_immediate_time_trigger_should_publish_events() {
                 EventData::DcaVaultExecutionTriggered {
                     base_denom: DENOM_UTEST.to_string(),
                     quote_denom: DENOM_UKUJI.to_string(),
-                    asset_price: Decimal256::from_str("1.0").unwrap(),
+                    asset_price: Decimal::from_str("1.0").unwrap(),
                 },
             )
             .build(3),

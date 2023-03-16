@@ -1,7 +1,6 @@
-use crate::{
-    position_type::PositionType,
-    queries::{query_base_price, query_quote_price},
-};
+use std::str::FromStr;
+
+use crate::queries::query_belief_price;
 use base::pair::Pair;
 use cosmwasm_std::{
     to_binary, Coin, CosmosMsg, Decimal256, QuerierWrapper, ReplyOn, StdResult, SubMsg, WasmMsg,
@@ -16,29 +15,14 @@ pub fn create_fin_swap_message(
     reply_id: Option<u64>,
     reply_on: Option<ReplyOn>,
 ) -> StdResult<SubMsg> {
-    let belief_price = slippage_tolerance.map(|_| {
-        let position_type = match swap_amount.denom == pair.quote_denom {
-            true => PositionType::Enter,
-            false => PositionType::Exit,
-        };
-
-        let fin_price = match position_type {
-            PositionType::Enter => query_base_price(querier, pair.address.clone()),
-            PositionType::Exit => query_quote_price(querier, pair.address.clone()),
-        };
-
-        match position_type {
-            PositionType::Enter => fin_price,
-            PositionType::Exit => Decimal256::one()
-                .checked_div(fin_price)
-                .expect("should return a valid inverted price for fin sell"),
-        }
-    });
+    let belief_price = slippage_tolerance
+        .map(|_| query_belief_price(querier, &pair, &swap_amount.denom).expect("belief price"));
 
     let swap_message = CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: pair.address.to_string(),
         msg: to_binary(&ExecuteMsg::Swap {
-            belief_price,
+            belief_price: belief_price
+                .map(|price| Decimal256::from_str(&price.to_string()).unwrap()),
             max_spread: slippage_tolerance,
             to: None,
             offer_asset: None,

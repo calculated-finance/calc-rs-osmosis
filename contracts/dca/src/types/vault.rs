@@ -6,7 +6,7 @@ use base::{
     vaults::vault::{Destination, VaultStatus},
 };
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Decimal256, StdError, StdResult, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, StdError, StdResult, Timestamp, Uint128};
 use fin_helpers::position_type::PositionType;
 use kujira::precision::{Precise, Precision};
 use std::str::FromStr;
@@ -102,27 +102,26 @@ impl Vault {
         Ok(rounded_price.checked_div(adjustment).unwrap())
     }
 
-    pub fn price_threshold_exceeded(&self, price: Decimal256) -> bool {
-        if let Some(minimum_receive_amount) = self.minimum_receive_amount {
-            let target_swap_amount_as_decimal =
-                Decimal256::from_ratio(self.swap_amount, Uint128::one());
+    pub fn price_threshold_exceeded(&self, price: Decimal) -> bool {
+        self.minimum_receive_amount
+            .map_or(false, |minimum_receive_amount| {
+                let target_swap_amount_as_decimal =
+                    Decimal::from_ratio(self.swap_amount, Uint128::one());
 
-            let receive_amount_at_price = match self.get_position_type() {
-                PositionType::Enter => target_swap_amount_as_decimal
-                    .checked_div(price)
-                    .expect("current fin price should be > 0.0"),
-                PositionType::Exit => target_swap_amount_as_decimal
-                    .checked_mul(price)
-                    .expect("expected receive amount should be valid"),
-            };
+                let receive_amount_at_price = match self.get_position_type() {
+                    PositionType::Enter => target_swap_amount_as_decimal
+                        .checked_div(price)
+                        .expect("current fin price should be > 0.0"),
+                    PositionType::Exit => target_swap_amount_as_decimal
+                        .checked_mul(price)
+                        .expect("expected receive amount should be valid"),
+                };
 
-            let minimum_receive_amount =
-                Decimal256::from_ratio(minimum_receive_amount, Uint128::one());
+                let minimum_receive_amount_as_decimal =
+                    Decimal::from_ratio(minimum_receive_amount, Uint128::one());
 
-            return receive_amount_at_price < minimum_receive_amount;
-        }
-
-        false
+                receive_amount_at_price < minimum_receive_amount_as_decimal
+            })
     }
 
     pub fn has_low_funds(&self) -> bool {
@@ -241,7 +240,7 @@ mod price_threshold_exceeded_tests {
         let vault = vault_with(Uint128::new(100), Uint128::new(50), PositionType::Enter);
 
         assert_eq!(
-            vault.price_threshold_exceeded(Decimal256::from_str("1.9").unwrap()),
+            vault.price_threshold_exceeded(Decimal::from_str("1.9").unwrap()),
             false
         );
     }
@@ -251,7 +250,7 @@ mod price_threshold_exceeded_tests {
         let vault = vault_with(Uint128::new(100), Uint128::new(50), PositionType::Enter);
 
         assert_eq!(
-            vault.price_threshold_exceeded(Decimal256::from_str("2.0").unwrap()),
+            vault.price_threshold_exceeded(Decimal::from_str("2.0").unwrap()),
             false
         );
     }
@@ -261,7 +260,7 @@ mod price_threshold_exceeded_tests {
         let vault = vault_with(Uint128::new(100), Uint128::new(50), PositionType::Enter);
 
         assert_eq!(
-            vault.price_threshold_exceeded(Decimal256::from_str("2.1").unwrap()),
+            vault.price_threshold_exceeded(Decimal::from_str("2.1").unwrap()),
             true
         );
     }
@@ -271,7 +270,7 @@ mod price_threshold_exceeded_tests {
         let vault = vault_with(Uint128::new(100), Uint128::new(50), PositionType::Exit);
 
         assert_eq!(
-            vault.price_threshold_exceeded(Decimal256::from_str("0.51").unwrap()),
+            vault.price_threshold_exceeded(Decimal::from_str("0.51").unwrap()),
             false
         );
     }
@@ -281,7 +280,7 @@ mod price_threshold_exceeded_tests {
         let vault = vault_with(Uint128::new(100), Uint128::new(50), PositionType::Exit);
 
         assert_eq!(
-            vault.price_threshold_exceeded(Decimal256::from_str("0.50").unwrap()),
+            vault.price_threshold_exceeded(Decimal::from_str("0.50").unwrap()),
             false
         );
     }
@@ -291,7 +290,7 @@ mod price_threshold_exceeded_tests {
         let vault = vault_with(Uint128::new(100), Uint128::new(50), PositionType::Exit);
 
         assert_eq!(
-            vault.price_threshold_exceeded(Decimal256::from_str("0.49").unwrap()),
+            vault.price_threshold_exceeded(Decimal::from_str("0.49").unwrap()),
             true
         );
     }
