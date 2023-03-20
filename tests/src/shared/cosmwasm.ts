@@ -54,7 +54,10 @@ export const uploadAndInstantiate = async (
   funds: Coin[] = [],
 ): Promise<string> => {
   const { codeId } = await cosmWasmClient.upload(adminAddress, fs.readFileSync(binaryFilePath), 'auto');
-  const { contractAddress } = await cosmWasmClient.instantiate(adminAddress, codeId, initMsg, label, 'auto', { funds });
+  const { contractAddress } = await cosmWasmClient.instantiate(adminAddress, codeId, initMsg, label, 'auto', {
+    funds,
+    admin: adminAddress,
+  });
   return contractAddress;
 };
 

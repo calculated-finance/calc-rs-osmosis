@@ -141,7 +141,10 @@ pub fn execute_trigger(
                     EventData::DcaVaultExecutionCompleted {
                         sent: Coin::new(swap_amount.into(), vault.get_swap_denom()),
                         received: Coin::new(receive_amount.into(), vault.get_receive_denom()),
-                        fee: Coin::new((fee_rate * receive_amount).into(), vault.get_swap_denom()),
+                        fee: Coin::new(
+                            (fee_rate * receive_amount).into(),
+                            vault.get_receive_denom(),
+                        ),
                     },
                 ),
             )?;

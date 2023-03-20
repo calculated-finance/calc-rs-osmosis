@@ -106,7 +106,9 @@ pub fn query_price(
             let cost_in_swap_denom = order.total_offer_amount * price_in_swap_denom;
             let swap_amount_remaining = swap_amount.amount - spent;
 
-            if cost_in_swap_denom < swap_amount_remaining {
+            if cost_in_swap_denom == Uint128::zero() {
+                received += order.total_offer_amount;
+            } else if cost_in_swap_denom < swap_amount_remaining {
                 spent += cost_in_swap_denom;
                 received += order.total_offer_amount;
             } else {
@@ -126,7 +128,10 @@ pub fn query_price(
             limit = limit * 2;
         }
 
-        offset = offset.map(|o| o + limit);
+        offset = offset.map(|o| {
+            o.checked_add(limit)
+                .expect("Book response offset should be a valid u8")
+        });
     }
 
     if spent < swap_amount.amount || received.is_zero() {

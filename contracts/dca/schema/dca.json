@@ -1476,6 +1476,35 @@
             {
               "type": "object",
               "required": [
+                "dca_plus_vault_execution_completed"
+              ],
+              "properties": {
+                "dca_plus_vault_execution_completed": {
+                  "type": "object",
+                  "required": [
+                    "fee",
+                    "received",
+                    "sent"
+                  ],
+                  "properties": {
+                    "fee": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "received": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "sent": {
+                      "$ref": "#/definitions/Coin"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
                 "dca_vault_execution_skipped"
               ],
               "properties": {
@@ -1768,6 +1797,35 @@
               ],
               "properties": {
                 "dca_vault_execution_completed": {
+                  "type": "object",
+                  "required": [
+                    "fee",
+                    "received",
+                    "sent"
+                  ],
+                  "properties": {
+                    "fee": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "received": {
+                      "$ref": "#/definitions/Coin"
+                    },
+                    "sent": {
+                      "$ref": "#/definitions/Coin"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "dca_plus_vault_execution_completed"
+              ],
+              "properties": {
+                "dca_plus_vault_execution_completed": {
                   "type": "object",
                   "required": [
                     "fee",

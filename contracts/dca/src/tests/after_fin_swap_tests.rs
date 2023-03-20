@@ -696,7 +696,10 @@ fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
-    assert_eq!(vault.balance, Coin::new(Uint128::new(10).into(), "base"));
+    assert_eq!(
+        vault.balance,
+        Coin::new(Uint128::new(10).into(), vault.get_swap_denom())
+    );
 }
 
 #[test]
@@ -801,7 +804,7 @@ fn with_failed_swap_does_not_reduce_vault_balance() {
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
-    assert_eq!(vault.balance, Coin::new(TEN.into(), "base"));
+    assert_eq!(vault.balance, Coin::new(TEN.into(), vault.get_swap_denom()));
 }
 
 #[test]

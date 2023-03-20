@@ -2460,10 +2460,11 @@ fn for_active_vault_with_dca_plus_publishes_standard_dca_execution_completed_eve
 
     let config = get_config(deps.as_ref().storage).unwrap();
 
-    let fee = config.swap_fee_percent * dca_plus_config.standard_dca_received_amount.amount;
+    let fee = (config.swap_fee_percent + config.delegation_fee_percent)
+        * dca_plus_config.standard_dca_received_amount.amount;
 
     assert!(events.contains(&Event {
-        id: 3,
+        id: 1,
         timestamp: env.block.time,
         block_height: env.block.height,
         resource_id: vault.id,
