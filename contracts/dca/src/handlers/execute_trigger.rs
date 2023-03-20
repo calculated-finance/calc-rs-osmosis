@@ -100,10 +100,6 @@ pub fn execute_trigger(
         vault.started_at = Some(env.block.time);
     }
 
-    if !vault.has_sufficient_funds() {
-        vault.status = VaultStatus::Inactive;
-    }
-
     let standard_dca_still_active = vault.dca_plus_config.clone().map_or(
         Ok(false),
         |mut dca_plus_config| -> StdResult<bool> {

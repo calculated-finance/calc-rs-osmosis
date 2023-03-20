@@ -2513,31 +2513,6 @@ fn for_active_vault_sends_fin_swap_message() {
 }
 
 #[test]
-fn for_active_vault_with_insufficient_funds_sets_status_to_inactive() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let info = mock_info(ADMIN, &[]);
-
-    instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL);
-
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::new(49999),
-        ONE,
-        VaultStatus::Active,
-        false,
-    );
-
-    execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
-
-    let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
-
-    assert_eq!(updated_vault.status, VaultStatus::Inactive);
-}
-
-#[test]
 fn for_active_dca_plus_vault_with_finished_standard_dca_does_not_update_stats() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -2727,6 +2702,31 @@ fn for_inactive_vault_with_dca_plus_creates_new_trigger() {
 }
 
 #[test]
+fn for_inactive_vault_with_dca_plus_and_finished_standard_dca_does_not_create_new_trigger() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(ADMIN, &[]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info);
+    set_fin_price(&mut deps, &ONE_DECIMAL);
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        ONE,
+        ONE,
+        VaultStatus::Inactive,
+        true,
+    );
+
+    execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+
+    let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
+
+    assert_eq!(updated_vault.trigger, None);
+}
+
+#[test]
 fn for_inactive_vault_with_dca_plus_updates_standard_performance_data() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -2784,7 +2784,7 @@ fn for_inactive_dca_plus_vault_with_finished_standard_dca_disburses_escrow() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::new(40000),
+        ONE,
         ONE,
         VaultStatus::Inactive,
         true,

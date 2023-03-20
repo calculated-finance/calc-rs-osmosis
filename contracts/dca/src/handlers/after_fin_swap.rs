@@ -9,6 +9,7 @@ use crate::types::dca_plus_config::DcaPlusConfig;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;
+use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
 use cosmwasm_std::{Decimal, SubMsg, SubMsgResult};
@@ -83,7 +84,9 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 });
             }
 
-            update_vault(deps.storage, &vault)?;
+            if vault.balance.amount.is_zero() {
+                vault.status = VaultStatus::Inactive;
+            }
 
             sub_msgs.append(&mut get_disbursement_messages(
                 deps.as_ref(),
@@ -128,9 +131,15 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
                 ),
             )?;
 
+            if !vault.has_sufficient_funds() {
+                vault.status = VaultStatus::Inactive;
+            }
+
             attributes.push(Attribute::new("status", "skipped"));
         }
     }
+
+    update_vault(deps.storage, &vault)?;
 
     Ok(Response::new()
         .add_attribute("method", "fin_swap_completed")

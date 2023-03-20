@@ -1,5 +1,5 @@
 use crate::{
-    constants::TEN,
+    constants::{ONE, TEN},
     contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID},
     handlers::{
         after_fin_swap::after_fin_swap, get_events_by_resource_id::get_events_by_resource_id,
@@ -15,7 +15,7 @@ use crate::{
         helpers::{
             instantiate_contract, instantiate_contract_with_multiple_fee_collectors,
             setup_active_dca_plus_vault_with_funds, setup_active_vault_with_funds,
-            setup_active_vault_with_low_funds, setup_active_vault_with_slippage_funds,
+            setup_active_vault_with_low_funds, setup_active_vault_with_slippage_funds, setup_vault,
         },
         mocks::ADMIN,
     },
@@ -1035,4 +1035,98 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
         to_address: config.fee_collectors[0].address.to_string(),
         amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
     })));
+}
+
+#[test]
+fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        ONE,
+        ONE,
+        VaultStatus::Active,
+        false,
+    );
+
+    SWAP_CACHE
+        .save(
+            deps.as_mut().storage,
+            &SwapCache {
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+            },
+        )
+        .unwrap();
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![Coin::new(1000000, vault.get_receive_denom())],
+    );
+
+    after_fin_swap(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_SWAP_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let vault = get_vault(&deps.storage, vault.id).unwrap();
+    assert_eq!(vault.status, VaultStatus::Inactive);
+}
+
+#[test]
+fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        ONE,
+        ONE,
+        VaultStatus::Active,
+        true,
+    );
+
+    SWAP_CACHE
+        .save(
+            deps.as_mut().storage,
+            &SwapCache {
+                swap_denom_balance: vault.balance.clone(),
+                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+            },
+        )
+        .unwrap();
+
+    deps.querier.update_balance(
+        "cosmos2contract",
+        vec![Coin::new(1000000, vault.get_receive_denom())],
+    );
+
+    after_fin_swap(
+        deps.as_mut(),
+        env,
+        Reply {
+            id: AFTER_FIN_SWAP_REPLY_ID,
+            result: SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        },
+    )
+    .unwrap();
+
+    let vault = get_vault(&deps.storage, vault.id).unwrap();
+    assert_eq!(vault.status, VaultStatus::Inactive);
 }
