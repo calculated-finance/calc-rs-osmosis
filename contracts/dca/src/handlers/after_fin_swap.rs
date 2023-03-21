@@ -2,17 +2,19 @@ use crate::error::ContractError;
 use crate::helpers::disbursement_helpers::get_disbursement_messages;
 use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_fee_messages, get_swap_fee_rate};
 use crate::helpers::vault_helpers::get_swap_amount;
+use crate::msg::ExecuteMsg;
 use crate::state::cache::{CACHE, SWAP_CACHE};
 use crate::state::events::create_event;
+use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::dca_plus_config::DcaPlusConfig;
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;
 use base::vaults::vault::VaultStatus;
+use cosmwasm_std::{to_binary, CosmosMsg, Decimal, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
-use cosmwasm_std::{Decimal, SubMsg, SubMsgResult};
 
 pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
@@ -144,8 +146,17 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
     update_vault(deps.storage, &vault)?;
 
+    if vault.is_finished_dca_plus_vault() {
+        sub_msgs.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
+            funds: vec![],
+        })));
+
+        delete_trigger(deps.storage, vault.id)?;
+    }
+
     Ok(Response::new()
-        .add_attribute("method", "fin_swap_completed")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id)
         .add_attributes(attributes)

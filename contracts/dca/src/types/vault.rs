@@ -153,6 +153,17 @@ impl Vault {
         self.status == VaultStatus::Inactive
     }
 
+    pub fn is_finished_dca_plus_vault(&self) -> bool {
+        self.is_inactive()
+            && self.is_dca_plus()
+            && self
+                .dca_plus_config
+                .clone()
+                .map_or(false, |dca_plus_config| {
+                    !dca_plus_config.has_sufficient_funds()
+                })
+    }
+
     pub fn is_cancelled(&self) -> bool {
         self.status == VaultStatus::Cancelled
     }

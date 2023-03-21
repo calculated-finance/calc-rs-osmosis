@@ -102,6 +102,23 @@ pub fn execute_trigger(
         vault.started_at = Some(env.block.time);
     }
 
+    update_vault(deps.storage, &vault)?;
+
+    let quote_price = query_quote_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
+
+    create_event(
+        deps.storage,
+        EventBuilder::new(
+            vault.id,
+            env.block.to_owned(),
+            EventData::DcaVaultExecutionTriggered {
+                base_denom: vault.pair.base_denom.clone(),
+                quote_denom: vault.pair.quote_denom.clone(),
+                asset_price: quote_price.clone(),
+            },
+        ),
+    )?;
+
     let standard_dca_still_active = vault.dca_plus_config.clone().map_or(
         Ok(false),
         |mut dca_plus_config| -> StdResult<bool> {
@@ -189,6 +206,8 @@ pub fn execute_trigger(
 
             vault.dca_plus_config = Some(dca_plus_config.clone());
 
+            update_vault(deps.storage, &vault)?;
+
             create_event(
                 deps.storage,
                 EventBuilder::new(
@@ -209,8 +228,6 @@ pub fn execute_trigger(
         },
     )?;
 
-    update_vault(deps.storage, &vault)?;
-
     if vault.is_active() || standard_dca_still_active {
         save_trigger(
             deps.storage,
@@ -228,34 +245,13 @@ pub fn execute_trigger(
                 },
             },
         )?;
+    } else {
+        return Ok(response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
+            funds: vec![],
+        })));
     }
-
-    if !vault.is_active() {
-        if vault.is_dca_plus() && !standard_dca_still_active {
-            response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: env.contract.address.to_string(),
-                msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
-                funds: vec![],
-            }))
-        }
-
-        return Ok(response.to_owned());
-    }
-
-    let quote_price = query_quote_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
-
-    create_event(
-        deps.storage,
-        EventBuilder::new(
-            vault.id,
-            env.block.to_owned(),
-            EventData::DcaVaultExecutionTriggered {
-                base_denom: vault.pair.base_denom.clone(),
-                quote_denom: vault.pair.quote_denom.clone(),
-                asset_price: quote_price.clone(),
-            },
-        ),
-    )?;
 
     if vault.price_threshold_exceeded(quote_price) {
         create_event(

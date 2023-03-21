@@ -2464,7 +2464,7 @@ fn for_active_vault_with_dca_plus_publishes_standard_dca_execution_completed_eve
         * dca_plus_config.standard_dca_received_amount.amount;
 
     assert!(events.contains(&Event {
-        id: 1,
+        id: 2,
         timestamp: env.block.time,
         block_height: env.block.height,
         resource_id: vault.id,
@@ -2580,7 +2580,7 @@ fn for_active_vault_with_slippage_exceeded_publishes_standard_dca_execution_skip
         .events;
 
     assert!(events.contains(&Event {
-        id: 1,
+        id: 2,
         timestamp: env.block.time,
         block_height: env.block.height,
         resource_id: vault.id,
