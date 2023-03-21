@@ -10,7 +10,7 @@ use base::{
 };
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    from_binary, to_binary, Addr, Binary, Coin, Decimal256, StdResult, Storage, Timestamp, Uint128,
+    from_binary, to_binary, Addr, Binary, Coin, Decimal, StdResult, Storage, Timestamp, Uint128,
 };
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 
@@ -27,7 +27,7 @@ struct VaultDTO {
     pub balance: Coin,
     pub pair_address: Addr,
     pub swap_amount: Uint128,
-    pub slippage_tolerance: Option<Decimal256>,
+    pub slippage_tolerance: Option<Decimal>,
     pub minimum_receive_amount: Option<Uint128>,
     pub time_interval: TimeInterval,
     pub started_at: Option<Timestamp>,

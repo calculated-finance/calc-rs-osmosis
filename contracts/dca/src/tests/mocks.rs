@@ -626,6 +626,7 @@ fn retract_partially_filled_order_handler(info: MessageInfo) -> StdResult<Respon
 fn default_book_response_handler() -> StdResult<Binary> {
     book_response_handler(
         String::from(DENOM_UTEST),
+        String::from(DENOM_UKUJI),
         Decimal256::from_str("1")?,
         Decimal256::from_str("1")?,
     )
@@ -633,6 +634,7 @@ fn default_book_response_handler() -> StdResult<Binary> {
 
 fn book_response_handler(
     quote_denom: String,
+    base_denom: String,
     base_price: Decimal256,
     quote_price: Decimal256,
 ) -> StdResult<Binary> {
@@ -644,13 +646,13 @@ fn book_response_handler(
 
     let pool_response_base = PoolResponse {
         quote_price: base_price,
-        offer_denom: Denom::Native(quote_denom),
+        offer_denom: Denom::Native(base_denom),
         total_offer_amount: Uint256::from_uint128(ONE_THOUSAND),
     };
 
     to_binary(&BookResponse {
-        base: vec![pool_response_base.clone()],
-        quote: vec![pool_response_quote.clone()],
+        base: vec![pool_response_base],
+        quote: vec![pool_response_quote],
     })
 }
 
@@ -893,6 +895,7 @@ pub fn fin_contract_high_swap_price() -> Box<dyn Contract<Empty>> {
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
                 FINQueryMsg::Book { .. } => book_response_handler(
+                    String::from(DENOM_UKUJI),
                     String::from(DENOM_UTEST),
                     Decimal256::from_str("9")?,
                     Decimal256::from_str("11")?,
@@ -929,6 +932,7 @@ pub fn fin_contract_low_swap_price() -> Box<dyn Contract<Empty>> {
         |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
             match msg {
                 FINQueryMsg::Book { .. } => book_response_handler(
+                    String::from(DENOM_UKUJI),
                     String::from(DENOM_UTEST),
                     Decimal256::from_str("0.6")?,
                     Decimal256::from_str("0.9")?,

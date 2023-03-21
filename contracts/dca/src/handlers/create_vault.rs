@@ -22,7 +22,7 @@ use crate::types::vault_builder::VaultBuilder;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{coin, Addr, Coin, Decimal, Decimal256};
+use cosmwasm_std::{coin, Addr, Coin, Decimal};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 use fin_helpers::limit_orders::create_submit_order_sub_msg;
@@ -40,7 +40,7 @@ pub fn create_vault(
     mut destinations: Vec<Destination>,
     pair_address: Addr,
     position_type: Option<PositionType>,
-    slippage_tolerance: Option<Decimal256>,
+    slippage_tolerance: Option<Decimal>,
     minimum_receive_amount: Option<Uint128>,
     swap_amount: Uint128,
     time_interval: TimeInterval,

@@ -22,7 +22,7 @@ pub struct Vault {
     pub balance: Coin,
     pub pair: Pair,
     pub swap_amount: Uint128,
-    pub slippage_tolerance: Option<Decimal256>,
+    pub slippage_tolerance: Option<Decimal>,
     pub minimum_receive_amount: Option<Uint128>,
     pub time_interval: TimeInterval,
     pub started_at: Option<Timestamp>,

@@ -8,8 +8,7 @@ use crate::{
 };
 use base::{pair::Pair as FinPair, price_type::PriceType};
 use cosmwasm_std::{
-    to_binary, Binary, CosmosMsg, Decimal256, DepsMut, Env, MessageInfo, Response, StdResult,
-    WasmMsg,
+    to_binary, Binary, CosmosMsg, Decimal, DepsMut, Env, MessageInfo, Response, StdResult, WasmMsg,
 };
 use std::collections::VecDeque;
 
@@ -18,7 +17,7 @@ pub fn create_swap_handler(
     env: Env,
     info: MessageInfo,
     target_denom: String,
-    slippage_tolerance: Option<Decimal256>,
+    slippage_tolerance: Option<Decimal>,
     on_complete: Option<Callback>,
 ) -> ContractResult<Response> {
     assert_exactly_one_asset(&info.funds)?;
@@ -82,7 +81,7 @@ pub fn create_swap_handler(
 fn generate_swap_message(
     env: Env,
     pair: Pair,
-    slippage_tolerance: Option<Decimal256>,
+    slippage_tolerance: Option<Decimal>,
     callback: Binary,
 ) -> StdResult<Callback> {
     match pair {

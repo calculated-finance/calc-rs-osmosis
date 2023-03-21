@@ -6,8 +6,8 @@ use crate::{
     validation::{assert_allocations_sum_to_one, assert_sender_is_router},
 };
 use cosmwasm_std::{
-    to_binary, Coin, CosmosMsg, Decimal, Decimal256, Deps, Env, MessageInfo, ReplyOn, Response,
-    SubMsg, Uint128, WasmMsg,
+    to_binary, Coin, CosmosMsg, Decimal, Deps, Env, MessageInfo, ReplyOn, Response, SubMsg,
+    Uint128, WasmMsg,
 };
 use std::collections::{HashMap, VecDeque};
 use swap::msg::ExecuteMsg;
@@ -17,7 +17,7 @@ pub fn rebalance_handler(
     env: Env,
     info: MessageInfo,
     allocations: &Vec<(String, Decimal)>,
-    slippage_tolerance: Option<Decimal256>,
+    slippage_tolerance: Option<Decimal>,
     failure_behaviour: Option<FailureBehaviour>,
 ) -> ContractResult<Response> {
     assert_sender_is_router(deps.storage, info.sender)?;

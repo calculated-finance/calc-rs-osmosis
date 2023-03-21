@@ -3,7 +3,8 @@ use std::str::FromStr;
 use crate::queries::query_belief_price;
 use base::pair::Pair;
 use cosmwasm_std::{
-    to_binary, Coin, CosmosMsg, Decimal256, QuerierWrapper, ReplyOn, StdResult, SubMsg, WasmMsg,
+    to_binary, Coin, CosmosMsg, Decimal, Decimal256, QuerierWrapper, ReplyOn, StdResult, SubMsg,
+    WasmMsg,
 };
 use kujira::fin::ExecuteMsg;
 
@@ -11,7 +12,7 @@ pub fn create_fin_swap_message(
     querier: QuerierWrapper,
     pair: Pair,
     swap_amount: Coin,
-    slippage_tolerance: Option<Decimal256>,
+    slippage_tolerance: Option<Decimal>,
     reply_id: Option<u64>,
     reply_on: Option<ReplyOn>,
 ) -> StdResult<SubMsg> {
@@ -22,8 +23,10 @@ pub fn create_fin_swap_message(
         contract_addr: pair.address.to_string(),
         msg: to_binary(&ExecuteMsg::Swap {
             belief_price: belief_price
-                .map(|price| Decimal256::from_str(&price.to_string()).unwrap()),
-            max_spread: slippage_tolerance.clone(),
+                .map(|belief_price| Decimal256::from_str(&belief_price.to_string()).unwrap()),
+            max_spread: slippage_tolerance.map(|slippage_tolerance| {
+                Decimal256::from_str(&slippage_tolerance.to_string()).unwrap()
+            }),
             to: None,
             offer_asset: None,
         })?,

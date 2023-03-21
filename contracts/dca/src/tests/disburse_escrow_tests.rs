@@ -30,7 +30,7 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
         env.clone(),
         info.clone(),
     );
-    set_fin_price(&mut deps, &ONE_DECIMAL);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
 
     let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -74,7 +74,8 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
         env.clone(),
         info.clone(),
     );
-    set_fin_price(&mut deps, &ONE_DECIMAL);
+
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
 
     let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
 

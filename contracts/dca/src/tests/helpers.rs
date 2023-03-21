@@ -283,19 +283,26 @@ pub fn assert_vault_balance(
 pub fn set_fin_price(
     deps: &mut OwnedDeps<MemoryStorage, MockApi, MockQuerier>,
     price: &'static Decimal,
+    depth: &'static Uint128,
 ) {
     deps.querier.update_wasm(|query| match query.clone() {
         WasmQuery::Smart { msg, .. } => match from_binary(&msg).unwrap() {
-            FinQueryMsg::Book { .. } => SystemResult::Ok(ContractResult::Ok(
+            FinQueryMsg::Book { offset, .. } => SystemResult::Ok(ContractResult::Ok(
                 to_binary(&FinBookResponse {
-                    base: vec![FinPoolResponseWithoutDenom {
-                        quote_price: price.clone() + Decimal::percent(10),
-                        total_offer_amount: Uint128::new(100000000),
-                    }],
-                    quote: vec![FinPoolResponseWithoutDenom {
-                        quote_price: price.clone() - Decimal::percent(10),
-                        total_offer_amount: Uint128::new(100000000),
-                    }],
+                    base: match offset {
+                        Some(0) | None => vec![FinPoolResponseWithoutDenom {
+                            quote_price: price.clone() + Decimal::percent(10),
+                            total_offer_amount: depth.clone(),
+                        }],
+                        _ => vec![],
+                    },
+                    quote: match offset {
+                        Some(0) | None => vec![FinPoolResponseWithoutDenom {
+                            quote_price: price.clone() - Decimal::percent(10),
+                            total_offer_amount: depth.clone(),
+                        }],
+                        _ => vec![],
+                    },
                 })
                 .unwrap(),
             )),

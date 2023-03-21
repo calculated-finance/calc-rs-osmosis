@@ -117,16 +117,19 @@ pub fn after_fin_swap(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
             attributes.push(Attribute::new("status", "success"));
         }
         SubMsgResult::Err(_) => {
+            let reason = match vault.has_sufficient_funds() {
+                true => ExecutionSkippedReason::SlippageToleranceExceeded,
+                false => ExecutionSkippedReason::UnknownFailure,
+            };
+
             create_event(
                 deps.storage,
                 EventBuilder::new(
                     vault.id,
                     env.block.to_owned(),
-                    EventData::DcaVaultExecutionSkipped {
-                        reason: match vault.has_sufficient_funds() {
-                            true => ExecutionSkippedReason::SlippageToleranceExceeded,
-                            false => ExecutionSkippedReason::UnknownFailure,
-                        },
+                    match vault.dca_plus_config.is_some() {
+                        true => EventData::DcaPlusVaultExecutionSkipped { reason },
+                        false => EventData::DcaVaultExecutionSkipped { reason },
                     },
                 ),
             )?;

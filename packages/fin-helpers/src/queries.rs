@@ -24,11 +24,19 @@ pub fn query_quote_price(
         },
     )?;
 
-    Ok(match position_type {
+    let book = match position_type {
         PositionType::Enter => book_response.base,
         PositionType::Exit => book_response.quote,
-    }[0]
-    .quote_price)
+    };
+
+    if book.is_empty() {
+        return Err(StdError::generic_err(format!(
+            "No orders found for pair {:?}",
+            pair
+        )));
+    }
+
+    Ok(book[0].quote_price)
 }
 
 pub fn query_belief_price(
@@ -76,14 +84,14 @@ pub fn query_price(
     let mut spent = Uint128::zero();
     let mut received = Uint128::zero();
     let mut limit = 20;
-    let mut offset = Some(0);
+    let mut offset = 0;
 
     while spent <= swap_amount.amount {
         let book_response = querier.query_wasm_smart::<FinBookResponse>(
             pair.address.clone(),
             &FinQueryMsg::Book {
                 limit: Some(limit),
-                offset,
+                offset: Some(offset),
             },
         )?;
 
@@ -103,6 +111,7 @@ pub fn query_price(
                     .checked_div(order.quote_price)
                     .expect("order price in swap denom"),
             };
+
             let cost_in_swap_denom = order.total_offer_amount * price_in_swap_denom;
             let swap_amount_remaining = swap_amount.amount - spent;
 
@@ -124,14 +133,11 @@ pub fn query_price(
             break;
         }
 
-        if Decimal::from_ratio(spent, swap_amount.amount) < Decimal::percent(50) {
-            limit = limit * 2;
-        }
+        offset = offset.checked_add(limit).unwrap_or(u8::MAX);
 
-        offset = offset.map(|o| {
-            o.checked_add(limit)
-                .expect("Book response offset should be a valid u8")
-        });
+        if Decimal::from_ratio(spent, swap_amount.amount) < Decimal::percent(50) {
+            limit = limit.checked_mul(2).unwrap_or(u8::MAX);
+        }
     }
 
     if spent < swap_amount.amount || received.is_zero() {
@@ -142,6 +148,10 @@ pub fn query_price(
     }
 
     Ok(Decimal::from_ratio(swap_amount.amount, received))
+}
+
+pub fn calculate_slippage(actual_price: Decimal, belief_price: Decimal) -> Decimal {
+    (actual_price - belief_price) / belief_price
 }
 
 pub fn query_order_details(

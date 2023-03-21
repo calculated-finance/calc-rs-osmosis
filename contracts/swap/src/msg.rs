@@ -3,7 +3,7 @@ use crate::{state::config::Config, types::callback::Callback};
 use base::pair::Pair as FinPair;
 use base::price_type::PriceType;
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Binary, Coin, Decimal, Decimal256};
+use cosmwasm_std::{Addr, Binary, Coin, Decimal};
 
 #[cw_serde]
 pub struct MigrateMsg {
@@ -26,7 +26,7 @@ pub enum ExecuteMsg {
     },
     CreateSwap {
         target_denom: String,
-        slippage_tolerance: Option<Decimal256>,
+        slippage_tolerance: Option<Decimal>,
         on_complete: Option<Callback>,
     },
     ContinueSwap {
@@ -34,7 +34,7 @@ pub enum ExecuteMsg {
     },
     SwapOnFin {
         pair: FinPair,
-        slippage_tolerance: Option<Decimal256>,
+        slippage_tolerance: Option<Decimal>,
         callback: Binary,
     },
     SendFunds {

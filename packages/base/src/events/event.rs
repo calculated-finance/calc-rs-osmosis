@@ -39,6 +39,9 @@ pub enum EventData {
     DcaVaultExecutionSkipped {
         reason: ExecutionSkippedReason,
     },
+    DcaPlusVaultExecutionSkipped {
+        reason: ExecutionSkippedReason,
+    },
     DcaVaultCancelled {},
     DcaVaultZDelegationSucceeded {
         validator_address: String,

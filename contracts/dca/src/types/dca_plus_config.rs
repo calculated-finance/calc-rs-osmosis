@@ -41,6 +41,6 @@ impl DcaPlusConfig {
     }
 
     pub fn has_sufficient_funds(self) -> bool {
-        self.standard_dca_balance().amount > Uint128::new(50000)
+        self.standard_dca_balance().amount > Uint128::zero()
     }
 }

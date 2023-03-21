@@ -6,7 +6,7 @@ use base::pair::Pair;
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::{Destination, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128, Uint64};
+use cosmwasm_std::{Addr, Coin, Decimal, Uint128, Uint64};
 use fin_helpers::position_type::PositionType;
 
 #[cw_serde]
@@ -49,7 +49,7 @@ pub enum ExecuteMsg {
         destinations: Option<Vec<Destination>>,
         pair_address: Addr,
         position_type: Option<PositionType>,
-        slippage_tolerance: Option<Decimal256>,
+        slippage_tolerance: Option<Decimal>,
         minimum_receive_amount: Option<Uint128>,
         swap_amount: Uint128,
         time_interval: TimeInterval,

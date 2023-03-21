@@ -20,7 +20,9 @@ use cosmwasm_std::{to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdResult, Wasm
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_msg;
-use fin_helpers::queries::{query_order_details, query_price, query_quote_price};
+use fin_helpers::queries::{
+    calculate_slippage, query_belief_price, query_order_details, query_price, query_quote_price,
+};
 use fin_helpers::swaps::create_fin_swap_message;
 use std::cmp::min;
 
@@ -108,18 +110,76 @@ pub fn execute_trigger(
                 vault.swap_amount,
             );
 
-            let price = query_price(
+            if swap_amount.is_zero() {
+                return Ok(false);
+            }
+
+            let actual_price_result = query_price(
                 deps.querier,
                 vault.pair.clone(),
                 &Coin::new(swap_amount.into(), vault.get_swap_denom()),
                 PriceType::Actual,
-            )?;
+            );
+
+            if actual_price_result.is_err() {
+                let error = actual_price_result.unwrap_err();
+
+                if error.to_string().contains("Not enough liquidity to swap") {
+                    create_event(
+                        deps.storage,
+                        EventBuilder::new(
+                            vault.id,
+                            env.block.clone(),
+                            EventData::DcaVaultExecutionSkipped {
+                                reason: ExecutionSkippedReason::SlippageToleranceExceeded,
+                            },
+                        ),
+                    )?;
+                } else {
+                    create_event(
+                        deps.storage,
+                        EventBuilder::new(
+                            vault.id,
+                            env.block.clone(),
+                            EventData::DcaVaultExecutionSkipped {
+                                reason: ExecutionSkippedReason::UnknownFailure,
+                            },
+                        ),
+                    )?;
+                }
+
+                return Ok(dca_plus_config.has_sufficient_funds());
+            }
+
+            let actual_price = actual_price_result.unwrap();
+
+            if let Some(slippage_tolerance) = vault.slippage_tolerance {
+                let belief_price =
+                    query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
+
+                let slippage = calculate_slippage(actual_price, belief_price);
+
+                if slippage > slippage_tolerance {
+                    create_event(
+                        deps.storage,
+                        EventBuilder::new(
+                            vault.id,
+                            env.block.clone(),
+                            EventData::DcaVaultExecutionSkipped {
+                                reason: ExecutionSkippedReason::SlippageToleranceExceeded,
+                            },
+                        ),
+                    )?;
+
+                    return Ok(dca_plus_config.has_sufficient_funds());
+                }
+            }
 
             let fee_rate =
                 get_swap_fee_rate(&deps, &vault)? + get_delegation_fee_rate(&deps, &vault)?;
 
             let receive_amount =
-                swap_amount * (Decimal::one() / price) * (Decimal::one() - fee_rate);
+                swap_amount * (Decimal::one() / actual_price) * (Decimal::one() - fee_rate);
 
             dca_plus_config.standard_dca_swapped_amount =
                 add_to_coin(dca_plus_config.standard_dca_swapped_amount, swap_amount);
@@ -151,7 +211,7 @@ pub fn execute_trigger(
 
     update_vault(deps.storage, &vault)?;
 
-    if vault.is_active() || (vault.is_dca_plus() && standard_dca_still_active) {
+    if vault.is_active() || standard_dca_still_active {
         save_trigger(
             deps.storage,
             Trigger {
@@ -182,7 +242,7 @@ pub fn execute_trigger(
         return Ok(response.to_owned());
     }
 
-    let fin_price = query_quote_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
+    let quote_price = query_quote_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -192,19 +252,19 @@ pub fn execute_trigger(
             EventData::DcaVaultExecutionTriggered {
                 base_denom: vault.pair.base_denom.clone(),
                 quote_denom: vault.pair.quote_denom.clone(),
-                asset_price: fin_price.clone(),
+                asset_price: quote_price.clone(),
             },
         ),
     )?;
 
-    if vault.price_threshold_exceeded(fin_price) {
+    if vault.price_threshold_exceeded(quote_price) {
         create_event(
             deps.storage,
             EventBuilder::new(
                 vault.id,
                 env.block.to_owned(),
                 EventData::DcaVaultExecutionSkipped {
-                    reason: ExecutionSkippedReason::PriceThresholdExceeded { price: fin_price },
+                    reason: ExecutionSkippedReason::PriceThresholdExceeded { price: quote_price },
                 },
             ),
         )?;

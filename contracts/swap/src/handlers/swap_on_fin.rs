@@ -6,7 +6,7 @@ use crate::{
 };
 use base::pair::Pair;
 use cosmwasm_std::{
-    Binary, CosmosMsg, Decimal256, DepsMut, Env, MessageInfo, ReplyOn, Response, WasmMsg,
+    Binary, CosmosMsg, Decimal, DepsMut, Env, MessageInfo, ReplyOn, Response, WasmMsg,
 };
 use fin_helpers::swaps::create_fin_swap_message;
 
@@ -15,7 +15,7 @@ pub fn swap_on_fin_handler(
     env: &Env,
     info: &MessageInfo,
     pair: Pair,
-    slippage_tolerance: Option<Decimal256>,
+    slippage_tolerance: Option<Decimal>,
     callback: Binary,
 ) -> ContractResult<Response> {
     assert_sender_is_contract(&info.sender, env)?;
