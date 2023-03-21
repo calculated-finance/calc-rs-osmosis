@@ -4,7 +4,7 @@ use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
 use crate::helpers::validation_helpers::{
     assert_contract_is_not_paused, assert_target_time_is_in_past,
 };
-use crate::helpers::vault_helpers::get_swap_amount;
+use crate::helpers::vault_helpers::{get_swap_amount, price_threshold_exceeded};
 use crate::msg::ExecuteMsg;
 use crate::state::cache::{Cache, SwapCache, CACHE, SWAP_CACHE};
 use crate::state::events::create_event;
@@ -21,7 +21,7 @@ use cosmwasm_std::{to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdResult, Wasm
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 use fin_helpers::limit_orders::create_withdraw_limit_order_msg;
 use fin_helpers::queries::{
-    calculate_slippage, query_belief_price, query_order_details, query_price, query_quote_price,
+    calculate_slippage, query_belief_price, query_order_details, query_price,
 };
 use fin_helpers::swaps::create_fin_swap_message;
 use std::cmp::min;
@@ -104,7 +104,7 @@ pub fn execute_trigger(
 
     update_vault(deps.storage, &vault)?;
 
-    let quote_price = query_quote_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
+    let belief_price = query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -114,7 +114,7 @@ pub fn execute_trigger(
             EventData::DcaVaultExecutionTriggered {
                 base_denom: vault.pair.base_denom.clone(),
                 quote_denom: vault.pair.quote_denom.clone(),
-                asset_price: quote_price.clone(),
+                asset_price: belief_price.clone(),
             },
         ),
     )?;
@@ -171,9 +171,6 @@ pub fn execute_trigger(
             let actual_price = actual_price_result.unwrap();
 
             if let Some(slippage_tolerance) = vault.slippage_tolerance {
-                let belief_price =
-                    query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
-
                 let slippage = calculate_slippage(actual_price, belief_price);
 
                 if slippage > slippage_tolerance {
@@ -253,14 +250,16 @@ pub fn execute_trigger(
         })));
     }
 
-    if vault.price_threshold_exceeded(quote_price) {
+    if price_threshold_exceeded(&deps.as_ref(), &env, &vault, belief_price)? {
         create_event(
             deps.storage,
             EventBuilder::new(
                 vault.id,
                 env.block.to_owned(),
                 EventData::DcaVaultExecutionSkipped {
-                    reason: ExecutionSkippedReason::PriceThresholdExceeded { price: quote_price },
+                    reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                        price: belief_price,
+                    },
                 },
             ),
         )?;
