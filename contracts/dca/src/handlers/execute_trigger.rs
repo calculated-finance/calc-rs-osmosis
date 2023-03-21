@@ -143,29 +143,20 @@ pub fn execute_trigger(
             if actual_price_result.is_err() {
                 let error = actual_price_result.unwrap_err();
 
-                if error.to_string().contains("Not enough liquidity to swap") {
-                    create_event(
-                        deps.storage,
-                        EventBuilder::new(
-                            vault.id,
-                            env.block.clone(),
-                            EventData::DcaVaultExecutionSkipped {
-                                reason: ExecutionSkippedReason::SlippageToleranceExceeded,
+                create_event(
+                    deps.storage,
+                    EventBuilder::new(
+                        vault.id,
+                        env.block.clone(),
+                        EventData::SimulatedDcaVaultExecutionSkipped {
+                            reason: if error.to_string().contains("Not enough liquidity to swap") {
+                                ExecutionSkippedReason::SlippageToleranceExceeded
+                            } else {
+                                ExecutionSkippedReason::UnknownFailure
                             },
-                        ),
-                    )?;
-                } else {
-                    create_event(
-                        deps.storage,
-                        EventBuilder::new(
-                            vault.id,
-                            env.block.clone(),
-                            EventData::DcaVaultExecutionSkipped {
-                                reason: ExecutionSkippedReason::UnknownFailure,
-                            },
-                        ),
-                    )?;
-                }
+                        },
+                    ),
+                )?;
 
                 return Ok(dca_plus_config.has_sufficient_funds());
             }
@@ -181,7 +172,7 @@ pub fn execute_trigger(
                         EventBuilder::new(
                             vault.id,
                             env.block.clone(),
-                            EventData::DcaVaultExecutionSkipped {
+                            EventData::SimulatedDcaVaultExecutionSkipped {
                                 reason: ExecutionSkippedReason::SlippageToleranceExceeded,
                             },
                         ),
@@ -213,7 +204,7 @@ pub fn execute_trigger(
                 EventBuilder::new(
                     vault.id,
                     env.block.clone(),
-                    EventData::DcaVaultExecutionCompleted {
+                    EventData::SimulatedDcaVaultExecutionCompleted {
                         sent: Coin::new(swap_amount.into(), vault.get_swap_denom()),
                         received: Coin::new(receive_amount.into(), vault.get_receive_denom()),
                         fee: Coin::new(

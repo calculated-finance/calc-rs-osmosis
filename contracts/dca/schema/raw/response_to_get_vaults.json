@@ -275,7 +275,7 @@
         "slippage_tolerance": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Decimal256"
+              "$ref": "#/definitions/Decimal"
             },
             {
               "type": "null"

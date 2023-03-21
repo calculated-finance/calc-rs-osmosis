@@ -2433,7 +2433,7 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
 }
 
 #[test]
-fn for_active_vault_with_dca_plus_publishes_standard_dca_execution_completed_event() {
+fn for_active_vault_with_dca_plus_publishes_execution_simulated_event() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(ADMIN, &[]);
@@ -2473,7 +2473,7 @@ fn for_active_vault_with_dca_plus_publishes_standard_dca_execution_completed_eve
         timestamp: env.block.time,
         block_height: env.block.height,
         resource_id: vault.id,
-        data: EventData::DcaVaultExecutionCompleted {
+        data: EventData::SimulatedDcaVaultExecutionCompleted {
             sent: dca_plus_config.standard_dca_swapped_amount,
             received: dca_plus_config.standard_dca_received_amount,
             fee: Coin::new(fee.into(), vault.get_receive_denom())
@@ -2589,7 +2589,7 @@ fn for_active_vault_with_slippage_exceeded_publishes_standard_dca_execution_skip
         timestamp: env.block.time,
         block_height: env.block.height,
         resource_id: vault.id,
-        data: EventData::DcaVaultExecutionSkipped {
+        data: EventData::SimulatedDcaVaultExecutionSkipped {
             reason: ExecutionSkippedReason::SlippageToleranceExceeded,
         },
     }));

@@ -31,7 +31,7 @@ pub enum EventData {
         received: Coin,
         fee: Coin,
     },
-    DcaPlusVaultExecutionCompleted {
+    SimulatedDcaVaultExecutionCompleted {
         sent: Coin,
         received: Coin,
         fee: Coin,
@@ -39,7 +39,7 @@ pub enum EventData {
     DcaVaultExecutionSkipped {
         reason: ExecutionSkippedReason,
     },
-    DcaPlusVaultExecutionSkipped {
+    SimulatedDcaVaultExecutionSkipped {
         reason: ExecutionSkippedReason,
     },
     DcaVaultCancelled {},
@@ -48,6 +48,10 @@ pub enum EventData {
         delegation: Coin,
     },
     DcaVaultDelegationFailed {},
+    DcaVaultEscrowDisbursed {
+        amount_disbursed: Coin,
+        performance_fee: Coin,
+    },
 }
 
 #[cw_serde]

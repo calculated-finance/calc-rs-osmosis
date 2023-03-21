@@ -163,10 +163,10 @@
         {
           "type": "object",
           "required": [
-            "dca_plus_vault_execution_completed"
+            "simulated_dca_vault_execution_completed"
           ],
           "properties": {
-            "dca_plus_vault_execution_completed": {
+            "simulated_dca_vault_execution_completed": {
               "type": "object",
               "required": [
                 "fee",
@@ -196,6 +196,27 @@
           ],
           "properties": {
             "dca_vault_execution_skipped": {
+              "type": "object",
+              "required": [
+                "reason"
+              ],
+              "properties": {
+                "reason": {
+                  "$ref": "#/definitions/ExecutionSkippedReason"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "simulated_dca_vault_execution_skipped"
+          ],
+          "properties": {
+            "simulated_dca_vault_execution_skipped": {
               "type": "object",
               "required": [
                 "reason"
@@ -256,6 +277,31 @@
           "properties": {
             "dca_vault_delegation_failed": {
               "type": "object",
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "dca_vault_escrow_disbursed"
+          ],
+          "properties": {
+            "dca_vault_escrow_disbursed": {
+              "type": "object",
+              "required": [
+                "amount_disbursed",
+                "performance_fee"
+              ],
+              "properties": {
+                "amount_disbursed": {
+                  "$ref": "#/definitions/Coin"
+                },
+                "performance_fee": {
+                  "$ref": "#/definitions/Coin"
+                }
+              },
               "additionalProperties": false
             }
           },

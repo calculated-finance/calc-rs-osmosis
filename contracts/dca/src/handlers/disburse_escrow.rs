@@ -5,10 +5,16 @@ use crate::{
         fee_helpers::{get_dca_plus_performance_fee, get_fee_messages},
         validation_helpers::assert_sender_is_contract_or_admin,
     },
-    state::vaults::{get_vault, update_vault},
+    state::{
+        events::create_event,
+        vaults::{get_vault, update_vault},
+    },
     types::dca_plus_config::DcaPlusConfig,
 };
-use base::helpers::coin_helpers::empty_of;
+use base::{
+    events::event::{EventBuilder, EventData},
+    helpers::coin_helpers::{empty_of, subtract},
+};
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
 use fin_helpers::queries::query_belief_price;
 
@@ -33,7 +39,7 @@ pub fn disburse_escrow_handler(
     let current_price = query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
 
     let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
-    let amount_to_disburse = dca_plus_config.escrowed_balance.amount - performance_fee.amount;
+    let amount_to_disburse = subtract(&dca_plus_config.escrowed_balance, &performance_fee)?;
 
     vault.dca_plus_config = Some(DcaPlusConfig {
         escrowed_balance: empty_of(dca_plus_config.escrowed_balance),
@@ -42,11 +48,23 @@ pub fn disburse_escrow_handler(
 
     update_vault(deps.storage, &vault)?;
 
+    create_event(
+        deps.storage,
+        EventBuilder::new(
+            vault.id,
+            env.block.clone(),
+            EventData::DcaVaultEscrowDisbursed {
+                amount_disbursed: amount_to_disburse.clone(),
+                performance_fee: performance_fee.clone(),
+            },
+        ),
+    )?;
+
     Ok(Response::new()
         .add_submessages(get_disbursement_messages(
             deps.as_ref(),
             &vault,
-            amount_to_disburse,
+            amount_to_disburse.amount,
         )?)
         .add_submessages(get_fee_messages(
             deps.as_ref(),

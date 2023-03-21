@@ -127,7 +127,7 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
 
     if standard_dca_total_value > dca_plus_total_value {
         return Ok(Coin {
-            denom: vault.get_swap_denom(),
+            denom: vault.get_receive_denom(),
             amount: Uint128::zero(),
         });
     }
@@ -138,7 +138,262 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
     let fee = value_difference_in_terms_of_receive_denom * Decimal::percent(20);
 
     Ok(Coin {
-        denom: vault.get_swap_denom(),
+        denom: vault.get_receive_denom(),
         amount: min(fee, dca_plus_config.escrowed_balance.amount),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        constants::TEN,
+        helpers::fee_helpers::get_dca_plus_performance_fee,
+        types::{dca_plus_config::DcaPlusConfig, vault::Vault},
+    };
+    use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
+    use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
+    use std::str::FromStr;
+
+    fn get_vault(
+        total_deposit: Uint128,
+        swapped_amount: Uint128,
+        standard_dca_swapped_amount: Uint128,
+        received_amount: Uint128,
+        standard_dca_received_amount: Uint128,
+    ) -> Vault {
+        let escrow_level = Decimal::percent(5);
+
+        Vault {
+            balance: Coin {
+                denom: "swap_denom".to_string(),
+                amount: total_deposit - swapped_amount,
+            },
+            swapped_amount: Coin {
+                denom: "swap_denom".to_string(),
+                amount: swapped_amount,
+            },
+            received_amount: Coin {
+                denom: "receive_denom".to_string(),
+                amount: received_amount,
+            },
+            dca_plus_config: Some(DcaPlusConfig {
+                total_deposit: Coin::new(total_deposit.into(), "swap_denom".to_string()),
+                standard_dca_swapped_amount: Coin::new(
+                    standard_dca_swapped_amount.into(),
+                    "swap_denom".to_string(),
+                ),
+                standard_dca_received_amount: Coin::new(
+                    standard_dca_received_amount.into(),
+                    "receive_denom".to_string(),
+                ),
+                escrowed_balance: Coin::new(
+                    (received_amount * escrow_level).into(),
+                    "denom".to_string(),
+                ),
+                model_id: 30,
+                escrow_level,
+            }),
+            id: Uint128::one(),
+            created_at: Timestamp::from_seconds(10000000),
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "receive_denom".to_string(),
+                quote_denom: "swap_denom".to_string(),
+            },
+            swap_amount: swapped_amount / Uint128::new(2),
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            trigger: None,
+        }
+    }
+
+    fn assert_fee_amount(
+        total_deposit: Uint128,
+        swapped_amount: Uint128,
+        standard_dca_swapped_amount: Uint128,
+        received_amount: Uint128,
+        standard_dca_received_amount: Uint128,
+        current_price: Decimal,
+        expected_fee: Uint128,
+    ) {
+        let vault = get_vault(
+            total_deposit,
+            swapped_amount,
+            standard_dca_swapped_amount,
+            received_amount,
+            standard_dca_received_amount,
+        );
+
+        let fee = get_dca_plus_performance_fee(&vault, current_price).unwrap();
+        assert_eq!(fee.amount, expected_fee);
+    }
+
+    #[test]
+    fn non_zero_fee_is_in_vault_receive_denom() {
+        let vault = get_vault(TEN, TEN, TEN, TEN + TEN, TEN);
+
+        let fee = get_dca_plus_performance_fee(&vault, Decimal::one()).unwrap();
+        assert_eq!(fee.denom, vault.get_receive_denom());
+    }
+
+    #[test]
+    fn zero_fee_is_in_vault_receive_denom() {
+        let vault = get_vault(TEN, TEN, TEN, TEN, TEN);
+
+        let fee = get_dca_plus_performance_fee(&vault, Decimal::one()).unwrap();
+        assert_eq!(fee.denom, vault.get_receive_denom());
+    }
+
+    #[test]
+    fn fee_is_zero_when_performance_is_even() {
+        let deposit = Uint128::new(2000);
+        let swapped_amount = Uint128::new(1000);
+        let received_amount = Uint128::new(1000);
+        let standard_dca_swapped_amount = Uint128::new(1000);
+        let standard_dca_received_amount = Uint128::new(1000);
+        let current_price = Decimal::from_str("1.0").unwrap();
+        let expected_fee = Uint128::new(0);
+
+        assert_fee_amount(
+            deposit,
+            swapped_amount,
+            standard_dca_swapped_amount,
+            received_amount,
+            standard_dca_received_amount,
+            current_price,
+            expected_fee,
+        );
+    }
+
+    #[test]
+    fn fee_is_above_zero_when_less_swapped_and_price_dropped() {
+        let deposit = Uint128::new(2000);
+        let swapped_amount = Uint128::new(900);
+        let received_amount = Uint128::new(900);
+        let standard_dca_swapped_amount = Uint128::new(1000);
+        let standard_dca_received_amount = Uint128::new(1000);
+        let current_price = Decimal::from_str("0.9").unwrap();
+        let expected_fee = Uint128::new(2);
+
+        assert_fee_amount(
+            deposit,
+            swapped_amount,
+            standard_dca_swapped_amount,
+            received_amount,
+            standard_dca_received_amount,
+            current_price,
+            expected_fee,
+        );
+    }
+
+    #[test]
+    fn fee_is_equal_to_escrow_when_less_swapped_and_price_dropped_significantly() {
+        let deposit = Uint128::new(2000);
+        let swapped_amount = Uint128::new(900);
+        let received_amount = Uint128::new(1000);
+        let standard_dca_swapped_amount = Uint128::new(1000);
+        let standard_dca_received_amount = Uint128::new(1000);
+        let current_price = Decimal::from_str("0.2").unwrap();
+        let expected_fee = Uint128::new(50);
+
+        assert_fee_amount(
+            deposit,
+            swapped_amount,
+            standard_dca_swapped_amount,
+            received_amount,
+            standard_dca_received_amount,
+            current_price,
+            expected_fee,
+        );
+    }
+
+    #[test]
+    fn fee_is_zero_when_more_swapped_and_price_dropped() {
+        let deposit = Uint128::new(2000);
+        let swapped_amount = Uint128::new(1100);
+        let received_amount = Uint128::new(1000);
+        let standard_dca_swapped_amount = Uint128::new(1000);
+        let standard_dca_received_amount = Uint128::new(1000);
+        let current_price = Decimal::from_str("0.9").unwrap();
+        let expected_fee = Uint128::new(0);
+
+        assert_fee_amount(
+            deposit,
+            swapped_amount,
+            standard_dca_swapped_amount,
+            received_amount,
+            standard_dca_received_amount,
+            current_price,
+            expected_fee,
+        );
+    }
+
+    #[test]
+    fn fee_is_above_zero_when_more_swapped_and_price_increased() {
+        let deposit = Uint128::new(2000);
+        let swapped_amount = Uint128::new(1100);
+        let received_amount = Uint128::new(1100);
+        let standard_dca_swapped_amount = Uint128::new(1000);
+        let standard_dca_received_amount = Uint128::new(1000);
+        let current_price = Decimal::from_str("2").unwrap();
+        let expected_fee = Uint128::new(10);
+
+        assert_fee_amount(
+            deposit,
+            swapped_amount,
+            standard_dca_swapped_amount,
+            received_amount,
+            standard_dca_received_amount,
+            current_price,
+            expected_fee,
+        );
+    }
+
+    #[test]
+    fn fee_is_equal_to_escrow_when_same_amount_swapped_and_more_received() {
+        let deposit = Uint128::new(2000);
+        let swapped_amount = Uint128::new(1000);
+        let received_amount = Uint128::new(2000);
+        let standard_dca_swapped_amount = Uint128::new(1000);
+        let standard_dca_received_amount = Uint128::new(1000);
+        let current_price = Decimal::from_str("1").unwrap();
+        let expected_fee = Uint128::new(100);
+
+        assert_fee_amount(
+            deposit,
+            swapped_amount,
+            standard_dca_swapped_amount,
+            received_amount,
+            standard_dca_received_amount,
+            current_price,
+            expected_fee,
+        );
+    }
+
+    #[test]
+    fn fee_is_zero_when_less_swapped_and_price_increased() {
+        let deposit = Uint128::new(2000);
+        let swapped_amount = Uint128::new(900);
+        let received_amount = Uint128::new(900);
+        let standard_dca_swapped_amount = Uint128::new(1000);
+        let standard_dca_received_amount = Uint128::new(1000);
+        let current_price = Decimal::from_str("1.1").unwrap();
+        let expected_fee = Uint128::new(0);
+
+        assert_fee_amount(
+            deposit,
+            swapped_amount,
+            standard_dca_swapped_amount,
+            received_amount,
+            standard_dca_received_amount,
+            current_price,
+            expected_fee,
+        );
+    }
 }
