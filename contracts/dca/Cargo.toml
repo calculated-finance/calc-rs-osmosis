@@ -23,6 +23,7 @@ library = []
 
 [dependencies]
 base = { path = "../../packages/base" }
+cosmwasm-schema = "1.1.1"
 cosmwasm-std = "1.0.0"
 cosmwasm-storage = "1.1.1"
 cw-storage-plus = "0.15.0"
@@ -34,7 +35,6 @@ schemars = "0.8.10"
 serde = { version = "1.0.144", default-features = false, features = ["derive"] }
 staking-router = { path = "../staking-router" }
 thiserror = { version = "1.0.31" }
-cosmwasm-schema = "1.1.1"
 
 [dev-dependencies]
 cw-multi-test = "0.15.0"

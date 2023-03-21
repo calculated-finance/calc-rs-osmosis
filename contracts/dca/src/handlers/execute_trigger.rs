@@ -1,3 +1,4 @@
+use crate::constants::FIN_TAKER_FEE;
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::error::ContractError;
 use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
@@ -25,6 +26,7 @@ use fin_helpers::queries::{
 };
 use fin_helpers::swaps::create_fin_swap_message;
 use std::cmp::min;
+use std::str::FromStr;
 
 pub fn execute_trigger_handler(
     deps: DepsMut,
@@ -189,8 +191,9 @@ pub fn execute_trigger(
                 }
             }
 
-            let fee_rate =
-                get_swap_fee_rate(&deps, &vault)? + get_delegation_fee_rate(&deps, &vault)?;
+            let fee_rate = get_swap_fee_rate(&deps, &vault)?
+                + get_delegation_fee_rate(&deps, &vault)?
+                + Decimal::from_str(FIN_TAKER_FEE)?; // fin taker fee - TODO: remove once we can get this from the pair contracts
 
             let receive_amount =
                 swap_amount * (Decimal::one() / actual_price) * (Decimal::one() - fee_rate);

@@ -3,7 +3,9 @@ use super::mocks::{
     fin_contract_fail_slippage_tolerance, fin_contract_filled_limit_order,
     fin_contract_high_swap_price, fin_contract_partially_filled_order,
 };
-use crate::constants::{ONE, ONE_DECIMAL, ONE_HUNDRED, ONE_MICRON, ONE_THOUSAND, TEN, TWO_MICRONS};
+use crate::constants::{
+    FIN_TAKER_FEE, ONE, ONE_DECIMAL, ONE_HUNDRED, ONE_MICRON, ONE_THOUSAND, TEN, TWO_MICRONS,
+};
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
@@ -2417,7 +2419,8 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
     .unwrap();
 
     let fee_rate = get_swap_fee_rate(&deps.as_mut(), &vault).unwrap()
-        + get_delegation_fee_rate(&deps.as_mut(), &vault).unwrap();
+        + get_delegation_fee_rate(&deps.as_mut(), &vault).unwrap()
+        + Decimal::from_str(FIN_TAKER_FEE).unwrap();
 
     assert_eq!(
         updated_dca_plus_config.standard_dca_swapped_amount.amount,
@@ -2460,7 +2463,9 @@ fn for_active_vault_with_dca_plus_publishes_standard_dca_execution_completed_eve
 
     let config = get_config(deps.as_ref().storage).unwrap();
 
-    let fee = (config.swap_fee_percent + config.delegation_fee_percent)
+    let fee = (config.swap_fee_percent
+        + config.delegation_fee_percent
+        + Decimal::from_str(FIN_TAKER_FEE).unwrap())
         * dca_plus_config.standard_dca_received_amount.amount;
 
     assert!(events.contains(&Event {
@@ -2795,7 +2800,8 @@ fn for_inactive_vault_with_dca_plus_updates_standard_performance_data() {
     .unwrap();
 
     let fee_rate = get_swap_fee_rate(&deps.as_mut(), &vault).unwrap()
-        + get_delegation_fee_rate(&deps.as_mut(), &vault).unwrap();
+        + get_delegation_fee_rate(&deps.as_mut(), &vault).unwrap()
+        + Decimal::from_str(FIN_TAKER_FEE).unwrap();
 
     assert_eq!(
         updated_dca_plus_config.standard_dca_swapped_amount.amount,
