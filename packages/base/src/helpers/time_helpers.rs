@@ -68,6 +68,8 @@ pub fn get_total_execution_duration(
 
 fn get_duration(previous: DateTime<Utc>, interval: &TimeInterval) -> Duration {
     match interval {
+        TimeInterval::EverySecond => Duration::seconds(1),
+        TimeInterval::EveryMinute => Duration::minutes(1),
         TimeInterval::HalfHourly => Duration::minutes(30),
         TimeInterval::Hourly => Duration::hours(1),
         TimeInterval::HalfDaily => Duration::hours(12),
@@ -410,6 +412,80 @@ mod tests {
 
         assert_expected_next_execution_times(
             &TimeInterval::HalfHourly,
+            last_execution_time,
+            scenarios,
+        );
+    }
+
+    #[test]
+    fn assert_every_minute_next_execution_times() {
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
+        let scenarios = vec![
+            (
+                last_execution_time,
+                last_execution_time + Duration::minutes(1),
+            ),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::minutes(1),
+            ),
+            (
+                last_execution_time + Duration::minutes(1) - Duration::seconds(1),
+                last_execution_time + Duration::minutes(1),
+            ),
+            (
+                last_execution_time + Duration::minutes(1),
+                last_execution_time + Duration::minutes(2),
+            ),
+            (
+                last_execution_time + Duration::minutes(1) + Duration::seconds(1),
+                last_execution_time + Duration::minutes(2),
+            ),
+            (
+                last_execution_time + Duration::minutes(11),
+                last_execution_time + Duration::minutes(12),
+            ),
+        ];
+
+        assert_expected_next_execution_times(
+            &TimeInterval::EveryMinute,
+            last_execution_time,
+            scenarios,
+        );
+    }
+
+    #[test]
+    fn assert_every_ten_seconds_next_execution_times() {
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
+        let scenarios = vec![
+            (
+                last_execution_time,
+                last_execution_time + Duration::seconds(1),
+            ),
+            (
+                last_execution_time + Duration::milliseconds(1),
+                last_execution_time + Duration::seconds(1),
+            ),
+            (
+                last_execution_time + Duration::seconds(1) - Duration::milliseconds(1),
+                last_execution_time + Duration::seconds(1),
+            ),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::seconds(2),
+            ),
+            (
+                last_execution_time + Duration::seconds(1) + Duration::milliseconds(1),
+                last_execution_time + Duration::seconds(2),
+            ),
+            (
+                last_execution_time + Duration::seconds(11),
+                last_execution_time + Duration::seconds(12),
+            ),
+        ];
+
+        assert_expected_next_execution_times(
+            &TimeInterval::EverySecond,
             last_execution_time,
             scenarios,
         );

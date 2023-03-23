@@ -4,25 +4,21 @@ use cosmwasm_std::{Coin, Decimal, Deps, Env, StdResult, Timestamp, Uint128};
 use std::cmp::min;
 
 pub fn get_swap_amount(deps: &Deps, env: &Env, vault: Vault) -> StdResult<Coin> {
-    let initial_amount = match vault.has_low_funds() {
-        true => vault.balance.amount,
-        false => vault.swap_amount,
-    };
+    let adjusted_amount =
+        vault
+            .clone()
+            .dca_plus_config
+            .map_or(vault.swap_amount, |dca_plus_config| {
+                let swap_adjustment = get_swap_adjustment(
+                    deps.storage,
+                    vault.get_position_type(),
+                    dca_plus_config.model_id,
+                    env.block.time,
+                )
+                .unwrap_or(Decimal::one());
 
-    let adjusted_amount = vault
-        .clone()
-        .dca_plus_config
-        .map_or(initial_amount, |dca_plus_config| {
-            get_swap_adjustment(
-                deps.storage,
-                vault.get_position_type(),
-                dca_plus_config.model_id,
-                env.block.time,
-            )
-            .map_or(initial_amount, |adjustment_coefficient| {
-                adjustment_coefficient * initial_amount
-            })
-        });
+                vault.swap_amount * swap_adjustment
+            });
 
     Ok(Coin {
         denom: vault.get_swap_denom(),
@@ -106,6 +102,309 @@ pub fn price_threshold_exceeded(
 }
 
 #[cfg(test)]
+mod get_swap_amount_tests {
+    use crate::{
+        state::swap_adjustments::update_swap_adjustments, types::dca_plus_config::DcaPlusConfig,
+    };
+
+    use super::*;
+    use base::{pair::Pair, vaults::vault::VaultStatus};
+    use cosmwasm_std::{
+        coin,
+        testing::{mock_dependencies, mock_env},
+        Addr,
+    };
+    use fin_helpers::position_type::PositionType;
+
+    #[test]
+    fn should_return_full_balance_when_vault_has_low_funds() {
+        let deps = mock_dependencies();
+        let env = mock_env();
+
+        let balance = Uint128::new(50);
+        let swap_amount = Uint128::new(100);
+        let vault = vault_with(balance, swap_amount);
+
+        assert_eq!(
+            get_swap_amount(&deps.as_ref(), &env, vault.clone()).unwrap(),
+            vault.balance
+        );
+    }
+
+    #[test]
+    fn should_return_swap_amount_when_vault_has_enough_funds() {
+        let deps = mock_dependencies();
+        let env = mock_env();
+
+        let balance = Uint128::new(100);
+        let swap_amount = Uint128::new(50);
+        let vault = vault_with(balance, swap_amount);
+
+        assert_eq!(
+            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+                .unwrap()
+                .amount,
+            vault.swap_amount
+        );
+    }
+
+    #[test]
+    fn should_return_adjusted_swap_amount_for_dca_plus_vault() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        let balance = Uint128::new(100);
+        let swap_amount = Uint128::new(50);
+
+        let vault = Vault {
+            id: Uint128::new(1),
+            created_at: Timestamp::from_seconds(0),
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            balance: coin(balance.into(), "base"),
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            swap_amount,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            swapped_amount: coin(0, "base"),
+            received_amount: coin(0, "quote"),
+            trigger: None,
+            dca_plus_config: Some(DcaPlusConfig {
+                escrow_level: Decimal::percent(5),
+                escrowed_balance: Coin::new(0, "quote"),
+                model_id: 30,
+                total_deposit: coin(100, "base"),
+                standard_dca_swapped_amount: coin(0, "base"),
+                standard_dca_received_amount: coin(0, "quote"),
+            }),
+        };
+
+        let swap_adjustment = Decimal::percent(90);
+
+        update_swap_adjustments(
+            deps.as_mut().storage,
+            PositionType::Exit,
+            vec![(30, swap_adjustment)],
+            env.block.time,
+        )
+        .unwrap();
+
+        assert_eq!(
+            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+                .unwrap()
+                .amount,
+            vault.swap_amount * swap_adjustment
+        );
+    }
+
+    #[test]
+    fn should_return_adjusted_swap_amount_for_dca_plus_vault_with_low_funds_and_reduced_swap_amount(
+    ) {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        let balance = Uint128::new(50);
+        let swap_amount = Uint128::new(100);
+
+        let vault = Vault {
+            id: Uint128::new(1),
+            created_at: Timestamp::from_seconds(0),
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            balance: coin(balance.into(), "base"),
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            swap_amount,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            swapped_amount: coin(0, "base"),
+            received_amount: coin(0, "quote"),
+            trigger: None,
+            dca_plus_config: Some(DcaPlusConfig {
+                escrow_level: Decimal::percent(5),
+                escrowed_balance: Coin::new(0, "quote"),
+                model_id: 30,
+                total_deposit: coin(100, "base"),
+                standard_dca_swapped_amount: coin(0, "base"),
+                standard_dca_received_amount: coin(0, "quote"),
+            }),
+        };
+
+        let swap_adjustment = Decimal::percent(20);
+
+        update_swap_adjustments(
+            deps.as_mut().storage,
+            PositionType::Exit,
+            vec![(30, swap_adjustment)],
+            env.block.time,
+        )
+        .unwrap();
+
+        assert_eq!(
+            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+                .unwrap()
+                .amount,
+            vault.swap_amount * swap_adjustment
+        );
+    }
+
+    #[test]
+    fn should_return_vault_balance_for_dca_plus_vault_with_low_funds_and_increased_swap_amount() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        let balance = Uint128::new(50);
+        let swap_amount = Uint128::new(100);
+
+        let vault = Vault {
+            id: Uint128::new(1),
+            created_at: Timestamp::from_seconds(0),
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            balance: coin(balance.into(), "base"),
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            swap_amount,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            swapped_amount: coin(0, "base"),
+            received_amount: coin(0, "quote"),
+            trigger: None,
+            dca_plus_config: Some(DcaPlusConfig {
+                escrow_level: Decimal::percent(5),
+                escrowed_balance: Coin::new(0, "quote"),
+                model_id: 30,
+                total_deposit: coin(100, "base"),
+                standard_dca_swapped_amount: coin(0, "base"),
+                standard_dca_received_amount: coin(0, "quote"),
+            }),
+        };
+
+        let swap_adjustment = Decimal::percent(120);
+
+        update_swap_adjustments(
+            deps.as_mut().storage,
+            PositionType::Exit,
+            vec![(30, swap_adjustment)],
+            env.block.time,
+        )
+        .unwrap();
+
+        assert_eq!(
+            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+                .unwrap()
+                .amount,
+            vault.balance.amount
+        );
+    }
+
+    #[test]
+    fn should_return_vault_balance_for_dca_plus_vault_with_increased_swap_amount_above_balance() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        let balance = Uint128::new(100);
+        let swap_amount = Uint128::new(80);
+
+        let vault = Vault {
+            id: Uint128::new(1),
+            created_at: Timestamp::from_seconds(0),
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            balance: coin(balance.into(), "base"),
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            swap_amount,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            swapped_amount: coin(0, "base"),
+            received_amount: coin(0, "quote"),
+            trigger: None,
+            dca_plus_config: Some(DcaPlusConfig {
+                escrow_level: Decimal::percent(5),
+                escrowed_balance: Coin::new(0, "quote"),
+                model_id: 30,
+                total_deposit: coin(100, "base"),
+                standard_dca_swapped_amount: coin(0, "base"),
+                standard_dca_received_amount: coin(0, "quote"),
+            }),
+        };
+
+        let swap_adjustment = Decimal::percent(200);
+
+        update_swap_adjustments(
+            deps.as_mut().storage,
+            PositionType::Exit,
+            vec![(30, swap_adjustment)],
+            env.block.time,
+        )
+        .unwrap();
+
+        assert_eq!(
+            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+                .unwrap()
+                .amount,
+            vault.balance.amount
+        );
+    }
+
+    fn vault_with(balance: Uint128, swap_amount: Uint128) -> Vault {
+        Vault {
+            id: Uint128::new(1),
+            created_at: Timestamp::from_seconds(0),
+            owner: Addr::unchecked("owner"),
+            label: None,
+            destinations: vec![],
+            status: VaultStatus::Active,
+            balance: coin(balance.into(), "base"),
+            pair: Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            swap_amount,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            swapped_amount: coin(0, "base"),
+            received_amount: coin(0, "quote"),
+            trigger: None,
+            dca_plus_config: None,
+        }
+    }
+}
+
+#[cfg(test)]
 mod price_threshold_exceeded_tests {
     use super::*;
     use base::{pair::Pair, vaults::vault::VaultStatus};
@@ -121,7 +420,9 @@ mod price_threshold_exceeded_tests {
         let deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = vault_with(Uint128::new(100), Uint128::new(50));
+        let swap_amount = Uint128::new(100);
+        let minimum_receive_amount = Uint128::new(50);
+        let vault = vault_with(swap_amount, minimum_receive_amount);
 
         assert_eq!(
             price_threshold_exceeded(
@@ -139,7 +440,9 @@ mod price_threshold_exceeded_tests {
         let deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = vault_with(Uint128::new(100), Uint128::new(50));
+        let swap_amount = Uint128::new(100);
+        let minimum_receive_amount = Uint128::new(50);
+        let vault = vault_with(swap_amount, minimum_receive_amount);
 
         assert_eq!(
             price_threshold_exceeded(
@@ -157,7 +460,9 @@ mod price_threshold_exceeded_tests {
         let deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = vault_with(Uint128::new(100), Uint128::new(50));
+        let swap_amount = Uint128::new(100);
+        let minimum_receive_amount = Uint128::new(50);
+        let vault = vault_with(swap_amount, minimum_receive_amount);
 
         assert_eq!(
             price_threshold_exceeded(

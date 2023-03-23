@@ -53,3 +53,61 @@ pub fn get_swap_adjustment(
     }
     adjustments_store(position_type).load(storage, model)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cosmwasm_std::{
+        testing::{mock_dependencies, mock_env},
+        Decimal,
+    };
+    use fin_helpers::position_type::PositionType;
+
+    #[test]
+    fn gets_swap_adjustment_if_updated_within_30_hours() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        update_swap_adjustments(
+            deps.as_mut().storage,
+            PositionType::Enter,
+            vec![(30, Decimal::percent(90))],
+            env.block.time,
+        )
+        .unwrap();
+
+        let adjustment = get_swap_adjustment(
+            deps.as_ref().storage,
+            PositionType::Enter,
+            30,
+            env.block.time,
+        )
+        .unwrap();
+
+        assert_eq!(adjustment, Decimal::percent(90));
+    }
+
+    #[test]
+    fn gets_default_swap_adjustment_if_not_updated_within_30_hours() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        update_swap_adjustments(
+            deps.as_mut().storage,
+            PositionType::Enter,
+            vec![(30, Decimal::percent(90))],
+            env.block.time,
+        )
+        .unwrap();
+
+        let adjustment = get_swap_adjustment(
+            deps.as_ref().storage,
+            PositionType::Enter,
+            30,
+            env.block.time.plus_seconds(31 * 60 * 60),
+        )
+        .unwrap();
+
+        assert_eq!(adjustment, Decimal::one());
+    }
+}

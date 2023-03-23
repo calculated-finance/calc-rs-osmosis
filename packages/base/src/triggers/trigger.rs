@@ -4,6 +4,8 @@ use enum_as_inner::EnumAsInner;
 
 #[cw_serde]
 pub enum TimeInterval {
+    EverySecond,
+    EveryMinute,
     HalfHourly,
     Hourly,
     HalfDaily,
