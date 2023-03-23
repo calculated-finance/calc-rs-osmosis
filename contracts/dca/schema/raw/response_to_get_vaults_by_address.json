@@ -125,6 +125,8 @@
     "TimeInterval": {
       "type": "string",
       "enum": [
+        "every_second",
+        "every_minute",
         "half_hourly",
         "hourly",
         "half_daily",

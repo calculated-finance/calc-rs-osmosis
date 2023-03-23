@@ -1,6 +1,6 @@
 {
   "contract_name": "dca",
-  "contract_version": "1.4.0",
+  "contract_version": "1.5.0",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -585,6 +585,8 @@
       "TimeInterval": {
         "type": "string",
         "enum": [
+          "every_second",
+          "every_minute",
           "half_hourly",
           "hourly",
           "half_daily",
@@ -2301,6 +2303,8 @@
         "TimeInterval": {
           "type": "string",
           "enum": [
+            "every_second",
+            "every_minute",
             "half_hourly",
             "hourly",
             "half_daily",
@@ -2631,6 +2635,8 @@
         "TimeInterval": {
           "type": "string",
           "enum": [
+            "every_second",
+            "every_minute",
             "half_hourly",
             "hourly",
             "half_daily",
@@ -2961,6 +2967,8 @@
         "TimeInterval": {
           "type": "string",
           "enum": [
+            "every_second",
+            "every_minute",
             "half_hourly",
             "hourly",
             "half_daily",
