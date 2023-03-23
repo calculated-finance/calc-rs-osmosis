@@ -12,7 +12,10 @@ use crate::{
         disburse_escrow::disburse_escrow_handler,
         get_events_by_resource_id::get_events_by_resource_id,
     },
-    state::vaults::{get_vault, update_vault},
+    state::{
+        disburse_escrow_tasks::{get_disburse_escrow_tasks, save_disburse_escrow_task},
+        vaults::{get_vault, update_vault},
+    },
     tests::{
         helpers::{set_fin_price, setup_active_vault_with_funds},
         mocks::FEE_COLLECTOR,
@@ -224,6 +227,44 @@ fn sets_escrow_balance_to_zero() {
         dca_plus_config.escrowed_balance,
         Coin::new(0, vault.get_receive_denom())
     );
+}
+
+#[test]
+fn deletes_disburse_escrow_task() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(ADMIN, &[]);
+
+    instantiate_contract_with_community_pool_fee_collector(
+        deps.as_mut(),
+        env.clone(),
+        info.clone(),
+    );
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
+
+    let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
+
+    vault.status = VaultStatus::Inactive;
+
+    update_vault(deps.as_mut().storage, &vault).unwrap();
+
+    save_disburse_escrow_task(
+        deps.as_mut().storage,
+        vault.id,
+        env.block.time.minus_seconds(10),
+    )
+    .unwrap();
+
+    let disburse_escrow_tasks_before =
+        get_disburse_escrow_tasks(deps.as_ref().storage, env.block.time, None).unwrap();
+
+    disburse_escrow_handler(deps.as_mut(), env.clone(), info, vault.id).unwrap();
+
+    let disburse_escrow_tasks_after =
+        get_disburse_escrow_tasks(deps.as_ref().storage, env.block.time, None).unwrap();
+
+    assert_eq!(disburse_escrow_tasks_before.len(), 1);
+    assert_eq!(disburse_escrow_tasks_after.len(), 0);
 }
 
 #[test]

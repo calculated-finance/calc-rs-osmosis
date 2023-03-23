@@ -1,19 +1,39 @@
 use cosmwasm_std::{Order, StdResult, Storage, Timestamp, Uint128};
-use cw_storage_plus::{Map, PrefixBound};
+use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex};
 use std::marker::PhantomData;
 
-pub const DISBURSE_ESCROW_TASKS: Map<(u64, u128), u128> =
-    Map::new("disburse_escrow_task_by_timestamp_v20");
+struct DisburseEscrowTaskIndexes<'a> {
+    pub due_date: MultiIndex<'a, u64, (u64, u128), u128>,
+}
+
+impl<'a> IndexList<(u64, u128)> for DisburseEscrowTaskIndexes<'a> {
+    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<(u64, u128)>> + '_> {
+        let v: Vec<&dyn Index<(u64, u128)>> = vec![&self.due_date];
+        Box::new(v.into_iter())
+    }
+}
+
+fn disburse_escrow_task_store<'a>(
+) -> IndexedMap<'a, u128, (u64, u128), DisburseEscrowTaskIndexes<'a>> {
+    let indexes = DisburseEscrowTaskIndexes {
+        due_date: MultiIndex::new(
+            |_, (due_date, _)| due_date.clone(),
+            "disburse_escrow_task_v20",
+            "disburse_escrow_task_v20__due_date",
+        ),
+    };
+    IndexedMap::new("disburse_escrow_task_v20", indexes)
+}
 
 pub fn save_disburse_escrow_task(
     store: &mut dyn Storage,
     vault_id: Uint128,
     due_date: Timestamp,
 ) -> StdResult<()> {
-    DISBURSE_ESCROW_TASKS.save(
+    disburse_escrow_task_store().save(
         store,
-        (due_date.seconds(), vault_id.into()),
-        &vault_id.into(),
+        vault_id.into(),
+        &(due_date.seconds(), vault_id.into()),
     )
 }
 
@@ -22,16 +42,25 @@ pub fn get_disburse_escrow_tasks(
     due_before: Timestamp,
     limit: Option<u16>,
 ) -> StdResult<Vec<Uint128>> {
-    Ok(DISBURSE_ESCROW_TASKS
-        .prefix_range(
+    Ok(disburse_escrow_task_store()
+        .idx
+        .due_date
+        .range(
             store,
             None,
-            Some(PrefixBound::Inclusive((due_before.seconds(), PhantomData))),
+            Some(Bound::Inclusive((
+                (due_before.seconds(), Uint128::MAX.into()),
+                PhantomData,
+            ))),
             Order::Ascending,
         )
         .take(limit.unwrap_or(30) as usize)
-        .flat_map(|result| result.map(|(_, vault_id)| vault_id.into()))
+        .flat_map(|result| result.map(|(_, (_, vault_id))| vault_id.into()))
         .collect::<Vec<Uint128>>())
+}
+
+pub fn delete_disburse_escrow_task(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<()> {
+    disburse_escrow_task_store().remove(store, vault_id.into())
 }
 
 #[cfg(test)]
@@ -90,5 +119,53 @@ mod tests {
                 .unwrap();
 
         assert_eq!(vault_ids, vec![vault_id_1, vault_id_2]);
+    }
+
+    #[test]
+    fn deletes_task_by_vault_id() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        let vault_id = Uint128::one();
+
+        save_disburse_escrow_task(&mut deps.storage, vault_id, env.block.time).unwrap();
+
+        let vault_ids_before_delete =
+            get_disburse_escrow_tasks(&deps.storage, env.block.time.plus_seconds(10), Some(100))
+                .unwrap();
+
+        delete_disburse_escrow_task(&mut deps.storage, vault_id).unwrap();
+
+        let vault_ids_after_delete =
+            get_disburse_escrow_tasks(&deps.storage, env.block.time.plus_seconds(10), Some(100))
+                .unwrap();
+
+        assert_eq!(vault_ids_before_delete, vec![vault_id]);
+        assert!(vault_ids_after_delete.is_empty());
+    }
+
+    #[test]
+    fn keeps_other_tasks_when_deleting_task_by_vault_id() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        let vault_id_1 = Uint128::one();
+        let vault_id_2 = Uint128::new(2);
+
+        save_disburse_escrow_task(&mut deps.storage, vault_id_1, env.block.time).unwrap();
+        save_disburse_escrow_task(&mut deps.storage, vault_id_2, env.block.time).unwrap();
+
+        let vault_ids_before_delete =
+            get_disburse_escrow_tasks(&deps.storage, env.block.time.plus_seconds(10), Some(100))
+                .unwrap();
+
+        delete_disburse_escrow_task(&mut deps.storage, vault_id_1).unwrap();
+
+        let vault_ids_after_delete =
+            get_disburse_escrow_tasks(&deps.storage, env.block.time.plus_seconds(10), Some(100))
+                .unwrap();
+
+        assert_eq!(vault_ids_before_delete, vec![vault_id_1, vault_id_2]);
+        assert_eq!(vault_ids_after_delete, vec![vault_id_2]);
     }
 }

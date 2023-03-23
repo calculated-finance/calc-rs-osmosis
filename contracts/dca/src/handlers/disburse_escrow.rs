@@ -6,6 +6,7 @@ use crate::{
         validation_helpers::assert_sender_is_contract_or_admin,
     },
     state::{
+        disburse_escrow_tasks::delete_disburse_escrow_task,
         events::create_event,
         vaults::{get_vault, update_vault},
     },
@@ -59,6 +60,8 @@ pub fn disburse_escrow_handler(
             },
         ),
     )?;
+
+    delete_disburse_escrow_task(deps.storage, vault.id)?;
 
     Ok(Response::new()
         .add_submessages(get_disbursement_messages(
