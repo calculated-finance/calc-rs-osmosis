@@ -6,7 +6,7 @@ use super::{
     mocks::ADMIN,
 };
 use crate::{
-    constants::{ONE, ONE_DECIMAL, TEN},
+    constants::{ONE, ONE_DECIMAL, TEN, TEN_MICRONS},
     contract::AFTER_BANK_SWAP_REPLY_ID,
     handlers::{
         disburse_escrow::disburse_escrow_handler,
@@ -40,7 +40,7 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
         env.clone(),
         info.clone(),
     );
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -85,7 +85,7 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
         info.clone(),
     );
 
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -129,7 +129,7 @@ fn publishes_escrow_disbursed_event() {
         info.clone(),
     );
 
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -159,7 +159,7 @@ fn publishes_escrow_disbursed_event() {
         .events;
 
     let performance_fee = Coin::new(
-        (ONE * Decimal::percent(20) - Uint128::one()).into(), // rounding error
+        (ONE * Decimal::percent(20)).into(), // rounding error
         vault.get_receive_denom(),
     );
 
@@ -191,7 +191,7 @@ fn sets_escrow_balance_to_zero() {
         env.clone(),
         info.clone(),
     );
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let mut vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
 
@@ -238,7 +238,7 @@ fn when_not_a_dca_vault_returns_an_error() {
         info.clone(),
     );
 
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 

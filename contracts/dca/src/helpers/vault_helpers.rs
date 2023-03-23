@@ -503,7 +503,72 @@ mod price_threshold_exceeded_tests {
 }
 
 #[cfg(test)]
-mod tests {
+mod get_dca_plus_model_id_tests {
+    use base::triggers::trigger::TimeInterval;
+    use cosmwasm_std::{testing::mock_env, Coin, Uint128};
+
+    use crate::{
+        constants::{ONE, TEN},
+        helpers::vault_helpers::get_dca_plus_model_id,
+    };
+
+    #[test]
+    fn should_return_30_when_days_less_than_30() {
+        let env = mock_env();
+
+        let balance = Coin::new(TEN.into(), "base");
+        let swap_amount = ONE;
+
+        assert_eq!(
+            get_dca_plus_model_id(
+                &env.block.time,
+                &balance,
+                &swap_amount,
+                &TimeInterval::Daily
+            ),
+            30
+        );
+    }
+
+    #[test]
+    fn should_return_90_when_days_more_than_123() {
+        let env = mock_env();
+
+        let balance = Coin::new((ONE * Uint128::new(124)).into(), "base");
+        let swap_amount = ONE;
+
+        assert_eq!(
+            get_dca_plus_model_id(
+                &env.block.time,
+                &balance,
+                &swap_amount,
+                &TimeInterval::Daily
+            ),
+            90
+        );
+    }
+
+    #[test]
+    fn should_return_60_when_days_equals_70() {
+        let env = mock_env();
+
+        let balance = Coin::new((ONE * Uint128::new(70)).into(), "base");
+        let swap_amount = ONE;
+
+        assert_eq!(
+            get_dca_plus_model_id(
+                &env.block.time,
+                &balance,
+                &swap_amount,
+                &TimeInterval::Daily
+            ),
+            60
+        );
+    }
+}
+
+#[cfg(test)]
+mod get_dca_plus_performance_factor_tests {
     use crate::{
         helpers::vault_helpers::get_dca_plus_performance_factor,
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},

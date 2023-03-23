@@ -63,8 +63,8 @@ pub fn query_price(
 ) -> StdResult<Decimal> {
     if ![pair.base_denom.clone(), pair.quote_denom.clone()].contains(&swap_amount.denom) {
         return Err(StdError::generic_err(format!(
-            "Provided swap denom {} not in pair {:?}",
-            swap_amount, pair
+            "Provided swap denom {} not in pair {}",
+            swap_amount.denom, pair.address
         )));
     }
 
@@ -177,4 +177,297 @@ pub fn query_pair_config(
         querier.query_wasm_smart(pair_address, &fin_pair_config_query_msg)?;
 
     Ok(pair_config_response)
+}
+
+#[cfg(test)]
+mod query_quote_price_tests {
+    use crate::{
+        constants::{ONE, ONE_DECIMAL, TEN_MICRONS},
+        msg::FinBookResponse,
+        queries::query_quote_price,
+        test_helpers::set_fin_price,
+    };
+    use base::pair::Pair;
+    use cosmwasm_std::{
+        from_binary, testing::mock_dependencies, to_binary, Addr, QueryRequest, WasmQuery,
+    };
+    use kujira::fin::QueryMsg;
+
+    #[test]
+    fn quote_price_comes_from_quote_book_for_fin_sell() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let book = from_binary::<FinBookResponse>(
+            &deps
+                .querier
+                .handle_query(&QueryRequest::Wasm(WasmQuery::Smart {
+                    contract_addr: Addr::unchecked("pair").to_string(),
+                    msg: to_binary(&QueryMsg::Book {
+                        limit: Some(20),
+                        offset: Some(0),
+                    })
+                    .unwrap(),
+                }))
+                .unwrap()
+                .unwrap(),
+        )
+        .unwrap();
+
+        let response = query_quote_price(
+            deps.as_ref().querier,
+            &Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            "base",
+        )
+        .unwrap();
+
+        assert_eq!(book.quote.first().unwrap().quote_price, response);
+    }
+
+    #[test]
+    fn quote_price_comes_from_base_book_for_fin_buy() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let book = from_binary::<FinBookResponse>(
+            &deps
+                .querier
+                .handle_query(&QueryRequest::Wasm(WasmQuery::Smart {
+                    contract_addr: Addr::unchecked("pair").to_string(),
+                    msg: to_binary(&QueryMsg::Book {
+                        limit: Some(20),
+                        offset: Some(0),
+                    })
+                    .unwrap(),
+                }))
+                .unwrap()
+                .unwrap(),
+        )
+        .unwrap();
+
+        let response = query_quote_price(
+            deps.as_ref().querier,
+            &Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            "quote",
+        )
+        .unwrap();
+
+        assert_eq!(book.base.first().unwrap().quote_price, response);
+    }
+}
+
+#[cfg(test)]
+mod query_belief_price_tests {
+    use crate::{
+        constants::{ONE, ONE_DECIMAL, TEN_MICRONS},
+        queries::{query_belief_price, query_quote_price},
+        test_helpers::set_fin_price,
+    };
+    use base::pair::Pair;
+    use cosmwasm_std::{testing::mock_dependencies, Addr, Decimal};
+
+    #[test]
+    fn belief_price_is_quote_price_for_fin_buy() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let pair = &Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "base".to_string(),
+            quote_denom: "quote".to_string(),
+        };
+
+        let quote_price = query_quote_price(deps.as_ref().querier, pair, "quote").unwrap();
+
+        let belief_price = query_belief_price(
+            deps.as_ref().querier,
+            &Pair {
+                address: Addr::unchecked("pair"),
+                base_denom: "base".to_string(),
+                quote_denom: "quote".to_string(),
+            },
+            "quote",
+        )
+        .unwrap();
+
+        assert_eq!(quote_price, belief_price);
+    }
+
+    #[test]
+    fn belief_price_is_inverted_quote_price_for_fin_sell() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let pair = &Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "base".to_string(),
+            quote_denom: "quote".to_string(),
+        };
+
+        let quote_price = query_quote_price(deps.as_ref().querier, pair, "base").unwrap();
+        let belief_price = query_belief_price(deps.as_ref().querier, pair, "base").unwrap();
+
+        assert_eq!(quote_price, Decimal::one() / belief_price);
+    }
+}
+
+#[cfg(test)]
+mod query_actual_price_tests {
+    use crate::{
+        constants::{ONE, ONE_DECIMAL, TEN, TEN_MICRONS},
+        queries::{query_belief_price, query_price},
+        test_helpers::set_fin_price,
+    };
+    use base::{pair::Pair, price_type::PriceType};
+    use cosmwasm_std::{testing::mock_dependencies, Addr, Coin};
+
+    #[test]
+    fn actual_price_equals_belief_price_when_swap_amount_is_small() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "base".to_string(),
+            quote_denom: "quote".to_string(),
+        };
+
+        let belief_price = query_belief_price(deps.as_ref().querier, &pair, "base").unwrap();
+
+        let actual_price = query_price(
+            deps.as_ref().querier,
+            pair,
+            &Coin::new(100, "base"),
+            PriceType::Actual,
+        )
+        .unwrap();
+
+        assert_eq!(belief_price, actual_price);
+    }
+
+    #[test]
+    fn actual_price_higher_than_belief_price_when_swap_amount_is_large_for_fin_buy() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "base".to_string(),
+            quote_denom: "quote".to_string(),
+        };
+
+        let swap_denom = "base";
+
+        let belief_price = query_belief_price(deps.as_ref().querier, &pair, swap_denom).unwrap();
+
+        let actual_price = query_price(
+            deps.as_ref().querier,
+            pair,
+            &Coin::new((ONE + ONE).into(), swap_denom),
+            PriceType::Actual,
+        )
+        .unwrap();
+
+        assert!(actual_price > belief_price);
+    }
+
+    #[test]
+    fn actual_price_higher_than_belief_price_when_swap_amount_is_large_for_fin_sell() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "base".to_string(),
+            quote_denom: "quote".to_string(),
+        };
+
+        let swap_denom = "quote";
+
+        let belief_price = query_belief_price(deps.as_ref().querier, &pair, swap_denom).unwrap();
+
+        let actual_price = query_price(
+            deps.as_ref().querier,
+            pair,
+            &Coin::new((ONE + ONE).into(), swap_denom),
+            PriceType::Actual,
+        )
+        .unwrap();
+
+        assert!(actual_price > belief_price);
+    }
+
+    #[test]
+    fn throws_error_when_book_depth_is_small_than_swap_amount() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "base".to_string(),
+            quote_denom: "quote".to_string(),
+        };
+
+        let swap_denom = "quote";
+
+        let error = query_price(
+            deps.as_ref().querier,
+            pair,
+            &Coin::new((TEN + TEN).into(), swap_denom),
+            PriceType::Actual,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "Generic error: Not enough liquidity to swap 20000000quote"
+        );
+    }
+
+    #[test]
+    fn throws_error_when_swap_denom_not_in_pair() {
+        let mut deps = mock_dependencies();
+
+        set_fin_price(&mut deps, &ONE_DECIMAL, &ONE, &TEN_MICRONS);
+
+        let pair = Pair {
+            address: Addr::unchecked("pair"),
+            base_denom: "base".to_string(),
+            quote_denom: "quote".to_string(),
+        };
+
+        let swap_denom = "other";
+
+        let error = query_price(
+            deps.as_ref().querier,
+            pair.clone(),
+            &Coin::new(TEN.into(), swap_denom),
+            PriceType::Actual,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "Generic error: Provided swap denom {} not in pair {}",
+                swap_denom, pair.address
+            )
+        );
+    }
 }

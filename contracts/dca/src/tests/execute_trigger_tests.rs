@@ -4,7 +4,8 @@ use super::mocks::{
     fin_contract_high_swap_price, fin_contract_partially_filled_order,
 };
 use crate::constants::{
-    FIN_TAKER_FEE, ONE, ONE_DECIMAL, ONE_HUNDRED, ONE_MICRON, ONE_THOUSAND, TEN, TWO_MICRONS,
+    FIN_TAKER_FEE, ONE, ONE_DECIMAL, ONE_HUNDRED, ONE_MICRON, ONE_THOUSAND, TEN, TEN_MICRONS,
+    TWO_MICRONS,
 };
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::handlers::execute_trigger::execute_trigger_handler;
@@ -2362,7 +2363,7 @@ fn for_active_vault_creates_new_trigger() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2392,7 +2393,7 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2439,7 +2440,7 @@ fn for_active_vault_with_dca_plus_publishes_execution_simulated_event() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2488,7 +2489,7 @@ fn for_active_vault_sends_fin_swap_message() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2524,7 +2525,7 @@ fn for_active_dca_plus_vault_with_finished_standard_dca_does_not_update_stats() 
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let mut vault = setup_vault(
         deps.as_mut(),
@@ -2567,7 +2568,7 @@ fn for_active_vault_with_slippage_exceeded_publishes_standard_dca_execution_skip
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &ONE_MICRON);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &ONE_MICRON, &ONE_MICRON);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2602,7 +2603,7 @@ fn for_scheduled_vault_updates_status_to_active() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2627,7 +2628,7 @@ fn for_scheduled_vault_creates_new_trigger() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2657,7 +2658,7 @@ fn for_scheduled_vault_sends_fin_swap_message() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2693,7 +2694,7 @@ fn for_inactive_vault_does_not_create_a_new_trigger() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2718,7 +2719,7 @@ fn for_inactive_vault_with_dca_plus_creates_new_trigger() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2748,7 +2749,7 @@ fn for_inactive_vault_with_dca_plus_and_finished_standard_dca_does_not_create_ne
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2773,7 +2774,7 @@ fn for_inactive_vault_with_dca_plus_updates_standard_performance_data() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2820,7 +2821,7 @@ fn for_inactive_dca_plus_vault_with_finished_standard_dca_disburses_escrow() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     let vault = setup_vault(
         deps.as_mut(),
@@ -2849,7 +2850,7 @@ fn for_cancelled_vault_deletes_trigger() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info);
-    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN);
+    set_fin_price(&mut deps, &ONE_DECIMAL, &TEN, &TEN_MICRONS);
 
     setup_vault(
         deps.as_mut(),
