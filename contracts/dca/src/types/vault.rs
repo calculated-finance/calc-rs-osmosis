@@ -9,7 +9,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, StdError, StdResult, Timestamp, Uint128};
 use fin_helpers::position_type::PositionType;
 use kujira::precision::{Precise, Precision};
-use std::str::FromStr;
+use std::{cmp::max, str::FromStr};
 
 #[cw_serde]
 pub struct Vault {
@@ -52,10 +52,19 @@ impl Vault {
     }
 
     pub fn get_expected_execution_completed_date(&self, current_time: Timestamp) -> Timestamp {
+        let remaining_balance =
+            self.dca_plus_config
+                .clone()
+                .map_or(self.balance.amount, |dca_plus_config| {
+                    max(
+                        dca_plus_config.standard_dca_balance().amount,
+                        self.balance.amount,
+                    )
+                });
+
         let execution_duration = get_total_execution_duration(
             current_time,
-            self.balance
-                .amount
+            remaining_balance
                 .checked_div(self.swap_amount)
                 .unwrap()
                 .into(),
@@ -348,9 +357,15 @@ mod get_target_price_tests {
 
 #[cfg(test)]
 mod get_expected_execution_completed_date_tests {
+    use crate::{
+        constants::{ONE, TEN},
+        tests::mocks::DENOM_UKUJI,
+        types::dca_plus_config::DcaPlusConfig,
+    };
+
     use super::Vault;
     use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
-    use cosmwasm_std::{coin, testing::mock_env, Addr, Coin, Timestamp, Uint128};
+    use cosmwasm_std::{coin, testing::mock_env, Addr, Coin, Decimal, Timestamp, Uint128};
 
     #[test]
     fn expected_execution_end_date_is_now_when_vault_is_empty() {
@@ -380,6 +395,48 @@ mod get_expected_execution_completed_date_tests {
         assert_eq!(
             vault.get_expected_execution_completed_date(env.block.time),
             env.block.time.plus_seconds(1000 / 100 * 24 * 60 * 60)
+        );
+    }
+
+    #[test]
+    fn expected_execution_end_date_is_at_end_of_standard_dca_execution() {
+        let env = mock_env();
+        let mut vault = vault_with(env.block.time, Uint128::zero(), ONE, TimeInterval::Daily);
+
+        vault.status = VaultStatus::Inactive;
+
+        vault.dca_plus_config = Some(DcaPlusConfig {
+            escrow_level: Decimal::percent(5),
+            model_id: 30,
+            total_deposit: Coin::new(TEN.into(), DENOM_UKUJI),
+            standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UKUJI),
+            standard_dca_received_amount: Coin::new(ONE.into(), DENOM_UKUJI),
+            escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UKUJI),
+        });
+
+        assert_eq!(
+            vault.get_expected_execution_completed_date(env.block.time),
+            env.block.time.plus_seconds(9 * 24 * 60 * 60)
+        );
+    }
+
+    #[test]
+    fn expected_execution_end_date_is_at_end_of_dca_plus_execution() {
+        let env = mock_env();
+        let mut vault = vault_with(env.block.time, TEN - ONE, ONE, TimeInterval::Daily);
+
+        vault.dca_plus_config = Some(DcaPlusConfig {
+            escrow_level: Decimal::percent(5),
+            model_id: 30,
+            total_deposit: Coin::new(TEN.into(), DENOM_UKUJI),
+            standard_dca_swapped_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UKUJI),
+            standard_dca_received_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UKUJI),
+            escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UKUJI),
+        });
+
+        assert_eq!(
+            vault.get_expected_execution_completed_date(env.block.time),
+            env.block.time.plus_seconds(9 * 24 * 60 * 60)
         );
     }
 
