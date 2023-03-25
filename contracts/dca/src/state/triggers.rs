@@ -2,13 +2,10 @@ use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use cosmwasm_std::{StdResult, Storage, Uint128};
 use cw_storage_plus::Map;
 
-pub const TRIGGERS: Map<u128, Trigger> = Map::new("triggers_v20");
-
-pub const TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX: Map<u128, u128> =
-    Map::new("trigger_id_by_fin_limit_order_idx_v20");
+pub const TRIGGERS: Map<u128, Trigger> = Map::new("triggers_v1");
 
 pub const TRIGGER_IDS_BY_TARGET_TIME: Map<u64, Vec<u128>> =
-    Map::new("trigger_ids_by_target_time_v20");
+    Map::new("trigger_ids_by_target_time_v1");
 
 pub fn save_trigger(store: &mut dyn Storage, trigger: Trigger) -> StdResult<Uint128> {
     TRIGGERS.save(store, trigger.vault_id.into(), &trigger)?;
@@ -30,14 +27,8 @@ pub fn save_trigger(store: &mut dyn Storage, trigger: Trigger) -> StdResult<Uint
                 }
             }
         }
-        TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
-            if order_idx.is_some() {
-                TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX.save(
-                    store,
-                    order_idx.unwrap().u128(),
-                    &trigger.vault_id.into(),
-                )?;
-            }
+        TriggerConfiguration::FinLimitOrder { order_idx: _, .. } => {
+            unimplemented!()
         }
     }
     Ok(trigger.vault_id)
@@ -65,10 +56,8 @@ pub fn delete_trigger(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<U
                 }
             }
         }
-        TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
-            if order_idx.is_some() {
-                TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX.remove(store, order_idx.unwrap().u128());
-            }
+        TriggerConfiguration::FinLimitOrder { order_idx: _, .. } => {
+            unimplemented!()
         }
     }
     Ok(trigger.vault_id)
@@ -77,7 +66,6 @@ pub fn delete_trigger(store: &mut dyn Storage, vault_id: Uint128) -> StdResult<U
 pub fn clear_triggers(store: &mut dyn Storage) {
     TRIGGERS.clear(store);
     TRIGGER_IDS_BY_TARGET_TIME.clear(store);
-    TRIGGER_ID_BY_FIN_LIMIT_ORDER_IDX.clear(store);
 }
 
 #[cfg(test)]

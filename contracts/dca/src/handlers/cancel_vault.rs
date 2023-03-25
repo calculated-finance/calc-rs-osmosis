@@ -7,13 +7,10 @@ use crate::state::events::create_event;
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use base::events::event::{EventBuilder, EventData};
-use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
 use cosmwasm_std::{Coin, CosmosMsg, Env, MessageInfo};
-use fin_helpers::limit_orders::{create_retract_order_msg, create_withdraw_limit_order_msg};
-use fin_helpers::queries::query_order_details;
 
 pub fn cancel_vault(
     deps: DepsMut,
@@ -53,37 +50,7 @@ pub fn cancel_vault(
 
     update_vault(deps.storage, &vault)?;
 
-    if let Some(trigger) = vault.trigger {
-        match trigger {
-            TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
-                if let Some(order_idx) = order_idx {
-                    let limit_order =
-                        query_order_details(deps.querier, vault.pair.address.clone(), order_idx)
-                            .expect(&format!(
-                                "Fin limit order exists at pair {}",
-                                vault.pair.address.clone()
-                            ));
-
-                    if limit_order.offer_amount > Uint128::zero() {
-                        messages.push(create_retract_order_msg(
-                            vault.pair.address.clone(),
-                            order_idx,
-                        ));
-                    }
-
-                    if limit_order.filled_amount > Uint128::zero() {
-                        messages.push(create_withdraw_limit_order_msg(
-                            vault.pair.address.clone(),
-                            order_idx,
-                        ));
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        delete_trigger(deps.storage, vault.id)?;
-    }
+    delete_trigger(deps.storage, vault.id)?;
 
     Ok(Response::new()
         .add_attribute("method", "cancel_vault")

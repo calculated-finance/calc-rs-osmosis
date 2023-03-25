@@ -1,5 +1,3 @@
-use crate::constants::TWO_MICRONS;
-use crate::contract::AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID;
 use crate::error::ContractError;
 use crate::helpers::validation_helpers::{
     assert_address_is_valid, assert_contract_is_not_paused, assert_delegation_denom_is_stakeable,
@@ -15,19 +13,17 @@ use crate::state::config::get_config;
 use crate::state::events::create_event;
 use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
-use crate::state::vaults::{save_vault, update_vault};
+use crate::state::vaults::{save_vault};
 use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::vault::Vault;
 use crate::types::vault_builder::VaultBuilder;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{coin, Addr, Coin, Decimal};
+use cosmwasm_std::{coin, Addr, Decimal};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
-use fin_helpers::limit_orders::create_submit_order_sub_msg;
 use fin_helpers::position_type::PositionType;
-use fin_helpers::queries::query_pair_config;
 
 use super::execute_trigger::execute_trigger;
 
@@ -192,8 +188,8 @@ pub fn create_vault(
 
             Ok(response)
         }
-        (None, Some(target_receive_amount)) => {
-            create_fin_limit_order_trigger(deps, vault, target_receive_amount, response)
+        (None, Some(_)) => {
+            unimplemented!()
         }
         (Some(_), Some(_)) => Err(ContractError::CustomError {
             val: String::from(
@@ -224,42 +220,4 @@ fn create_time_trigger(
     )?;
 
     Ok(response.to_owned())
-}
-
-fn create_fin_limit_order_trigger(
-    deps: DepsMut,
-    mut vault: Vault,
-    target_receive_amount: Uint128,
-    response: Response,
-) -> Result<Response, ContractError> {
-    let pair_config = query_pair_config(deps.querier, vault.pair.address.clone())?;
-
-    let target_price = vault.get_target_price(
-        target_receive_amount,
-        pair_config.decimal_delta.unwrap_or(0),
-        pair_config.price_precision,
-    )?;
-
-    save_trigger(
-        deps.storage,
-        Trigger {
-            vault_id: vault.id,
-            configuration: TriggerConfiguration::FinLimitOrder {
-                order_idx: None,
-                target_price,
-            },
-        },
-    )?;
-
-    vault.balance.amount -= TWO_MICRONS;
-    update_vault(deps.storage, &vault)?;
-
-    let fin_limit_order_sub_msg = create_submit_order_sub_msg(
-        vault.pair.address.clone(),
-        target_price,
-        Coin::new(TWO_MICRONS.into(), vault.get_swap_denom()),
-        AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID,
-    );
-
-    Ok(response.add_submessage(fin_limit_order_sub_msg))
 }

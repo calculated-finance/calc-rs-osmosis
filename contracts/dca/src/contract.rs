@@ -1,5 +1,4 @@
 use crate::error::ContractError;
-use crate::handlers::after_fin_limit_order_submitted::after_fin_limit_order_submitted;
 use crate::handlers::after_fin_swap::after_fin_swap;
 use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
@@ -11,14 +10,12 @@ use crate::handlers::deposit::deposit;
 use crate::handlers::disburse_escrow::disburse_escrow_handler;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_custom_swap_fees::get_custom_swap_fees;
-use crate::handlers::get_data_fixes_by_resource_id::get_data_fixes_by_resource_id;
 use crate::handlers::get_dca_plus_performance::get_dca_plus_performance_handler;
 use crate::handlers::get_disburse_escrow_tasks_handler::get_disburse_escrow_tasks_handler;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pairs::get_pairs;
 use crate::handlers::get_time_trigger_ids::get_time_trigger_ids;
-use crate::handlers::get_trigger_id_by_fin_limit_order_idx::get_trigger_id_by_fin_limit_order_idx;
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults::get_vaults_handler;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
@@ -42,7 +39,6 @@ pub const CONTRACT_NAME: &str = "crates.io:calc-dca";
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const AFTER_FIN_SWAP_REPLY_ID: u64 = 1;
-pub const AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID: u64 = 2;
 pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 3;
 pub const AFTER_BANK_SWAP_REPLY_ID: u64 = 4;
 
@@ -200,7 +196,6 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
-        AFTER_FIN_LIMIT_ORDER_SUBMITTED_REPLY_ID => after_fin_limit_order_submitted(deps, reply),
         AFTER_FIN_SWAP_REPLY_ID => after_fin_swap(deps, env, reply),
         AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
         AFTER_BANK_SWAP_REPLY_ID => Ok(Response::new().add_attribute("method", "after_bank_swap")),
@@ -217,8 +212,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetTimeTriggerIds { limit } => {
             to_binary(&get_time_trigger_ids(deps, env, limit)?)
         }
-        QueryMsg::GetTriggerIdByFinLimitOrderIdx { order_idx } => {
-            to_binary(&get_trigger_id_by_fin_limit_order_idx(deps, order_idx)?)
+        QueryMsg::GetTriggerIdByFinLimitOrderIdx { order_idx: _ } => {
+            unimplemented!()
         }
         QueryMsg::GetVaults { start_after, limit } => {
             to_binary(&get_vaults_handler(deps, start_after, limit)?)
@@ -250,16 +245,6 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_binary(&get_events(deps, start_after, limit)?)
         }
         QueryMsg::GetCustomSwapFees {} => to_binary(&get_custom_swap_fees(deps)?),
-        QueryMsg::GetDataFixesByResourceId {
-            resource_id,
-            start_after,
-            limit,
-        } => to_binary(&get_data_fixes_by_resource_id(
-            deps,
-            resource_id,
-            start_after,
-            limit,
-        )?),
         QueryMsg::GetConfig {} => to_binary(&ConfigResponse {
             config: get_config(deps.storage)?,
         }),

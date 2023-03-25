@@ -1,5 +1,4 @@
 use crate::state::config::{Config, FeeCollector};
-use crate::state::data_fixes::DataFix;
 use crate::types::vault::Vault;
 use base::events::event::Event;
 use base::pair::Pair;
@@ -135,12 +134,6 @@ pub enum QueryMsg {
     },
     #[returns(CustomFeesResponse)]
     GetCustomSwapFees {},
-    #[returns(DataFixesResponse)]
-    GetDataFixesByResourceId {
-        resource_id: Uint128,
-        start_after: Option<u64>,
-        limit: Option<u16>,
-    },
     #[returns(DcaPlusPerformanceResponse)]
     GetDcaPlusPerformance { vault_id: Uint128 },
     #[returns(DisburseEscrowTasksResponse)]
@@ -191,11 +184,6 @@ pub struct EventsResponse {
 #[cw_serde]
 pub struct CustomFeesResponse {
     pub custom_fees: Vec<(String, Decimal)>,
-}
-
-#[cw_serde]
-pub struct DataFixesResponse {
-    pub fixes: Vec<DataFix>,
 }
 
 #[cw_serde]
