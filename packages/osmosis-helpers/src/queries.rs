@@ -11,11 +11,45 @@ fn _query_quote_price(
 }
 
 pub fn query_belief_price(
-    _querier: QuerierWrapper,
-    _pool: &Pool,
-    _swap_denom: &str,
+    querier: QuerierWrapper,
+    pool: &Pool,
+    swap_denom: &str,
 ) -> StdResult<Decimal> {
-    unimplemented!()
+    if ![pool.base_denom.clone(), pool.quote_denom.clone()].contains(&swap_denom.to_string()) {
+        return Err(StdError::generic_err(format!(
+            "Provided swap denom {} not in pool {}",
+            swap_denom, pool.pool_id
+        )));
+    }
+
+    let position_type = match swap_denom == pool.quote_denom {
+        true => PositionType::Enter,
+        false => PositionType::Exit,
+    };
+
+    let base_asset_denom;
+    let quote_asset_denom;
+
+    match position_type {
+        PositionType::Enter => {
+            base_asset_denom = &pool.base_denom;
+            quote_asset_denom = &pool.quote_denom;
+        }
+        PositionType::Exit => {
+            base_asset_denom = &pool.quote_denom;
+            quote_asset_denom = &pool.base_denom;
+        }
+    }
+
+    QuerySpotPriceRequest {
+        pool_id: pool.pool_id,
+        base_asset_denom: base_asset_denom.clone(),
+        quote_asset_denom: quote_asset_denom.clone(),
+    }
+    .query(&querier)
+    .unwrap()
+    .spot_price
+    .parse::<Decimal>()
 }
 
 pub fn query_price(
