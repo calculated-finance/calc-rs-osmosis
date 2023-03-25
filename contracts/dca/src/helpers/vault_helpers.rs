@@ -108,13 +108,13 @@ mod get_swap_amount_tests {
     };
 
     use super::*;
-    use base::{pair::Pair, vaults::vault::VaultStatus};
+    use base::{pool::Pool, vaults::vault::VaultStatus};
     use cosmwasm_std::{
         coin,
         testing::{mock_dependencies, mock_env},
         Addr,
     };
-    use fin_helpers::position_type::PositionType;
+    use osmosis_helpers::position_type::PositionType;
 
     #[test]
     fn should_return_full_balance_when_vault_has_low_funds() {
@@ -164,8 +164,8 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pair: Pair {
-                address: Addr::unchecked("pair"),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -222,8 +222,8 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pair: Pair {
-                address: Addr::unchecked("pair"),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -279,8 +279,8 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pair: Pair {
-                address: Addr::unchecked("pair"),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -336,8 +336,8 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pair: Pair {
-                address: Addr::unchecked("pair"),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -386,8 +386,8 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pair: Pair {
-                address: Addr::unchecked("pair"),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -407,7 +407,7 @@ mod get_swap_amount_tests {
 #[cfg(test)]
 mod price_threshold_exceeded_tests {
     use super::*;
-    use base::{pair::Pair, vaults::vault::VaultStatus};
+    use base::{pool::Pool, vaults::vault::VaultStatus};
     use cosmwasm_std::{
         coin,
         testing::{mock_dependencies, mock_env},
@@ -484,8 +484,8 @@ mod price_threshold_exceeded_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(1000, "base"),
-            pair: Pair {
-                address: Addr::unchecked("pair"),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -573,7 +573,7 @@ mod get_dca_plus_performance_factor_tests {
         helpers::vault_helpers::get_dca_plus_performance_factor,
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
-    use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
+    use base::{pool::Pool, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
     use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
     use std::str::FromStr;
 
@@ -622,8 +622,8 @@ mod get_dca_plus_performance_factor_tests {
             label: None,
             destinations: vec![],
             status: VaultStatus::Active,
-            pair: Pair {
-                address: Addr::unchecked("pair"),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: "receive_denom".to_string(),
                 quote_denom: "swap_denom".to_string(),
             },

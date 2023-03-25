@@ -5,22 +5,24 @@
     {
       "type": "object",
       "required": [
-        "create_pair"
+        "create_pool"
       ],
       "properties": {
-        "create_pair": {
+        "create_pool": {
           "type": "object",
           "required": [
-            "address",
             "base_denom",
+            "pool_id",
             "quote_denom"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
             "base_denom": {
               "type": "string"
+            },
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "quote_denom": {
               "type": "string"
@@ -34,17 +36,19 @@
     {
       "type": "object",
       "required": [
-        "delete_pair"
+        "delete_pool"
       ],
       "properties": {
-        "delete_pair": {
+        "delete_pool": {
           "type": "object",
           "required": [
-            "address"
+            "pool_id"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             }
           },
           "additionalProperties": false
@@ -61,7 +65,7 @@
         "create_vault": {
           "type": "object",
           "required": [
-            "pair_address",
+            "pool_id",
             "swap_amount",
             "time_interval"
           ],
@@ -101,8 +105,10 @@
                 }
               ]
             },
-            "pair_address": {
-              "$ref": "#/definitions/Addr"
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "position_type": {
               "anyOf": [

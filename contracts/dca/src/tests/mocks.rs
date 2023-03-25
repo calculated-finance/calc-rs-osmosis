@@ -7,19 +7,12 @@ use crate::types::vault::Vault;
 use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::Destination;
-use cosmwasm_schema::cw_serde;
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
     to_binary, Addr, BankMsg, Binary, Coin, Decimal, Decimal256, Empty, Env, Event, MessageInfo,
-    Response, StdError, StdResult, Uint128, Uint256, Uint64,
+    Response, StdResult, Uint128, Uint64,
 };
-use cw20::Denom;
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
-use kujira::fin::{
-    BookResponse, ConfigResponse, ExecuteMsg as FINExecuteMsg, InstantiateMsg as FINInstantiateMsg,
-    OrderResponse, PoolResponse, QueryMsg as FINQueryMsg,
-};
-use kujira::precision::Precision;
 use rand::Rng;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -39,7 +32,7 @@ pub struct MockApp {
 }
 
 impl MockApp {
-    pub fn new(fin_contract: Box<dyn Contract<Empty>>) -> Self {
+    pub fn new(_fin_contract: Box<dyn Contract<Empty>>) -> Self {
         let mut app = AppBuilder::new().build(|router, _, storage| {
             router
                 .bank
@@ -87,25 +80,6 @@ impl MockApp {
             "dca",
         );
 
-        let fin_contract_address = Self::instantiate_contract(
-            &mut app,
-            fin_contract,
-            Addr::unchecked(ADMIN),
-            &FINInstantiateMsg {
-                decimal_delta: None,
-                denoms: [
-                    Denom::Native(DENOM_UTEST.to_string()),
-                    Denom::Native(DENOM_UKUJI.to_string()),
-                ],
-                owner: Addr::unchecked(ADMIN),
-                price_precision: kujira::precision::Precision::DecimalPlaces(3),
-                fee_taker: Decimal256::percent(1),
-                fee_maker: Decimal256::percent(1),
-                fee_maker_negative: false,
-            },
-            "fin",
-        );
-
         app.init_modules(|router, _, storage| {
             router
                 .bank
@@ -124,30 +98,13 @@ impl MockApp {
                     ],
                 )
                 .unwrap();
-            router
-                .bank
-                .init_balance(
-                    storage,
-                    &fin_contract_address,
-                    vec![
-                        Coin {
-                            denom: String::from(DENOM_UKUJI),
-                            amount: ONE_THOUSAND,
-                        },
-                        Coin {
-                            denom: String::from(DENOM_UTEST),
-                            amount: ONE_THOUSAND,
-                        },
-                    ],
-                )
-                .unwrap();
         });
 
         app.execute_contract(
             Addr::unchecked(ADMIN),
             dca_contract_address.clone(),
-            &ExecuteMsg::CreatePair {
-                address: fin_contract_address.clone(),
+            &ExecuteMsg::CreatePool {
+                pool_id: 0,
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
             },
@@ -157,8 +114,8 @@ impl MockApp {
 
         Self {
             app,
-            dca_contract_address,
-            fin_contract_address,
+            dca_contract_address: dca_contract_address.clone(),
+            fin_contract_address: dca_contract_address,
             vault_ids: HashMap::new(),
             fee_percent: Decimal::from_str("0.0165").unwrap(),
         }
@@ -209,7 +166,7 @@ impl MockApp {
                     minimum_receive_amount: None,
                     label: Some("label".to_string()),
                     destinations,
-                    pair_address: self.fin_contract_address.clone(),
+                    pool_id: 0,
                     position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
@@ -251,7 +208,7 @@ impl MockApp {
                     minimum_receive_amount: None,
                     label: Some("label".to_string()),
                     destinations,
-                    pair_address: self.fin_contract_address.clone(),
+                    pool_id: 0,
                     position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
@@ -310,7 +267,7 @@ impl MockApp {
                     minimum_receive_amount: None,
                     label: Some("label".to_string()),
                     destinations: None,
-                    pair_address: self.fin_contract_address.clone(),
+                    pool_id: 0,
                     position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
@@ -376,7 +333,7 @@ impl MockApp {
                     minimum_receive_amount,
                     label: Some("label".to_string()),
                     destinations,
-                    pair_address: self.fin_contract_address.clone(),
+                    pool_id: 0,
                     position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
@@ -422,7 +379,7 @@ impl MockApp {
                     minimum_receive_amount,
                     label: Some("label".to_string()),
                     destinations,
-                    pair_address: self.fin_contract_address.clone(),
+                    pool_id: 0,
                     position_type: None,
                     slippage_tolerance: None,
                     swap_amount,
@@ -462,7 +419,7 @@ impl MockApp {
                     minimum_receive_amount: None,
                     label: Some("label".to_string()),
                     destinations,
-                    pair_address: self.fin_contract_address.clone(),
+                    pool_id: 0,
                     position_type: None,
                     slippage_tolerance: None,
                     swap_amount: Uint128::new(50001),
@@ -519,7 +476,7 @@ impl MockApp {
     }
 }
 
-fn default_swap_handler(info: MessageInfo) -> StdResult<Response> {
+fn _default_swap_handler(info: MessageInfo) -> StdResult<Response> {
     let received_coin = info.funds[0].clone();
     let coin_to_send = match received_coin.denom.as_str() {
         DENOM_UKUJI => Coin {
@@ -546,14 +503,14 @@ fn default_swap_handler(info: MessageInfo) -> StdResult<Response> {
         }))
 }
 
-fn default_submit_order_handler() -> StdResult<Response> {
+fn _default_submit_order_handler() -> StdResult<Response> {
     Ok(Response::new().add_attribute(
         "order_idx",
         rand::thread_rng().gen_range(0..100).to_string(),
     ))
 }
 
-fn withdraw_filled_order_handler(
+fn _withdraw_filled_order_handler(
     info: MessageInfo,
     order_ids: Option<Vec<Uint128>>,
 ) -> StdResult<Response> {
@@ -578,7 +535,7 @@ fn withdraw_filled_order_handler(
     )))
 }
 
-fn withdraw_partially_filled_order_handler(
+fn _withdraw_partially_filled_order_handler(
     info: MessageInfo,
     order_ids: Option<Vec<Uint128>>,
 ) -> StdResult<Response> {
@@ -597,7 +554,7 @@ fn withdraw_partially_filled_order_handler(
     Ok(response)
 }
 
-fn default_retract_order_handler(info: MessageInfo) -> StdResult<Response> {
+fn _default_retract_order_handler(info: MessageInfo) -> StdResult<Response> {
     let disbursement_after_maker_fee =
         TWO_MICRONS - TWO_MICRONS * Uint128::new(3) / Uint128::new(4000);
     Ok(Response::new()
@@ -611,7 +568,7 @@ fn default_retract_order_handler(info: MessageInfo) -> StdResult<Response> {
         }))
 }
 
-fn retract_partially_filled_order_handler(info: MessageInfo) -> StdResult<Response> {
+fn _retract_partially_filled_order_handler(info: MessageInfo) -> StdResult<Response> {
     Ok(Response::new()
         .add_attribute("amount", (TWO_MICRONS / Uint128::new(2)).to_string())
         .add_message(BankMsg::Send {
@@ -623,8 +580,8 @@ fn retract_partially_filled_order_handler(info: MessageInfo) -> StdResult<Respon
         }))
 }
 
-fn default_book_response_handler() -> StdResult<Binary> {
-    book_response_handler(
+fn _default_book_response_handler() -> StdResult<Binary> {
+    _book_response_handler(
         String::from(DENOM_UTEST),
         String::from(DENOM_UKUJI),
         Decimal256::from_str("1")?,
@@ -632,327 +589,56 @@ fn default_book_response_handler() -> StdResult<Binary> {
     )
 }
 
-fn book_response_handler(
-    quote_denom: String,
-    base_denom: String,
-    base_price: Decimal256,
-    quote_price: Decimal256,
+fn _book_response_handler(
+    _quote_denom: String,
+    _base_denom: String,
+    _base_price: Decimal256,
+    _quote_price: Decimal256,
 ) -> StdResult<Binary> {
-    let pool_response_quote = PoolResponse {
-        quote_price,
-        offer_denom: Denom::Native(quote_denom.clone()),
-        total_offer_amount: Uint256::from_uint128(ONE_THOUSAND),
-    };
 
-    let pool_response_base = PoolResponse {
-        quote_price: base_price,
-        offer_denom: Denom::Native(base_denom),
-        total_offer_amount: Uint256::from_uint128(ONE_THOUSAND),
-    };
-
-    to_binary(&BookResponse {
-        base: vec![pool_response_base],
-        quote: vec![pool_response_quote],
-    })
+    to_binary(&1)
 }
 
-fn unfilled_order_response(env: Env) -> StdResult<Binary> {
-    let response = OrderResponse {
-        created_at: env.block.time,
-        owner: Addr::unchecked(USER),
-        idx: Uint128::new(1),
-        quote_price: Decimal256::from_str("1.0").unwrap(),
-        original_offer_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
-        filled_amount: Uint256::from_str("0").unwrap(),
-        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
-        offer_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
-    };
-    Ok(to_binary(&response)?)
+fn _unfilled_order_response(_env: Env) -> StdResult<Binary> {
+    to_binary(&1)
 }
 
-fn filled_order_response(env: Env) -> StdResult<Binary> {
-    let response = OrderResponse {
-        created_at: env.block.time,
-        owner: Addr::unchecked(USER),
-        idx: Uint128::new(1),
-        quote_price: Decimal256::from_str("1.0").unwrap(),
-        original_offer_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
-        filled_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
-        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
-        offer_amount: Uint256::from_str("0").unwrap(),
-    };
-    Ok(to_binary(&response)?)
+fn _filled_order_response(_env: Env) -> StdResult<Binary> {
+    to_binary(&1)
 }
 
-fn partially_filled_order_response(env: Env) -> StdResult<Binary> {
-    let response = OrderResponse {
-        idx: Uint128::new(1),
-        owner: Addr::unchecked(USER),
-        quote_price: Decimal256::from_str("1.0").unwrap(),
-        offer_denom: Denom::Native(DENOM_UKUJI.to_string()),
-        offer_amount: Uint256::from_str(&(TWO_MICRONS / Uint128::new(2)).to_string()).unwrap(),
-        filled_amount: Uint256::from_str(&(TWO_MICRONS / Uint128::new(2)).to_string()).unwrap(),
-        created_at: env.block.time,
-        original_offer_amount: Uint256::from_str(&TWO_MICRONS.to_string()).unwrap(),
-    };
-    Ok(to_binary(&response)?)
+fn _partially_filled_order_response(_env: Env) -> StdResult<Binary> {
+    to_binary(&1)
 }
 
-fn default_query_response() -> StdResult<Binary> {
-    #[cw_serde]
-    pub struct Mock;
-    Ok(to_binary(&Mock)?)
+fn _default_query_response() -> StdResult<Binary> {
+    to_binary(&1)
 }
 
 pub fn fin_contract_unfilled_limit_order() -> Box<dyn Contract<Empty>> {
-    let contract = ContractWrapper::new(
-        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
-            match msg {
-                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
-                FINExecuteMsg::SubmitOrder { .. } => default_submit_order_handler(),
-                FINExecuteMsg::WithdrawOrders { order_idxs } => {
-                    withdraw_filled_order_handler(info, order_idxs)
-                }
-                FINExecuteMsg::RetractOrder { .. } => default_retract_order_handler(info),
-                _ => Ok(Response::default()),
-            }
-        },
-        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
-            match msg {
-                FINQueryMsg::Book { .. } => default_book_response_handler(),
-                FINQueryMsg::Order { .. } => unfilled_order_response(env),
-                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
-                    owner: Addr::unchecked(ADMIN),
-                    denoms: [
-                        Denom::Native(DENOM_UKUJI.to_string()),
-                        Denom::Native(DENOM_UTEST.to_string()),
-                    ],
-                    price_precision: Precision::DecimalPlaces(3),
-                    decimal_delta: 0,
-                    is_bootstrapping: false,
-                    fee_taker: Decimal256::percent(1),
-                    fee_maker: Decimal256::percent(1),
-                    fee_maker_negative: false,
-                }),
-                _ => default_query_response(),
-            }
-        },
-    );
-    Box::new(contract)
+    unimplemented!()
 }
 
 pub fn fin_contract_partially_filled_order() -> Box<dyn Contract<Empty>> {
-    let contract = ContractWrapper::new(
-        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
-            match msg {
-                FINExecuteMsg::SubmitOrder { .. } => default_submit_order_handler(),
-                FINExecuteMsg::RetractOrder { .. } => retract_partially_filled_order_handler(info),
-                FINExecuteMsg::WithdrawOrders { order_idxs } => {
-                    withdraw_partially_filled_order_handler(info, order_idxs)
-                }
-                _ => Ok(Response::default()),
-            }
-        },
-        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
-            match msg {
-                FINQueryMsg::Book { .. } => default_book_response_handler(),
-                FINQueryMsg::Order { .. } => partially_filled_order_response(env),
-                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
-                    owner: Addr::unchecked(ADMIN),
-                    denoms: [
-                        Denom::Native(DENOM_UKUJI.to_string()),
-                        Denom::Native(DENOM_UTEST.to_string()),
-                    ],
-                    price_precision: Precision::DecimalPlaces(3),
-                    decimal_delta: 0,
-                    is_bootstrapping: false,
-                    fee_taker: Decimal256::percent(1),
-                    fee_maker: Decimal256::percent(1),
-                    fee_maker_negative: false,
-                }),
-                _ => default_query_response(),
-            }
-        },
-    );
-    Box::new(contract)
+    unimplemented!()
 }
 
 pub fn fin_contract_filled_limit_order() -> Box<dyn Contract<Empty>> {
-    let contract = ContractWrapper::new(
-        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
-            match msg {
-                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
-                FINExecuteMsg::SubmitOrder { .. } => default_submit_order_handler(),
-                FINExecuteMsg::WithdrawOrders { order_idxs } => {
-                    withdraw_filled_order_handler(info, order_idxs)
-                }
-                FINExecuteMsg::RetractOrder { .. } => default_retract_order_handler(info),
-                _ => Ok(Response::default()),
-            }
-        },
-        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, env, msg: FINQueryMsg| -> StdResult<Binary> {
-            match msg {
-                FINQueryMsg::Book { .. } => default_book_response_handler(),
-                FINQueryMsg::Order { .. } => filled_order_response(env),
-                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
-                    owner: Addr::unchecked(ADMIN),
-                    denoms: [
-                        Denom::Native(DENOM_UKUJI.to_string()),
-                        Denom::Native(DENOM_UTEST.to_string()),
-                    ],
-                    price_precision: Precision::DecimalPlaces(3),
-                    decimal_delta: 0,
-                    is_bootstrapping: false,
-                    fee_taker: Decimal256::percent(1),
-                    fee_maker: Decimal256::percent(1),
-                    fee_maker_negative: false,
-                }),
-                _ => default_query_response(),
-            }
-        },
-    );
-    Box::new(contract)
+    unimplemented!()
 }
 
 pub fn fin_contract_pass_slippage_tolerance() -> Box<dyn Contract<Empty>> {
-    let contract = ContractWrapper::new(
-        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
-            match msg {
-                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
-                _ => Ok(Response::default()),
-            }
-        },
-        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
-            match msg {
-                FINQueryMsg::Book { .. } => default_book_response_handler(),
-                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
-                    owner: Addr::unchecked(ADMIN),
-                    denoms: [
-                        Denom::Native(DENOM_UKUJI.to_string()),
-                        Denom::Native(DENOM_UTEST.to_string()),
-                    ],
-                    price_precision: Precision::DecimalPlaces(3),
-                    decimal_delta: 0,
-                    is_bootstrapping: false,
-                    fee_taker: Decimal256::percent(1),
-                    fee_maker: Decimal256::percent(1),
-                    fee_maker_negative: false,
-                }),
-                _ => default_query_response(),
-            }
-        },
-    );
-    Box::new(contract)
+    unimplemented!()
 }
 
 pub fn fin_contract_fail_slippage_tolerance() -> Box<dyn Contract<Empty>> {
-    let contract = ContractWrapper::new(
-        |_, _, _, msg: FINExecuteMsg| -> StdResult<Response> {
-            match msg {
-                FINExecuteMsg::Swap { .. } => Err(StdError::GenericErr {
-                    msg: "Max spread exceeded 0.992445703493862134".to_string(),
-                }),
-                _ => Ok(Response::default()),
-            }
-        },
-        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
-            match msg {
-                FINQueryMsg::Book { .. } => default_book_response_handler(),
-                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
-                    owner: Addr::unchecked(ADMIN),
-                    denoms: [
-                        Denom::Native(DENOM_UKUJI.to_string()),
-                        Denom::Native(DENOM_UTEST.to_string()),
-                    ],
-                    price_precision: Precision::DecimalPlaces(3),
-                    decimal_delta: 0,
-                    is_bootstrapping: false,
-                    fee_taker: Decimal256::percent(1),
-                    fee_maker: Decimal256::percent(1),
-                    fee_maker_negative: false,
-                }),
-                _ => default_query_response(),
-            }
-        },
-    );
-    Box::new(contract)
+    unimplemented!()
 }
 
 pub fn fin_contract_high_swap_price() -> Box<dyn Contract<Empty>> {
-    let contract = ContractWrapper::new(
-        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
-            match msg {
-                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
-                _ => Ok(Response::default()),
-            }
-        },
-        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
-            match msg {
-                FINQueryMsg::Book { .. } => book_response_handler(
-                    String::from(DENOM_UKUJI),
-                    String::from(DENOM_UTEST),
-                    Decimal256::from_str("9")?,
-                    Decimal256::from_str("11")?,
-                ),
-                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
-                    owner: Addr::unchecked(ADMIN),
-                    denoms: [
-                        Denom::Native(DENOM_UKUJI.to_string()),
-                        Denom::Native(DENOM_UTEST.to_string()),
-                    ],
-                    price_precision: Precision::DecimalPlaces(3),
-                    decimal_delta: 0,
-                    is_bootstrapping: false,
-                    fee_taker: Decimal256::percent(1),
-                    fee_maker: Decimal256::percent(1),
-                    fee_maker_negative: false,
-                }),
-                _ => default_query_response(),
-            }
-        },
-    );
-    Box::new(contract)
+    unimplemented!()
 }
 
 pub fn fin_contract_low_swap_price() -> Box<dyn Contract<Empty>> {
-    let contract = ContractWrapper::new(
-        |_, _, info, msg: FINExecuteMsg| -> StdResult<Response> {
-            match msg {
-                FINExecuteMsg::Swap { .. } => default_swap_handler(info),
-                _ => Ok(Response::default()),
-            }
-        },
-        |_, _, _, _: FINInstantiateMsg| -> StdResult<Response> { Ok(Response::new()) },
-        |_, _, msg: FINQueryMsg| -> StdResult<Binary> {
-            match msg {
-                FINQueryMsg::Book { .. } => book_response_handler(
-                    String::from(DENOM_UKUJI),
-                    String::from(DENOM_UTEST),
-                    Decimal256::from_str("0.6")?,
-                    Decimal256::from_str("0.9")?,
-                ),
-                FINQueryMsg::Config { .. } => to_binary(&ConfigResponse {
-                    owner: Addr::unchecked(ADMIN),
-                    denoms: [
-                        Denom::Native(DENOM_UKUJI.to_string()),
-                        Denom::Native(DENOM_UTEST.to_string()),
-                    ],
-                    price_precision: Precision::DecimalPlaces(3),
-                    decimal_delta: 0,
-                    is_bootstrapping: false,
-                    fee_taker: Decimal256::percent(1),
-                    fee_maker: Decimal256::percent(1),
-                    fee_maker_negative: false,
-                }),
-                _ => default_query_response(),
-            }
-        },
-    );
-    Box::new(contract)
+    unimplemented!()
 }

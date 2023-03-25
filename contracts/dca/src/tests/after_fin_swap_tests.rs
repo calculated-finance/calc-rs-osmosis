@@ -32,7 +32,7 @@ use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
     BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
 };
-use fin_helpers::{codes::ERROR_SWAP_SLIPPAGE_EXCEEDED, position_type::PositionType};
+use osmosis_helpers::{codes::ERROR_SWAP_SLIPPAGE_EXCEEDED, position_type::PositionType};
 use std::{cmp::min, str::FromStr};
 
 #[test]

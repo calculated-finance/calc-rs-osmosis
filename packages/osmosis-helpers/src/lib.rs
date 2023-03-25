@@ -1,5 +1,4 @@
 mod error;
-pub mod limit_orders;
 pub mod msg;
 pub mod queries;
 pub mod swaps;

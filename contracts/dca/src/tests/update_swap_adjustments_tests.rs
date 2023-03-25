@@ -2,7 +2,7 @@ use cosmwasm_std::{
     testing::{mock_dependencies, mock_env},
     Decimal,
 };
-use fin_helpers::position_type::PositionType;
+use osmosis_helpers::position_type::PositionType;
 use std::str::FromStr;
 
 use crate::{

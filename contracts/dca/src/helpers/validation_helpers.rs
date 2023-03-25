@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::state::config::{get_config, FeeCollector};
 use crate::types::vault::Vault;
-use base::pair::Pair;
+use base::pool::Pool;
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, Storage, Timestamp, Uint128};
 
@@ -85,7 +85,7 @@ pub fn assert_swap_amount_is_greater_than_50000(swap_amount: Uint128) -> Result<
 }
 
 pub fn assert_send_denom_is_in_pair_denoms(
-    pair: Pair,
+    pair: Pool,
     send_denom: String,
 ) -> Result<(), ContractError> {
     if send_denom != pair.base_denom && send_denom != pair.quote_denom {
