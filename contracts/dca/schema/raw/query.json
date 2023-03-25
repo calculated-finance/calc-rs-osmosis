@@ -255,43 +255,6 @@
     {
       "type": "object",
       "required": [
-        "get_data_fixes_by_resource_id"
-      ],
-      "properties": {
-        "get_data_fixes_by_resource_id": {
-          "type": "object",
-          "required": [
-            "resource_id"
-          ],
-          "properties": {
-            "limit": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint16",
-              "minimum": 0.0
-            },
-            "resource_id": {
-              "$ref": "#/definitions/Uint128"
-            },
-            "start_after": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint64",
-              "minimum": 0.0
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
         "get_dca_plus_performance"
       ],
       "properties": {

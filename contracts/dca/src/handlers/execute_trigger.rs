@@ -20,9 +20,8 @@ use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
-use fin_helpers::limit_orders::create_withdraw_limit_order_msg;
 use fin_helpers::queries::{
-    calculate_slippage, query_belief_price, query_order_details, query_price,
+    calculate_slippage, query_belief_price, query_price,
 };
 use fin_helpers::swaps::create_fin_swap_message;
 use std::cmp::min;
@@ -42,7 +41,7 @@ pub fn execute_trigger(
     deps: DepsMut,
     env: Env,
     vault_id: Uint128,
-    mut response: Response,
+    response: Response,
 ) -> Result<Response, ContractError> {
     let mut vault = get_vault(deps.storage, vault_id.into())?;
 
@@ -74,28 +73,8 @@ pub fn execute_trigger(
         TriggerConfiguration::Time { target_time } => {
             assert_target_time_is_in_past(env.block.time, target_time)?;
         }
-        TriggerConfiguration::FinLimitOrder { order_idx, .. } => {
-            if let Some(order_idx) = order_idx {
-                let limit_order =
-                    query_order_details(deps.querier, vault.pair.address.clone(), order_idx)?;
-
-                if limit_order.offer_amount != Uint128::zero() {
-                    return Err(ContractError::CustomError {
-                        val: String::from("fin limit order has not been completely filled"),
-                    });
-                }
-
-                if limit_order.filled_amount > Uint128::zero() {
-                    response = response.add_message(create_withdraw_limit_order_msg(
-                        vault.pair.address.clone(),
-                        order_idx,
-                    ));
-                }
-            } else {
-                return Err(ContractError::CustomError {
-                    val: String::from("fin limit order has not been created"),
-                });
-            }
+        TriggerConfiguration::FinLimitOrder { order_idx: _, .. } => {
+            unimplemented!()
         }
     }
 
