@@ -84,15 +84,15 @@ pub fn assert_swap_amount_is_greater_than_50000(swap_amount: Uint128) -> Result<
     Ok(())
 }
 
-pub fn assert_send_denom_is_in_pair_denoms(
-    pair: Pool,
+pub fn assert_send_denom_is_in_pool_denoms(
+    pool: Pool,
     send_denom: String,
 ) -> Result<(), ContractError> {
-    if send_denom != pair.base_denom && send_denom != pair.quote_denom {
+    if send_denom != pool.base_denom && send_denom != pool.quote_denom {
         return Err(ContractError::CustomError {
             val: format!(
-                "send denom {} does not match pair base denom {} or quote denom {}",
-                send_denom, pair.base_denom, pair.quote_denom
+                "send denom {} does not match pool base denom {} or quote denom {}",
+                send_denom, pool.base_denom, pool.quote_denom
             ),
         });
     }

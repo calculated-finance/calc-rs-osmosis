@@ -189,9 +189,9 @@ pub fn get_vaults_by_address(
                 result.expect(format!("a vault with id after {:?}", start_after).as_str());
             vault_from(
                 &vault_data,
-                POOLS.load(store, vault_data.pool_id.clone()).expect(
-                    format!("a pool for pool address {:?}", vault_data.pool_id).as_str(),
-                ),
+                POOLS
+                    .load(store, vault_data.pool_id.clone())
+                    .expect(format!("a pool for pool address {:?}", vault_data.pool_id).as_str()),
                 get_trigger(store, vault_data.id.into())
                     .expect(format!("a trigger for vault id {}", vault_data.id).as_str())
                     .map(|trigger| trigger.configuration),
@@ -220,9 +220,9 @@ pub fn get_vaults(
                 result.expect(format!("a vault with id after {:?}", start_after).as_str());
             vault_from(
                 &vault_data,
-                POOLS.load(store, vault_data.pool_id.clone()).expect(
-                    format!("a pool for pool address {:?}", vault_data.pool_id).as_str(),
-                ),
+                POOLS
+                    .load(store, vault_data.pool_id.clone())
+                    .expect(format!("a pool for pool address {:?}", vault_data.pool_id).as_str()),
                 get_trigger(store, vault_data.id.into())
                     .expect(format!("a trigger for vault id {}", vault_data.id).as_str())
                     .map(|trigger| trigger.configuration),

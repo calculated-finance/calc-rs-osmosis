@@ -364,9 +364,7 @@ fn delete_pair_with_valid_address_should_succeed() {
     )
     .unwrap();
 
-    let delete_pair_execute_message = ExecuteMsg::DeletePool {
-        pool_id: 0,
-    };
+    let delete_pair_execute_message = ExecuteMsg::DeletePool { pool_id: 0 };
 
     let result = execute(deps.as_mut(), env, info, delete_pair_execute_message).unwrap();
 

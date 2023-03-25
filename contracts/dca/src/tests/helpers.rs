@@ -18,9 +18,7 @@ use base::{
     triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration},
     vaults::vault::{Destination, PostExecutionAction, VaultStatus},
 };
-use cosmwasm_std::{
-    Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Uint128,
-};
+use cosmwasm_std::{Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Uint128};
 use std::str::FromStr;
 
 pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
@@ -121,7 +119,7 @@ pub fn setup_vault(
             }],
             created_at: env.block.time.clone(),
             status,
-            pair,
+            pool: pair,
             swap_amount,
             position_type: None,
             slippage_tolerance: None,

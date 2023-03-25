@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::helpers::validation_helpers::assert_sender_is_admin;
 use crate::state::pools::POOLS;
-use cosmwasm_std::{DepsMut};
+use cosmwasm_std::DepsMut;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Env, MessageInfo, Response};
 

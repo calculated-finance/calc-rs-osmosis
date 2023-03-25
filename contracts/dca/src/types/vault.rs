@@ -8,7 +8,7 @@ use base::{
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
 use osmosis_helpers::position_type::PositionType;
-use std::{cmp::max};
+use std::cmp::max;
 
 #[cw_serde]
 pub struct Vault {

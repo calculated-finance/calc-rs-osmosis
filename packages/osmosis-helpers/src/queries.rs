@@ -1,6 +1,6 @@
 use crate::{msg::FinConfigResponse, position_type::PositionType};
 use base::{pool::Pool, price_type::PriceType};
-use cosmwasm_std::{Coin, Decimal, QuerierWrapper, StdError, StdResult, Uint128};
+use cosmwasm_std::{Coin, Decimal, QuerierWrapper, StdError, StdResult};
 use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceRequest;
 fn _query_quote_price(
     _querier: QuerierWrapper,
