@@ -1,15 +1,16 @@
 use base::pool::Pool;
-use cosmwasm_std::{
-    Coin, Decimal, QuerierWrapper, ReplyOn, StdResult, SubMsg,
+use cosmwasm_std::{Coin, Decimal, QuerierWrapper, ReplyOn, StdResult, SubMsg, Uint128};
+use osmosis_std::types::osmosis::{
+    gamm::v1beta1::MsgSwapExactAmountIn, poolmanager::v1beta1::SwapAmountInRoute,
 };
-
-pub fn create_fin_swap_message(
+pub fn create_osmosis_swap_message(
     _querier: QuerierWrapper,
-    _pool: Pool,
-    _swap_amount: Coin,
+    sender: String,
+    pool: Pool,
+    swap_amount: Coin,
     _slippage_tolerance: Option<Decimal>,
-    _reply_id: Option<u64>,
-    _reply_on: Option<ReplyOn>,
+    reply_id: Option<u64>,
+    reply_on: Option<ReplyOn>,
 ) -> StdResult<SubMsg> {
     // let belief_price = slippage_tolerance
     //     .map(|_| query_belief_price(querier, &pair, &swap_amount.denom).expect("belief price"));
@@ -34,5 +35,29 @@ pub fn create_fin_swap_message(
     //     gas_limit: None,
     //     reply_on: reply_on.unwrap_or(ReplyOn::Never),
     // })
-    unimplemented!()
+
+    let slippage = Uint128::one();
+
+    let token_out_denom = if swap_amount.denom == pool.base_denom {
+        pool.quote_denom
+    } else {
+        pool.base_denom
+    };
+
+    let swap = MsgSwapExactAmountIn {
+        sender,
+        token_in: Some(swap_amount.into()),
+        token_out_min_amount: slippage.into(),
+        routes: vec![SwapAmountInRoute {
+            pool_id: pool.pool_id,
+            token_out_denom,
+        }],
+    };
+
+    Ok(SubMsg {
+        id: reply_id.unwrap_or(0),
+        msg: swap.into(),
+        gas_limit: None,
+        reply_on: reply_on.unwrap_or(ReplyOn::Never),
+    })
 }
