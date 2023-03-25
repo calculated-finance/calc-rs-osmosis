@@ -1,7 +1,7 @@
-use crate::msg::FinConfigResponse;
+use crate::{msg::FinConfigResponse, position_type::PositionType};
 use base::{pool::Pool, price_type::PriceType};
-use cosmwasm_std::{Coin, Decimal, QuerierWrapper, StdResult};
-
+use cosmwasm_std::{Coin, Decimal, QuerierWrapper, StdError, StdResult, Uint128};
+use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceRequest;
 fn _query_quote_price(
     _querier: QuerierWrapper,
     _pool: &Pool,
@@ -19,12 +19,46 @@ pub fn query_belief_price(
 }
 
 pub fn query_price(
-    _querier: QuerierWrapper,
-    _pool: Pool,
-    _swap_amount: &Coin,
+    querier: QuerierWrapper,
+    pool: Pool,
+    swap_amount: &Coin,
     _price_type: PriceType,
 ) -> StdResult<Decimal> {
-    unimplemented!()
+    if ![pool.base_denom.clone(), pool.quote_denom.clone()].contains(&swap_amount.denom) {
+        return Err(StdError::generic_err(format!(
+            "Provided swap denom {} not in pool {}",
+            swap_amount.denom, pool.pool_id
+        )));
+    }
+
+    let position_type = match swap_amount.denom == pool.quote_denom {
+        true => PositionType::Enter,
+        false => PositionType::Exit,
+    };
+
+    let base_asset_denom;
+    let quote_asset_denom;
+
+    match position_type {
+        PositionType::Enter => {
+            base_asset_denom = pool.base_denom;
+            quote_asset_denom = pool.quote_denom;
+        }
+        PositionType::Exit => {
+            base_asset_denom = pool.quote_denom;
+            quote_asset_denom = pool.base_denom;
+        }
+    }
+
+    QuerySpotPriceRequest {
+        pool_id: pool.pool_id,
+        base_asset_denom,
+        quote_asset_denom,
+    }
+    .query(&querier)
+    .unwrap()
+    .spot_price
+    .parse::<Decimal>()
 }
 
 pub fn calculate_slippage(actual_price: Decimal, belief_price: Decimal) -> Decimal {
