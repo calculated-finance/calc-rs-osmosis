@@ -7,11 +7,7 @@ pub fn get_pools(deps: Deps) -> StdResult<PoolsResponse> {
         .range(deps.storage, None, None, Order::Ascending)
         .collect();
 
-    let pools: Vec<Pool> = all_pools
-        .unwrap()
-        .iter()
-        .map(|p| p.1.clone())
-        .collect();
+    let pools: Vec<Pool> = all_pools.unwrap().iter().map(|p| p.1.clone()).collect();
 
     Ok(PoolsResponse { pools })
 }

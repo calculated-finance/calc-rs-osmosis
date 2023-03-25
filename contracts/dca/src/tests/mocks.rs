@@ -595,7 +595,6 @@ fn _book_response_handler(
     _base_price: Decimal256,
     _quote_price: Decimal256,
 ) -> StdResult<Binary> {
-
     to_binary(&1)
 }
 

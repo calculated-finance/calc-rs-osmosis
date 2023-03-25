@@ -16,10 +16,7 @@ use crate::{
         disburse_escrow_tasks::{get_disburse_escrow_tasks, save_disburse_escrow_task},
         vaults::{get_vault, update_vault},
     },
-    tests::{
-        helpers::{setup_active_vault_with_funds},
-        mocks::FEE_COLLECTOR,
-    },
+    tests::{helpers::setup_active_vault_with_funds, mocks::FEE_COLLECTOR},
     types::dca_plus_config::DcaPlusConfig,
 };
 use base::{

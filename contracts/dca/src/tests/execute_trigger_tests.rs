@@ -3,10 +3,7 @@ use super::mocks::{
     fin_contract_fail_slippage_tolerance, fin_contract_filled_limit_order,
     fin_contract_high_swap_price, fin_contract_partially_filled_order,
 };
-use crate::constants::{
-    FIN_TAKER_FEE, ONE, ONE_HUNDRED, ONE_THOUSAND, TEN,
-    TWO_MICRONS,
-};
+use crate::constants::{FIN_TAKER_FEE, ONE, ONE_HUNDRED, ONE_THOUSAND, TEN, TWO_MICRONS};
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
