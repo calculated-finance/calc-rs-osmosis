@@ -1,10 +1,12 @@
-use crate::{
-    msg::{FinConfigResponse}
-};
+use crate::msg::FinConfigResponse;
 use base::{pool::Pool, price_type::PriceType};
 use cosmwasm_std::{Coin, Decimal, QuerierWrapper, StdResult};
 
-fn _query_quote_price(_querier: QuerierWrapper, _pool: &Pool, _swap_denom: &str) -> StdResult<Decimal> {
+fn _query_quote_price(
+    _querier: QuerierWrapper,
+    _pool: &Pool,
+    _swap_denom: &str,
+) -> StdResult<Decimal> {
     unimplemented!()
 }
 
@@ -37,10 +39,7 @@ pub fn calculate_slippage(actual_price: Decimal, belief_price: Decimal) -> Decim
     difference / belief_price
 }
 
-pub fn query_pool_config(
-    _querier: QuerierWrapper,
-    _pool_id: u64,
-) -> StdResult<FinConfigResponse> {
+pub fn query_pool_config(_querier: QuerierWrapper, _pool_id: u64) -> StdResult<FinConfigResponse> {
     unimplemented!()
 }
 

@@ -21,7 +21,7 @@ use cosmwasm_std::{to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdResult, Wasm
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 use osmosis_helpers::queries::{calculate_slippage, query_belief_price, query_price};
-use osmosis_helpers::swaps::create_fin_swap_message;
+use osmosis_helpers::swaps::create_osmosis_swap_message;
 use std::cmp::min;
 use std::str::FromStr;
 
@@ -258,8 +258,9 @@ pub fn execute_trigger(
         },
     )?;
 
-    Ok(response.add_submessage(create_fin_swap_message(
+    Ok(response.add_submessage(create_osmosis_swap_message(
         deps.querier,
+        env.contract.address.clone().into(),
         vault.pool.clone(),
         get_swap_amount(&deps.as_ref(), &env, vault.clone())?,
         vault.slippage_tolerance,
