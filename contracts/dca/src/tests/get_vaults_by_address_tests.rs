@@ -5,7 +5,7 @@ use crate::tests::mocks::{
     DENOM_UKUJI, DENOM_UTEST, USER,
 };
 use crate::types::vault::Vault;
-use base::pair::Pair;
+use base::pool::Pool;
 use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
@@ -122,8 +122,8 @@ fn with_one_vault_should_return_proper_vault_data() {
             time_interval: TimeInterval::Hourly,
             slippage_tolerance: None,
             swap_amount,
-            pair: Pair {
-                address: mock.fin_contract_address.clone(),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: DENOM_UTEST.to_string(),
                 quote_denom: DENOM_UKUJI.to_string(),
             },

@@ -82,22 +82,24 @@
       {
         "type": "object",
         "required": [
-          "create_pair"
+          "create_pool"
         ],
         "properties": {
-          "create_pair": {
+          "create_pool": {
             "type": "object",
             "required": [
-              "address",
               "base_denom",
+              "pool_id",
               "quote_denom"
             ],
             "properties": {
-              "address": {
-                "$ref": "#/definitions/Addr"
-              },
               "base_denom": {
                 "type": "string"
+              },
+              "pool_id": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
               },
               "quote_denom": {
                 "type": "string"
@@ -111,17 +113,19 @@
       {
         "type": "object",
         "required": [
-          "delete_pair"
+          "delete_pool"
         ],
         "properties": {
-          "delete_pair": {
+          "delete_pool": {
             "type": "object",
             "required": [
-              "address"
+              "pool_id"
             ],
             "properties": {
-              "address": {
-                "$ref": "#/definitions/Addr"
+              "pool_id": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
               }
             },
             "additionalProperties": false
@@ -138,7 +142,7 @@
           "create_vault": {
             "type": "object",
             "required": [
-              "pair_address",
+              "pool_id",
               "swap_amount",
               "time_interval"
             ],
@@ -178,8 +182,10 @@
                   }
                 ]
               },
-              "pair_address": {
-                "$ref": "#/definitions/Addr"
+              "pool_id": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
               },
               "position_type": {
                 "anyOf": [
@@ -626,10 +632,10 @@
       {
         "type": "object",
         "required": [
-          "get_pairs"
+          "get_pools"
         ],
         "properties": {
-          "get_pairs": {
+          "get_pools": {
             "type": "object",
             "additionalProperties": false
           }
@@ -1896,40 +1902,38 @@
         }
       }
     },
-    "get_pairs": {
+    "get_pools": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PairsResponse",
+      "title": "PoolsResponse",
       "type": "object",
       "required": [
-        "pairs"
+        "pools"
       ],
       "properties": {
-        "pairs": {
+        "pools": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Pair"
+            "$ref": "#/definitions/Pool"
           }
         }
       },
       "additionalProperties": false,
       "definitions": {
-        "Addr": {
-          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
-          "type": "string"
-        },
-        "Pair": {
+        "Pool": {
           "type": "object",
           "required": [
-            "address",
             "base_denom",
+            "pool_id",
             "quote_denom"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
             "base_denom": {
               "type": "string"
+            },
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "quote_denom": {
               "type": "string"
@@ -2076,19 +2080,21 @@
           },
           "additionalProperties": false
         },
-        "Pair": {
+        "Pool": {
           "type": "object",
           "required": [
-            "address",
             "base_denom",
+            "pool_id",
             "quote_denom"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
             "base_denom": {
               "type": "string"
+            },
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "quote_denom": {
               "type": "string"
@@ -2197,7 +2203,7 @@
             "destinations",
             "id",
             "owner",
-            "pair",
+            "pool",
             "received_amount",
             "status",
             "swap_amount",
@@ -2249,8 +2255,8 @@
             "owner": {
               "$ref": "#/definitions/Addr"
             },
-            "pair": {
-              "$ref": "#/definitions/Pair"
+            "pool": {
+              "$ref": "#/definitions/Pool"
             },
             "received_amount": {
               "$ref": "#/definitions/Coin"
@@ -2408,19 +2414,21 @@
           },
           "additionalProperties": false
         },
-        "Pair": {
+        "Pool": {
           "type": "object",
           "required": [
-            "address",
             "base_denom",
+            "pool_id",
             "quote_denom"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
             "base_denom": {
               "type": "string"
+            },
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "quote_denom": {
               "type": "string"
@@ -2529,7 +2537,7 @@
             "destinations",
             "id",
             "owner",
-            "pair",
+            "pool",
             "received_amount",
             "status",
             "swap_amount",
@@ -2581,8 +2589,8 @@
             "owner": {
               "$ref": "#/definitions/Addr"
             },
-            "pair": {
-              "$ref": "#/definitions/Pair"
+            "pool": {
+              "$ref": "#/definitions/Pool"
             },
             "received_amount": {
               "$ref": "#/definitions/Coin"
@@ -2740,19 +2748,21 @@
           },
           "additionalProperties": false
         },
-        "Pair": {
+        "Pool": {
           "type": "object",
           "required": [
-            "address",
             "base_denom",
+            "pool_id",
             "quote_denom"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
             "base_denom": {
               "type": "string"
+            },
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "quote_denom": {
               "type": "string"
@@ -2861,7 +2871,7 @@
             "destinations",
             "id",
             "owner",
-            "pair",
+            "pool",
             "received_amount",
             "status",
             "swap_amount",
@@ -2913,8 +2923,8 @@
             "owner": {
               "$ref": "#/definitions/Addr"
             },
-            "pair": {
-              "$ref": "#/definitions/Pair"
+            "pool": {
+              "$ref": "#/definitions/Pool"
             },
             "received_amount": {
               "$ref": "#/definitions/Coin"

@@ -150,7 +150,7 @@ mod tests {
         helpers::fee_helpers::get_dca_plus_performance_fee,
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
-    use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
+    use base::{pool::Pool, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
     use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
     use std::str::FromStr;
 
@@ -199,8 +199,8 @@ mod tests {
             label: None,
             destinations: vec![],
             status: VaultStatus::Active,
-            pair: Pair {
-                address: Addr::unchecked("pair"),
+            pool: Pool {
+                pool_id: 0,
                 base_denom: "receive_denom".to_string(),
                 quote_denom: "swap_denom".to_string(),
             },

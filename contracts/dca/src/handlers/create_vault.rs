@@ -11,9 +11,9 @@ use crate::helpers::vault_helpers::get_dca_plus_model_id;
 use crate::state::cache::{Cache, CACHE};
 use crate::state::config::get_config;
 use crate::state::events::create_event;
-use crate::state::pairs::PAIRS;
+use crate::state::pools::POOLS;
 use crate::state::triggers::save_trigger;
-use crate::state::vaults::{save_vault};
+use crate::state::vaults::save_vault;
 use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::vault::Vault;
 use crate::types::vault_builder::VaultBuilder;
@@ -23,7 +23,7 @@ use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{coin, Addr, Decimal};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
-use fin_helpers::position_type::PositionType;
+use osmosis_helpers::position_type::PositionType;
 
 use super::execute_trigger::execute_trigger;
 
@@ -34,7 +34,7 @@ pub fn create_vault(
     owner: Addr,
     label: Option<String>,
     mut destinations: Vec<Destination>,
-    pair_address: Addr,
+    pool_id: u64,
     position_type: Option<PositionType>,
     slippage_tolerance: Option<Decimal>,
     minimum_receive_amount: Option<Uint128>,
@@ -70,8 +70,8 @@ pub fn create_vault(
     assert_no_destination_allocations_are_zero(&destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
-    deps.api.addr_validate(&pair_address.to_string())?;
-    let pair = PAIRS.load(deps.storage, pair_address)?;
+    deps.api.addr_validate(&pool_id.to_string())?;
+    let pair = POOLS.load(deps.storage, pool_id)?;
 
     let send_denom = info.funds[0].denom.clone();
 

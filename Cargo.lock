@@ -27,7 +27,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "base"
-version = "1.2.0"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "cosmos-sdk-proto 0.16.0",
@@ -358,8 +358,7 @@ dependencies = [
  "cw-storage-plus",
  "cw2",
  "cw20",
- "fin-helpers",
- "kujira",
+ "osmosis-helpers",
  "rand",
  "schemars",
  "serde",
@@ -490,23 +489,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fin-helpers"
-version = "1.1.0"
-dependencies = [
- "base",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-multi-test",
- "cw-storage-plus",
- "cw2",
- "kujira",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "flex-error"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -611,21 +593,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kujira"
-version = "0.7.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fe08806028a75b6a05fe2852a19999fff2b54a789a18ab8130d49a11c4d6d89"
-dependencies = [
- "anyhow",
- "cosmwasm-std",
- "hex",
- "schemars",
- "serde",
- "sha2 0.9.9",
- "thiserror",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.140"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -681,6 +648,22 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "osmosis-helpers"
+version = "1.0.0"
+dependencies = [
+ "base",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "cw2",
+ "schemars",
+ "serde",
+ "thiserror",
+]
 
 [[package]]
 name = "paste"

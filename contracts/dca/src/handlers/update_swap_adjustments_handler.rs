@@ -1,6 +1,6 @@
 use crate::{error::ContractError, state::swap_adjustments::update_swap_adjustments};
 use cosmwasm_std::{Decimal, DepsMut, Env, Response};
-use fin_helpers::position_type::PositionType;
+use osmosis_helpers::position_type::PositionType;
 
 pub fn update_swap_adjustments_handler(
     deps: DepsMut,

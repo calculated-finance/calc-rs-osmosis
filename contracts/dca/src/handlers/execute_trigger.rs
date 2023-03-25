@@ -20,10 +20,8 @@ use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
-use fin_helpers::queries::{
-    calculate_slippage, query_belief_price, query_price,
-};
-use fin_helpers::swaps::create_fin_swap_message;
+use osmosis_helpers::queries::{calculate_slippage, query_belief_price, query_price};
+use osmosis_helpers::swaps::create_fin_swap_message;
 use std::cmp::min;
 use std::str::FromStr;
 
@@ -85,7 +83,7 @@ pub fn execute_trigger(
 
     update_vault(deps.storage, &vault)?;
 
-    let belief_price = query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
+    let belief_price = query_belief_price(deps.querier, &vault.pool, &vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -93,8 +91,8 @@ pub fn execute_trigger(
             vault.id,
             env.block.to_owned(),
             EventData::DcaVaultExecutionTriggered {
-                base_denom: vault.pair.base_denom.clone(),
-                quote_denom: vault.pair.quote_denom.clone(),
+                base_denom: vault.pool.base_denom.clone(),
+                quote_denom: vault.pool.quote_denom.clone(),
                 asset_price: belief_price.clone(),
             },
         ),
@@ -114,7 +112,7 @@ pub fn execute_trigger(
 
             let actual_price_result = query_price(
                 deps.querier,
-                vault.pair.clone(),
+                vault.pool.clone(),
                 &Coin::new(swap_amount.into(), vault.get_swap_denom()),
                 PriceType::Actual,
             );
@@ -262,7 +260,7 @@ pub fn execute_trigger(
 
     Ok(response.add_submessage(create_fin_swap_message(
         deps.querier,
-        vault.pair.clone(),
+        vault.pool.clone(),
         get_swap_amount(&deps.as_ref(), &env, vault.clone())?,
         vault.slippage_tolerance,
         Some(AFTER_FIN_SWAP_REPLY_ID),

@@ -6,7 +6,7 @@ use crate::{
     state::vaults::get_vault,
 };
 use cosmwasm_std::{Deps, StdError, StdResult, Uint128};
-use fin_helpers::queries::query_belief_price;
+use osmosis_helpers::queries::query_belief_price;
 
 pub fn get_dca_plus_performance_handler(
     deps: Deps,
@@ -14,7 +14,7 @@ pub fn get_dca_plus_performance_handler(
 ) -> StdResult<DcaPlusPerformanceResponse> {
     let vault = get_vault(deps.storage, vault_id)?;
 
-    let current_price = query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
+    let current_price = query_belief_price(deps.querier, &vault.pool, &vault.get_swap_denom())?;
 
     vault.dca_plus_config.clone().map_or(
         Err(StdError::GenericErr {

@@ -1,5 +1,4 @@
 use cosmwasm_std::{Decimal, Decimal256, Timestamp, Uint128};
-use kujira::precision::Precision;
 use serde::{Deserialize, Serialize};
 
 // use serde instead of cw_serde so allow for deserialisation of unknown fields
@@ -27,5 +26,4 @@ pub struct FinOrderResponseWithoutDenom {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct FinConfigResponse {
     pub decimal_delta: Option<i8>,
-    pub price_precision: Precision,
 }

@@ -6,7 +6,7 @@ use cosmwasm_std::{attr, from_binary, Addr, Coin, Decimal, Uint128, Uint64};
 
 use crate::contract::{execute, instantiate, query};
 use crate::msg::{
-    EventsResponse, ExecuteMsg, InstantiateMsg, PairsResponse, QueryMsg, VaultResponse,
+    EventsResponse, ExecuteMsg, InstantiateMsg, PoolsResponse, QueryMsg, VaultResponse,
     VaultsResponse,
 };
 use crate::state::config::FeeCollector;
@@ -156,8 +156,8 @@ fn create_pair_with_valid_address_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let create_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -203,8 +203,8 @@ fn create_pair_that_already_exists_should_fail() {
     )
     .unwrap();
 
-    let _create_first_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let _create_first_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -217,8 +217,8 @@ fn create_pair_that_already_exists_should_fail() {
     )
     .unwrap();
 
-    let _create_second_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let _create_second_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -264,8 +264,8 @@ fn create_pair_with_invalid_address_should_fail() {
     )
     .unwrap();
 
-    let execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(INVALID_ADDRESS),
+    let execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -306,8 +306,8 @@ fn create_pair_with_unauthorised_sender_should_fail() {
     .unwrap();
 
     let info_with_unauthorised_sender = mock_info(VALID_ADDRESS_THREE, &vec![]);
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(INVALID_ADDRESS),
+    let create_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -350,8 +350,8 @@ fn delete_pair_with_valid_address_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let create_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -364,8 +364,8 @@ fn delete_pair_with_valid_address_should_succeed() {
     )
     .unwrap();
 
-    let delete_pair_execute_message = ExecuteMsg::DeletePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let delete_pair_execute_message = ExecuteMsg::DeletePool {
+        pool_id: 0,
     };
 
     let result = execute(deps.as_mut(), env, info, delete_pair_execute_message).unwrap();
@@ -406,8 +406,8 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let create_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -419,16 +419,16 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
     )
     .unwrap();
 
-    let get_all_pairs_query_message = QueryMsg::GetPairs {};
+    let get_all_pairs_query_message = QueryMsg::GetPools {};
     let binary = query(deps.as_ref(), env, get_all_pairs_query_message).unwrap();
-    let response: PairsResponse = from_binary(&binary).unwrap();
-    assert_eq!(response.pairs.len(), 1);
+    let response: PoolsResponse = from_binary(&binary).unwrap();
+    assert_eq!(response.pools.len(), 1);
     assert_eq!(
-        response.pairs[0].address.to_string(),
+        response.pools[0].pool_id.to_string(),
         String::from("kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv")
     );
-    assert_eq!(response.pairs[0].base_denom, String::from("base"));
-    assert_eq!(response.pairs[0].quote_denom, String::from("quote"));
+    assert_eq!(response.pools[0].base_denom, String::from("base"));
+    assert_eq!(response.pools[0].quote_denom, String::from("quote"));
 }
 
 #[test]
@@ -458,10 +458,10 @@ fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
     )
     .unwrap();
 
-    let get_all_pairs_query_message = QueryMsg::GetPairs {};
+    let get_all_pairs_query_message = QueryMsg::GetPools {};
     let binary = query(deps.as_ref(), env, get_all_pairs_query_message).unwrap();
-    let response: PairsResponse = from_binary(&binary).unwrap();
-    assert_eq!(response.pairs.len(), 0);
+    let response: PoolsResponse = from_binary(&binary).unwrap();
+    assert_eq!(response.pools.len(), 0);
 }
 
 #[test]
@@ -492,8 +492,8 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let create_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -509,7 +509,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
         owner: None,
         label: Some("label".to_string()),
         destinations: None,
-        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
+        pool_id: 0,
         position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(50001u128),
@@ -579,8 +579,8 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let create_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -596,7 +596,7 @@ fn get_active_vault_by_address_and_id_should_succeed() {
         owner: None,
         label: Some("label".to_string()),
         destinations: None,
-        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
+        pool_id: 0,
         position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(50001u128),
@@ -661,8 +661,8 @@ fn get_all_active_vaults_by_address_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let create_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -678,7 +678,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         owner: None,
         label: Some("label".to_string()),
         destinations: None,
-        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
+        pool_id: 0,
         position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(50001u128),
@@ -707,7 +707,7 @@ fn get_all_active_vaults_by_address_should_succeed() {
         owner: None,
         label: Some("label".to_string()),
         destinations: None,
-        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
+        pool_id: 0,
         position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(50001u128),
@@ -777,8 +777,8 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePair {
-        address: Addr::unchecked(VALID_ADDRESS_TWO),
+    let create_pair_execute_message = ExecuteMsg::CreatePool {
+        pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
@@ -794,7 +794,7 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
         owner: None,
         label: Some("label".to_string()),
         destinations: None,
-        pair_address: Addr::unchecked(VALID_ADDRESS_TWO),
+        pool_id: 0,
         position_type: None,
         slippage_tolerance: None,
         swap_amount: Uint128::new(50001u128),
