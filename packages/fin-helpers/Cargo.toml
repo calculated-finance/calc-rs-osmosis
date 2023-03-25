@@ -37,7 +37,7 @@ cw2 = "0.15.0"
 schemars = "0.8.10"
 serde = { version = "1.0.144", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
-kujira = "0.7.16"
+kujira = "=0.7.16"
 cosmwasm-schema = "1.1.1"
 
 [dev-dependencies]

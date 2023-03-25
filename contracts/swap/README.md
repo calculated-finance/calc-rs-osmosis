@@ -1,1 +1,0 @@
-# Calculated Finance Swap Contract
