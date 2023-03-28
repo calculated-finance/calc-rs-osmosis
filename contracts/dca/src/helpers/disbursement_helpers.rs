@@ -7,7 +7,7 @@ use base::{helpers::math_helpers::checked_mul, vaults::vault::PostExecutionActio
 use cosmwasm_std::{
     to_binary, BankMsg, Coin, CosmosMsg, Deps, StdResult, SubMsg, Uint128, WasmMsg,
 };
-use staking_router::msg::ExecuteMsg;
+use staking_router::msg::{ExecuteMsg, LockupDuration};
 
 pub fn get_disbursement_messages(
     deps: Deps,
@@ -53,6 +53,32 @@ pub fn get_disbursement_messages(
                                         validator_address: destination.address.clone(),
                                         denom: allocation_amount.denom.clone(),
                                         amount: allocation_amount.amount.clone(),
+                                    })
+                                    .unwrap(),
+                                    funds: vec![],
+                                }),
+                                AFTER_Z_DELEGATION_REPLY_ID,
+                            ),
+                        ]
+                    }
+                    PostExecutionAction::ZLiquidityProvision => {
+                        vec![
+                            SubMsg::reply_on_success(
+                                BankMsg::Send {
+                                    to_address: vault.owner.to_string(),
+                                    amount: vec![allocation_amount.clone()],
+                                },
+                                AFTER_BANK_SWAP_REPLY_ID,
+                            ),
+                            SubMsg::reply_always(
+                                CosmosMsg::Wasm(WasmMsg::Execute {
+                                    contract_addr: config.staking_router_address.to_string(),
+                                    msg: to_binary(&ExecuteMsg::ZLiquidityProvision {
+                                        sender_address: vault.owner.clone(),
+                                        pool_id: vault.pool.pool_id,
+                                        denom: allocation_amount.denom.clone(),
+                                        amount: allocation_amount.amount.clone(),
+                                        duration: LockupDuration::OneDay,
                                     })
                                     .unwrap(),
                                     funds: vec![],

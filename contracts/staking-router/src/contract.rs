@@ -1,18 +1,24 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult,
+};
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::handlers::add_allowed_z_caller::add_allowed_z_caller;
 use crate::handlers::get_allowed_z_callers::get_allowed_z_callers;
+use crate::handlers::lock_tokens::lock_tokens;
 use crate::handlers::remove_allowed_z_caller::remove_allowed_z_caller;
 use crate::handlers::zdelegate::zdelegate;
+use crate::handlers::zliquidity_provision::{self, zliquidity_provision};
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{Config, CONFIG};
 
 const CONTRACT_NAME: &str = "crates.io:staking-router";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+pub const AFTER_LIQUIDITY_PROVISION_REPLY_ID: u64 = 1;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(_: DepsMut, _: Env, _: MigrateMsg) -> Result<Response, ContractError> {
@@ -68,12 +74,29 @@ pub fn execute(
             denom,
             amount,
         ),
+        ExecuteMsg::ZLiquidityProvision {
+            sender_address,
+            pool_id,
+            denom,
+            amount,
+            duration,
+        } => zliquidity_provision(deps, env, sender_address, pool_id, denom, amount, duration),
         ExecuteMsg::AddAllowedZCaller { allowed_z_caller } => {
             add_allowed_z_caller(deps, info, allowed_z_caller)
         }
         ExecuteMsg::RemoveAllowedZCaller { allowed_z_caller } => {
             remove_allowed_z_caller(deps, info, allowed_z_caller)
         }
+    }
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
+    match reply.id {
+        AFTER_LIQUIDITY_PROVISION_REPLY_ID => lock_tokens(deps, env, reply),
+        id => Err(ContractError::CustomError {
+            val: format!("unknown reply id: {}", id),
+        }),
     }
 }
 

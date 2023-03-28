@@ -6,7 +6,7 @@ use crate::types::{
 use base::{
     pool::Pool,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
-    vaults::vault::{Destination, DestinationDeprecated, VaultStatus},
+    vaults::vault::{Destination, VaultStatus},
 };
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
@@ -22,7 +22,6 @@ struct VaultDTO {
     pub created_at: Timestamp,
     pub owner: Addr,
     pub label: Option<String>,
-    pub destinations: Vec<DestinationDeprecated>,
     pub status: VaultStatus,
     pub balance: Coin,
     pub pool_id: u64,
@@ -43,7 +42,6 @@ impl From<Vault> for VaultDTO {
             created_at: vault.created_at,
             owner: vault.owner,
             label: vault.label,
-            destinations: vec![],
             status: vault.status,
             balance: vault.balance,
             pool_id: vault.pool.pool_id,
@@ -66,14 +64,6 @@ fn vault_from(
     destinations: &mut Vec<Destination>,
     dca_plus_config: Option<DcaPlusConfig>,
 ) -> Vault {
-    destinations.append(
-        &mut data
-            .destinations
-            .clone()
-            .into_iter()
-            .map(|destination| destination.into())
-            .collect(),
-    );
     Vault {
         id: data.id,
         created_at: data.created_at,
@@ -365,118 +355,118 @@ mod destination_store_tests {
         assert!(!fetched_vault.destinations.is_empty());
     }
 
-    #[test]
-    fn fetching_old_vault_returns_destinations() {
-        let mut deps = mock_dependencies();
-        let env = mock_env();
-        let store = deps.as_mut().storage;
+    // #[test]
+    // fn fetching_old_vault_returns_destinations() {
+    //     let mut deps = mock_dependencies();
+    //     let env = mock_env();
+    //     let store = deps.as_mut().storage;
 
-        let pool = Pool {
-            pool_id: 0,
-            base_denom: "demo".to_string(),
-            quote_denom: "ukuji".to_string(),
-        };
+    //     let pool = Pool {
+    //         pool_id: 0,
+    //         base_denom: "demo".to_string(),
+    //         quote_denom: "ukuji".to_string(),
+    //     };
 
-        POOLS
-            .save(store, pool.pool_id.clone(), &pool.clone())
-            .unwrap();
+    //     POOLS
+    //         .save(store, pool.pool_id.clone(), &pool.clone())
+    //         .unwrap();
 
-        let vault = create_vault_builder(env).build(Uint128::one());
+    //     let vault = create_vault_builder(env).build(Uint128::one());
 
-        let mut vault_dto: VaultDTO = vault.clone().into();
-        vault_dto.destinations = vault
-            .clone()
-            .destinations
-            .clone()
-            .into_iter()
-            .map(|d| d.into())
-            .collect();
+    //     let mut vault_dto: VaultDTO = vault.clone().into();
+    //     vault_dto.destinations = vault
+    //         .clone()
+    //         .destinations
+    //         .clone()
+    //         .into_iter()
+    //         .map(|d| d.into())
+    //         .collect();
 
-        vault_store()
-            .save(store, vault.id.into(), &vault_dto)
-            .unwrap();
+    //     vault_store()
+    //         .save(store, vault.id.into(), &vault_dto)
+    //         .unwrap();
 
-        let fetched_vault = get_vault(store, vault.id).unwrap();
-        assert_eq!(fetched_vault.destinations, vault.destinations);
-        assert!(!fetched_vault.destinations.is_empty());
-    }
+    //     let fetched_vault = get_vault(store, vault.id).unwrap();
+    //     assert_eq!(fetched_vault.destinations, vault.destinations);
+    //     assert!(!fetched_vault.destinations.is_empty());
+    // }
 
-    #[test]
-    fn updating_old_vault_stores_destinations() {
-        let mut deps = mock_dependencies();
-        let env = mock_env();
-        let store = deps.as_mut().storage;
+    // #[test]
+    // fn updating_old_vault_stores_destinations() {
+    //     let mut deps = mock_dependencies();
+    //     let env = mock_env();
+    //     let store = deps.as_mut().storage;
 
-        let pool = Pool {
-            pool_id: 0,
-            base_denom: "demo".to_string(),
-            quote_denom: "ukuji".to_string(),
-        };
+    //     let pool = Pool {
+    //         pool_id: 0,
+    //         base_denom: "demo".to_string(),
+    //         quote_denom: "ukuji".to_string(),
+    //     };
 
-        POOLS
-            .save(store, pool.pool_id.clone(), &pool.clone())
-            .unwrap();
+    //     POOLS
+    //         .save(store, pool.pool_id.clone(), &pool.clone())
+    //         .unwrap();
 
-        let mut vault = create_vault_builder(env).build(Uint128::one());
+    //     let mut vault = create_vault_builder(env).build(Uint128::one());
 
-        let mut vault_dto: VaultDTO = vault.clone().into();
-        vault_dto.destinations = vault
-            .clone()
-            .destinations
-            .clone()
-            .into_iter()
-            .map(|d| d.into())
-            .collect();
+    //     let mut vault_dto: VaultDTO = vault.clone().into();
+    //     vault_dto.destinations = vault
+    //         .clone()
+    //         .destinations
+    //         .clone()
+    //         .into_iter()
+    //         .map(|d| d.into())
+    //         .collect();
 
-        vault_store()
-            .save(store, vault.id.into(), &vault_dto)
-            .unwrap();
+    //     vault_store()
+    //         .save(store, vault.id.into(), &vault_dto)
+    //         .unwrap();
 
-        vault.status = VaultStatus::Inactive;
-        update_vault(store, &vault).unwrap();
+    //     vault.status = VaultStatus::Inactive;
+    //     update_vault(store, &vault).unwrap();
 
-        let destinations: Vec<Destination> =
-            from_binary(&DESTINATIONS.load(store, vault.id.into()).unwrap()).unwrap();
-        assert_eq!(destinations, vault.destinations);
-        assert!(!destinations.is_empty());
-    }
+    //     let destinations: Vec<Destination> =
+    //         from_binary(&DESTINATIONS.load(store, vault.id.into()).unwrap()).unwrap();
+    //     assert_eq!(destinations, vault.destinations);
+    //     assert!(!destinations.is_empty());
+    // }
 
-    #[test]
-    fn fetching_old_vault_after_update_returns_destinations() {
-        let mut deps = mock_dependencies();
-        let env = mock_env();
-        let store = deps.as_mut().storage;
+    // #[test]
+    // fn fetching_old_vault_after_update_returns_destinations() {
+    //     let mut deps = mock_dependencies();
+    //     let env = mock_env();
+    //     let store = deps.as_mut().storage;
 
-        let pool = Pool {
-            pool_id: 0,
-            base_denom: "demo".to_string(),
-            quote_denom: "ukuji".to_string(),
-        };
+    //     let pool = Pool {
+    //         pool_id: 0,
+    //         base_denom: "demo".to_string(),
+    //         quote_denom: "ukuji".to_string(),
+    //     };
 
-        POOLS
-            .save(store, pool.pool_id.clone(), &pool.clone())
-            .unwrap();
+    //     POOLS
+    //         .save(store, pool.pool_id.clone(), &pool.clone())
+    //         .unwrap();
 
-        let mut vault = create_vault_builder(env).build(Uint128::one());
+    //     let mut vault = create_vault_builder(env).build(Uint128::one());
 
-        let mut vault_dto: VaultDTO = vault.clone().into();
-        vault_dto.destinations = vault
-            .clone()
-            .destinations
-            .clone()
-            .into_iter()
-            .map(|d| d.into())
-            .collect();
+    //     let mut vault_dto: VaultDTO = vault.clone().into();
+    //     vault_dto.destinations = vault
+    //         .clone()
+    //         .destinations
+    //         .clone()
+    //         .into_iter()
+    //         .map(|d| d.into())
+    //         .collect();
 
-        vault_store()
-            .save(store, vault.id.into(), &vault_dto)
-            .unwrap();
+    //     vault_store()
+    //         .save(store, vault.id.into(), &vault_dto)
+    //         .unwrap();
 
-        vault.status = VaultStatus::Inactive;
-        update_vault(store, &vault).unwrap();
+    //     vault.status = VaultStatus::Inactive;
+    //     update_vault(store, &vault).unwrap();
 
-        let fetched_vault = get_vault(store, vault.id).unwrap();
-        assert_eq!(fetched_vault.destinations, vault.destinations);
-        assert!(!fetched_vault.destinations.is_empty());
-    }
+    //     let fetched_vault = get_vault(store, vault.id).unwrap();
+    //     assert_eq!(fetched_vault.destinations, vault.destinations);
+    //     assert!(!fetched_vault.destinations.is_empty());
+    // }
 }

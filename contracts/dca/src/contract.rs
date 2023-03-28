@@ -1,6 +1,7 @@
 use crate::error::ContractError;
 use crate::handlers::after_fin_swap::after_fin_swap;
 use crate::handlers::after_z_delegation::after_z_delegation;
+use crate::handlers::after_z_liquidity_provision::after_z_liquidity_provision;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
 use crate::handlers::create_pool::create_pool;
@@ -41,6 +42,7 @@ pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const AFTER_FIN_SWAP_REPLY_ID: u64 = 1;
 pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 3;
 pub const AFTER_BANK_SWAP_REPLY_ID: u64 = 4;
+pub const AFTER_LIQUIDITY_PROVISION_REPLY_ID: u64 = 5;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -199,6 +201,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
         AFTER_FIN_SWAP_REPLY_ID => after_fin_swap(deps, env, reply),
         AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
         AFTER_BANK_SWAP_REPLY_ID => Ok(Response::new().add_attribute("method", "after_bank_swap")),
+        AFTER_LIQUIDITY_PROVISION_REPLY_ID => after_z_liquidity_provision(deps, env, reply),
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),
         }),

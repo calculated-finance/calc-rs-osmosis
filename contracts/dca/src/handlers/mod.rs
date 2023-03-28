@@ -1,5 +1,6 @@
 pub mod after_fin_swap;
 pub mod after_z_delegation;
+pub mod after_z_liquidity_provision;
 pub mod cancel_vault;
 pub mod create_custom_swap_fee;
 pub mod create_pool;

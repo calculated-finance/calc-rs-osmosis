@@ -6,6 +6,7 @@ use cosmos_sdk_proto::{
 };
 use cosmwasm_std::{Addr, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, Uint128};
 
+use crate::helpers::create_exec_message;
 use crate::validation_helpers::assert_sender_is_allowed_z_caller;
 use crate::ContractError;
 
@@ -26,21 +27,6 @@ pub fn zdelegate(
     Ok(Response::new()
         .add_attribute("method", "zdelegate")
         .add_message(msg))
-}
-
-fn create_exec_message(grantee: Addr, protobuf_msg: Any) -> CosmosMsg {
-    let mut buffer = vec![];
-    MsgExec {
-        grantee: grantee.to_string(),
-        msgs: vec![protobuf_msg],
-    }
-    .encode(&mut buffer)
-    .unwrap();
-
-    CosmosMsg::Stargate {
-        type_url: "/cosmos.authz.v1beta1.MsgExec".to_string(),
-        value: Binary::from(buffer),
-    }
 }
 
 fn create_protobuf_delegate_msg(

@@ -21,6 +21,13 @@ pub enum ExecuteMsg {
         denom: String,
         amount: Uint128,
     },
+    ZLiquidityProvision {
+        sender_address: Addr,
+        pool_id: u64,
+        denom: String,
+        amount: Uint128,
+        duration: LockupDuration,
+    },
     AddAllowedZCaller {
         allowed_z_caller: Addr,
     },
@@ -34,4 +41,11 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(Vec<Addr>)]
     GetAllowedZCallers {},
+}
+
+#[cw_serde]
+pub enum LockupDuration {
+    OneDay,
+    OneWeek,
+    TwoWeeks,
 }
