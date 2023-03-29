@@ -269,142 +269,161 @@ describe('when executing a vault', () => {
     });
   });
 
-  // describe('with an exceeded price ceiling', () => {
-  //   let targetTime: Dayjs;
-  //   let vaultBeforeExecution: Vault;
-  //   let vaultAfterExecution: Vault;
-  //   let balancesBeforeExecution: Record<string, number>;
-  //   let balancesAfterExecution: Record<string, number>;
-  //   let eventPayloadsBeforeExecution: EventData[];
-  //   let eventPayloadsAfterExecution: EventData[];
+  describe.only('with an exceeded price ceiling', () => {
+    let targetTime: Dayjs;
+    let vaultBeforeExecution: Vault;
+    let vaultAfterExecution: Vault;
+    let balancesBeforeExecution: Record<string, number>;
+    let balancesAfterExecution: Record<string, number>;
+    let eventPayloadsBeforeExecution: EventData[];
+    let eventPayloadsAfterExecution: EventData[];
+    let executionTriggeredEvent: EventData;
 
-  //   before(async function (this: Context) {
-  //     targetTime = dayjs().add(10, 'seconds');
-  //     const swapAmount = 100000;
+    before(async function (this: Context) {
+      targetTime = dayjs().add(10, 'seconds');
+      const swapAmount = 100000;
 
-  //     const vaultId = await createVault(this, {
-  //       target_start_time_utc_seconds: `${targetTime.unix()}`,
-  //       swap_amount: `${swapAmount}`,
-  //       minimum_receive_amount: `${swapAmount * 20}`,
-  //     });
+      const vaultId = await createVault(this, {
+        target_start_time_utc_seconds: `${targetTime.unix()}`,
+        swap_amount: `${swapAmount}`,
+        minimum_receive_amount: `${swapAmount * 20}`,
+      });
 
-  //     vaultBeforeExecution = (
-  //       await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //         get_vault: {
-  //           vault_id: vaultId,
-  //         },
-  //       })
-  //     ).vault;
+      vaultBeforeExecution = (
+        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+          get_vault: {
+            vault_id: vaultId,
+          },
+        })
+      ).vault;
 
-  //     balancesBeforeExecution = await getBalances(this.cosmWasmClient, [
-  //       this.userWalletAddress,
-  //       this.dcaContractAddress,
-  //       this.feeCollectorAddress,
-  //     ]);
+      balancesBeforeExecution = await getBalances(this.cosmWasmClient, [
+        this.userWalletAddress,
+        this.dcaContractAddress,
+        this.feeCollectorAddress,
+      ]);
 
-  //     eventPayloadsBeforeExecution = map(
-  //       (event) => event.data,
-  //       (
-  //         await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //           get_events_by_resource_id: { resource_id: vaultId },
-  //         })
-  //       ).events,
-  //     );
+      eventPayloadsBeforeExecution = map(
+        (event) => event.data,
+        (
+          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+            get_events_by_resource_id: { resource_id: vaultId },
+          })
+        ).events,
+      );
 
-  //     while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(targetTime.add(2, 'seconds'))) {
-  //       await setTimeout(3000);
-  //     }
+      while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(targetTime.add(2, 'seconds'))) {
+        await setTimeout(3000);
+      }
 
-  //     await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-  //       execute_trigger: {
-  //         trigger_id: vaultId,
-  //       },
-  //     });
+      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+        execute_trigger: {
+          trigger_id: vaultId,
+        },
+      });
 
-  //     vaultAfterExecution = (
-  //       await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //         get_vault: {
-  //           vault_id: vaultId,
-  //         },
-  //       })
-  //     ).vault;
+      vaultAfterExecution = (
+        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+          get_vault: {
+            vault_id: vaultId,
+          },
+        })
+      ).vault;
 
-  //     balancesAfterExecution = await getBalances(this.cosmWasmClient, [
-  //       this.userWalletAddress,
-  //       this.dcaContractAddress,
-  //       this.feeCollectorAddress,
-  //     ]);
+      balancesAfterExecution = await getBalances(this.cosmWasmClient, [
+        this.userWalletAddress,
+        this.dcaContractAddress,
+        this.feeCollectorAddress,
+      ]);
 
-  //     eventPayloadsAfterExecution = map(
-  //       (event) => event.data,
-  //       (
-  //         await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //           get_events_by_resource_id: { resource_id: vaultId },
-  //         })
-  //       ).events,
-  //     );
-  //   });
+      eventPayloadsAfterExecution = map(
+        (event) => event.data,
+        (
+          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+            get_events_by_resource_id: { resource_id: vaultId },
+          })
+        ).events,
+      );
 
-  //   it("doesn't reduce the vault balance", async () =>
-  //     expect(vaultAfterExecution.balance.amount).to.equal(`${parseInt(vaultBeforeExecution.balance.amount)}`));
+      executionTriggeredEvent = find(
+        (event) => 'dca_vault_execution_triggered' in event,
+        eventPayloadsAfterExecution,
+      ) as EventData;
 
-  //   it('sends no funds back to the user', async function (this: Context) {
-  //     expect(balancesAfterExecution[this.userWalletAddress]['uosmo']).to.equal(
-  //       balancesBeforeExecution[this.userWalletAddress]['uosmo'],
-  //     );
-  //   });
+      eventPayloadsAfterExecution = map(
+        (event) => event.data,
+        (
+          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+            get_events_by_resource_id: { resource_id: vaultId },
+          })
+        ).events,
+      );
+    });
 
-  //   it('sends no fees to the fee collector', async function (this: Context) {
-  //     expect(balancesAfterExecution[this.feeCollectorAddress]['uosmo']).to.equal(
-  //       balancesBeforeExecution[this.feeCollectorAddress]['uosmo'],
-  //     );
-  //   });
+    it("doesn't reduce the vault balance", async () =>
+      expect(vaultAfterExecution.balance.amount).to.equal(`${parseInt(vaultBeforeExecution.balance.amount)}`));
 
-  //   it("doesn't update the vault swapped amount", () =>
-  //     expect(vaultAfterExecution.swapped_amount.amount).to.eql(
-  //       `${parseInt(vaultBeforeExecution.swapped_amount.amount)}`,
-  //     ));
+    it('sends no funds back to the user', async function (this: Context) {
+      expect(balancesAfterExecution[this.userWalletAddress]['stake']).to.equal(
+        balancesBeforeExecution[this.userWalletAddress]['stake'],
+      );
+    });
 
-  //   it("doesn't update the vault received amount", () =>
-  //     expect(vaultAfterExecution.received_amount).to.eql(vaultBeforeExecution.received_amount));
+    it('sends no fees to the fee collector', async function (this: Context) {
+      expect(balancesAfterExecution[this.feeCollectorAddress]['stake']).to.equal(
+        balancesBeforeExecution[this.feeCollectorAddress]['stake'],
+      );
+    });
 
-  //   it('creates a new time trigger', () =>
-  //     expect('time' in vaultAfterExecution.trigger && vaultAfterExecution.trigger.time.target_time).to.eql(
-  //       `${targetTime.add(1, 'hour').unix()}000000000`,
-  //     ));
+    it("doesn't update the vault swapped amount", () =>
+      expect(vaultAfterExecution.swapped_amount.amount).to.eql(
+        `${parseInt(vaultBeforeExecution.swapped_amount.amount)}`,
+      ));
 
-  //   it('adds the correct number of events', () =>
-  //     expect(eventPayloadsAfterExecution.length).to.eql(eventPayloadsBeforeExecution.length + 2));
+    it("doesn't update the vault received amount", () =>
+      expect(vaultAfterExecution.received_amount).to.eql(vaultBeforeExecution.received_amount));
 
-  //   it('has an execution triggered event', function (this: Context) {
-  //     expect(eventPayloadsAfterExecution).to.include.deep.members([
-  //       {
-  //         dca_vault_execution_triggered: {
-  //           asset_price: `${this.finBuyPrice}`,
-  //           base_denom: 'uosmo',
-  //           quote_denom: vaultAfterExecution.balance.denom,
-  //         },
-  //       },
-  //     ]);
-  //   });
+    it('creates a new time trigger', () =>
+      expect('time' in vaultAfterExecution.trigger && vaultAfterExecution.trigger.time.target_time).to.eql(
+        `${targetTime.add(1, 'hour').unix()}000000000`,
+      ));
 
-  //   it('has an execution skipped event', function (this: Context) {
-  //     expect(eventPayloadsAfterExecution).to.include.deep.members([
-  //       {
-  //         dca_vault_execution_skipped: {
-  //           reason: {
-  //             price_threshold_exceeded: {
-  //               price: `${this.finBuyPrice}`,
-  //             },
-  //           },
-  //         },
-  //       },
-  //     ]);
-  //   });
+    it('adds the correct number of events', () =>
+      expect(eventPayloadsAfterExecution.length).to.eql(eventPayloadsBeforeExecution.length + 2));
 
-  //   it('makes the vault active', () =>
-  //     expect(vaultBeforeExecution.status).to.eql('scheduled') && expect(vaultAfterExecution.status).to.eql('active'));
-  // });
+    it('has an execution triggered event', function (this: Context) {
+      expect(eventPayloadsAfterExecution).to.include.deep.members([
+        {
+          dca_vault_execution_triggered: {
+            asset_price:
+              'dca_vault_execution_triggered' in executionTriggeredEvent &&
+              executionTriggeredEvent.dca_vault_execution_triggered?.asset_price,
+            quote_denom: vaultAfterExecution.received_amount.denom,
+            base_denom: vaultAfterExecution.balance.denom,
+          },
+        },
+      ]);
+    });
+
+    it('has an execution skipped event', function (this: Context) {
+      expect(eventPayloadsAfterExecution).to.include.deep.members([
+        {
+          dca_vault_execution_skipped: {
+            reason: {
+              price_threshold_exceeded: {
+                price:
+                  'dca_vault_execution_triggered' in executionTriggeredEvent &&
+                  executionTriggeredEvent.dca_vault_execution_triggered?.asset_price,
+              },
+            },
+          },
+        },
+      ]);
+    });
+
+    it('makes the vault active', () =>
+      expect(vaultBeforeExecution.status).to.eql('scheduled') && expect(vaultAfterExecution.status).to.eql('active'));
+  });
 
   // describe('with exceeded slippage', () => {
   //   let targetTime: Dayjs;
