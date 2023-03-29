@@ -20,8 +20,8 @@ use std::str::FromStr;
 pub const USER: &str = "user";
 pub const ADMIN: &str = "admin";
 pub const FEE_COLLECTOR: &str = "fee_collector";
-pub const DENOM_UKUJI: &str = "ukuji";
-pub const DENOM_UTEST: &str = "utest";
+pub const DENOM_UOSMO: &str = "uosmo";
+pub const DENOM_STAKE: &str = "stake";
 
 pub struct MockApp {
     pub app: App,
@@ -41,11 +41,11 @@ impl MockApp {
                     &Addr::unchecked(ADMIN),
                     vec![
                         Coin {
-                            denom: String::from(DENOM_UKUJI),
+                            denom: String::from(DENOM_UOSMO),
                             amount: ONE_THOUSAND,
                         },
                         Coin {
-                            denom: String::from(DENOM_UTEST),
+                            denom: String::from(DENOM_STAKE),
                             amount: ONE_THOUSAND,
                         },
                     ],
@@ -88,11 +88,11 @@ impl MockApp {
                     &dca_contract_address,
                     vec![
                         Coin {
-                            denom: String::from(DENOM_UKUJI),
+                            denom: String::from(DENOM_UOSMO),
                             amount: ONE_THOUSAND,
                         },
                         Coin {
-                            denom: String::from(DENOM_UTEST),
+                            denom: String::from(DENOM_STAKE),
                             amount: ONE_THOUSAND,
                         },
                     ],
@@ -105,8 +105,8 @@ impl MockApp {
             dca_contract_address.clone(),
             &ExecuteMsg::CreatePool {
                 pool_id: 0,
-                base_denom: DENOM_UTEST.to_string(),
-                quote_denom: DENOM_UKUJI.to_string(),
+                base_denom: DENOM_STAKE.to_string(),
+                quote_denom: DENOM_UOSMO.to_string(),
             },
             &[],
         )
@@ -234,7 +234,7 @@ impl MockApp {
             .send_tokens(
                 self.fin_contract_address.clone(),
                 Addr::unchecked(ADMIN),
-                &[Coin::new(TWO_MICRONS.into(), DENOM_UKUJI)],
+                &[Coin::new(TWO_MICRONS.into(), DENOM_UOSMO)],
             )
             .unwrap();
 
@@ -243,7 +243,7 @@ impl MockApp {
             .send_tokens(
                 Addr::unchecked(ADMIN),
                 self.fin_contract_address.clone(),
-                &[Coin::new(TWO_MICRONS.into(), DENOM_UTEST)],
+                &[Coin::new(TWO_MICRONS.into(), DENOM_STAKE)],
             )
             .unwrap();
 
@@ -293,7 +293,7 @@ impl MockApp {
                 self.fin_contract_address.clone(),
                 Addr::unchecked(ADMIN),
                 &[Coin {
-                    denom: String::from(DENOM_UKUJI),
+                    denom: String::from(DENOM_UOSMO),
                     amount: TWO_MICRONS / Uint128::new(2),
                 }],
             )
@@ -304,7 +304,7 @@ impl MockApp {
                 Addr::unchecked(ADMIN),
                 self.fin_contract_address.clone(),
                 &[Coin {
-                    denom: String::from(DENOM_UTEST),
+                    denom: String::from(DENOM_STAKE),
                     amount: TWO_MICRONS / Uint128::new(2),
                 }],
             )
@@ -428,7 +428,7 @@ impl MockApp {
                     target_receive_amount: None,
                     use_dca_plus: None,
                 },
-                &vec![Coin::new(1, DENOM_UKUJI)],
+                &vec![Coin::new(1, DENOM_UOSMO)],
             )
             .unwrap();
 
@@ -479,12 +479,12 @@ impl MockApp {
 fn _default_swap_handler(info: MessageInfo) -> StdResult<Response> {
     let received_coin = info.funds[0].clone();
     let coin_to_send = match received_coin.denom.as_str() {
-        DENOM_UKUJI => Coin {
-            denom: String::from(DENOM_UTEST),
+        DENOM_UOSMO => Coin {
+            denom: String::from(DENOM_STAKE),
             amount: received_coin.amount,
         },
-        DENOM_UTEST => Coin {
-            denom: String::from(DENOM_UKUJI),
+        DENOM_STAKE => Coin {
+            denom: String::from(DENOM_UOSMO),
             amount: received_coin.amount,
         },
         _ => panic!("Invalid denom for tests"),
@@ -523,7 +523,7 @@ fn _withdraw_filled_order_handler(
                 to_address: info.sender.to_string(),
                 amount: vec![Coin::new(
                     disbursement_after_maker_fee.into(),
-                    DENOM_UTEST.to_string(),
+                    DENOM_STAKE.to_string(),
                 )],
             })
         }
@@ -531,7 +531,7 @@ fn _withdraw_filled_order_handler(
 
     Ok(response.add_event(Event::new("transfer").add_attribute(
         "amount",
-        format!("{}{}", disbursement_after_maker_fee, DENOM_UTEST),
+        format!("{}{}", disbursement_after_maker_fee, DENOM_STAKE),
     )))
 }
 
@@ -545,7 +545,7 @@ fn _withdraw_partially_filled_order_handler(
             response = response.add_message(BankMsg::Send {
                 to_address: info.sender.to_string(),
                 amount: vec![Coin {
-                    denom: String::from(DENOM_UTEST),
+                    denom: String::from(DENOM_STAKE),
                     amount: TWO_MICRONS / Uint128::new(2),
                 }],
             })
@@ -562,7 +562,7 @@ fn _default_retract_order_handler(info: MessageInfo) -> StdResult<Response> {
         .add_message(BankMsg::Send {
             to_address: info.sender.to_string(),
             amount: vec![Coin {
-                denom: String::from(DENOM_UKUJI),
+                denom: String::from(DENOM_UOSMO),
                 amount: disbursement_after_maker_fee,
             }],
         }))
@@ -574,7 +574,7 @@ fn _retract_partially_filled_order_handler(info: MessageInfo) -> StdResult<Respo
         .add_message(BankMsg::Send {
             to_address: info.sender.to_string(),
             amount: vec![Coin {
-                denom: String::from(DENOM_UKUJI),
+                denom: String::from(DENOM_UOSMO),
                 amount: TWO_MICRONS / Uint128::new(2),
             }],
         }))
@@ -582,8 +582,8 @@ fn _retract_partially_filled_order_handler(info: MessageInfo) -> StdResult<Respo
 
 fn _default_book_response_handler() -> StdResult<Binary> {
     _book_response_handler(
-        String::from(DENOM_UTEST),
-        String::from(DENOM_UKUJI),
+        String::from(DENOM_STAKE),
+        String::from(DENOM_UOSMO),
         Decimal256::from_str("1")?,
         Decimal256::from_str("1")?,
     )

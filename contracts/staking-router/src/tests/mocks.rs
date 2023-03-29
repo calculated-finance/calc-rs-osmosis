@@ -6,8 +6,8 @@ use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
 pub const USER: &str = "user";
 pub const ADMIN: &str = "admin";
 pub const ALLOWED_Z_CALLER: &str = "allowedzcaller";
-pub const DENOM_UKUJI: &str = "ukuji";
-pub const DENOM_UTEST: &str = "utest";
+pub const DENOM_UOSMO: &str = "uosmo";
+pub const DENOM_STAKE: &str = "stake";
 
 pub struct MockApp {
     pub app: App,

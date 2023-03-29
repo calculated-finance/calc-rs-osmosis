@@ -29,7 +29,19 @@ export type EventData =
       };
     }
   | {
+      simulated_dca_vault_execution_completed: {
+        fee: Coin;
+        received: Coin;
+        sent: Coin;
+      };
+    }
+  | {
       dca_vault_execution_skipped: {
+        reason: ExecutionSkippedReason;
+      };
+    }
+  | {
+      simulated_dca_vault_execution_skipped: {
         reason: ExecutionSkippedReason;
       };
     }
@@ -44,6 +56,12 @@ export type EventData =
     }
   | {
       dca_vault_delegation_failed: {};
+    }
+  | {
+      dca_vault_escrow_disbursed: {
+        amount_disbursed: Coin;
+        performance_fee: Coin;
+      };
     };
 /**
  * A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.

@@ -109,7 +109,7 @@ fn with_two_events_should_return_events() {
                 vault_id,
                 env.block.clone(),
                 EventData::DcaVaultFundsDeposited {
-                    amount: Coin::new(100, "ukuji".to_string()),
+                    amount: Coin::new(100, "uosmo".to_string()),
                 },
             ),
         ],
@@ -133,7 +133,7 @@ fn with_two_events_should_return_events() {
                 timestamp: env.block.time,
                 block_height: env.block.height,
                 data: EventData::DcaVaultFundsDeposited {
-                    amount: Coin::new(100, "ukuji".to_string()),
+                    amount: Coin::new(100, "uosmo".to_string()),
                 },
             },
         ],
@@ -159,7 +159,7 @@ fn with_start_after_should_return_later_events() {
                 vault_id,
                 env.block.clone(),
                 EventData::DcaVaultFundsDeposited {
-                    amount: Coin::new(100, "ukuji".to_string()),
+                    amount: Coin::new(100, "uosmo".to_string()),
                 },
             ),
         ],
@@ -175,7 +175,7 @@ fn with_start_after_should_return_later_events() {
             timestamp: env.block.time,
             block_height: env.block.height,
             data: EventData::DcaVaultFundsDeposited {
-                amount: Coin::new(100, "ukuji".to_string()),
+                amount: Coin::new(100, "uosmo".to_string()),
             },
         }],
         Some(1),
@@ -200,7 +200,7 @@ fn with_limit_should_return_limited_events() {
                 vault_id,
                 env.block.clone(),
                 EventData::DcaVaultFundsDeposited {
-                    amount: Coin::new(100, "ukuji".to_string()),
+                    amount: Coin::new(100, "uosmo".to_string()),
                 },
             ),
         ],
@@ -239,7 +239,7 @@ fn with_start_after_and_limit_should_return_limited_later_events() {
                 vault_id,
                 env.block.clone(),
                 EventData::DcaVaultFundsDeposited {
-                    amount: Coin::new(100, "ukuji".to_string()),
+                    amount: Coin::new(100, "uosmo".to_string()),
                 },
             ),
             EventBuilder::new(vault_id, env.block.clone(), EventData::DcaVaultCancelled {}),
@@ -256,7 +256,7 @@ fn with_start_after_and_limit_should_return_limited_later_events() {
             timestamp: env.block.time,
             block_height: env.block.height,
             data: EventData::DcaVaultFundsDeposited {
-                amount: Coin::new(100, "ukuji".to_string()),
+                amount: Coin::new(100, "uosmo".to_string()),
             },
         }],
         Some(1),

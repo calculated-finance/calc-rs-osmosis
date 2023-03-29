@@ -3,12 +3,14 @@ import { Config } from '../shared/config';
 import { Addr } from '../types/dca/execute';
 import { Pair } from '../types/dca/response/get_pairs';
 import * as mocha from 'mocha';
+import { Pool } from '../types/dca/response/get_vault';
 
 declare module 'mocha' {
   export interface Context {
     config: Config;
     cosmWasmClient: SigningCosmWasmClient;
     userCosmWasmClient: SigningCosmWasmClient;
+    queryClient: any;
     dcaContractAddress: Addr;
     calcSwapFee: number;
     automationFee: number;
@@ -16,13 +18,8 @@ declare module 'mocha' {
     feeCollectorAddress: Addr;
     userWalletAddress: Addr;
     stakingRouterContractAddress: Addr;
-    swapContractAddress: Addr;
-    finPairAddress: Addr;
-    finBuyPrice: number;
-    finSellPrice: number;
-    finMakerFee: number;
-    finTakerFee: number;
-    pair: Pair;
+    osmosisSwapFee: number;
+    pool: Pool;
     validatorAddress: string;
     swapAdjustment: number;
   }

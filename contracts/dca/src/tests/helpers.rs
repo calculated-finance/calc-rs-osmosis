@@ -1,4 +1,4 @@
-use super::mocks::{MockApp, ADMIN, DENOM_UKUJI, DENOM_UTEST, FEE_COLLECTOR};
+use super::mocks::{MockApp, ADMIN, DENOM_STAKE, DENOM_UOSMO, FEE_COLLECTOR};
 use crate::{
     constants::{ONE, TEN},
     contract::instantiate,
@@ -97,8 +97,8 @@ pub fn setup_vault(
 ) -> Vault {
     let pair = Pool {
         pool_id: 0,
-        base_denom: DENOM_UKUJI.to_string(),
-        quote_denom: DENOM_UTEST.to_string(),
+        base_denom: DENOM_UOSMO.to_string(),
+        quote_denom: DENOM_STAKE.to_string(),
     };
 
     POOLS
@@ -124,23 +124,23 @@ pub fn setup_vault(
             position_type: None,
             slippage_tolerance: None,
             minimum_receive_amount: None,
-            balance: Coin::new(balance.into(), DENOM_UKUJI),
+            balance: Coin::new(balance.into(), DENOM_UOSMO),
             time_interval: TimeInterval::Daily,
             started_at: None,
             swapped_amount: Coin {
-                denom: DENOM_UKUJI.to_string(),
+                denom: DENOM_UOSMO.to_string(),
                 amount: Uint128::new(0),
             },
             received_amount: Coin {
-                denom: DENOM_UTEST.to_string(),
+                denom: DENOM_STAKE.to_string(),
                 amount: Uint128::new(0),
             },
             dca_plus_config: if is_dca_plus {
                 Some(DcaPlusConfig::new(
                     Decimal::percent(5),
                     30,
-                    Coin::new(balance.into(), DENOM_UKUJI),
-                    DENOM_UTEST.to_string(),
+                    Coin::new(balance.into(), DENOM_UOSMO),
+                    DENOM_STAKE.to_string(),
                 ))
             } else {
                 None

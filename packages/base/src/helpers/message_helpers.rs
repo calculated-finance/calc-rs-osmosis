@@ -186,11 +186,11 @@ mod tests {
     }
 
     #[test]
-    fn get_coin_from_amount_string_should_succeed_with_ukuji() {
-        let mock_attribute_amount = String::from("492500ukuji");
+    fn get_coin_from_amount_string_should_succeed_with_uosmo() {
+        let mock_attribute_amount = String::from("492500uosmo");
         let result = get_coin_from_display_formatted_coin(mock_attribute_amount);
 
-        assert_eq!(result.denom, "ukuji".to_string());
+        assert_eq!(result.denom, "uosmo".to_string());
         assert_eq!(result.amount, Uint128::new(492500));
     }
 
@@ -210,12 +210,14 @@ mod tests {
 
     #[test]
     fn get_coin_from_amount_string_should_succeed_with_factory() {
-        let mock_attribute_amount = String::from("123456789factory/kujira1r85reqy6h0lu02vyz0hnzhv5whsns55gdt4w0d7ft87utzk7u0wqr4ssll/uusk");
+        let mock_attribute_amount = String::from(
+            "123456789factory/osmo1r85reqy6h0lu02vyz0hnzhv5whsns55gdt4w0d7ft87utzk7u0wqr4ssll/uusk",
+        );
         let result = get_coin_from_display_formatted_coin(mock_attribute_amount);
 
         assert_eq!(
             result.denom,
-            "factory/kujira1r85reqy6h0lu02vyz0hnzhv5whsns55gdt4w0d7ft87utzk7u0wqr4ssll/uusk"
+            "factory/osmo1r85reqy6h0lu02vyz0hnzhv5whsns55gdt4w0d7ft87utzk7u0wqr4ssll/uusk"
                 .to_string()
         );
         assert_eq!(result.amount, Uint128::new(123456789));

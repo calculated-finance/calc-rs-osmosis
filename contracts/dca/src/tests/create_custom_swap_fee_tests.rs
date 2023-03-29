@@ -17,7 +17,7 @@ fn create_custom_swap_fee_should_succeed() {
     let info = mock_info(ADMIN, &vec![]);
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let denom = "ukuji".to_string();
+    let denom = "uosmo".to_string();
 
     create_custom_swap_fee(deps.as_mut(), info, denom.clone(), Decimal::percent(1)).unwrap();
 
@@ -34,7 +34,7 @@ fn create_custom_swap_fee_should_overwrite_existing_fee() {
     let info = mock_info(ADMIN, &vec![]);
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let denom = "ukuji".to_string();
+    let denom = "uosmo".to_string();
 
     create_custom_swap_fee(
         deps.as_mut(),
@@ -67,7 +67,7 @@ fn create_custom_swap_fee_larger_than_100_percent_should_fail() {
     let response = create_custom_swap_fee(
         deps.as_mut(),
         info,
-        "ukuji".to_string(),
+        "uosmo".to_string(),
         Decimal::percent(101),
     )
     .unwrap_err();

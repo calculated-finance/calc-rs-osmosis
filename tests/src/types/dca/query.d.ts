@@ -10,7 +10,7 @@ export type QueryMsg =
       get_config: {};
     }
   | {
-      get_pairs: {};
+      get_pools: {};
     }
   | {
       get_time_trigger_ids: {
@@ -56,13 +56,6 @@ export type QueryMsg =
     }
   | {
       get_custom_swap_fees: {};
-    }
-  | {
-      get_data_fixes_by_resource_id: {
-        limit?: number | null;
-        resource_id: Uint128;
-        start_after?: number | null;
-      };
     }
   | {
       get_dca_plus_performance: {

@@ -1,4 +1,4 @@
-use super::mocks::{fin_contract_unfilled_limit_order, MockApp, DENOM_UKUJI, USER};
+use super::mocks::{fin_contract_unfilled_limit_order, MockApp, DENOM_UOSMO, USER};
 use crate::{
     constants::{ONE, TEN},
     msg::{ExecuteMsg, QueryMsg, TriggerIdResponse, VaultResponse},
@@ -19,7 +19,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
         &user_address,
         user_balance,
-        DENOM_UKUJI,
+        DENOM_UOSMO,
     );
 
     let response = mock
@@ -41,7 +41,7 @@ fn should_fetch_existing_trigger_id_by_order_idx() {
                 target_start_time_utc_seconds: None,
                 use_dca_plus: None,
             },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UOSMO))],
         )
         .unwrap();
 
