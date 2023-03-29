@@ -265,15 +265,17 @@ describe('when creating a vault', () => {
   });
 
   describe('with no assets sent', () => {
-    it('fails with the correct error message', async () =>
-      await expect(createVault(this, {}, [])).to.be.rejectedWith(/received 0 denoms but required exactly 1/));
+    it('fails with the correct error message', async function (this: Context) {
+      await expect(createVault(this, {}, [])).to.be.rejectedWith(/received 0 denoms but required exactly 1/);
+    });
   });
 
   describe('with a funds denom not in the pair denoms', () => {
-    it('fails with the correct error message', async () =>
+    it('fails with the correct error message', async function (this: Context) {
       await expect(createVault(this, {}, [coin(1000000, 'uosmo')])).to.be.rejectedWith(
         /send denom uosmo does not match pool base denom stake or quote denom uion/,
-      ));
+      );
+    });
   });
 
   describe('with non stakeable receive denom and z delegate destination', () => {

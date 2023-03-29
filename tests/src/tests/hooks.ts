@@ -181,38 +181,6 @@ const instantiateStakingRouterContract = async (
   return address;
 };
 
-export const instantiateSwapContract = async (
-  cosmWasmClient: SigningCosmWasmClient,
-  adminContractAddress: string,
-  finPairAddress?: string,
-): Promise<string> => {
-  const swapContractAddress = await uploadAndInstantiate(
-    '../artifacts/swap.wasm',
-    cosmWasmClient,
-    adminContractAddress,
-    {
-      admin: adminContractAddress,
-    },
-    'swap',
-  );
-
-  if (finPairAddress) {
-    let pair = await cosmWasmClient.queryContractSmart(finPairAddress, {
-      config: {},
-    });
-
-    await execute(cosmWasmClient, adminContractAddress, swapContractAddress, {
-      add_path: {
-        pair: {
-          fin: { address: finPairAddress, base_denom: pair.denoms[0].native, quote_denom: pair.denoms[1].native },
-        },
-      },
-    });
-  }
-
-  return swapContractAddress;
-};
-
 export const instantiateFundCoreContract = async (
   cosmWasmClient: SigningCosmWasmClient,
   routerContractAddress: string,

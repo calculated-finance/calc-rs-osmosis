@@ -193,7 +193,6 @@ describe('when cancelling a vault', () => {
   //     balancesBeforeExecution = await getBalances(this.cosmWasmClient, [
   //       this.userWalletAddress,
   //       this.dcaContractAddress,
-  //       this.finPairAddress,
   //       this.feeCollectorAddress,
   //     ]);
 
@@ -214,7 +213,6 @@ describe('when cancelling a vault', () => {
   //     balancesAfterExecution = await getBalances(this.cosmWasmClient, [
   //       this.userWalletAddress,
   //       this.dcaContractAddress,
-  //       this.finPairAddress,
   //       this.feeCollectorAddress,
   //     ]);
 
@@ -278,7 +276,6 @@ describe('when cancelling a vault', () => {
   //       balancesBeforeExecution = await getBalances(this.cosmWasmClient, [
   //         this.userWalletAddress,
   //         this.dcaContractAddress,
-  //         this.finPairAddress,
   //         this.feeCollectorAddress,
   //       ]);
 
@@ -299,7 +296,6 @@ describe('when cancelling a vault', () => {
   //       balancesAfterExecution = await getBalances(this.cosmWasmClient, [
   //         this.userWalletAddress,
   //         this.dcaContractAddress,
-  //         this.finPairAddress,
   //         this.feeCollectorAddress,
   //       ]);
 

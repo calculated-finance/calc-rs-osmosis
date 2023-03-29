@@ -39,7 +39,7 @@ pub fn execute_trigger(
     deps: DepsMut,
     env: Env,
     vault_id: Uint128,
-    response: Response,
+    mut response: Response,
 ) -> Result<Response, ContractError> {
     let mut vault = get_vault(deps.storage, vault_id.into())?;
 
@@ -214,11 +214,15 @@ pub fn execute_trigger(
             },
         )?;
     } else {
-        return Ok(response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: env.contract.address.to_string(),
-            msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
-            funds: vec![],
-        })));
+        if vault.is_dca_plus() {
+            response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: env.contract.address.to_string(),
+                msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
+                funds: vec![],
+            }));
+        }
+
+        return Ok(response);
     }
 
     if price_threshold_exceeded(&deps.as_ref(), &env, &vault, belief_price)? {
