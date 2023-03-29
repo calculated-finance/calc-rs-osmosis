@@ -19,7 +19,7 @@ fn remove_custom_fee_should_succeed() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let denom = "ukuji".to_string();
+    let denom = "uosmo".to_string();
 
     create_custom_swap_fee(
         deps.as_mut(),

@@ -3,14 +3,14 @@ use std::str::FromStr;
 use crate::constants::{ONE, ONE_HUNDRED, ONE_THOUSAND, TEN};
 use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
 use crate::state::config::FeeCollector;
-use crate::tests::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UKUJI, USER};
+use crate::tests::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UOSMO, USER};
 use base::events::event::EventBuilder;
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
 use cw_multi_test::Executor;
 
 use super::helpers::{assert_address_balances, assert_events_published, assert_vault_balance};
-use super::mocks::DENOM_UTEST;
+use super::mocks::DENOM_STAKE;
 
 #[test]
 fn should_update_address_balances() {
@@ -19,11 +19,11 @@ fn should_update_address_balances() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_time_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -38,23 +38,23 @@ fn should_update_address_balances() {
                 address: user_address.clone(),
                 vault_id: mock.vault_ids.get("vault").unwrap().to_owned(),
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 
     assert_address_balances(
         &mock,
         &[
-            (&user_address, DENOM_UKUJI, user_balance - vault_deposit),
-            (&user_address, DENOM_UTEST, Uint128::zero()),
+            (&user_address, DENOM_UOSMO, user_balance - vault_deposit),
+            (&user_address, DENOM_STAKE, Uint128::zero()),
             (
                 &mock.dca_contract_address,
-                DENOM_UKUJI,
+                DENOM_UOSMO,
                 ONE_THOUSAND + vault_deposit + vault_deposit,
             ),
-            (&mock.dca_contract_address, DENOM_UTEST, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UKUJI, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UTEST, ONE_THOUSAND),
+            (&mock.dca_contract_address, DENOM_STAKE, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_UOSMO, ONE_THOUSAND),
+            (&mock.fin_contract_address, DENOM_STAKE, ONE_THOUSAND),
         ],
     );
 }
@@ -66,11 +66,11 @@ fn should_update_vault_balance() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_time_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -87,7 +87,7 @@ fn should_update_vault_balance() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 
@@ -107,11 +107,11 @@ fn should_create_event() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_time_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -128,7 +128,7 @@ fn should_create_event() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 
@@ -139,7 +139,7 @@ fn should_create_event() {
             vault_id,
             mock.app.block_info(),
             base::events::event::EventData::DcaVaultFundsDeposited {
-                amount: Coin::new(TEN.into(), DENOM_UKUJI),
+                amount: Coin::new(TEN.into(), DENOM_UOSMO),
             },
         )
         .build(2)],
@@ -153,11 +153,11 @@ fn when_vault_is_scheduled_should_not_change_status() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_time_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -174,7 +174,7 @@ fn when_vault_is_scheduled_should_not_change_status() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 
@@ -194,11 +194,11 @@ fn when_vault_is_active_should_not_change_status() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_active_vault(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -214,7 +214,7 @@ fn when_vault_is_active_should_not_change_status() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 
@@ -234,11 +234,11 @@ fn when_vault_is_active_should_not_execute_vault() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_active_vault(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -260,7 +260,7 @@ fn when_vault_is_active_should_not_execute_vault() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 
@@ -282,7 +282,7 @@ fn when_vault_is_inactive_should_change_status() {
     let user_balance = ONE_HUNDRED;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_inactive_vault(&user_address, None, "vault");
 
     let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
@@ -295,7 +295,7 @@ fn when_vault_is_inactive_should_change_status() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 
@@ -314,7 +314,7 @@ fn when_vault_is_inactive_should_execute_vault() {
     let user_balance = ONE_HUNDRED;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_inactive_vault(&user_address, None, "vault");
 
     let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
@@ -327,7 +327,7 @@ fn when_vault_is_inactive_should_execute_vault() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 
@@ -338,8 +338,8 @@ fn when_vault_is_inactive_should_execute_vault() {
             vault_id,
             mock.app.block_info(),
             base::events::event::EventData::DcaVaultExecutionTriggered {
-                base_denom: DENOM_UTEST.to_string(),
-                quote_denom: DENOM_UKUJI.to_string(),
+                base_denom: DENOM_STAKE.to_string(),
+                quote_denom: DENOM_UOSMO.to_string(),
                 asset_price: Decimal::one(),
             },
         )
@@ -352,7 +352,7 @@ fn when_vault_is_inactive_and_insufficient_funds_should_not_change_status() {
     let user_address = Addr::unchecked(USER);
     let user_balance = ONE_HUNDRED;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_inactive_vault(&user_address, None, "vault");
 
     let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
@@ -365,7 +365,7 @@ fn when_vault_is_inactive_and_insufficient_funds_should_not_change_status() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(300, DENOM_UKUJI)],
+            &[Coin::new(300, DENOM_UOSMO)],
         )
         .unwrap();
 
@@ -385,11 +385,11 @@ fn when_vault_is_cancelled_should_fail() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_unfilled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(user_balance.into(), DENOM_UKUJI),
+            Coin::new(user_balance.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
         );
@@ -414,7 +414,7 @@ fn when_vault_is_cancelled_should_fail() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap_err();
 
@@ -431,11 +431,11 @@ fn with_multiple_assets_should_fail() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_unfilled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(user_balance.into(), DENOM_UKUJI),
+            Coin::new(user_balance.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
         );
@@ -450,8 +450,8 @@ fn with_multiple_assets_should_fail() {
                 vault_id: mock.vault_ids.get("vault").unwrap().to_owned(),
             },
             &[
-                Coin::new(vault_deposit.into(), DENOM_UKUJI),
-                Coin::new(vault_deposit.into(), DENOM_UTEST),
+                Coin::new(vault_deposit.into(), DENOM_UOSMO),
+                Coin::new(vault_deposit.into(), DENOM_STAKE),
             ],
         )
         .unwrap_err();
@@ -469,11 +469,11 @@ fn with_mismatched_denom_should_fail() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_unfilled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(user_balance.into(), DENOM_UKUJI),
+            Coin::new(user_balance.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
         );
@@ -487,13 +487,13 @@ fn with_mismatched_denom_should_fail() {
                 address: user_address.clone(),
                 vault_id: mock.vault_ids.get("vault").unwrap().to_owned(),
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UTEST)],
+            &[Coin::new(vault_deposit.into(), DENOM_STAKE)],
         )
         .unwrap_err();
 
     assert_eq!(
         response.root_cause().to_string(),
-        "Error: received asset with denom utest, but needed ukuji"
+        "Error: received asset with denom stake, but needed uosmo"
     );
 }
 
@@ -504,11 +504,11 @@ fn when_contract_is_paused_should_fail() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_time_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -546,7 +546,7 @@ fn when_contract_is_paused_should_fail() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap_err();
 
@@ -563,11 +563,11 @@ fn with_dca_plus_should_update_model_id() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_time_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -596,7 +596,7 @@ fn with_dca_plus_should_update_model_id() {
             },
             &[Coin::new(
                 (user_balance - vault_deposit).into(),
-                DENOM_UKUJI,
+                DENOM_UOSMO,
             )],
         )
         .unwrap();
@@ -622,11 +622,11 @@ fn with_dca_plus_should_update_total_deposit() {
     let swap_amount = ONE;
     let vault_deposit = TEN;
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_time_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "vault",
             None,
@@ -653,7 +653,7 @@ fn with_dca_plus_should_update_total_deposit() {
                 address: user_address.clone(),
                 vault_id,
             },
-            &[Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 

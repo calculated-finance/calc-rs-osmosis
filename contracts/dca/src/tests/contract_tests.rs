@@ -11,9 +11,9 @@ use crate::msg::{
 };
 use crate::state::config::FeeCollector;
 pub const INVALID_ADDRESS: &str = "";
-pub const VALID_ADDRESS_ONE: &str = "kujira16q6jpx7ns0ugwghqay73uxd5aq30du3uqgxf0d";
-pub const VALID_ADDRESS_TWO: &str = "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv";
-pub const VALID_ADDRESS_THREE: &str = "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1";
+pub const VALID_ADDRESS_ONE: &str = "osmo16q6jpx7ns0ugwghqay73uxd5aq30du3uqgxf0d";
+pub const VALID_ADDRESS_TWO: &str = "osmo1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv";
+pub const VALID_ADDRESS_THREE: &str = "osmo1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1";
 
 // pull out common setup (instantiate and create pair)
 
@@ -43,7 +43,7 @@ fn instantiation_with_valid_admin_address_should_succeed() {
         result.attributes,
         vec![
             attr("method", "instantiate"),
-            attr("admin", "kujira16q6jpx7ns0ugwghqay73uxd5aq30du3uqgxf0d")
+            attr("admin", "osmo16q6jpx7ns0ugwghqay73uxd5aq30du3uqgxf0d")
         ]
     )
 }
@@ -130,7 +130,7 @@ fn instantiation_with_fee_collector_amounts_not_equal_to_100_percent_should_fail
 }
 
 #[test]
-fn create_pair_with_valid_address_should_succeed() {
+fn create_pool_with_valid_address_should_succeed() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -156,19 +156,19 @@ fn create_pair_with_valid_address_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePool {
+    let create_pool_execute_message = ExecuteMsg::CreatePool {
         pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
 
-    let result = execute(deps.as_mut(), env, info, create_pair_execute_message).unwrap();
+    let result = execute(deps.as_mut(), env, info, create_pool_execute_message).unwrap();
 
     assert_eq!(
         result.attributes,
         vec![
-            attr("method", "create_pair"),
-            attr("address", "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv"),
+            attr("method", "create_pool"),
+            attr("address", "osmo1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv"),
             attr("base_denom", "base"),
             attr("quote_denom", "quote")
         ]
@@ -176,7 +176,7 @@ fn create_pair_with_valid_address_should_succeed() {
 }
 
 #[test]
-fn create_pair_that_already_exists_should_fail() {
+fn create_pool_that_already_exists_should_fail() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -238,7 +238,7 @@ fn create_pair_that_already_exists_should_fail() {
 }
 
 #[test]
-fn create_pair_with_invalid_address_should_fail() {
+fn create_pool_with_invalid_address_should_fail() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -279,7 +279,7 @@ fn create_pair_with_invalid_address_should_fail() {
 }
 
 #[test]
-fn create_pair_with_unauthorised_sender_should_fail() {
+fn create_pool_with_unauthorised_sender_should_fail() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     let info = mock_info(VALID_ADDRESS_ONE, &vec![]);
@@ -306,7 +306,7 @@ fn create_pair_with_unauthorised_sender_should_fail() {
     .unwrap();
 
     let info_with_unauthorised_sender = mock_info(VALID_ADDRESS_THREE, &vec![]);
-    let create_pair_execute_message = ExecuteMsg::CreatePool {
+    let create_pool_execute_message = ExecuteMsg::CreatePool {
         pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
@@ -316,7 +316,7 @@ fn create_pair_with_unauthorised_sender_should_fail() {
         deps.as_mut(),
         env,
         info_with_unauthorised_sender,
-        create_pair_execute_message,
+        create_pool_execute_message,
     )
     .unwrap_err();
 
@@ -350,17 +350,17 @@ fn delete_pair_with_valid_address_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePool {
+    let create_pool_execute_message = ExecuteMsg::CreatePool {
         pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
 
-    let _create_pair_execute_message_result = execute(
+    let _create_pool_execute_message_result = execute(
         deps.as_mut(),
         env.clone(),
         info.clone(),
-        create_pair_execute_message,
+        create_pool_execute_message,
     )
     .unwrap();
 
@@ -372,7 +372,7 @@ fn delete_pair_with_valid_address_should_succeed() {
         result.attributes,
         vec![
             attr("method", "delete_pair"),
-            attr("address", "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv")
+            attr("address", "osmo1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv")
         ]
     )
 }
@@ -404,16 +404,16 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePool {
+    let create_pool_execute_message = ExecuteMsg::CreatePool {
         pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
-    let _create_pair_execute_message_result = execute(
+    let _create_pool_execute_message_result = execute(
         deps.as_mut(),
         env.clone(),
         info,
-        create_pair_execute_message,
+        create_pool_execute_message,
     )
     .unwrap();
 
@@ -423,7 +423,7 @@ fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
     assert_eq!(response.pools.len(), 1);
     assert_eq!(
         response.pools[0].pool_id.to_string(),
-        String::from("kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv")
+        String::from("osmo1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lfv")
     );
     assert_eq!(response.pools[0].base_denom, String::from("base"));
     assert_eq!(response.pools[0].quote_denom, String::from("quote"));
@@ -490,16 +490,16 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePool {
+    let create_pool_execute_message = ExecuteMsg::CreatePool {
         pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
-    let _create_pair_execute_message_result = execute(
+    let _create_pool_execute_message_result = execute(
         deps.as_mut(),
         env.clone(),
         info.clone(),
-        create_pair_execute_message,
+        create_pool_execute_message,
     )
     .unwrap();
 
@@ -543,7 +543,7 @@ fn cancel_vault_with_valid_inputs_should_succeed() {
         result.attributes,
         vec![
             attr("method", "cancel_vault"),
-            attr("owner", "kujira1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1"),
+            attr("owner", "osmo1cvlzqz80rp70xtmux9x69j4sr0rndh3yws2lf1"),
             attr("vault_id", "1")
         ]
     );
@@ -577,16 +577,16 @@ fn get_active_vault_by_address_and_id_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePool {
+    let create_pool_execute_message = ExecuteMsg::CreatePool {
         pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
-    let _create_pair_execute_message_result = execute(
+    let _create_pool_execute_message_result = execute(
         deps.as_mut(),
         env.clone(),
         info,
-        create_pair_execute_message,
+        create_pool_execute_message,
     )
     .unwrap();
 
@@ -659,16 +659,16 @@ fn get_all_active_vaults_by_address_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePool {
+    let create_pool_execute_message = ExecuteMsg::CreatePool {
         pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
-    let _create_pair_execute_message_result = execute(
+    let _create_pool_execute_message_result = execute(
         deps.as_mut(),
         env.clone(),
         info,
-        create_pair_execute_message,
+        create_pool_execute_message,
     )
     .unwrap();
 
@@ -775,16 +775,16 @@ fn get_all_events_by_vault_id_for_new_vault_should_succeed() {
     )
     .unwrap();
 
-    let create_pair_execute_message = ExecuteMsg::CreatePool {
+    let create_pool_execute_message = ExecuteMsg::CreatePool {
         pool_id: 0,
         base_denom: String::from("base"),
         quote_denom: String::from("quote"),
     };
-    let _create_pair_execute_message_result = execute(
+    let _create_pool_execute_message_result = execute(
         deps.as_mut(),
         env.clone(),
         info,
-        create_pair_execute_message,
+        create_pool_execute_message,
     )
     .unwrap();
 

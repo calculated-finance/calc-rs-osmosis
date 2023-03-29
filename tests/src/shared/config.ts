@@ -1,4 +1,5 @@
 export type Config = {
+  chainName: string;
   bech32AddressPrefix: string;
   netUrl: string;
   gasPrice: number;
@@ -7,6 +8,9 @@ export type Config = {
 };
 
 export const fetchConfig = async (): Promise<Config> => {
+  if (process.env.CHAIN_NAME === undefined) {
+    throw new Error('Missing CHAIN_NAME environment variable');
+  }
   if (process.env.BECH32_ADDRESS_PREFIX === undefined) {
     throw new Error('Missing BECH32_ADDRESS_PREFIX environment variable');
   }
@@ -24,6 +28,7 @@ export const fetchConfig = async (): Promise<Config> => {
   }
 
   return {
+    chainName: process.env.CHAIN_NAME,
     bech32AddressPrefix: process.env.BECH32_ADDRESS_PREFIX,
     netUrl: process.env.NET_URL,
     feeDenom: process.env.FEE_DENOM,

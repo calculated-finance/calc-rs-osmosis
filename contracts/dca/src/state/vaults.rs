@@ -275,11 +275,11 @@ mod destination_store_tests {
                 action: PostExecutionAction::Send,
             }],
             VaultStatus::Active,
-            Coin::new(1000u128, "ukuji".to_string()),
+            Coin::new(1000u128, "uosmo".to_string()),
             Pool {
                 pool_id: 0,
-                base_denom: "demo".to_string(),
-                quote_denom: "ukuji".to_string(),
+                base_denom: "ion".to_string(),
+                quote_denom: "uosmo".to_string(),
             },
             Uint128::new(100),
             None,
@@ -288,11 +288,11 @@ mod destination_store_tests {
             TimeInterval::Daily,
             None,
             Coin {
-                denom: "demo".to_string(),
+                denom: "ion".to_string(),
                 amount: Uint128::zero(),
             },
             Coin {
-                denom: "ukuji".to_string(),
+                denom: "uosmo".to_string(),
                 amount: Uint128::zero(),
             },
             None,
@@ -322,8 +322,8 @@ mod destination_store_tests {
 
         let pool = Pool {
             pool_id: 0,
-            base_denom: "demo".to_string(),
-            quote_denom: "ukuji".to_string(),
+            base_denom: "ion".to_string(),
+            quote_denom: "uosmo".to_string(),
         };
 
         POOLS
@@ -346,8 +346,8 @@ mod destination_store_tests {
 
         let pool = Pool {
             pool_id: 0,
-            base_denom: "demo".to_string(),
-            quote_denom: "ukuji".to_string(),
+            base_denom: "ion".to_string(),
+            quote_denom: "uosmo".to_string(),
         };
 
         POOLS
@@ -373,8 +373,8 @@ mod destination_store_tests {
 
         let pool = Pool {
             pool_id: 0,
-            base_denom: "demo".to_string(),
-            quote_denom: "ukuji".to_string(),
+            base_denom: "ion".to_string(),
+            quote_denom: "uosmo".to_string(),
         };
 
         POOLS
@@ -409,8 +409,8 @@ mod destination_store_tests {
 
         let pool = Pool {
             pool_id: 0,
-            base_denom: "demo".to_string(),
-            quote_denom: "ukuji".to_string(),
+            base_denom: "ion".to_string(),
+            quote_denom: "uosmo".to_string(),
         };
 
         POOLS
@@ -449,8 +449,8 @@ mod destination_store_tests {
 
         let pool = Pool {
             pool_id: 0,
-            base_denom: "demo".to_string(),
-            quote_denom: "ukuji".to_string(),
+            base_denom: "ion".to_string(),
+            quote_denom: "uosmo".to_string(),
         };
 
         POOLS

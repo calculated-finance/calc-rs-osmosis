@@ -1,8 +1,8 @@
 use crate::constants::{ONE, TEN};
 use crate::msg::{QueryMsg, VaultsResponse};
 use crate::tests::mocks::{
-    fin_contract_filled_limit_order, fin_contract_pass_slippage_tolerance, MockApp, DENOM_UKUJI,
-    DENOM_UTEST, USER,
+    fin_contract_filled_limit_order, fin_contract_pass_slippage_tolerance, MockApp, DENOM_STAKE,
+    DENOM_UOSMO, USER,
 };
 use crate::types::vault::Vault;
 use base::pool::Pool;
@@ -36,18 +36,18 @@ fn with_multiple_vaults_should_return_all_vaults() {
     let vault_deposit = TEN;
     let swap_amount = ONE;
     let mock = MockApp::new(fin_contract_filled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_1",
         )
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_2",
         );
@@ -74,11 +74,11 @@ fn with_one_vault_should_return_proper_vault_data() {
     let vault_deposit = TEN;
     let swap_amount = ONE;
     let mock = MockApp::new(fin_contract_pass_slippage_tolerance())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_time_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_1",
             None,
@@ -111,18 +111,18 @@ fn with_one_vault_should_return_proper_vault_data() {
             }],
             created_at: mock.app.block_info().time,
             status: VaultStatus::Scheduled,
-            balance: Coin::new(vault_deposit.into(), DENOM_UKUJI.to_string()),
+            balance: Coin::new(vault_deposit.into(), DENOM_UOSMO.to_string()),
             time_interval: TimeInterval::Hourly,
             slippage_tolerance: None,
             swap_amount,
             pool: Pool {
                 pool_id: 0,
-                base_denom: DENOM_UTEST.to_string(),
-                quote_denom: DENOM_UKUJI.to_string(),
+                base_denom: DENOM_STAKE.to_string(),
+                quote_denom: DENOM_UOSMO.to_string(),
             },
             started_at: None,
-            swapped_amount: Coin::new(0, DENOM_UKUJI.to_string()),
-            received_amount: Coin::new(0, DENOM_UTEST.to_string()),
+            swapped_amount: Coin::new(0, DENOM_UOSMO.to_string()),
+            received_amount: Coin::new(0, DENOM_STAKE.to_string()),
             trigger: Some(TriggerConfiguration::Time {
                 target_time: mock
                     .app
@@ -143,18 +143,18 @@ fn with_limit_should_return_limited_vaults() {
     let vault_deposit = TEN;
     let swap_amount = ONE;
     let mock = MockApp::new(fin_contract_filled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_1",
         )
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_2",
         );
@@ -182,18 +182,18 @@ fn with_start_after_should_return_vaults_after_start_after() {
     let vault_deposit = TEN;
     let swap_amount = ONE;
     let mock = MockApp::new(fin_contract_filled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_1",
         )
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_2",
         );
@@ -221,25 +221,25 @@ fn with_limit_and_start_after_should_return_limited_vaults_after_start_after() {
     let vault_deposit = TEN;
     let swap_amount = ONE;
     let mock = MockApp::new(fin_contract_filled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_1",
         )
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_2",
         )
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_3",
         );
@@ -267,11 +267,11 @@ fn with_limit_too_large_should_fail() {
     let vault_deposit = TEN;
     let swap_amount = ONE;
     let mock = MockApp::new(fin_contract_filled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UKUJI)
+        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
         .with_vault_with_filled_fin_limit_price_trigger(
             &user_address,
             None,
-            Coin::new(vault_deposit.into(), DENOM_UKUJI),
+            Coin::new(vault_deposit.into(), DENOM_UOSMO),
             swap_amount,
             "fin_1",
         );

@@ -1,4 +1,4 @@
-use super::mocks::{fin_contract_filled_limit_order, MockApp, DENOM_UKUJI, USER};
+use super::mocks::{fin_contract_filled_limit_order, MockApp, DENOM_UOSMO, USER};
 use crate::{
     constants::{ONE, TEN},
     msg::{ExecuteMsg, QueryMsg, TriggerIdsResponse},
@@ -16,7 +16,7 @@ fn should_return_active_triggers_only() {
     let mut mock = MockApp::new(fin_contract_filled_limit_order()).with_funds_for(
         &user_address,
         user_balance,
-        DENOM_UKUJI,
+        DENOM_UOSMO,
     );
 
     mock.app
@@ -39,7 +39,7 @@ fn should_return_active_triggers_only() {
                 target_receive_amount: None,
                 use_dca_plus: None,
             },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UKUJI)],
+            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
         )
         .unwrap();
 

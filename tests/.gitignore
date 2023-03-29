@@ -112,3 +112,6 @@ infrastructure/**/*.zip
 
 # local dev scripts
 *.dev.ts
+
+# osmosis repo
+osmosis/

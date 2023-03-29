@@ -29,7 +29,7 @@ export const createCosmWasmClientForWallet = async (
   });
 
   const [userAccount] = await userWallet.getAccounts();
-  await adminCosmWasmClient.sendTokens(adminContractAddress, userAccount.address, [coin(1000000, 'ukuji')], 'auto');
+  await adminCosmWasmClient.sendTokens(adminContractAddress, userAccount.address, [coin(1000000, 'uosmo')], 'auto');
 
   return userCosmWasmClient;
 };
@@ -37,7 +37,7 @@ export const createCosmWasmClientForWallet = async (
 export const createVault = async (
   context: Context,
   overrides: Record<string, unknown> = {},
-  deposit: Coin[] = [coin('1000000', 'udemo')],
+  deposit: Coin[] = [coin('1000000', 'stake')],
 ) => {
   if (deposit.length > 0)
     await context.cosmWasmClient.sendTokens(context.adminContractAddress, context.userWalletAddress, deposit, 'auto');
@@ -50,7 +50,7 @@ export const createVault = async (
       create_vault: {
         label: 'test',
         swap_amount: '100000',
-        pair_address: context.pair.address,
+        pool_id: context.pool.pool_id,
         time_interval: 'hourly',
         ...overrides,
       },
@@ -64,7 +64,7 @@ export const createVault = async (
 export const getBalances = async (
   cosmWasmClient: SigningCosmWasmClient,
   addresses: Addr[],
-  denoms: string[] = ['udemo', 'ukuji', 'utest'],
+  denoms: string[] = ['uion', 'uosmo', 'stake'],
 ) => {
   return indexBy(
     prop('address'),

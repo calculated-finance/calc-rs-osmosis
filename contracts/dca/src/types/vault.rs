@@ -326,7 +326,7 @@ impl Vault {
 // mod get_expected_execution_completed_date_tests {
 //     use crate::{
 //         constants::{ONE, TEN},
-//         tests::mocks::DENOM_UKUJI,
+//         tests::mocks::DENOM_UOSMO,
 //         types::dca_plus_config::DcaPlusConfig,
 //     };
 
@@ -375,10 +375,10 @@ impl Vault {
 //         vault.dca_plus_config = Some(DcaPlusConfig {
 //             escrow_level: Decimal::percent(5),
 //             model_id: 30,
-//             total_deposit: Coin::new(TEN.into(), DENOM_UKUJI),
-//             standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UKUJI),
-//             standard_dca_received_amount: Coin::new(ONE.into(), DENOM_UKUJI),
-//             escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UKUJI),
+//             total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
+//             standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
+//             standard_dca_received_amount: Coin::new(ONE.into(), DENOM_UOSMO),
+//             escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UOSMO),
 //         });
 
 //         assert_eq!(
@@ -395,10 +395,10 @@ impl Vault {
 //         vault.dca_plus_config = Some(DcaPlusConfig {
 //             escrow_level: Decimal::percent(5),
 //             model_id: 30,
-//             total_deposit: Coin::new(TEN.into(), DENOM_UKUJI),
-//             standard_dca_swapped_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UKUJI),
-//             standard_dca_received_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UKUJI),
-//             escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UKUJI),
+//             total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
+//             standard_dca_swapped_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UOSMO),
+//             standard_dca_received_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UOSMO),
+//             escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UOSMO),
 //         });
 
 //         assert_eq!(

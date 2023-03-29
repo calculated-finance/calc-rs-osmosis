@@ -9,7 +9,7 @@ use cw_multi_test::Executor;
 use crate::{
     constants::{ONE, TEN},
     msg::{ExecuteMsg, QueryMsg, VaultResponse},
-    tests::mocks::{fin_contract_unfilled_limit_order, MockApp, DENOM_UKUJI, USER},
+    tests::mocks::{fin_contract_unfilled_limit_order, MockApp, DENOM_UOSMO, USER},
 };
 
 #[test]
@@ -21,7 +21,7 @@ fn should_succeed() {
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
         &user_address,
         user_balance,
-        DENOM_UKUJI,
+        DENOM_UOSMO,
     );
 
     let response = mock
@@ -43,7 +43,7 @@ fn should_succeed() {
                 target_start_time_utc_seconds: None,
                 use_dca_plus: None,
             },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UOSMO))],
         )
         .unwrap();
 
@@ -83,7 +83,7 @@ fn cancelled_vault_should_fail() {
     let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
         &user_address,
         user_balance,
-        DENOM_UKUJI,
+        DENOM_UOSMO,
     );
 
     let response = mock
@@ -105,7 +105,7 @@ fn cancelled_vault_should_fail() {
                 target_start_time_utc_seconds: None,
                 use_dca_plus: None,
             },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UKUJI))],
+            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UOSMO))],
         )
         .unwrap();
 

@@ -1,32 +1,33 @@
 import dotenv from 'dotenv';
 import { fetchConfig } from '../shared/config';
-import { createAdminCosmWasmClient, execute, getWallet, uploadAndInstantiate } from '../shared/cosmwasm';
-import { Coin, coin } from '@cosmjs/proto-signing';
+import { execute, getWallet, uploadAndInstantiate } from '../shared/cosmwasm';
+import { coin } from '@cosmjs/proto-signing';
 import { createCosmWasmClientForWallet, createWallet } from './helpers';
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { Tendermint34Client } from '@cosmjs/tendermint-rpc';
-import { HttpBatchClient } from '@cosmjs/tendermint-rpc/build/rpcclients';
-import { kujiraQueryClient } from 'kujira.js';
+import { createAdminOsmosisClient } from '../shared/osmosis';
+import { cosmos, FEES, osmosis } from 'osmojs';
+import { getPoolsPricesPairs } from '@cosmology/core';
+import { find, reverse } from 'ramda';
+import { Pool } from '../types/dca/response/get_pools';
 
-const calcSwapFee = 0.0165;
+const calcSwapFee = 0.0005;
 const automationFee = 0.0075;
-const finTakerFee = 0.0015;
-const finMakerFee = 0.00075;
-const finBuyPrice = 1.01;
-const finSellPrice = 0.99;
+const osmosisSwapFee = 0.01;
 const swapAdjustment = 1.3;
 
 export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
   dotenv.config();
 
   const config = await fetchConfig();
-  const httpClient = new HttpBatchClient(config.netUrl, {
-    dispatchInterval: 100,
-    batchSizeLimit: 200,
-  });
-  const tmClient = await Tendermint34Client.create(httpClient);
-  const kujiClient = kujiraQueryClient({ client: tmClient });
-  const cosmWasmClient = await createAdminCosmWasmClient(config);
+  const queryClient = await osmosis.ClientFactory.createRPCQueryClient({ rpcEndpoint: config.netUrl });
+
+  const validatorAddress = (
+    await queryClient.cosmos.staking.v1beta1.validators({
+      status: cosmos.staking.v1beta1.bondStatusToJSON(cosmos.staking.v1beta1.BondStatus.BOND_STATUS_BONDED),
+    })
+  ).validators[0].operatorAddress;
+
+  const cosmWasmClient = await createAdminOsmosisClient(config);
 
   const adminContractAddress = (
     await (await getWallet(config.adminContractMnemonic, config.bech32AddressPrefix)).getAccounts()
@@ -35,19 +36,18 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
   const feeCollectorWallet = await createWallet(config);
   const feeCollectorAddress = (await feeCollectorWallet.getAccounts())[0].address;
 
-  const finPairAddress = await instantiateFinPairContract(cosmWasmClient, adminContractAddress);
-
-  const dcaContractAddress = await instantiateDCAContract(cosmWasmClient, adminContractAddress, feeCollectorAddress, [
-    finPairAddress,
-  ]);
+  const dcaContractAddress = await instantiateDCAContract(
+    cosmWasmClient,
+    queryClient,
+    adminContractAddress,
+    feeCollectorAddress,
+  );
 
   const stakingRouterContractAddress = await instantiateStakingRouterContract(
     cosmWasmClient,
     adminContractAddress,
     dcaContractAddress,
   );
-
-  const swapContractAddress = await instantiateSwapContract(cosmWasmClient, adminContractAddress, finPairAddress);
 
   const userWallet = await createWallet(config);
   const userWalletAddress = (await userWallet.getAccounts())[0].address;
@@ -58,7 +58,20 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
     userWallet,
   );
 
-  const validatorAddress = (await kujiClient.staking.validators('')).validators[0].operatorAddress;
+  await cosmWasmClient.sendTokens(
+    adminContractAddress,
+    userWalletAddress,
+    [coin(100000000, 'stake'), coin(100000000, 'uion'), coin(100000000, 'uosmo')],
+    FEES.osmosis.swapExactAmountIn('medium'),
+  );
+
+  const contractPools = (
+    await cosmWasmClient.queryContractSmart(dcaContractAddress, {
+      get_pools: {},
+    })
+  ).pools;
+
+  const pool = find((pool: Pool) => pool.base_denom == 'stake' && pool.quote_denom == 'uion', reverse(contractPools));
 
   return {
     beforeAll(this: Mocha.Context) {
@@ -66,6 +79,7 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
         config,
         cosmWasmClient,
         userCosmWasmClient,
+        queryClient,
         dcaContractAddress,
         calcSwapFee,
         automationFee,
@@ -73,17 +87,8 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
         feeCollectorAddress,
         userWalletAddress,
         stakingRouterContractAddress,
-        finPairAddress,
-        swapContractAddress,
-        finBuyPrice,
-        finSellPrice,
-        finMakerFee,
-        finTakerFee,
-        pair: {
-          address: finPairAddress,
-          base_denom: 'ukuji',
-          quote_denom: 'udemo',
-        },
+        osmosisSwapFee,
+        pool,
         validatorAddress,
         swapAdjustment,
       };
@@ -95,9 +100,9 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
 
 const instantiateDCAContract = async (
   cosmWasmClient: SigningCosmWasmClient,
+  queryClient: any,
   adminContractAddress: string,
   feeCollectorAdress: string,
-  pairAddress: string[] = [],
 ): Promise<string> => {
   const dcaContractAddress = await uploadAndInstantiate(
     '../artifacts/dca.wasm',
@@ -116,16 +121,14 @@ const instantiateDCAContract = async (
     'dca',
   );
 
-  for (const address of pairAddress) {
-    const pair = await cosmWasmClient.queryContractSmart(address, {
-      config: {},
-    });
+  const { pools } = await getPoolsPricesPairs(queryClient);
 
+  for (const pool of pools) {
     await execute(cosmWasmClient, adminContractAddress, dcaContractAddress, {
-      create_pair: {
-        base_denom: pair.denoms[0].native,
-        quote_denom: pair.denoms[1].native,
-        address,
+      create_pool: {
+        base_denom: pool.poolAssets[0].token.denom,
+        quote_denom: pool.poolAssets[1].token.denom,
+        pool_id: pool.id.low,
       },
     });
   }
@@ -176,52 +179,6 @@ const instantiateStakingRouterContract = async (
   });
 
   return address;
-};
-
-export const instantiateFinPairContract = async (
-  cosmWasmClient: SigningCosmWasmClient,
-  adminContractAddress: string,
-  baseDenom: string = 'ukuji',
-  quoteDenom: string = 'udemo',
-  beliefPrice: number = 1.0,
-  orders: Record<string, number | Coin>[] = [],
-): Promise<string> => {
-  const finContractAddress = await uploadAndInstantiate(
-    '../artifacts/fin.wasm',
-    cosmWasmClient,
-    adminContractAddress,
-    {
-      owner: adminContractAddress,
-      denoms: [{ native: baseDenom }, { native: quoteDenom }],
-      price_precision: { decimal_places: 3 },
-    },
-    'fin',
-  );
-
-  await execute(cosmWasmClient, adminContractAddress, finContractAddress, {
-    launch: {},
-  });
-
-  orders =
-    (orders.length == 0 && [
-      { price: beliefPrice + 0.01, amount: coin('1000000000000', baseDenom) },
-      { price: beliefPrice - 0.01, amount: coin('1000000000000', quoteDenom) },
-    ]) ||
-    orders;
-
-  for (const order of orders) {
-    await execute(
-      cosmWasmClient,
-      adminContractAddress,
-      finContractAddress,
-      {
-        submit_order: { price: `${order.price}` },
-      },
-      [order.amount as Coin],
-    );
-  }
-
-  return finContractAddress;
 };
 
 export const instantiateSwapContract = async (

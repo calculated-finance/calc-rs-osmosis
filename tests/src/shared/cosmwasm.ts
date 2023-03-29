@@ -1,11 +1,12 @@
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { Coin, DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
-import { GasPrice, Attribute, Event } from '@cosmjs/stargate';
+import { GasPrice, Attribute, Event, SigningStargateClient } from '@cosmjs/stargate';
 import dayjs from 'dayjs';
 import { reduce, assoc } from 'ramda';
 import { Config } from './config';
 import RelativeTime from 'dayjs/plugin/relativeTime';
 import fs from 'fs';
+import { getSigningOsmosisClient } from 'osmojs';
 dayjs.extend(RelativeTime);
 
 export const getWallet = async (mnemonic: string, prefix: string): Promise<DirectSecp256k1HdWallet> => {

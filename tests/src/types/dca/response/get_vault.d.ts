@@ -60,14 +60,17 @@ export type PostExecutionAction = "send" | "z_delegate";
  * This type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.
  */
 export type Addr = string;
-/**
- * A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0
- *
- * The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)
- */
-export type Decimal256 = string;
 export type VaultStatus = "scheduled" | "active" | "inactive" | "cancelled";
-export type TimeInterval = "half_hourly" | "hourly" | "half_daily" | "daily" | "weekly" | "fortnightly" | "monthly";
+export type TimeInterval =
+  | "every_second"
+  | "every_minute"
+  | "half_hourly"
+  | "hourly"
+  | "half_daily"
+  | "daily"
+  | "weekly"
+  | "fortnightly"
+  | "monthly";
 export type TriggerConfiguration =
   | {
       time: {
@@ -80,6 +83,12 @@ export type TriggerConfiguration =
         target_price: Decimal256;
       };
     };
+/**
+ * A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0
+ *
+ * The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)
+ */
+export type Decimal256 = string;
 
 export interface VaultResponse {
   vault: Vault;
@@ -93,9 +102,9 @@ export interface Vault {
   label?: string | null;
   minimum_receive_amount?: Uint128 | null;
   owner: Addr;
-  pair: Pair;
+  pool: Pool;
   received_amount: Coin;
-  slippage_tolerance?: Decimal256 | null;
+  slippage_tolerance?: Decimal | null;
   started_at?: Timestamp | null;
   status: VaultStatus;
   swap_amount: Uint128;
@@ -122,8 +131,8 @@ export interface Destination {
   address: Addr;
   allocation: Decimal;
 }
-export interface Pair {
-  address: Addr;
+export interface Pool {
   base_denom: string;
+  pool_id: number;
   quote_denom: string;
 }
