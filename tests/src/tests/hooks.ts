@@ -1,10 +1,9 @@
 import dotenv from 'dotenv';
 import { fetchConfig } from '../shared/config';
-import { execute, getWallet, uploadAndInstantiate } from '../shared/cosmwasm';
+import { createAdminCosmWasmClient, execute, getWallet, uploadAndInstantiate } from '../shared/cosmwasm';
 import { coin } from '@cosmjs/proto-signing';
 import { createCosmWasmClientForWallet, createWallet } from './helpers';
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { createAdminOsmosisClient } from '../shared/osmosis';
 import { cosmos, FEES, osmosis } from 'osmojs';
 import { getPoolsPricesPairs } from '@cosmology/core';
 import { find, reverse } from 'ramda';
@@ -27,7 +26,7 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
     })
   ).validators[0].operatorAddress;
 
-  const cosmWasmClient = await createAdminOsmosisClient(config);
+  const cosmWasmClient = await createAdminCosmWasmClient(config);
 
   const adminContractAddress = (
     await (await getWallet(config.adminContractMnemonic, config.bech32AddressPrefix)).getAccounts()

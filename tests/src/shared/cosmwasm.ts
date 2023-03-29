@@ -1,12 +1,12 @@
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { Coin, DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
-import { GasPrice, Attribute, Event, SigningStargateClient } from '@cosmjs/stargate';
+import { GasPrice, Attribute, Event } from '@cosmjs/stargate';
 import dayjs from 'dayjs';
 import { reduce, assoc } from 'ramda';
 import { Config } from './config';
 import RelativeTime from 'dayjs/plugin/relativeTime';
 import fs from 'fs';
-import { getSigningOsmosisClient } from 'osmojs';
+import { getOfflineSignerProto as getOfflineSigner } from 'cosmjs-utils';
 dayjs.extend(RelativeTime);
 
 export const getWallet = async (mnemonic: string, prefix: string): Promise<DirectSecp256k1HdWallet> => {
@@ -16,8 +16,15 @@ export const getWallet = async (mnemonic: string, prefix: string): Promise<Direc
 };
 
 export const createAdminCosmWasmClient = async (config: Config): Promise<SigningCosmWasmClient> => {
-  const wallet = await getWallet(config.adminContractMnemonic, config.bech32AddressPrefix);
-  return await SigningCosmWasmClient.connectWithSigner(config.netUrl, wallet, {
+  const signer = await getOfflineSigner({
+    mnemonic: config.adminContractMnemonic,
+    chain: {
+      bech32_prefix: config.bech32AddressPrefix,
+      slip44: 118,
+    },
+  });
+
+  return await SigningCosmWasmClient.connectWithSigner(config.netUrl, signer, {
     prefix: config.bech32AddressPrefix,
     gasPrice: GasPrice.fromString(`${config.gasPrice}${config.feeDenom}`),
   });
