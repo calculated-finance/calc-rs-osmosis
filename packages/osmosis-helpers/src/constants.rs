@@ -10,3 +10,5 @@ pub const ONE_HUNDRED: Uint128 = Uint128::new(100000000);
 pub const ONE_THOUSAND: Uint128 = Uint128::new(1000000000);
 
 pub const ONE_DECIMAL: Decimal = Decimal::new(Uint128::new(1000000000000000000));
+
+pub const SWAP_FEE: &str = "0.001";
