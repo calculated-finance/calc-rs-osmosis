@@ -1,4 +1,3 @@
-pub mod after_fin_swap;
 pub mod after_z_delegation;
 pub mod cancel_vault;
 pub mod create_custom_swap_fee;
@@ -7,6 +6,7 @@ pub mod create_vault;
 pub mod delete_pool;
 pub mod deposit;
 pub mod disburse_escrow;
+pub mod disburse_funds;
 pub mod execute_trigger;
 pub mod get_custom_swap_fees;
 pub mod get_dca_plus_performance;

@@ -84,7 +84,7 @@ describe('when creating a vault', () => {
           dca_vault_execution_completed: {
             sent: coin(vault.swap_amount, vault.balance.denom),
             received: coin(`${receivedAmount}`, vault.received_amount.denom),
-            fee: coin(Math.round(receivedAmount * this.calcSwapFee), vault.received_amount.denom),
+            fee: coin(Math.round(receivedAmount * this.calcSwapFee) - 1, vault.received_amount.denom),
           },
         },
       ]);

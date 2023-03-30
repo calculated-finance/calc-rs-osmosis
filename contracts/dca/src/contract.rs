@@ -1,5 +1,4 @@
 use crate::error::ContractError;
-use crate::handlers::after_fin_swap::after_fin_swap;
 use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
@@ -8,6 +7,7 @@ use crate::handlers::create_vault::create_vault;
 use crate::handlers::delete_pool::delete_pool;
 use crate::handlers::deposit::deposit;
 use crate::handlers::disburse_escrow::disburse_escrow_handler;
+use crate::handlers::disburse_funds::disburse_funds;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_custom_swap_fees::get_custom_swap_fees;
 use crate::handlers::get_dca_plus_performance::get_dca_plus_performance_handler;
@@ -196,7 +196,7 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
-        AFTER_FIN_SWAP_REPLY_ID => after_fin_swap(deps, env, reply),
+        AFTER_FIN_SWAP_REPLY_ID => disburse_funds(deps, env, reply),
         AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
         AFTER_BANK_SWAP_REPLY_ID => Ok(Response::new().add_attribute("method", "after_bank_swap")),
         id => Err(ContractError::CustomError {

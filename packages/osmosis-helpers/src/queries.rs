@@ -28,19 +28,10 @@ pub fn query_belief_price(
         false => PositionType::Exit,
     };
 
-    let base_asset_denom;
-    let quote_asset_denom;
-
-    match position_type {
-        PositionType::Enter => {
-            base_asset_denom = &pool.base_denom;
-            quote_asset_denom = &pool.quote_denom;
-        }
-        PositionType::Exit => {
-            base_asset_denom = &pool.quote_denom;
-            quote_asset_denom = &pool.base_denom;
-        }
-    }
+    let (base_asset_denom, quote_asset_denom) = match position_type {
+        PositionType::Enter => (&pool.base_denom, &pool.quote_denom),
+        PositionType::Exit => (&pool.quote_denom, &pool.base_denom),
+    };
 
     QuerySpotPriceRequest {
         pool_id: pool.pool_id,

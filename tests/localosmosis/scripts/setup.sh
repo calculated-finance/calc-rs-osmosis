@@ -173,6 +173,7 @@ if [[ $STATE == 'true' ]]
 then
     create_two_asset_pool "nativeDenomPoolA.json"
     create_two_asset_pool "nativeDenomPoolB.json"
+    create_two_asset_pool "nativeDenomPoolC.json"
     create_three_asset_pool
     create_concentrated_pool
     create_concentrated_pool_positions

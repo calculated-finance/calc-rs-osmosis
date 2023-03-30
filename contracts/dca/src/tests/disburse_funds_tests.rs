@@ -2,7 +2,7 @@ use crate::{
     constants::{ONE, TEN},
     contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID},
     handlers::{
-        after_fin_swap::after_fin_swap, get_events_by_resource_id::get_events_by_resource_id,
+        disburse_funds::disburse_funds, get_events_by_resource_id::get_events_by_resource_id,
     },
     helpers::vault_helpers::get_swap_amount,
     state::{
@@ -59,7 +59,7 @@ fn with_succcesful_swap_returns_funds_to_destination() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
-    let response = after_fin_swap(
+    let response = disburse_funds(
         deps.as_mut(),
         env,
         Reply {
@@ -128,7 +128,7 @@ fn with_succcesful_swap_returns_fee_to_fee_collector() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
-    let response = after_fin_swap(
+    let response = disburse_funds(
         deps.as_mut(),
         env,
         Reply {
@@ -208,7 +208,7 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
-    let response = after_fin_swap(
+    let response = disburse_funds(
         deps.as_mut(),
         env.clone(),
         Reply {
@@ -294,7 +294,7 @@ fn with_succcesful_swap_adjusts_vault_balance() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env.clone(),
         Reply {
@@ -352,7 +352,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
         ],
     );
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env.clone(),
         Reply {
@@ -399,7 +399,7 @@ fn with_succcesful_swap_adjusts_received_amount_stat() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env,
         Reply {
@@ -475,7 +475,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
     )
     .unwrap();
 
-    let response = after_fin_swap(
+    let response = disburse_funds(
         deps.as_mut(),
         env,
         Reply {
@@ -564,7 +564,7 @@ fn with_succcesful_swap_publishes_dca_execution_completed_event() {
     )
     .unwrap();
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env.clone(),
         Reply {
@@ -647,7 +647,7 @@ fn with_succcesful_swap_with_dca_plus_publishes_execution_completed_event() {
     )
     .unwrap();
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env.clone(),
         Reply {
@@ -692,7 +692,7 @@ fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
         result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
@@ -716,7 +716,7 @@ fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_
         result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
 
     let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
         .unwrap()
@@ -749,7 +749,7 @@ fn with_failed_swap_publishes_skipped_event_with_slippage_failure() {
         result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
     };
 
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
 
     let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
         .unwrap()
@@ -780,7 +780,7 @@ fn with_failed_swap_leaves_vault_active() {
         result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
     };
 
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
@@ -800,7 +800,7 @@ fn with_failed_swap_does_not_reduce_vault_balance() {
         result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
     };
 
-    after_fin_swap(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
@@ -841,7 +841,7 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
-    let response = after_fin_swap(
+    let response = disburse_funds(
         deps.as_mut(),
         env,
         Reply {
@@ -915,7 +915,7 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
-    let response = after_fin_swap(
+    let response = disburse_funds(
         deps.as_mut(),
         env,
         Reply {
@@ -997,7 +997,7 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
         vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
     );
 
-    let response = after_fin_swap(
+    let response = disburse_funds(
         deps.as_mut(),
         env,
         Reply {
@@ -1067,7 +1067,7 @@ fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
         vec![Coin::new(1000000, vault.get_receive_denom())],
     );
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env,
         Reply {
@@ -1114,7 +1114,7 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
         vec![Coin::new(1000000, vault.get_receive_denom())],
     );
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env.clone(),
         Reply {
@@ -1169,7 +1169,7 @@ fn for_dca_plus_vault_with_low_funds_and_failed_swap_publishes_unknown_failure_e
         vec![Coin::new(1000000, vault.get_receive_denom())],
     );
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env.clone(),
         Reply {
@@ -1224,7 +1224,7 @@ fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive()
         vec![Coin::new(1000000, vault.get_receive_denom())],
     );
 
-    after_fin_swap(
+    disburse_funds(
         deps.as_mut(),
         env,
         Reply {
