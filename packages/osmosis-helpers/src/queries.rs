@@ -1,54 +1,26 @@
-use crate::{msg::FinConfigResponse, position_type::PositionType};
-use base::{pool::Pool, price_type::PriceType};
-use cosmwasm_std::{Coin, Decimal, QuerierWrapper, StdError, StdResult};
-use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceRequest;
-
-fn _query_quote_price(
-    _querier: QuerierWrapper,
-    _pool: &Pool,
-    _swap_denom: &str,
-) -> StdResult<Decimal> {
-    unimplemented!()
-}
+use base::pool::Pool;
+use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, StdError, StdResult, Uint128};
+use osmosis_std::types::osmosis::poolmanager::v1beta1::{PoolmanagerQuerier, SwapAmountInRoute};
 
 pub fn query_belief_price(
     querier: QuerierWrapper,
+    env: &Env,
     pool: &Pool,
     swap_denom: &str,
 ) -> StdResult<Decimal> {
-    if ![pool.base_denom.clone(), pool.quote_denom.clone()].contains(&swap_denom.to_string()) {
-        return Err(StdError::generic_err(format!(
-            "Provided swap denom {} not in pool {}",
-            swap_denom, pool.pool_id
-        )));
-    }
-
-    let position_type = match swap_denom == pool.quote_denom {
-        true => PositionType::Enter,
-        false => PositionType::Exit,
-    };
-
-    let (base_asset_denom, quote_asset_denom) = match position_type {
-        PositionType::Enter => (&pool.base_denom, &pool.quote_denom),
-        PositionType::Exit => (&pool.quote_denom, &pool.base_denom),
-    };
-
-    QuerySpotPriceRequest {
-        pool_id: pool.pool_id,
-        base_asset_denom: base_asset_denom.clone(),
-        quote_asset_denom: quote_asset_denom.clone(),
-    }
-    .query(&querier)
-    .expect(format!("pool for {} not found", pool.pool_id).as_str())
-    .spot_price
-    .parse::<Decimal>()
+    query_price(
+        querier,
+        env,
+        pool,
+        &Coin::new(Uint128::new(100).into(), swap_denom),
+    )
 }
 
 pub fn query_price(
     querier: QuerierWrapper,
-    pool: Pool,
+    env: &Env,
+    pool: &Pool,
     swap_amount: &Coin,
-    _price_type: PriceType,
 ) -> StdResult<Decimal> {
     if ![pool.base_denom.clone(), pool.quote_denom.clone()].contains(&swap_amount.denom) {
         return Err(StdError::generic_err(format!(
@@ -57,34 +29,33 @@ pub fn query_price(
         )));
     }
 
-    let position_type = match swap_amount.denom == pool.quote_denom {
-        true => PositionType::Enter,
-        false => PositionType::Exit,
+    let token_out_denom = if swap_amount.denom == pool.base_denom {
+        pool.quote_denom.clone()
+    } else {
+        pool.base_denom.clone()
     };
 
-    let base_asset_denom;
-    let quote_asset_denom;
+    let token_out_amount = PoolmanagerQuerier::new(&querier)
+        .estimate_swap_exact_amount_in(
+            env.contract.address.to_string(),
+            pool.pool_id,
+            swap_amount.to_string(),
+            vec![SwapAmountInRoute {
+                pool_id: pool.pool_id,
+                token_out_denom: token_out_denom.clone(),
+            }],
+        )
+        .expect(&format!(
+            "token out amount of {} for swapping {} on pool {} from sender {}",
+            token_out_denom,
+            swap_amount.to_string(),
+            pool.pool_id,
+            env.contract.address.to_string()
+        ))
+        .token_out_amount
+        .parse::<Uint128>()?;
 
-    match position_type {
-        PositionType::Enter => {
-            base_asset_denom = pool.base_denom;
-            quote_asset_denom = pool.quote_denom;
-        }
-        PositionType::Exit => {
-            base_asset_denom = pool.quote_denom;
-            quote_asset_denom = pool.base_denom;
-        }
-    }
-
-    QuerySpotPriceRequest {
-        pool_id: pool.pool_id,
-        base_asset_denom,
-        quote_asset_denom,
-    }
-    .query(&querier)
-    .expect(format!("pool for {} not found", pool.pool_id).as_str())
-    .spot_price
-    .parse::<Decimal>()
+    Ok(Decimal::from_ratio(swap_amount.amount, token_out_amount))
 }
 
 pub fn calculate_slippage(actual_price: Decimal, belief_price: Decimal) -> Decimal {
@@ -97,8 +68,4 @@ pub fn calculate_slippage(actual_price: Decimal, belief_price: Decimal) -> Decim
     }
 
     difference / belief_price
-}
-
-pub fn query_pool_config(_querier: QuerierWrapper, _pool_id: u64) -> StdResult<FinConfigResponse> {
-    unimplemented!()
 }

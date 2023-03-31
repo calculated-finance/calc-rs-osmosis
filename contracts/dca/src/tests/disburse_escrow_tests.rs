@@ -62,7 +62,7 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
 
     update_vault(deps.as_mut().storage, &vault).unwrap();
 
-    let response = disburse_escrow_handler(deps.as_mut(), env, info, vault.id).unwrap();
+    let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
     assert!(response.messages.contains(&SubMsg::reply_on_success(
         CosmosMsg::Bank(BankMsg::Send {
@@ -107,7 +107,7 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
 
     update_vault(deps.as_mut().storage, &vault).unwrap();
 
-    let response = disburse_escrow_handler(deps.as_mut(), env, info, vault.id).unwrap();
+    let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
     assert!(response
         .messages
@@ -152,7 +152,7 @@ fn publishes_escrow_disbursed_event() {
 
     update_vault(deps.as_mut().storage, &vault).unwrap();
 
-    disburse_escrow_handler(deps.as_mut(), env.clone(), info, vault.id).unwrap();
+    disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
     let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
         .unwrap()
@@ -213,7 +213,7 @@ fn sets_escrow_balance_to_zero() {
 
     update_vault(deps.as_mut().storage, &vault).unwrap();
 
-    disburse_escrow_handler(deps.as_mut(), env, info, vault.id).unwrap();
+    disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
     let dca_plus_config = get_vault(deps.as_ref().storage, vault.id)
         .unwrap()
@@ -255,7 +255,7 @@ fn deletes_disburse_escrow_task() {
     let disburse_escrow_tasks_before =
         get_disburse_escrow_tasks(deps.as_ref().storage, env.block.time, None).unwrap();
 
-    disburse_escrow_handler(deps.as_mut(), env.clone(), info, vault.id).unwrap();
+    disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
     let disburse_escrow_tasks_after =
         get_disburse_escrow_tasks(deps.as_ref().storage, env.block.time, None).unwrap();
@@ -280,7 +280,7 @@ fn when_not_a_dca_vault_returns_an_error() {
 
     let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
 
-    let response = disburse_escrow_handler(deps.as_mut(), env, info, vault.id).unwrap_err();
+    let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap_err();
 
     assert_eq!(response.to_string(), "Error: Vault is not a DCA+ vault");
 }

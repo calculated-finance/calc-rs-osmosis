@@ -8,6 +8,7 @@ import { createVault, getBalances } from '../helpers';
 import { setTimeout } from 'timers/promises';
 import { EventData } from '../../types/dca/response/get_events';
 import { find, map } from 'ramda';
+import Long from 'long';
 
 describe('when executing a vault', () => {
   describe('with a ready time trigger', () => {
@@ -570,385 +571,404 @@ describe('when executing a vault', () => {
       expect(vaultBeforeExecution.status).to.eql('scheduled') && expect(vaultAfterExecution.status).to.eql('active'));
   });
 
-  // describe('with dca plus', () => {
-  //   const deposit = coin(1000000, 'uosmo');
-  //   let vault: Vault;
-  //   let balancesBeforeExecution: Record<string, number>;
-  //   let balancesAfterExecution: Record<string, number>;
-  //   let expectedPrice: number;
+  describe.only('with dca plus', () => {
+    const deposit = coin(1000000, 'stake');
+    const swapAmount = '100000';
+    let vault: Vault;
+    let balancesBeforeExecution: Record<string, number>;
+    let balancesAfterExecution: Record<string, number>;
+    let expectedPrice: number;
 
-  //   before(async function (this: Context) {
-  //     balancesBeforeExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
+    before(async function (this: Context) {
+      balancesBeforeExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
 
-  //     const targetTime = dayjs().add(10, 'seconds');
+      const targetTime = dayjs().add(10, 'seconds');
 
-  //     const vault_id = await createVault(
-  //       this,
-  //       {
-  //         target_start_time_utc_seconds: `${targetTime.unix()}`,
-  //         time_interval: 'every_second',
-  //         use_dca_plus: true,
-  //       },
-  //       [deposit],
-  //     );
+      const vault_id = await createVault(
+        this,
+        {
+          target_start_time_utc_seconds: `${targetTime.unix()}`,
+          time_interval: 'every_second',
+          use_dca_plus: true,
+        },
+        [deposit],
+      );
 
-  //     while (dayjs().isBefore(targetTime)) {
-  //       await setTimeout(3000);
-  //     }
+      while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(targetTime)) {
+        await setTimeout(3000);
+      }
 
-  //     await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-  //       execute_trigger: {
-  //         trigger_id: vault_id,
-  //       },
-  //     });
+      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+        execute_trigger: {
+          trigger_id: vault_id,
+        },
+      });
 
-  //     vault = (
-  //       await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //         get_vault: {
-  //           vault_id,
-  //         },
-  //       })
-  //     ).vault;
+      vault = (
+        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+          get_vault: {
+            vault_id,
+          },
+        })
+      ).vault;
 
-  //     expectedPrice = await this.cosmWasmClient.queryContractSmart(this.swapContractAddress, {
-  //       get_price: {
-  //         swap_amount: coin(vault.swap_amount, 'uosmo'),
-  //         target_denom: 'uion',
-  //         price_type: 'actual',
-  //       },
-  //     });
+      const poolId = Long.fromNumber(this.pool.pool_id, true);
 
-  //     balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
-  //   });
+      expectedPrice =
+        parseInt(swapAmount) /
+        parseInt(
+          (
+            await this.queryClient.osmosis.gamm.v1beta1.estimateSwapExactAmountIn({
+              sender: this.dcaContractAddress,
+              poolId,
+              tokenIn: `${swapAmount}stake`,
+              routes: [
+                {
+                  poolId,
+                  tokenOutDenom: 'uion',
+                },
+              ],
+            })
+          ).tokenOutAmount,
+        );
 
-  //   it('subtracts the escrowed balance from the disbursed amount', async function (this: Context) {
-  //     expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
-  //       Math.round(
-  //         balancesBeforeExecution[this.userWalletAddress]['uion'] +
-  //           parseInt(vault.received_amount.amount) -
-  //           parseInt(vault.dca_plus_config.escrowed_balance.amount),
-  //       ),
-  //     );
-  //   });
+      balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
+    });
 
-  //   it('stores the escrowed balance', async function (this: Context) {
-  //     expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
-  //       `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
-  //     );
-  //   });
+    it('subtracts the escrowed balance from the disbursed amount', async function (this: Context) {
+      expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
+        Math.round(
+          balancesBeforeExecution[this.userWalletAddress]['uion'] +
+            parseInt(vault.received_amount.amount) -
+            parseInt(vault.dca_plus_config.escrowed_balance.amount),
+        ),
+      );
+    });
 
-  //   it('calculates the standard dca swapped amount', async function (this: Context) {
-  //     expect(vault.dca_plus_config.standard_dca_swapped_amount.amount).to.equal(
-  //       `${parseInt(vault.swapped_amount.amount) / this.swapAdjustment}`,
-  //     );
-  //   });
+    it('stores the escrowed balance', async function (this: Context) {
+      expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
+        `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
+      );
+    });
 
-  //   it('calculates the standard dca received amount', async function (this: Context) {
-  //     expect(vault.dca_plus_config.standard_dca_received_amount.amount).to.equal(
-  //       `${Math.round((parseInt(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee - this.finTakerFee))}`,
-  //     );
-  //   });
-  // });
+    it('calculates the standard dca swapped amount', async function (this: Context) {
+      expect(vault.dca_plus_config.standard_dca_swapped_amount.amount).to.equal(
+        `${parseInt(vault.swapped_amount.amount) / this.swapAdjustment}`,
+      );
+    });
 
-  // describe('with finished dca plus and unfinished standard dca', () => {
-  //   const deposit = coin(1000000, 'uosmo');
-  //   const swapAdjustment = 1.8;
+    it('calculates the standard dca received amount', async function (this: Context) {
+      expect(vault.dca_plus_config.standard_dca_received_amount.amount).to.equal(
+        `${Math.round((parseInt(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee))}`,
+      );
+    });
+  });
 
-  //   let vault: Vault;
-  //   let balancesBeforeExecution: Record<string, number>;
-  //   let balancesAfterExecution: Record<string, number>;
+  describe.only('with finished dca plus and unfinished standard dca', () => {
+    const deposit = coin(1000000, 'stake');
+    const swapAdjustment = 1.8;
 
-  //   before(async function (this: Context) {
-  //     balancesBeforeExecution = await getBalances(
-  //       this.cosmWasmClient,
-  //       [this.userWalletAddress, this.feeCollectorAddress],
-  //       ['uion'],
-  //     );
+    let vault: Vault;
+    let balancesBeforeExecution: Record<string, number>;
+    let balancesAfterExecution: Record<string, number>;
 
-  //     for (const position_type of ['enter', 'exit']) {
-  //       await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-  //         update_swap_adjustments: {
-  //           position_type,
-  //           adjustments: [
-  //             [30, `${swapAdjustment}`],
-  //             [35, `${swapAdjustment}`],
-  //             [40, `${swapAdjustment}`],
-  //             [45, `${swapAdjustment}`],
-  //             [50, `${swapAdjustment}`],
-  //             [55, `${swapAdjustment}`],
-  //             [60, `${swapAdjustment}`],
-  //             [70, `${swapAdjustment}`],
-  //             [80, `${swapAdjustment}`],
-  //             [90, `${swapAdjustment}`],
-  //           ],
-  //         },
-  //       });
-  //     }
+    before(async function (this: Context) {
+      balancesBeforeExecution = await getBalances(
+        this.cosmWasmClient,
+        [this.userWalletAddress, this.feeCollectorAddress],
+        ['uion'],
+      );
 
-  //     const targetTime = dayjs().add(10, 'seconds');
+      for (const position_type of ['enter', 'exit']) {
+        await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+          update_swap_adjustments: {
+            position_type,
+            adjustments: [
+              [30, `${swapAdjustment}`],
+              [35, `${swapAdjustment}`],
+              [40, `${swapAdjustment}`],
+              [45, `${swapAdjustment}`],
+              [50, `${swapAdjustment}`],
+              [55, `${swapAdjustment}`],
+              [60, `${swapAdjustment}`],
+              [70, `${swapAdjustment}`],
+              [80, `${swapAdjustment}`],
+              [90, `${swapAdjustment}`],
+            ],
+          },
+        });
+      }
 
-  //     const vault_id = await createVault(
-  //       this,
-  //       {
-  //         target_start_time_utc_seconds: `${targetTime.unix()}`,
-  //         swap_amount: `${Math.round(parseInt(deposit.amount) * (2 / 3))}`,
-  //         time_interval: 'every_second',
-  //         use_dca_plus: true,
-  //       },
-  //       [deposit],
-  //     );
+      const targetTime = dayjs().add(10, 'seconds');
 
-  //     while (dayjs().isBefore(targetTime)) {
-  //       await setTimeout(3000);
-  //     }
+      const vault_id = await createVault(
+        this,
+        {
+          target_start_time_utc_seconds: `${targetTime.unix()}`,
+          swap_amount: `${Math.round(parseInt(deposit.amount) * (2 / 3))}`,
+          time_interval: 'every_second',
+          use_dca_plus: true,
+        },
+        [deposit],
+      );
 
-  //     await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-  //       execute_trigger: {
-  //         trigger_id: vault_id,
-  //       },
-  //     });
+      while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(targetTime)) {
+        await setTimeout(3000);
+      }
 
-  //     vault = (
-  //       await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //         get_vault: {
-  //           vault_id,
-  //         },
-  //       })
-  //     ).vault;
+      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+        execute_trigger: {
+          trigger_id: vault_id,
+        },
+      });
 
-  //     balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
-  //   });
+      vault = (
+        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+          get_vault: {
+            vault_id,
+          },
+        })
+      ).vault;
 
-  //   it('subtracts the escrowed balance from the disbursed amount', async function (this: Context) {
-  //     expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
-  //       Math.round(
-  //         balancesBeforeExecution[this.userWalletAddress]['uion'] +
-  //           parseInt(vault.received_amount.amount) -
-  //           parseInt(vault.dca_plus_config.escrowed_balance.amount),
-  //       ),
-  //     );
-  //   });
+      balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
+    });
 
-  //   it('stores the escrowed balance', async function (this: Context) {
-  //     expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
-  //       `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
-  //     );
-  //   });
+    it('subtracts the escrowed balance from the disbursed amount', async function (this: Context) {
+      expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
+        Math.round(
+          balancesBeforeExecution[this.userWalletAddress]['uion'] +
+            parseInt(vault.received_amount.amount) -
+            parseInt(vault.dca_plus_config.escrowed_balance.amount),
+        ),
+      );
+    });
 
-  //   it('has swapped all the vault balance', () => {
-  //     expect(vault.balance.amount).to.equal('0');
-  //     expect(vault.swapped_amount.amount).to.equal(deposit.amount);
-  //   });
+    it('stores the escrowed balance', async function (this: Context) {
+      expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
+        `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
+      );
+    });
 
-  //   it('sets the vault status to inactive', () => expect(vault.status).to.equal('inactive'));
+    it('has swapped all the vault balance', () => {
+      expect(vault.balance.amount).to.equal('0');
+      expect(vault.swapped_amount.amount).to.equal(deposit.amount);
+    });
 
-  //   it('still has a time trigger', () =>
-  //     expect(vault.trigger).to.eql({
-  //       time: { target_time: 'time' in vault.trigger && vault.trigger.time.target_time },
-  //     }));
+    it('sets the vault status to inactive', () => expect(vault.status).to.equal('inactive'));
 
-  //   describe('once standard dca finishes', () => {
-  //     let performanceFee: number;
+    it('still has a time trigger', () =>
+      expect(vault.trigger).to.eql({
+        time: { target_time: 'time' in vault.trigger && vault.trigger.time.target_time },
+      }));
 
-  //     before(async function (this: Context) {
-  //       await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-  //         execute_trigger: {
-  //           trigger_id: vault.id,
-  //         },
-  //       });
+    describe('once standard dca finishes', () => {
+      let performanceFee: number;
 
-  //       vault = (
-  //         await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //           get_vault: {
-  //             vault_id: vault.id,
-  //           },
-  //         })
-  //       ).vault;
+      before(async function (this: Context) {
+        await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+          execute_trigger: {
+            trigger_id: vault.id,
+          },
+        });
 
-  //       balancesAfterExecution = await getBalances(
-  //         this.cosmWasmClient,
-  //         [this.userWalletAddress, this.feeCollectorAddress],
-  //         ['uion'],
-  //       );
+        vault = (
+          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+            get_vault: {
+              vault_id: vault.id,
+            },
+          })
+        ).vault;
 
-  //       performanceFee = Math.floor(
-  //         (parseInt(vault.received_amount.amount) -
-  //           parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)) *
-  //           0.2,
-  //       );
-  //     });
+        balancesAfterExecution = await getBalances(
+          this.cosmWasmClient,
+          [this.userWalletAddress, this.feeCollectorAddress],
+          ['uion'],
+        );
 
-  //     it('empties the escrow balance', () => expect(vault.dca_plus_config.escrowed_balance.amount).to.equal('0'));
+        performanceFee = Math.floor(
+          (parseInt(vault.received_amount.amount) -
+            parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)) *
+            0.2,
+        );
+      });
 
-  //     it('pays out the escrow', function (this: Context) {
-  //       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
-  //         balancesBeforeExecution[this.userWalletAddress]['uion'] +
-  //           parseInt(vault.received_amount.amount) -
-  //           performanceFee,
-  //       );
-  //     });
+      it('empties the escrow balance', () => expect(vault.dca_plus_config.escrowed_balance.amount).to.equal('0'));
 
-  //     it('pays out the performance fee', function (this: Context) {
-  //       expect(balancesAfterExecution[this.feeCollectorAddress]['uion']).to.equal(
-  //         balancesBeforeExecution[this.feeCollectorAddress]['uion'] + performanceFee,
-  //       );
-  //     });
-  //   });
-  // });
+      it('pays out the escrow', function (this: Context) {
+        expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
+          balancesBeforeExecution[this.userWalletAddress]['uion'] +
+            parseInt(vault.received_amount.amount) -
+            performanceFee,
+        );
+      });
 
-  // describe('with finished standard dca and unfinished dca plus', () => {
-  //   const deposit = coin(1000000, 'uosmo');
-  //   const swapAdjustment = 0.8;
+      it('pays out the performance fee', function (this: Context) {
+        expect(balancesAfterExecution[this.feeCollectorAddress]['uion']).to.equal(
+          balancesBeforeExecution[this.feeCollectorAddress]['uion'] + performanceFee,
+        );
+      });
+    });
+  });
 
-  //   let vault: Vault;
-  //   let balancesBeforeExecution: Record<string, number>;
-  //   let balancesAfterExecution: Record<string, number>;
+  describe.only('with finished standard dca and unfinished dca plus', () => {
+    const deposit = coin(1000000, 'stake');
+    const swapAdjustment = 0.8;
 
-  //   before(async function (this: Context) {
-  //     balancesBeforeExecution = await getBalances(
-  //       this.cosmWasmClient,
-  //       [this.userWalletAddress, this.feeCollectorAddress],
-  //       ['uion'],
-  //     );
+    let vault: Vault;
+    let balancesBeforeExecution: Record<string, number>;
+    let balancesAfterExecution: Record<string, number>;
 
-  //     for (const position_type of ['enter', 'exit']) {
-  //       await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-  //         update_swap_adjustments: {
-  //           position_type,
-  //           adjustments: [
-  //             [30, `${swapAdjustment}`],
-  //             [35, `${swapAdjustment}`],
-  //             [40, `${swapAdjustment}`],
-  //             [45, `${swapAdjustment}`],
-  //             [50, `${swapAdjustment}`],
-  //             [55, `${swapAdjustment}`],
-  //             [60, `${swapAdjustment}`],
-  //             [70, `${swapAdjustment}`],
-  //             [80, `${swapAdjustment}`],
-  //             [90, `${swapAdjustment}`],
-  //           ],
-  //         },
-  //       });
-  //     }
+    before(async function (this: Context) {
+      balancesBeforeExecution = await getBalances(
+        this.cosmWasmClient,
+        [this.userWalletAddress, this.feeCollectorAddress],
+        ['uion'],
+      );
 
-  //     const targetTime = dayjs().add(10, 'seconds');
+      for (const position_type of ['enter', 'exit']) {
+        await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+          update_swap_adjustments: {
+            position_type,
+            adjustments: [
+              [30, `${swapAdjustment}`],
+              [35, `${swapAdjustment}`],
+              [40, `${swapAdjustment}`],
+              [45, `${swapAdjustment}`],
+              [50, `${swapAdjustment}`],
+              [55, `${swapAdjustment}`],
+              [60, `${swapAdjustment}`],
+              [70, `${swapAdjustment}`],
+              [80, `${swapAdjustment}`],
+              [90, `${swapAdjustment}`],
+            ],
+          },
+        });
+      }
 
-  //     const vault_id = await createVault(
-  //       this,
-  //       {
-  //         target_start_time_utc_seconds: `${targetTime.unix()}`,
-  //         swap_amount: deposit.amount,
-  //         time_interval: 'every_second',
-  //         use_dca_plus: true,
-  //       },
-  //       [deposit],
-  //     );
+      const targetTime = dayjs().add(10, 'seconds');
 
-  //     while (dayjs().isBefore(targetTime)) {
-  //       await setTimeout(3000);
-  //     }
+      const vault_id = await createVault(
+        this,
+        {
+          target_start_time_utc_seconds: `${targetTime.unix()}`,
+          swap_amount: deposit.amount,
+          time_interval: 'every_second',
+          use_dca_plus: true,
+        },
+        [deposit],
+      );
 
-  //     await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-  //       execute_trigger: {
-  //         trigger_id: vault_id,
-  //       },
-  //     });
+      while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(targetTime)) {
+        await setTimeout(3000);
+      }
 
-  //     vault = (
-  //       await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //         get_vault: {
-  //           vault_id,
-  //         },
-  //       })
-  //     ).vault;
+      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+        execute_trigger: {
+          trigger_id: vault_id,
+        },
+      });
 
-  //     balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
-  //   });
+      vault = (
+        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+          get_vault: {
+            vault_id,
+          },
+        })
+      ).vault;
 
-  //   it('subtracts the escrowed balance from the disbursed amount', async function (this: Context) {
-  //     expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
-  //       Math.round(
-  //         balancesBeforeExecution[this.userWalletAddress]['uion'] +
-  //           parseInt(vault.received_amount.amount) -
-  //           parseInt(vault.dca_plus_config.escrowed_balance.amount),
-  //       ),
-  //     );
-  //   });
+      balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
+    });
 
-  //   it('stores the escrowed balance', async function (this: Context) {
-  //     expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
-  //       `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
-  //     );
-  //   });
+    it('subtracts the escrowed balance from the disbursed amount', async function (this: Context) {
+      expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
+        Math.round(
+          balancesBeforeExecution[this.userWalletAddress]['uion'] +
+            parseInt(vault.received_amount.amount) -
+            parseInt(vault.dca_plus_config.escrowed_balance.amount),
+        ),
+      );
+    });
 
-  //   it('has swapped all the standard vault balance', () => {
-  //     expect(vault.dca_plus_config.standard_dca_swapped_amount.amount).to.equal(deposit.amount);
-  //   });
+    it('stores the escrowed balance', async function (this: Context) {
+      expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
+        `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
+      );
+    });
 
-  //   it('has not swapped all the dca plus vault balance', () =>
-  //     expect(parseInt(vault.swapped_amount.amount)).to.equal(parseInt(deposit.amount) * swapAdjustment));
+    it('has swapped all the standard vault balance', () => {
+      expect(vault.dca_plus_config.standard_dca_swapped_amount.amount).to.equal(deposit.amount);
+    });
 
-  //   it('vault is still active', () => expect(vault.status).to.equal('active'));
+    it('has not swapped all the dca plus vault balance', () =>
+      expect(parseInt(vault.swapped_amount.amount)).to.equal(parseInt(deposit.amount) * swapAdjustment));
 
-  //   it('still has a time trigger', () =>
-  //     expect(vault.trigger).to.eql({
-  //       time: { target_time: 'time' in vault.trigger && vault.trigger.time.target_time },
-  //     }));
+    it('vault is still active', () => expect(vault.status).to.equal('active'));
 
-  //   describe('once dca plus finishes', () => {
-  //     let performanceFee: number;
+    it('still has a time trigger', () =>
+      expect(vault.trigger).to.eql({
+        time: { target_time: 'time' in vault.trigger && vault.trigger.time.target_time },
+      }));
 
-  //     before(async function (this: Context) {
-  //       await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-  //         execute_trigger: {
-  //           trigger_id: vault.id,
-  //         },
-  //       });
+    describe('once dca plus finishes', () => {
+      let performanceFee: number;
 
-  //       vault = (
-  //         await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-  //           get_vault: {
-  //             vault_id: vault.id,
-  //           },
-  //         })
-  //       ).vault;
+      before(async function (this: Context) {
+        let triggerTime = 'time' in vault.trigger && dayjs(parseInt(vault.trigger.time.target_time) / 1000000);
 
-  //       balancesAfterExecution = await getBalances(
-  //         this.cosmWasmClient,
-  //         [this.userWalletAddress, this.feeCollectorAddress],
-  //         ['uion'],
-  //       );
+        while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(triggerTime)) {
+          await setTimeout(3000);
+        }
 
-  //       performanceFee = Math.floor(
-  //         (parseInt(vault.received_amount.amount) -
-  //           parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)) *
-  //           0.2,
-  //       );
-  //     });
+        await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+          execute_trigger: {
+            trigger_id: vault.id,
+          },
+        });
 
-  //     it('has swapped all the balance', () => {
-  //       expect(vault.swapped_amount.amount).to.equal(deposit.amount);
-  //     });
+        vault = (
+          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+            get_vault: {
+              vault_id: vault.id,
+            },
+          })
+        ).vault;
 
-  //     it('empties the escrow balance', () => expect(vault.dca_plus_config.escrowed_balance.amount).to.equal('0'));
+        balancesAfterExecution = await getBalances(
+          this.cosmWasmClient,
+          [this.userWalletAddress, this.feeCollectorAddress],
+          ['uion'],
+        );
 
-  //     it('pays out the escrow', function (this: Context) {
-  //       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
-  //         balancesBeforeExecution[this.userWalletAddress]['uion'] +
-  //           parseInt(vault.received_amount.amount) -
-  //           performanceFee,
-  //       );
-  //     });
+        performanceFee = Math.floor(
+          (parseInt(vault.received_amount.amount) -
+            parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)) *
+            0.2,
+        );
+      });
 
-  //     it('pays out the performance fee', function (this: Context) {
-  //       expect(balancesAfterExecution[this.feeCollectorAddress]['uion']).to.equal(
-  //         balancesBeforeExecution[this.feeCollectorAddress]['uion'] + performanceFee,
-  //       );
-  //     });
+      it('has swapped all the balance', () => {
+        expect(vault.swapped_amount.amount).to.equal(deposit.amount);
+      });
 
-  //     it('sets the vault to inactive', () => expect(vault.status).to.equal('inactive'));
+      it('empties the escrow balance', () => expect(vault.dca_plus_config.escrowed_balance.amount).to.equal('0'));
 
-  //     it('does not have a trigger', () => expect(vault.trigger).to.equal(null));
-  //   });
-  // });
+      it('pays out the escrow', function (this: Context) {
+        expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
+          balancesBeforeExecution[this.userWalletAddress]['uion'] +
+            parseInt(vault.received_amount.amount) -
+            performanceFee,
+        );
+      });
+
+      it('pays out the performance fee', function (this: Context) {
+        expect(balancesAfterExecution[this.feeCollectorAddress]['uion']).to.equal(
+          balancesBeforeExecution[this.feeCollectorAddress]['uion'] + performanceFee,
+        );
+      });
+
+      it('sets the vault to inactive', () => expect(vault.status).to.equal('inactive'));
+
+      it('does not have a trigger', () => expect(vault.trigger).to.equal(null));
+    });
+  });
 });

@@ -61,7 +61,7 @@ fn with_succcesful_swap_returns_funds_to_destination() {
 
     let response = disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -130,7 +130,7 @@ fn with_succcesful_swap_returns_fee_to_fee_collector() {
 
     let response = disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -210,7 +210,7 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
 
     let response = disburse_funds(
         deps.as_mut(),
-        env.clone(),
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -296,7 +296,7 @@ fn with_succcesful_swap_adjusts_vault_balance() {
 
     disburse_funds(
         deps.as_mut(),
-        env.clone(),
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -354,7 +354,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
 
     disburse_funds(
         deps.as_mut(),
-        env.clone(),
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -401,7 +401,7 @@ fn with_succcesful_swap_adjusts_received_amount_stat() {
 
     disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -477,7 +477,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
 
     let response = disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -566,7 +566,7 @@ fn with_succcesful_swap_publishes_dca_execution_completed_event() {
 
     disburse_funds(
         deps.as_mut(),
-        env.clone(),
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -649,7 +649,7 @@ fn with_succcesful_swap_with_dca_plus_publishes_execution_completed_event() {
 
     disburse_funds(
         deps.as_mut(),
-        env.clone(),
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -692,7 +692,7 @@ fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
         result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
-    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
@@ -716,7 +716,7 @@ fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_
         result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
-    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
     let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
         .unwrap()
@@ -749,7 +749,7 @@ fn with_failed_swap_publishes_skipped_event_with_slippage_failure() {
         result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
     };
 
-    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
     let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
         .unwrap()
@@ -780,7 +780,7 @@ fn with_failed_swap_leaves_vault_active() {
         result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
     };
 
-    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
@@ -800,7 +800,7 @@ fn with_failed_swap_does_not_reduce_vault_balance() {
         result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
     };
 
-    disburse_funds(deps.as_mut(), env.clone(), reply).unwrap();
+    disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
     let vault = get_vault(&mut deps.storage, vault_id).unwrap();
 
@@ -843,7 +843,7 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
 
     let response = disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -917,7 +917,7 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
 
     let response = disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -999,7 +999,7 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
 
     let response = disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -1069,7 +1069,7 @@ fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
 
     disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
@@ -1116,7 +1116,7 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
 
     disburse_funds(
         deps.as_mut(),
-        env.clone(),
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Err("slippage exceeded".to_string()),
@@ -1171,7 +1171,7 @@ fn for_dca_plus_vault_with_low_funds_and_failed_swap_publishes_unknown_failure_e
 
     disburse_funds(
         deps.as_mut(),
-        env.clone(),
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Err("slippage exceeded".to_string()),
@@ -1226,7 +1226,7 @@ fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive()
 
     disburse_funds(
         deps.as_mut(),
-        env,
+        &env,
         Reply {
             id: AFTER_FIN_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {

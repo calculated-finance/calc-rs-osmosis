@@ -14,7 +14,7 @@ use cosmwasm_std::{
 
 pub fn get_fee_messages(
     deps: Deps,
-    env: Env,
+    env: &Env,
     fee_amounts: Vec<Uint128>,
     denom: String,
     skip_community_pool: bool,

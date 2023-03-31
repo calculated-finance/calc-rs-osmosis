@@ -21,11 +21,11 @@ use osmosis_helpers::queries::query_belief_price;
 
 pub fn disburse_escrow_handler(
     deps: DepsMut,
-    env: Env,
+    env: &Env,
     info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    assert_sender_is_contract_or_admin(deps.storage, &info.sender, &env)?;
+    assert_sender_is_contract_or_admin(deps.storage, &info.sender, env)?;
 
     let mut vault = get_vault(deps.storage, vault_id)?;
 
@@ -37,7 +37,8 @@ pub fn disburse_escrow_handler(
 
     let dca_plus_config = vault.dca_plus_config.clone().unwrap();
 
-    let current_price = query_belief_price(deps.querier, &vault.pool, &vault.get_swap_denom())?;
+    let current_price =
+        query_belief_price(deps.querier, env, &vault.pool, &vault.get_swap_denom())?;
 
     let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
     let amount_to_disburse = subtract(&dca_plus_config.escrowed_balance, &performance_fee)?;

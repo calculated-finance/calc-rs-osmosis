@@ -188,7 +188,7 @@ pub fn execute(
             adjustments,
         } => update_swap_adjustments_handler(deps, env, position_type, adjustments),
         ExecuteMsg::DisburseEscrow { vault_id } => {
-            disburse_escrow_handler(deps, env, info, vault_id)
+            disburse_escrow_handler(deps, &env, info, vault_id)
         }
     }
 }
@@ -196,7 +196,7 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
-        AFTER_FIN_SWAP_REPLY_ID => disburse_funds(deps, env, reply),
+        AFTER_FIN_SWAP_REPLY_ID => disburse_funds(deps, &env, reply),
         AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
         AFTER_BANK_SWAP_REPLY_ID => Ok(Response::new().add_attribute("method", "after_bank_swap")),
         id => Err(ContractError::CustomError {
@@ -249,7 +249,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             config: get_config(deps.storage)?,
         }),
         QueryMsg::GetDcaPlusPerformance { vault_id } => {
-            to_binary(&get_dca_plus_performance_handler(deps, vault_id)?)
+            to_binary(&get_dca_plus_performance_handler(deps, &env, vault_id)?)
         }
         QueryMsg::GetDisburseEscrowTasks { limit } => {
             to_binary(&get_disburse_escrow_tasks_handler(deps, env, limit)?)

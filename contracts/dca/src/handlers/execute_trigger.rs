@@ -1,4 +1,3 @@
-use crate::constants::FIN_TAKER_FEE;
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::error::ContractError;
 use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
@@ -14,12 +13,12 @@ use crate::state::vaults::{get_vault, update_vault};
 use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::time_helpers::get_next_target_time;
-use base::price_type::PriceType;
 use base::triggers::trigger::{Trigger, TriggerConfiguration};
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
+use osmosis_helpers::constants::OSMOSIS_SWAP_FEE_RATE;
 use osmosis_helpers::queries::{calculate_slippage, query_belief_price, query_price};
 use osmosis_helpers::swaps::create_osmosis_swap_message;
 use std::cmp::min;
@@ -83,7 +82,8 @@ pub fn execute_trigger(
 
     update_vault(deps.storage, &vault)?;
 
-    let belief_price = query_belief_price(deps.querier, &vault.pool, &vault.get_swap_denom())?;
+    let belief_price =
+        query_belief_price(deps.querier, &env, &vault.pool, &vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -112,9 +112,9 @@ pub fn execute_trigger(
 
             let actual_price_result = query_price(
                 deps.querier,
-                vault.pool.clone(),
+                &env,
+                &vault.pool,
                 &Coin::new(swap_amount.into(), vault.get_swap_denom()),
-                PriceType::Actual,
             );
 
             if actual_price_result.is_err() {
@@ -161,10 +161,11 @@ pub fn execute_trigger(
 
             let fee_rate = get_swap_fee_rate(&deps, &vault)?
                 + get_delegation_fee_rate(&deps, &vault)?
-                + Decimal::from_str(FIN_TAKER_FEE)?; // fin taker fee - TODO: remove once we can get this from the pair contracts
+                + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE)?;
 
-            let receive_amount =
-                swap_amount * (Decimal::one() / actual_price) * (Decimal::one() - fee_rate);
+            let receive_amount = swap_amount * (Decimal::one() / actual_price);
+
+            let fee_amount = receive_amount * fee_rate;
 
             dca_plus_config.standard_dca_swapped_amount =
                 add_to_coin(dca_plus_config.standard_dca_swapped_amount, swap_amount);
@@ -184,10 +185,7 @@ pub fn execute_trigger(
                     EventData::SimulatedDcaVaultExecutionCompleted {
                         sent: Coin::new(swap_amount.into(), vault.get_swap_denom()),
                         received: Coin::new(receive_amount.into(), vault.get_receive_denom()),
-                        fee: Coin::new(
-                            (fee_rate * receive_amount).into(),
-                            vault.get_receive_denom(),
-                        ),
+                        fee: Coin::new(fee_amount.into(), vault.get_receive_denom()),
                     },
                 ),
             )?;
@@ -262,9 +260,24 @@ pub fn execute_trigger(
         },
     )?;
 
+    response = response.add_attribute(
+        "calc_swap_fee_rate",
+        get_swap_fee_rate(&deps, &vault)?.to_string(),
+    );
+    response = response.add_attribute(
+        "delegation_fee_rate",
+        get_delegation_fee_rate(&deps, &vault)?.to_string(),
+    );
+    response = response.add_attribute(
+        "osmisis_swap_fee_rate",
+        Decimal::from_str(OSMOSIS_SWAP_FEE_RATE)
+            .unwrap()
+            .to_string(),
+    );
+
     Ok(response.add_submessage(create_osmosis_swap_message(
         deps.querier,
-        env.contract.address.clone().into(),
+        &env,
         vault.pool.clone(),
         get_swap_amount(&deps.as_ref(), &env, vault.clone())?,
         vault.slippage_tolerance,

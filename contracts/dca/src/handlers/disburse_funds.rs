@@ -16,7 +16,7 @@ use cosmwasm_std::{to_binary, CosmosMsg, Decimal, SubMsg, SubMsgResult, WasmMsg}
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
 
-pub fn disburse_funds(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
+pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response, ContractError> {
     let cache = CACHE.load(deps.storage)?;
     let mut vault = get_vault(deps.storage, cache.vault_id.into())?;
 
@@ -63,7 +63,7 @@ pub fn disburse_funds(deps: DepsMut, env: Env, reply: Reply) -> Result<Response,
 
             sub_msgs.append(&mut get_fee_messages(
                 deps.as_ref(),
-                env.clone(),
+                env,
                 vec![swap_fee, automation_fee],
                 coin_received.denom.clone(),
                 false,
