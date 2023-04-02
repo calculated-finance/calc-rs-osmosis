@@ -1,11 +1,10 @@
+use crate::position_type::PositionType;
 use base::pool::Pool;
 use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, StdError, StdResult, Uint128};
 use osmosis_std::types::osmosis::{
     gamm::v2::QuerySpotPriceRequest,
     poolmanager::v1beta1::{PoolmanagerQuerier, SwapAmountInRoute},
 };
-
-use crate::position_type::PositionType;
 
 pub fn query_belief_price(
     querier: QuerierWrapper,

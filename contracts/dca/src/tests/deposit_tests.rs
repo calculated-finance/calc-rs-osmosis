@@ -1,686 +1,497 @@
-use std::str::FromStr;
-
-use crate::constants::{ONE, ONE_HUNDRED, ONE_THOUSAND, TEN};
-use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
-use crate::state::config::FeeCollector;
-use crate::tests::mocks::{fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_UOSMO, USER};
-use base::events::event::EventBuilder;
-use base::vaults::vault::VaultStatus;
-use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
-use cw_multi_test::Executor;
-
-use super::helpers::{assert_address_balances, assert_events_published, assert_vault_balance};
+use super::helpers::setup_vault;
 use super::mocks::DENOM_STAKE;
+use crate::constants::{ONE, ONE_HUNDRED, TEN};
+use crate::handlers::deposit::deposit;
+use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
+use crate::handlers::get_vault::get_vault;
+use crate::msg::ExecuteMsg;
+use crate::state::config::{get_config, update_config, Config};
+use crate::tests::helpers::instantiate_contract;
+use crate::tests::mocks::{ADMIN, DENOM_UOSMO};
+use base::events::event::EventBuilder;
+use base::helpers::coin_helpers::{add, subtract};
+use base::vaults::vault::VaultStatus;
+use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, SubMsg, Uint128, WasmMsg};
 
 #[test]
-fn should_update_address_balances() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_time_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-            None,
-        );
+fn updates_the_vault_balance() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
 
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id: mock.vault_ids.get("vault").unwrap().to_owned(),
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UOSMO, user_balance - vault_deposit),
-            (&user_address, DENOM_STAKE, Uint128::zero()),
-            (
-                &mock.dca_contract_address,
-                DENOM_UOSMO,
-                ONE_THOUSAND + vault_deposit + vault_deposit,
-            ),
-            (&mock.dca_contract_address, DENOM_STAKE, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UOSMO, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_STAKE, ONE_THOUSAND),
-        ],
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Active,
+        false,
     );
-}
 
-#[test]
-fn should_update_vault_balance() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_time_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-            None,
-        );
+    deposit(deps.as_mut(), env, info, Addr::unchecked(ADMIN), vault.id).unwrap();
 
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    assert_vault_balance(
-        &mock,
-        &mock.dca_contract_address,
-        user_address,
-        Uint128::new(1),
-        vault_deposit + vault_deposit,
-    );
-}
-
-#[test]
-fn should_create_event() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_time_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-            None,
-        );
-
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    assert_events_published(
-        &mock,
-        vault_id,
-        &[EventBuilder::new(
-            vault_id,
-            mock.app.block_info(),
-            base::events::event::EventData::DcaVaultFundsDeposited {
-                amount: Coin::new(TEN.into(), DENOM_UOSMO),
-            },
-        )
-        .build(2)],
-    );
-}
-
-#[test]
-fn when_vault_is_scheduled_should_not_change_status() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_time_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-            None,
-        );
-
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    assert_eq!(vault_response.vault.status, VaultStatus::Scheduled);
-}
-
-#[test]
-fn when_vault_is_active_should_not_change_status() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_active_vault(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-        );
-
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    assert_eq!(vault_response.vault.status, VaultStatus::Active);
-}
-
-#[test]
-fn when_vault_is_active_should_not_execute_vault() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_active_vault(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-        );
-
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
-
-    let initial_vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 
     assert_eq!(
-        vault_response.vault.balance.amount,
-        initial_vault_response.vault.balance.amount + vault_deposit
+        vault.balance,
+        subtract(&deposit_amount, &deposit_amount).unwrap()
     );
+    assert_eq!(updated_vault.balance, deposit_amount);
 }
 
 #[test]
-fn when_vault_is_inactive_should_change_status() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_inactive_vault(&user_address, None, "vault");
+fn publishes_deposit_event() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
 
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    assert_eq!(vault_response.vault.status, VaultStatus::Active);
-}
-
-#[test]
-fn when_vault_is_inactive_should_execute_vault() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_inactive_vault(&user_address, None, "vault");
-
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    assert_events_published(
-        &mock,
-        vault_id,
-        &[EventBuilder::new(
-            vault_id,
-            mock.app.block_info(),
-            base::events::event::EventData::DcaVaultExecutionTriggered {
-                base_denom: DENOM_STAKE.to_string(),
-                quote_denom: DENOM_UOSMO.to_string(),
-                asset_price: Decimal::one(),
-            },
-        )
-        .build(4)],
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Active,
+        false,
     );
+
+    deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
+
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+        .unwrap()
+        .events;
+
+    assert!(events.contains(
+        &EventBuilder::new(
+            vault.id,
+            env.block,
+            base::events::event::EventData::DcaVaultFundsDeposited {
+                amount: deposit_amount,
+            },
+        )
+        .build(1)
+    ))
 }
 
 #[test]
-fn when_vault_is_inactive_and_insufficient_funds_should_not_change_status() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_inactive_vault(&user_address, None, "vault");
+fn updates_inactive_vault_to_active() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
 
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(300, DENOM_UOSMO)],
-        )
-        .unwrap();
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Inactive,
+        false,
+    );
 
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
+    deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
 
-    assert_eq!(vault_response.vault.status, VaultStatus::Inactive);
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(vault.status, VaultStatus::Inactive);
+    assert_eq!(updated_vault.status, VaultStatus::Active);
 }
 
 #[test]
-fn when_vault_is_cancelled_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_unfilled_fin_limit_price_trigger(
-            &user_address,
-            None,
-            Coin::new(user_balance.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-        );
+fn leaves_scheduled_vault_scheduled() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
 
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CancelVault { vault_id },
-            &[],
-        )
-        .unwrap();
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Scheduled,
+        false,
+    );
 
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
+    deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(vault.status, VaultStatus::Scheduled);
+    assert_eq!(updated_vault.status, VaultStatus::Scheduled);
+}
+
+#[test]
+fn leaves_active_vault_active() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Active,
+        false,
+    );
+
+    deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(vault.status, VaultStatus::Active);
+    assert_eq!(updated_vault.status, VaultStatus::Active);
+}
+
+#[test]
+fn executes_trigger_for_reactivated_vault() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Inactive,
+        false,
+    );
+
+    let response = deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
 
     assert!(response
-        .root_cause()
-        .to_string()
-        .contains("Error: vault is already cancelled"));
+        .messages
+        .contains(&SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::ExecuteTrigger {
+                trigger_id: vault.id,
+            })
+            .unwrap(),
+            funds: vec![],
+        }))))
 }
 
 #[test]
-fn with_multiple_assets_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_unfilled_fin_limit_price_trigger(
-            &user_address,
-            None,
-            Coin::new(user_balance.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-        );
+fn does_not_execute_trigger_for_active_vault() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
 
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id: mock.vault_ids.get("vault").unwrap().to_owned(),
-            },
-            &[
-                Coin::new(vault_deposit.into(), DENOM_UOSMO),
-                Coin::new(vault_deposit.into(), DENOM_STAKE),
-            ],
-        )
-        .unwrap_err();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: received 2 denoms but required exactly 1"
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Active,
+        false,
     );
+
+    let response = deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
+
+    assert!(response.messages.is_empty())
 }
 
 #[test]
-fn with_mismatched_denom_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_unfilled_fin_limit_price_trigger(
-            &user_address,
-            None,
-            Coin::new(user_balance.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-        );
+fn does_not_execute_trigger_for_scheduled_vault() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
 
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id: mock.vault_ids.get("vault").unwrap().to_owned(),
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_STAKE)],
-        )
-        .unwrap_err();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Scheduled,
+        false,
+    );
+
+    let response = deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
+
+    assert!(response.messages.is_empty())
+}
+
+#[test]
+fn for_cancelled_vault_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Cancelled,
+        false,
+    );
+
+    let err = deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap_err();
+
+    assert_eq!(err.to_string(), "Error: vault is already cancelled");
+}
+
+#[test]
+fn with_incorrect_denom_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_STAKE);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Active,
+        false,
+    );
+
+    let err = deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap_err();
 
     assert_eq!(
-        response.root_cause().to_string(),
+        err.to_string(),
         "Error: received asset with denom stake, but needed uosmo"
     );
 }
 
 #[test]
-fn when_contract_is_paused_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_time_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-            None,
-        );
+fn with_multiple_assets_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_STAKE);
+    let info = mock_info(
+        ADMIN,
+        &[deposit_amount.clone(), Coin::new(TEN.into(), DENOM_UOSMO)],
+    );
 
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::UpdateConfig {
-                fee_collectors: Some(vec![FeeCollector {
-                    address: ADMIN.to_string(),
-                    allocation: Decimal::from_str("1").unwrap(),
-                }]),
-                swap_fee_percent: Some(Decimal::from_str("0.015").unwrap()),
-                delegation_fee_percent: Some(Decimal::from_str("0.0075").unwrap()),
-                staking_router_address: None,
-                page_limit: None,
-                paused: Some(true),
-                dca_plus_escrow_level: None,
-            },
-            &[],
-        )
-        .unwrap();
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Active,
+        false,
+    );
 
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
+    let err = deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap_err();
 
     assert_eq!(
-        "Error: contract is paused",
-        response.root_cause().to_string()
+        err.to_string(),
+        "Error: received 2 denoms but required exactly 1"
+    );
+}
+
+#[test]
+fn when_contract_is_paused_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(TEN.into(), DENOM_STAKE);
+    let info = mock_info(
+        ADMIN,
+        &[deposit_amount.clone(), Coin::new(TEN.into(), DENOM_UOSMO)],
+    );
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let config = get_config(deps.as_ref().storage).unwrap();
+
+    update_config(
+        deps.as_mut().storage,
+        Config {
+            paused: true,
+            ..config
+        },
     )
+    .unwrap();
+
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        Uint128::zero(),
+        ONE,
+        VaultStatus::Active,
+        false,
+    );
+
+    let err = deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap_err();
+
+    assert_eq!(err.to_string(), "Error: contract is paused");
 }
 
 #[test]
 fn with_dca_plus_should_update_model_id() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_time_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-            Some(true),
-        );
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(ONE_HUNDRED.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
 
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault_before_deposit = mock
-        .app
-        .wrap()
-        .query_wasm_smart::<VaultResponse>(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault { vault_id },
-        )
-        .unwrap()
-        .vault;
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        ONE,
+        ONE,
+        VaultStatus::Active,
+        true,
+    );
 
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(
-                (user_balance - vault_deposit).into(),
-                DENOM_UOSMO,
-            )],
-        )
-        .unwrap();
+    deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
 
-    let vault_after_deposit = mock
-        .app
-        .wrap()
-        .query_wasm_smart::<VaultResponse>(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault { vault_id },
-        )
-        .unwrap()
-        .vault;
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 
-    assert_eq!(vault_before_deposit.dca_plus_config.unwrap().model_id, 30);
-    assert_eq!(vault_after_deposit.dca_plus_config.unwrap().model_id, 80);
+    assert_eq!(vault.dca_plus_config.unwrap().model_id, 30);
+    assert_eq!(updated_vault.dca_plus_config.unwrap().model_id, 80);
 }
 
 #[test]
 fn with_dca_plus_should_update_total_deposit() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = ONE_HUNDRED;
-    let swap_amount = ONE;
-    let vault_deposit = TEN;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_time_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "vault",
-            None,
-            Some(true),
-        );
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let deposit_amount = Coin::new(ONE_HUNDRED.into(), DENOM_UOSMO);
+    let info = mock_info(ADMIN, &[deposit_amount.clone()]);
 
-    let vault_id = mock.vault_ids.get("vault").unwrap().to_owned();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault_before_deposit = mock
-        .app
-        .wrap()
-        .query_wasm_smart::<VaultResponse>(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault { vault_id },
-        )
-        .unwrap()
-        .vault;
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::Deposit {
-                address: user_address.clone(),
-                vault_id,
-            },
-            &[Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    let vault_after_deposit = mock
-        .app
-        .wrap()
-        .query_wasm_smart::<VaultResponse>(
-            &mock.dca_contract_address,
-            &QueryMsg::GetVault { vault_id },
-        )
-        .unwrap()
-        .vault;
-
-    assert_eq!(
-        vault_before_deposit
-            .dca_plus_config
-            .unwrap()
-            .total_deposit
-            .amount,
-        vault_deposit
+    let vault = setup_vault(
+        deps.as_mut(),
+        env.clone(),
+        ONE,
+        ONE,
+        VaultStatus::Active,
+        true,
     );
+
+    deposit(
+        deps.as_mut(),
+        env.clone(),
+        info,
+        Addr::unchecked(ADMIN),
+        vault.id,
+    )
+    .unwrap();
+
+    let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
+
+    assert_eq!(vault.dca_plus_config.unwrap().total_deposit, vault.balance);
     assert_eq!(
-        vault_after_deposit
-            .dca_plus_config
-            .unwrap()
-            .total_deposit
-            .amount,
-        vault_deposit + vault_deposit
+        updated_vault.dca_plus_config.unwrap().total_deposit,
+        add(vault.balance, deposit_amount).unwrap()
     );
 }

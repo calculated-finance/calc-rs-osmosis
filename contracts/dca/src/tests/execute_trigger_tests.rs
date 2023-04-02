@@ -2362,7 +2362,6 @@ fn for_active_vault_creates_new_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Active,
@@ -2392,7 +2391,6 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Active,
@@ -2439,7 +2437,6 @@ fn for_active_vault_with_dca_plus_publishes_execution_simulated_event() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Active,
@@ -2525,7 +2522,6 @@ fn for_active_dca_plus_vault_with_finished_standard_dca_does_not_update_stats() 
     let mut vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Active,
@@ -2569,7 +2565,6 @@ fn for_active_vault_with_slippage_exceeded_publishes_standard_dca_execution_skip
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Active,
@@ -2605,7 +2600,6 @@ fn for_scheduled_vault_updates_status_to_active() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Scheduled,
@@ -2631,7 +2625,6 @@ fn for_scheduled_vault_creates_new_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Scheduled,
@@ -2698,7 +2691,6 @@ fn for_inactive_vault_does_not_create_a_new_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Inactive,
@@ -2724,7 +2716,6 @@ fn for_inactive_vault_with_dca_plus_creates_new_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Inactive,
@@ -2755,7 +2746,6 @@ fn for_inactive_vault_with_dca_plus_and_finished_standard_dca_does_not_create_ne
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         ONE,
         ONE,
         VaultStatus::Inactive,
@@ -2781,7 +2771,6 @@ fn for_inactive_vault_with_dca_plus_updates_standard_performance_data() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Inactive,
@@ -2829,7 +2818,6 @@ fn for_inactive_dca_plus_vault_with_finished_standard_dca_disburses_escrow() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         ONE,
         ONE,
         VaultStatus::Inactive,
@@ -2859,7 +2847,6 @@ fn for_cancelled_vault_deletes_trigger() {
     setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked("owner"),
         TEN,
         ONE,
         VaultStatus::Cancelled,
