@@ -2,7 +2,7 @@ import { CosmWasmClient, SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate
 import { GenericAuthorization } from 'cosmjs-types/cosmos/authz/v1beta1/authz';
 import { MsgGrant } from 'cosmjs-types/cosmos/authz/v1beta1/tx';
 import { coin, Coin, DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
-import { GasPrice } from '@cosmjs/stargate';
+import { GasPrice, QueryClient } from '@cosmjs/stargate';
 import dayjs, { Dayjs } from 'dayjs';
 import { Context } from 'mocha';
 import { indexBy, map, mergeAll, omit, pipe, prop } from 'ramda';
@@ -11,6 +11,8 @@ import { execute } from '../shared/cosmwasm';
 import { Addr } from '../types/dca/execute';
 import { EventsResponse } from '../types/dca/response/get_events';
 import { Timestamp } from 'cosmjs-types/google/protobuf/timestamp';
+import { Pool } from '../types/dca/response/get_pools';
+import Long from 'long';
 
 export const createWallet = async (config: Config) =>
   await DirectSecp256k1HdWallet.generate(12, {
@@ -144,3 +146,31 @@ export const sendTokens = async (
 
 export const isWithinPercent = (total: number, actual: number, expected: number, percent: number) =>
   Math.abs(actual / total - expected / total) * 100 <= percent;
+
+export const getExpectedPrice = async (
+  context: Context,
+  pool: Pool,
+  swapAmount: Coin,
+  tokenOutDenom: string,
+): Promise<number> => {
+  const poolId = Long.fromNumber(pool.pool_id, true);
+
+  return (
+    parseInt(swapAmount.amount) /
+    parseInt(
+      (
+        await context.queryClient.osmosis.gamm.v1beta1.estimateSwapExactAmountIn({
+          sender: context.dcaContractAddress,
+          poolId,
+          tokenIn: `${swapAmount.amount}${swapAmount.denom}`,
+          routes: [
+            {
+              poolId,
+              tokenOutDenom,
+            },
+          ],
+        })
+      ).tokenOutAmount,
+    )
+  );
+};

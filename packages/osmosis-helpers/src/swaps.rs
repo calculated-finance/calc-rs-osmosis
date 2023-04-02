@@ -1,6 +1,6 @@
-use crate::{constants::SWAP_FEE, queries::query_belief_price};
+use crate::{constants::OSMOSIS_SWAP_FEE_RATE, queries::query_belief_price};
 use base::pool::Pool;
-use cosmwasm_std::{Coin, Decimal, QuerierWrapper, ReplyOn, StdResult, SubMsg, Uint128};
+use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, ReplyOn, StdResult, SubMsg, Uint128};
 use osmosis_std::types::osmosis::{
     gamm::v1beta1::MsgSwapExactAmountIn, poolmanager::v1beta1::SwapAmountInRoute,
 };
@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 pub fn create_osmosis_swap_message(
     querier: QuerierWrapper,
-    sender: String,
+    env: &Env,
     pool: Pool,
     swap_amount: Coin,
     slippage_tolerance: Option<Decimal>,
@@ -27,13 +27,13 @@ pub fn create_osmosis_swap_message(
                 .expect("belief price of the pool");
             swap_amount.amount
                 * (Decimal::one() / belief_price)
-                * (Decimal::one() - Decimal::from_str(SWAP_FEE).unwrap())
+                * (Decimal::one() - Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap())
                 * (Decimal::one() - slippage_tolerance)
         })
         .to_string();
 
     let swap = MsgSwapExactAmountIn {
-        sender,
+        sender: env.contract.address.to_string(),
         token_in: Some(swap_amount.clone().into()),
         token_out_min_amount,
         routes: vec![SwapAmountInRoute {

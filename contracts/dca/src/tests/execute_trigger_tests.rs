@@ -21,7 +21,6 @@ use crate::types::dca_plus_config::DcaPlusConfig;
 use base::events::event::{Event, EventBuilder, EventData, ExecutionSkippedReason};
 use base::helpers::math_helpers::checked_mul;
 use base::helpers::time_helpers::get_next_target_time;
-use base::price_type::PriceType;
 use base::triggers::trigger::TriggerConfiguration;
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
@@ -2399,7 +2398,7 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
         true,
     );
 
-    execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
+    execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
     let updated_dca_plus_config = get_vault(deps.as_ref().storage, vault.id)
         .unwrap()
@@ -2408,9 +2407,9 @@ fn for_active_vault_with_dca_plus_updates_standard_performance_data() {
 
     let price = query_price(
         deps.as_ref().querier,
-        vault.pool.clone(),
+        &env,
+        &vault.pool,
         &Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
-        PriceType::Actual,
     )
     .unwrap();
 
@@ -2780,7 +2779,7 @@ fn for_inactive_vault_with_dca_plus_updates_standard_performance_data() {
         true,
     );
 
-    execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
+    execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
     let updated_dca_plus_config = get_vault(deps.as_ref().storage, vault.id)
         .unwrap()
@@ -2789,9 +2788,9 @@ fn for_inactive_vault_with_dca_plus_updates_standard_performance_data() {
 
     let price = query_price(
         deps.as_ref().querier,
-        vault.pool.clone(),
+        &env,
+        &vault.pool,
         &Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
-        PriceType::Actual,
     )
     .unwrap();
 

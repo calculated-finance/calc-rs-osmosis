@@ -21,11 +21,11 @@ use osmosis_helpers::queries::query_belief_price;
 
 pub fn disburse_escrow_handler(
     deps: DepsMut,
-    env: Env,
+    env: &Env,
     info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    assert_sender_is_contract_or_admin(deps.storage, &info.sender, &env)?;
+    assert_sender_is_contract_or_admin(deps.storage, &info.sender, env)?;
 
     let mut vault = get_vault(deps.storage, vault_id)?;
 
