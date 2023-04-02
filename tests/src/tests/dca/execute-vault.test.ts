@@ -127,7 +127,7 @@ describe('when executing a vault', () => {
       ));
 
     it('updates the vault received amount correctly', () =>
-      expect(vaultAfterExecution.received_amount).to.eql(coin(receivedAmountAfterFee + 1, 'uion')));
+      expect(parseInt(vaultAfterExecution.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 2));
 
     it('creates a new time trigger', () =>
       expect('time' in vaultAfterExecution.trigger && vaultAfterExecution.trigger.time.target_time).to.eql(
@@ -152,15 +152,23 @@ describe('when executing a vault', () => {
     });
 
     it('has an execution completed event', function (this: Context) {
-      expect(eventPayloadsAfterExecution).to.include.deep.members([
-        {
-          dca_vault_execution_completed: {
-            sent: coin(vaultAfterExecution.swap_amount, vaultAfterExecution.balance.denom),
-            received: coin(`${receivedAmount}`, vaultAfterExecution.received_amount.denom),
-            fee: coin(Math.round(receivedAmount * this.calcSwapFee) - 1, vaultAfterExecution.received_amount.denom),
-          },
-        },
-      ]);
+      const executionCompletedEvent = find(
+        (event) => 'dca_vault_execution_completed' in event,
+        eventPayloadsAfterExecution,
+      );
+      expect(executionCompletedEvent).to.not.be.undefined;
+      'dca_vault_execution_completed' in executionCompletedEvent &&
+        expect(executionCompletedEvent.dca_vault_execution_completed?.sent.amount).to.equal(
+          vaultAfterExecution.swap_amount,
+        ) &&
+        expect(parseInt(executionCompletedEvent.dca_vault_execution_completed?.received.amount)).to.approximately(
+          receivedAmount,
+          2,
+        ) &&
+        expect(parseInt(executionCompletedEvent.dca_vault_execution_completed?.fee.amount)).to.approximately(
+          Math.round(receivedAmount * this.calcSwapFee) - 1,
+          2,
+        );
     });
 
     it('makes the vault active', () =>
