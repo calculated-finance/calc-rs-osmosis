@@ -8,7 +8,6 @@ import { cosmos, FEES, osmosis } from 'osmojs';
 import { getPoolsPricesPairs } from '@cosmology/core';
 import { find, reverse } from 'ramda';
 import { Pool } from '../types/dca/response/get_pools';
-import Long from 'long';
 
 const calcSwapFee = 0.0005;
 const automationFee = 0.0075;

@@ -82,8 +82,7 @@ pub fn execute_trigger(
 
     update_vault(deps.storage, &vault)?;
 
-    let belief_price =
-        query_belief_price(deps.querier, &env, &vault.pool, &vault.get_swap_denom())?;
+    let belief_price = query_belief_price(deps.querier, &vault.pool, &vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -259,21 +258,6 @@ pub fn execute_trigger(
                 .query_balance(&env.contract.address, &vault.get_receive_denom())?,
         },
     )?;
-
-    response = response.add_attribute(
-        "calc_swap_fee_rate",
-        get_swap_fee_rate(&deps, &vault)?.to_string(),
-    );
-    response = response.add_attribute(
-        "delegation_fee_rate",
-        get_delegation_fee_rate(&deps, &vault)?.to_string(),
-    );
-    response = response.add_attribute(
-        "osmisis_swap_fee_rate",
-        Decimal::from_str(OSMOSIS_SWAP_FEE_RATE)
-            .unwrap()
-            .to_string(),
-    );
 
     Ok(response.add_submessage(create_osmosis_swap_message(
         deps.querier,

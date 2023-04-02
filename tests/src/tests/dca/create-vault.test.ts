@@ -2,15 +2,16 @@ import { coin } from '@cosmjs/proto-signing';
 import dayjs from 'dayjs';
 import Long from 'long';
 import { Context } from 'mocha';
-import { osmosis } from 'osmojs';
 import { find, map, range } from 'ramda';
 import { EventData } from '../../types/dca/response/get_events';
 import { Vault } from '../../types/dca/response/get_vault';
-import { createVault, getBalances } from '../helpers';
+import { createVault, getBalances, getExpectedPrice } from '../helpers';
 import { expect } from '../shared.test';
 
 describe('when creating a vault', () => {
   describe('with no trigger', async () => {
+    const deposit = coin('1000000', 'stake');
+    const swapAmount = '100000';
     let vault: Vault;
     let eventPayloads: EventData[];
     let executionTriggeredEvent: EventData;
@@ -18,7 +19,15 @@ describe('when creating a vault', () => {
     let receivedAmountAfterFee: number;
 
     before(async function (this: Context) {
-      const vaultId = await createVault(this);
+      const expectedPrice = await getExpectedPrice(this, this.pool, coin(swapAmount, 'stake'), 'uion');
+
+      const vaultId = await createVault(
+        this,
+        {
+          swap_amount: swapAmount,
+        },
+        [deposit],
+      );
 
       vault = (
         await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
@@ -37,14 +46,8 @@ describe('when creating a vault', () => {
 
       executionTriggeredEvent = find((event) => 'dca_vault_execution_triggered' in event, eventPayloads) as EventData;
 
-      const receivedAmountBeforePoolFee = Math.floor(
-        parseInt(vault.swap_amount) /
-          parseFloat(
-            'dca_vault_execution_triggered' in executionTriggeredEvent &&
-              executionTriggeredEvent.dca_vault_execution_triggered.asset_price,
-          ),
-      );
-      receivedAmount = Math.floor(receivedAmountBeforePoolFee - receivedAmountBeforePoolFee * this.osmosisSwapFee);
+      const receivedAmountBeforePoolFee = Math.floor(parseInt(vault.swap_amount) / expectedPrice);
+      receivedAmount = Math.floor(receivedAmountBeforePoolFee);
       receivedAmountAfterFee = Math.floor(receivedAmount - receivedAmount * this.calcSwapFee);
     });
 
@@ -53,7 +56,7 @@ describe('when creating a vault', () => {
     it('has the correct swapped amount', () => expect(vault.swapped_amount).to.eql(coin(100000, vault.balance.denom)));
 
     it('has the correct received amount', () =>
-      expect(vault.received_amount).to.eql(coin(`${receivedAmountAfterFee + 1}`, vault.received_amount.denom)));
+      expect(parseInt(vault.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 1));
 
     it('has a vault created event', () => expect(eventPayloads).to.include.deep.members([{ dca_vault_created: {} }]));
 

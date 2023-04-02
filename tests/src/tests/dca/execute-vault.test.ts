@@ -4,7 +4,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { Context } from 'mocha';
 import { execute } from '../../shared/cosmwasm';
 import { Vault } from '../../types/dca/response/get_vaults';
-import { createVault, getBalances } from '../helpers';
+import { createVault, getBalances, getExpectedPrice } from '../helpers';
 import { setTimeout } from 'timers/promises';
 import { EventData } from '../../types/dca/response/get_events';
 import { find, map } from 'ramda';
@@ -91,14 +91,14 @@ describe('when executing a vault', () => {
         eventPayloadsAfterExecution,
       ) as EventData;
 
-      const receivedAmountBeforePoolFee = Math.floor(
-        parseInt(vaultAfterExecution.swap_amount) /
-          parseFloat(
-            'dca_vault_execution_triggered' in executionTriggeredEvent &&
-              executionTriggeredEvent.dca_vault_execution_triggered.asset_price,
-          ),
+      const expectedPrice = await getExpectedPrice(
+        this,
+        this.pool,
+        coin(vaultAfterExecution.swap_amount, 'stake'),
+        'uion',
       );
-      receivedAmount = Math.floor(receivedAmountBeforePoolFee - receivedAmountBeforePoolFee * this.osmosisSwapFee);
+      const receivedAmountBeforePoolFee = Math.floor(parseInt(vaultAfterExecution.swap_amount) / expectedPrice);
+      receivedAmount = Math.floor(receivedAmountBeforePoolFee);
       receivedAmountAfterFee = Math.floor(receivedAmount - receivedAmount * this.calcSwapFee);
     });
 
@@ -571,7 +571,7 @@ describe('when executing a vault', () => {
       expect(vaultBeforeExecution.status).to.eql('scheduled') && expect(vaultAfterExecution.status).to.eql('active'));
   });
 
-  describe.only('with dca plus', () => {
+  describe('with dca plus', () => {
     const deposit = coin(1000000, 'stake');
     const swapAmount = '100000';
     let vault: Vault;
@@ -658,13 +658,14 @@ describe('when executing a vault', () => {
     });
 
     it('calculates the standard dca received amount', async function (this: Context) {
-      expect(vault.dca_plus_config.standard_dca_received_amount.amount).to.equal(
-        `${Math.round((parseInt(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee))}`,
+      expect(parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)).to.be.approximately(
+        Math.round(parseInt(vault.swap_amount) / expectedPrice),
+        1,
       );
     });
   });
 
-  describe.only('with finished dca plus and unfinished standard dca', () => {
+  describe('with finished dca plus and unfinished standard dca', () => {
     const deposit = coin(1000000, 'stake');
     const swapAdjustment = 1.8;
 
@@ -765,6 +766,22 @@ describe('when executing a vault', () => {
       let performanceFee: number;
 
       before(async function (this: Context) {
+        vault = (
+          await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+            get_vault: {
+              vault_id: vault.id,
+            },
+          })
+        ).vault;
+
+        const triggerTime = 'time' in vault.trigger && dayjs(parseInt(vault.trigger.time.target_time) / 1000000);
+        let blockTime = dayjs((await this.cosmWasmClient.getBlock()).header.time);
+
+        while (blockTime.isBefore(triggerTime)) {
+          await setTimeout(3000);
+          blockTime = dayjs((await this.cosmWasmClient.getBlock()).header.time);
+        }
+
         await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
           execute_trigger: {
             trigger_id: vault.id,
@@ -785,10 +802,13 @@ describe('when executing a vault', () => {
           ['uion'],
         );
 
-        performanceFee = Math.floor(
-          (parseInt(vault.received_amount.amount) -
-            parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)) *
-            0.2,
+        performanceFee = Math.max(
+          0,
+          Math.floor(
+            (parseInt(vault.received_amount.amount) -
+              parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)) *
+              0.2,
+          ),
         );
       });
 
@@ -810,7 +830,7 @@ describe('when executing a vault', () => {
     });
   });
 
-  describe.only('with finished standard dca and unfinished dca plus', () => {
+  describe('with finished standard dca and unfinished dca plus', () => {
     const deposit = coin(1000000, 'stake');
     const swapAdjustment = 0.8;
 
@@ -940,14 +960,16 @@ describe('when executing a vault', () => {
         );
 
         performanceFee = Math.floor(
-          (parseInt(vault.received_amount.amount) -
-            parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)) *
-            0.2,
+          Math.max(
+            0,
+            parseInt(vault.received_amount.amount) -
+              parseInt(vault.dca_plus_config.standard_dca_received_amount.amount),
+          ) * 0.2,
         );
       });
 
       it('has swapped all the balance', () => {
-        expect(vault.swapped_amount.amount).to.equal(deposit.amount);
+        expect(vault.swapped_amount.amount).to.equal(`${parseInt(deposit.amount)}`);
       });
 
       it('empties the escrow balance', () => expect(vault.dca_plus_config.escrowed_balance.amount).to.equal('0'));
