@@ -2,6 +2,7 @@ use super::mocks::{MockApp, ADMIN, DENOM_STAKE, DENOM_UOSMO, FEE_COLLECTOR};
 use crate::{
     constants::{ONE, TEN},
     contract::instantiate,
+    handlers::get_vault::get_vault,
     msg::{EventsResponse, InstantiateMsg, QueryMsg, VaultResponse},
     state::{
         cache::{Cache, CACHE},
@@ -90,6 +91,7 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
 pub fn setup_vault(
     deps: DepsMut,
     env: Env,
+    owner: Addr,
     balance: Uint128,
     swap_amount: Uint128,
     status: VaultStatus,
@@ -104,8 +106,6 @@ pub fn setup_vault(
     POOLS
         .save(deps.storage, pair.pool_id.clone(), &pair)
         .unwrap();
-
-    let owner = Addr::unchecked("owner");
 
     let vault = save_vault(
         deps.storage,
@@ -170,21 +170,38 @@ pub fn setup_vault(
         )
         .unwrap();
 
-    vault
+    get_vault(deps.as_ref(), vault.id).unwrap().vault
 }
 
 pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, false)
+    setup_vault(
+        deps,
+        env,
+        Addr::unchecked("owner"),
+        TEN,
+        ONE,
+        VaultStatus::Active,
+        false,
+    )
 }
 
 pub fn setup_active_dca_plus_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, true)
+    setup_vault(
+        deps,
+        env,
+        Addr::unchecked("owner"),
+        TEN,
+        ONE,
+        VaultStatus::Active,
+        true,
+    )
 }
 
 pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault {
     setup_vault(
         deps,
         env,
+        Addr::unchecked("owner"),
         Uint128::new(500000),
         Uint128::new(500000),
         VaultStatus::Active,
@@ -196,6 +213,7 @@ pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
     setup_vault(
         deps,
         env,
+        Addr::unchecked("owner"),
         Uint128::new(10),
         Uint128::new(100),
         VaultStatus::Active,
@@ -209,7 +227,15 @@ pub fn setup_active_dca_plus_vault_with_low_funds(
     balance: Uint128,
     swap_amount: Uint128,
 ) -> Vault {
-    setup_vault(deps, env, balance, swap_amount, VaultStatus::Active, true)
+    setup_vault(
+        deps,
+        env,
+        Addr::unchecked("owner"),
+        balance,
+        swap_amount,
+        VaultStatus::Active,
+        true,
+    )
 }
 
 pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {
