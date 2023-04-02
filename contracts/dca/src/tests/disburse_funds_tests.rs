@@ -30,7 +30,7 @@ use base::{
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
+    Addr, BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
 };
 use osmosis_helpers::{codes::ERROR_SWAP_SLIPPAGE_EXCEEDED, position_type::PositionType};
 use std::{cmp::min, str::FromStr};
@@ -1046,6 +1046,7 @@ fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
+        Addr::unchecked("owner"),
         ONE,
         ONE,
         VaultStatus::Active,
@@ -1093,6 +1094,7 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
+        Addr::unchecked("owner"),
         ONE,
         ONE,
         VaultStatus::Active,
@@ -1148,6 +1150,7 @@ fn for_dca_plus_vault_with_low_funds_and_failed_swap_publishes_unknown_failure_e
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
+        Addr::unchecked("owner"),
         Uint128::new(49000),
         ONE,
         VaultStatus::Active,
@@ -1203,6 +1206,7 @@ fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive()
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
+        Addr::unchecked("owner"),
         ONE,
         ONE,
         VaultStatus::Active,
