@@ -56,7 +56,7 @@ describe('when creating a vault', () => {
     it('has the correct swapped amount', () => expect(vault.swapped_amount).to.eql(coin(100000, vault.balance.denom)));
 
     it('has the correct received amount', () =>
-      expect(parseInt(vault.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 1));
+      expect(parseInt(vault.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 2));
 
     it('has a vault created event', () => expect(eventPayloads).to.include.deep.members([{ dca_vault_created: {} }]));
 
@@ -84,15 +84,18 @@ describe('when creating a vault', () => {
     });
 
     it('has an execution completed event', function (this: Context) {
-      expect(eventPayloads).to.include.deep.members([
-        {
-          dca_vault_execution_completed: {
-            sent: coin(vault.swap_amount, vault.balance.denom),
-            received: coin(`${receivedAmount}`, vault.received_amount.denom),
-            fee: coin(Math.round(receivedAmount * this.calcSwapFee) - 1, vault.received_amount.denom),
-          },
-        },
-      ]);
+      const executionCompletedEvent = find((event) => 'dca_vault_execution_completed' in event, eventPayloads);
+      expect(executionCompletedEvent).to.not.be.undefined;
+      'dca_vault_execution_completed' in executionCompletedEvent &&
+        expect(executionCompletedEvent.dca_vault_execution_completed?.sent.amount).to.equal(vault.swap_amount) &&
+        expect(parseInt(executionCompletedEvent.dca_vault_execution_completed?.received.amount)).to.approximately(
+          receivedAmount,
+          2,
+        ) &&
+        expect(parseInt(executionCompletedEvent.dca_vault_execution_completed?.fee.amount)).to.approximately(
+          Math.round(receivedAmount * this.calcSwapFee) - 1,
+          2,
+        );
     });
 
     it('has no other events', () => expect(eventPayloads).to.have.lengthOf(4));

@@ -7,7 +7,7 @@ use crate::tests::mocks::ADMIN;
 use base::events::event::{EventBuilder, EventData};
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{Addr, BankMsg, CosmosMsg, SubMsg, Uint128};
+use cosmwasm_std::{BankMsg, CosmosMsg, SubMsg, Uint128};
 
 #[test]
 fn should_return_balance_to_owner() {
@@ -22,7 +22,6 @@ fn should_return_balance_to_owner() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked(ADMIN),
         balance,
         Uint128::new(100000),
         VaultStatus::Active,
@@ -50,7 +49,6 @@ fn should_publish_vault_cancelled_event() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked(ADMIN),
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
@@ -79,7 +77,6 @@ fn when_vault_has_time_trigger_should_cancel_vault() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked(ADMIN),
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
@@ -107,7 +104,6 @@ fn should_empty_vault_balance() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked(ADMIN),
         balance,
         Uint128::new(100000),
         VaultStatus::Active,
@@ -133,7 +129,6 @@ fn on_already_cancelled_vault_should_fail() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked(ADMIN),
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
@@ -157,7 +152,6 @@ fn for_vault_with_different_owner_should_fail() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked(ADMIN),
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
@@ -186,7 +180,6 @@ fn should_delete_the_trigger() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked(ADMIN),
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
@@ -212,7 +205,6 @@ fn with_dca_plus_should_save_disburse_escrow_task() {
     let vault = setup_vault(
         deps.as_mut(),
         env.clone(),
-        Addr::unchecked(ADMIN),
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
