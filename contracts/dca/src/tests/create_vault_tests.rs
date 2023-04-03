@@ -1,9 +1,12 @@
+use super::mocks::{fin_contract_fail_slippage_tolerance, fin_contract_pass_slippage_tolerance};
 use crate::constants::{ONE, ONE_THOUSAND, TEN, TWO_MICRONS};
+use crate::handlers::create_vault::create_vault;
 use crate::msg::{ExecuteMsg, QueryMsg, VaultResponse};
-use crate::state::config::FeeCollector;
+use crate::state::config::{get_config, update_config, Config, FeeCollector};
 use crate::tests::helpers::{
-    assert_address_balances, assert_events_published, assert_vault_balance,
+    assert_address_balances, assert_events_published, assert_vault_balance, instantiate_contract,
 };
+use crate::tests::instantiate_tests::VALID_ADDRESS_ONE;
 use crate::tests::mocks::{
     fin_contract_unfilled_limit_order, MockApp, ADMIN, DENOM_STAKE, DENOM_UOSMO, USER,
 };
@@ -15,520 +18,335 @@ use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::pool::Pool;
 use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
+use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{Addr, Coin, Decimal, Decimal256, Uint128, Uint64};
 use cw_multi_test::Executor;
 use std::str::FromStr;
 
-use super::mocks::{fin_contract_fail_slippage_tolerance, fin_contract_pass_slippage_tolerance};
-
 #[test]
-fn with_price_trigger_should_update_address_balances() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
+fn with_no_assets_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(USER, &[]);
 
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UOSMO, user_balance),
-            (&user_address, DENOM_STAKE, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UOSMO, ONE_THOUSAND),
-            (&mock.dca_contract_address, DENOM_STAKE, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UOSMO, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_STAKE, ONE_THOUSAND),
-        ],
-    );
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    mock.app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_receive_amount: Some(swap_amount),
-                target_start_time_utc_seconds: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO.to_string())],
-        )
-        .unwrap();
-
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UOSMO, user_balance - vault_deposit),
-            (&user_address, DENOM_STAKE, Uint128::new(0)),
-            (
-                &mock.dca_contract_address,
-                DENOM_UOSMO,
-                ONE_THOUSAND + user_balance - TWO_MICRONS,
-            ),
-            (&mock.dca_contract_address, DENOM_STAKE, ONE_THOUSAND),
-            (
-                &mock.fin_contract_address,
-                DENOM_UOSMO,
-                ONE_THOUSAND + TWO_MICRONS,
-            ),
-            (&mock.fin_contract_address, DENOM_STAKE, ONE_THOUSAND),
-        ],
-    );
-}
-
-#[test]
-fn with_price_trigger_should_create_vault() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UOSMO, user_balance),
-            (&user_address, DENOM_STAKE, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UOSMO, ONE_THOUSAND),
-            (&mock.dca_contract_address, DENOM_STAKE, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UOSMO, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_STAKE, ONE_THOUSAND),
-        ],
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_receive_amount: Some(swap_amount),
-                target_start_time_utc_seconds: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UOSMO))],
-        )
-        .unwrap();
-
-    let vault_id = Uint128::from_str(
-        &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+    let err = create_vault(
+        deps.as_mut(),
+        env,
+        &info,
+        Addr::unchecked(USER),
+        None,
+        vec![],
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(10000),
+        TimeInterval::Daily,
+        None,
+        None,
+        Some(false),
     )
-    .unwrap();
+    .unwrap_err();
 
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    assert_eq!(vault_response.vault.id, Uint128::one());
     assert_eq!(
-        vault_response.vault.balance,
-        Coin::new((vault_deposit - TWO_MICRONS).into(), DENOM_UOSMO)
+        err.to_string(),
+        "Error: received 0 denoms but required exactly 1"
     );
-    assert_eq!(vault_response.vault.swap_amount, swap_amount);
 }
 
 #[test]
-fn with_price_trigger_for_fin_buy_should_create_correct_trigger() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
+fn with_multiple_assets_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(
+        USER,
+        &[Coin::new(10000, DENOM_UOSMO), Coin::new(10000, DENOM_STAKE)],
     );
 
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_receive_amount: Some(swap_amount * Uint128::new(10)),
-                target_start_time_utc_seconds: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UOSMO))],
-        )
-        .unwrap();
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault_id = Uint128::from_str(
-        &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
+    let err = create_vault(
+        deps.as_mut(),
+        env,
+        &info,
+        Addr::unchecked(USER),
+        None,
+        vec![],
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(10000),
+        TimeInterval::Daily,
+        None,
+        None,
+        Some(false),
     )
-    .unwrap();
+    .unwrap_err();
 
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    match vault_response.vault.trigger.unwrap() {
-        TriggerConfiguration::FinLimitOrder {
-            target_price,
-            order_idx,
-        } => {
-            assert_eq!(target_price, Decimal256::from_str("0.10").unwrap());
-            assert!(order_idx.is_some());
-        }
-        _ => panic!("expected a fin limit order trigger"),
-    }
-}
-
-#[test]
-fn with_price_trigger_for_fin_sell_should_create_correct_trigger() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_STAKE,
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_receive_amount: Some(swap_amount * Uint128::new(10)),
-                target_start_time_utc_seconds: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_STAKE))],
-        )
-        .unwrap();
-
-    let vault_id = Uint128::from_str(
-        &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
-    )
-    .unwrap();
-
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    match vault_response.vault.trigger.unwrap() {
-        TriggerConfiguration::FinLimitOrder {
-            target_price,
-            order_idx,
-        } => {
-            assert_eq!(target_price, Decimal256::from_str("10.0").unwrap());
-            assert!(order_idx.is_some());
-        }
-        _ => panic!("expected a fin limit order trigger"),
-    }
-}
-
-#[test]
-fn with_price_trigger_should_publish_vault_created_event() {
-    let user_address = Addr::unchecked(USER);
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        vault_deposit,
-        DENOM_UOSMO,
-    );
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: Some(swap_amount),
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    let vault_id = Uint128::new(1);
-
-    assert_events_published(
-        &mock,
-        vault_id,
-        &[EventBuilder::new(
-            vault_id,
-            mock.app.block_info(),
-            EventData::DcaVaultCreated {},
-        )
-        .build(1)],
-    );
-}
-
-#[test]
-fn with_price_trigger_should_publish_funds_deposited_event() {
-    let user_address = Addr::unchecked(USER);
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        vault_deposit,
-        DENOM_UOSMO,
-    );
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: Some(swap_amount),
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    let vault_id = Uint128::new(1);
-
-    assert_events_published(
-        &mock,
-        vault_id,
-        &[EventBuilder::new(
-            vault_id,
-            mock.app.block_info(),
-            EventData::DcaVaultFundsDeposited {
-                amount: Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            },
-        )
-        .build(2)],
-    );
-}
-
-#[test]
-fn with_price_trigger_with_existing_vault_should_create_vault() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN * Uint128::new(2);
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_filled_fin_limit_price_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "fin",
-        );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_receive_amount: Some(swap_amount),
-                target_start_time_utc_seconds: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap();
-
-    let vault_id = Uint128::from_str(
-        &get_flat_map_for_event_type(&response.events, "wasm").unwrap()["vault_id"],
-    )
-    .unwrap();
-
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(&mock.dca_contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    assert_eq!(vault_response.vault.id, Uint128::new(2));
     assert_eq!(
-        vault_response.vault.balance,
-        Coin::new((vault_deposit - TWO_MICRONS).into(), DENOM_UOSMO)
+        err.to_string(),
+        "Error: received 2 denoms but required exactly 1"
     );
-    assert_eq!(vault_response.vault.swap_amount, swap_amount);
 }
 
 #[test]
-fn with_price_trigger_twice_for_user_should_succeed() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN * Uint128::new(2);
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_vault_with_filled_fin_limit_price_trigger(
-            &user_address,
-            None,
-            Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            swap_amount,
-            "fin",
-        );
+fn with_non_existent_pool_id_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UOSMO, user_balance - vault_deposit),
-            (&user_address, DENOM_STAKE, Uint128::new(0)),
-            (
-                &mock.dca_contract_address,
-                DENOM_UOSMO,
-                ONE_THOUSAND + vault_deposit - TWO_MICRONS,
-            ),
-            (&mock.dca_contract_address, DENOM_STAKE, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UOSMO, ONE_THOUSAND),
-            (
-                &mock.fin_contract_address,
-                DENOM_STAKE,
-                ONE_THOUSAND + TWO_MICRONS,
-            ),
-        ],
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let err = create_vault(
+        deps.as_mut(),
+        env,
+        &info,
+        Addr::unchecked(USER),
+        None,
+        vec![],
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(100000),
+        TimeInterval::Daily,
+        None,
+        None,
+        Some(false),
+    )
+    .unwrap_err();
+
+    assert_eq!(err.to_string(), "base::pool::Pool not found");
+}
+
+#[test]
+fn with_destination_allocations_less_than_100_percent_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let err = create_vault(
+        deps.as_mut(),
+        env,
+        &info,
+        Addr::unchecked(USER),
+        None,
+        vec![Destination {
+            address: Addr::unchecked("destination"),
+            allocation: Decimal::percent(50),
+            action: PostExecutionAction::Send,
+        }],
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(100000),
+        TimeInterval::Daily,
+        None,
+        None,
+        Some(false),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Error: destination allocations must add up to 1"
     );
+}
 
-    let create_vault_response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_receive_amount: Some(swap_amount),
-                target_start_time_utc_seconds: None,
-                use_dca_plus: None,
+#[test]
+fn with_destination_allocation_equal_to_zero_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let err = create_vault(
+        deps.as_mut(),
+        env,
+        &info,
+        Addr::unchecked(USER),
+        None,
+        vec![
+            Destination {
+                address: Addr::unchecked("destination-all"),
+                allocation: Decimal::percent(100),
+                action: PostExecutionAction::Send,
             },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO.to_string())],
-        )
-        .unwrap();
-
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UOSMO, Uint128::new(0)),
-            (&user_address, DENOM_STAKE, Uint128::new(0)),
-            (
-                &mock.dca_contract_address,
-                DENOM_UOSMO,
-                ONE_THOUSAND + vault_deposit + vault_deposit - TWO_MICRONS - TWO_MICRONS,
-            ),
-            (&mock.dca_contract_address, DENOM_STAKE, ONE_THOUSAND),
-            (
-                &mock.fin_contract_address,
-                DENOM_UOSMO,
-                ONE_THOUSAND + TWO_MICRONS, // from newly created fin limit order (unfilled)
-            ),
-            (
-                &mock.fin_contract_address,
-                DENOM_STAKE,
-                ONE_THOUSAND + TWO_MICRONS, // from initial limit order (filled)
-            ),
+            Destination {
+                address: Addr::unchecked("destination-empty"),
+                allocation: Decimal::percent(0),
+                action: PostExecutionAction::Send,
+            },
         ],
-    );
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(100000),
+        TimeInterval::Daily,
+        None,
+        None,
+        Some(false),
+    )
+    .unwrap_err();
 
-    let vault_id = Uint128::from_str(
-        &get_flat_map_for_event_type(&create_vault_response.events, "wasm").unwrap()["vault_id"],
+    assert_eq!(
+        err.to_string(),
+        "Error: all destination allocations must be greater than 0"
+    );
+}
+
+#[test]
+fn with_more_than_10_destination_allocations_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let err = create_vault(
+        deps.as_mut(),
+        env,
+        &info,
+        Addr::unchecked(USER),
+        None,
+        (0..20)
+            .into_iter()
+            .map(|i| Destination {
+                address: Addr::unchecked(format!("destination-{}", i)),
+                allocation: Decimal::percent(5),
+                action: PostExecutionAction::Send,
+            })
+            .collect(),
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(100000),
+        TimeInterval::Daily,
+        None,
+        None,
+        Some(false),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Error: no more than 10 destinations can be provided"
+    );
+}
+
+#[test]
+fn with_swap_amount_less_than_50000_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let err = create_vault(
+        deps.as_mut(),
+        env,
+        &info,
+        Addr::unchecked(USER),
+        None,
+        vec![],
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(10000),
+        TimeInterval::Daily,
+        None,
+        None,
+        Some(false),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Error: swap amount must be greater than 50000"
+    );
+}
+
+#[test]
+fn when_contract_is_paused_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let config = get_config(deps.as_ref().storage).unwrap();
+
+    update_config(
+        deps.as_mut().storage,
+        Config {
+            paused: true,
+            ..config
+        },
     )
     .unwrap();
 
-    assert_events_published(
-        &mock,
-        vault_id,
-        &[EventBuilder::new(
-            vault_id,
-            mock.app.block_info(),
-            EventData::DcaVaultCreated {},
-        )
-        .build(3)],
-    );
+    let err = create_vault(
+        deps.as_mut(),
+        env,
+        &info,
+        Addr::unchecked(USER),
+        None,
+        vec![],
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(100000),
+        TimeInterval::Daily,
+        None,
+        None,
+        Some(false),
+    )
+    .unwrap_err();
 
-    assert_vault_balance(
-        &mock,
-        &mock.dca_contract_address,
-        user_address,
-        Uint128::new(1),
-        vault_deposit - TWO_MICRONS,
+    assert_eq!(err.to_string(), "Error: contract is paused")
+}
+
+#[test]
+fn with_time_trigger_with_target_time_in_the_past_should_fail() {
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+
+    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+    let err = create_vault(
+        deps.as_mut(),
+        env.clone(),
+        &info,
+        Addr::unchecked(USER),
+        None,
+        vec![],
+        0,
+        None,
+        None,
+        None,
+        Uint128::new(100000),
+        TimeInterval::Daily,
+        Some(env.block.time.minus_seconds(10).seconds().into()),
+        None,
+        Some(false),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Error: target_start_time_utc_seconds must be some time in the future"
     );
 }
 
@@ -1252,49 +1070,6 @@ fn with_time_trigger_with_existing_vault_should_create_vault() {
 }
 
 #[test]
-fn with_time_trigger_with_target_time_in_the_past_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: Some(Uint64::from(
-                    mock.app.block_info().time.seconds() - 60,
-                )),
-                target_receive_amount: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: target_start_time_utc_seconds must be some time in the future"
-    );
-}
-
-#[test]
 fn with_multiple_destinations_should_succeed() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
@@ -1384,320 +1159,6 @@ fn with_multiple_destinations_should_succeed() {
 }
 
 #[test]
-fn with_price_and_time_trigger_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: Some(Uint64::from(
-                    mock.app.block_info().time.plus_seconds(2).seconds(),
-                )),
-                target_receive_amount: Some(swap_amount),
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: cannot provide both a target_start_time_utc_seconds and a target_price"
-    );
-}
-
-#[test]
-fn with_no_assets_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: None,
-                use_dca_plus: None,
-            },
-            &vec![],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: received 0 denoms but required exactly 1"
-    );
-}
-
-#[test]
-fn with_multiple_assets_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order())
-        .with_funds_for(&user_address, user_balance, DENOM_UOSMO)
-        .with_funds_for(&user_address, user_balance, DENOM_STAKE);
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: None,
-                use_dca_plus: None,
-            },
-            &vec![
-                Coin::new(vault_deposit.into(), DENOM_STAKE),
-                Coin::new(vault_deposit.into(), DENOM_UOSMO),
-            ],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: received 2 denoms but required exactly 1"
-    );
-}
-
-#[test]
-fn with_non_existent_pair_address_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "base::pair::Pair not found"
-    );
-}
-
-#[test]
-fn with_destination_allocations_less_than_100_percent_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: Some(vec![Destination {
-                    address: Addr::unchecked(USER),
-                    allocation: Decimal::percent(50),
-                    action: PostExecutionAction::Send,
-                }]),
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: destination allocations must add up to 1"
-    );
-}
-
-#[test]
-fn with_destination_allocation_equal_to_zero_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: Some(vec![
-                    Destination {
-                        address: Addr::unchecked(USER),
-                        allocation: Decimal::percent(0),
-                        action: PostExecutionAction::Send,
-                    },
-                    Destination {
-                        address: Addr::unchecked(ADMIN),
-                        allocation: Decimal::percent(100),
-                        action: PostExecutionAction::Send,
-                    },
-                ]),
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: all destination allocations must be greater than 0"
-    );
-}
-
-#[test]
-fn with_more_than_10_destination_allocations_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    let mut destinations = vec![];
-
-    for _ in 0..20 {
-        destinations.push(Destination {
-            address: Addr::unchecked(USER),
-            allocation: Decimal::percent(5),
-            action: PostExecutionAction::Send,
-        });
-    }
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: Some(destinations),
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: no more than 10 destinations can be provided"
-    );
-}
-
-#[test]
 fn with_passed_in_owner_should_succeed() {
     let user_address = Addr::unchecked(USER);
     let user_balance = TEN;
@@ -1750,124 +1211,6 @@ fn with_passed_in_owner_should_succeed() {
         vault_response.vault.destinations.first().unwrap().address,
         owner
     );
-}
-
-#[test]
-fn with_swap_amount_less_than_50000_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = Uint128::zero();
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: Some(vec![Destination {
-                    address: Addr::unchecked(USER),
-                    allocation: Decimal::percent(50),
-                    action: PostExecutionAction::Send,
-                }]),
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_start_time_utc_seconds: None,
-                target_receive_amount: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), DENOM_UOSMO)],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        response.root_cause().to_string(),
-        "Error: swap amount must be greater than 50000"
-    );
-}
-
-#[test]
-fn when_contract_is_paused_should_fail() {
-    let user_address = Addr::unchecked(USER);
-    let user_balance = TEN;
-    let vault_deposit = TEN;
-    let swap_amount = ONE;
-    let mut mock = MockApp::new(fin_contract_unfilled_limit_order()).with_funds_for(
-        &user_address,
-        user_balance,
-        DENOM_UOSMO,
-    );
-
-    assert_address_balances(
-        &mock,
-        &[
-            (&user_address, DENOM_UOSMO, user_balance),
-            (&user_address, DENOM_STAKE, Uint128::new(0)),
-            (&mock.dca_contract_address, DENOM_UOSMO, ONE_THOUSAND),
-            (&mock.dca_contract_address, DENOM_STAKE, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_UOSMO, ONE_THOUSAND),
-            (&mock.fin_contract_address, DENOM_STAKE, ONE_THOUSAND),
-        ],
-    );
-
-    mock.app
-        .execute_contract(
-            Addr::unchecked(ADMIN),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::UpdateConfig {
-                fee_collectors: Some(vec![FeeCollector {
-                    address: ADMIN.to_string(),
-                    allocation: Decimal::from_str("1").unwrap(),
-                }]),
-                swap_fee_percent: Some(Decimal::from_str("0.015").unwrap()),
-                delegation_fee_percent: Some(Decimal::from_str("0.0075").unwrap()),
-                staking_router_address: None,
-                page_limit: None,
-                paused: Some(true),
-                dca_plus_escrow_level: None,
-            },
-            &[],
-        )
-        .unwrap();
-
-    let response = mock
-        .app
-        .execute_contract(
-            Addr::unchecked(USER),
-            mock.dca_contract_address.clone(),
-            &ExecuteMsg::CreateVault {
-                owner: None,
-                minimum_receive_amount: None,
-                label: Some("label".to_string()),
-                destinations: None,
-                pool_id: 0,
-                position_type: None,
-                slippage_tolerance: None,
-                swap_amount,
-                time_interval: TimeInterval::Hourly,
-                target_receive_amount: None,
-                target_start_time_utc_seconds: None,
-                use_dca_plus: None,
-            },
-            &vec![Coin::new(vault_deposit.into(), String::from(DENOM_UOSMO))],
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        "Error: contract is paused",
-        response.root_cause().to_string()
-    )
 }
 
 #[test]
