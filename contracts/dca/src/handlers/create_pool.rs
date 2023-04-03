@@ -16,16 +16,17 @@ pub fn create_pool(
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
 
-    let pool: Pool = Pool {
+    let pool = Pool {
         pool_id: pool_id.clone(),
         base_denom: base_denom.clone(),
         quote_denom: quote_denom.clone(),
     };
 
     let existing_pool = POOLS.may_load(deps.storage, pool_id.clone())?;
+
     match existing_pool {
         Some(_pool) => Err(ContractError::CustomError {
-            val: String::from("pool already exists at given address"),
+            val: format!("pool already exists for id {}", pool_id),
         }),
         None => {
             POOLS.save(deps.storage, pool_id.clone(), &pool)?;
