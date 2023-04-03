@@ -5,7 +5,7 @@ pub mod mocks;
 pub mod helpers;
 
 #[cfg(test)]
-pub mod contract_tests;
+pub mod instantiate_tests;
 
 #[cfg(test)]
 pub mod create_vault_tests;
@@ -57,3 +57,9 @@ pub mod disburse_escrow_tests;
 
 #[cfg(test)]
 pub mod update_swap_adjustments_tests;
+
+#[cfg(test)]
+pub mod create_pool_tests;
+
+#[cfg(test)]
+mod get_pools_tests;
