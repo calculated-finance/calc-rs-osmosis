@@ -8,6 +8,7 @@ use crate::helpers::validation_helpers::{
     assert_target_start_time_is_in_future,
 };
 use crate::helpers::vault_helpers::get_dca_plus_model_id;
+use crate::msg::ExecuteMsg;
 use crate::state::cache::{Cache, CACHE};
 use crate::state::config::get_config;
 use crate::state::events::create_event;
@@ -20,12 +21,10 @@ use crate::types::vault_builder::VaultBuilder;
 use base::events::event::{EventBuilder, EventData};
 use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
-use cosmwasm_std::{coin, Addr, Decimal};
+use cosmwasm_std::{coin, to_binary, Addr, CosmosMsg, Decimal, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 use osmosis_helpers::position_type::PositionType;
-
-use super::execute_trigger::execute_trigger;
 
 pub fn create_vault(
     mut deps: DepsMut,
@@ -170,7 +169,7 @@ pub fn create_vault(
 
     match (target_start_time_utc_seconds, target_receive_amount) {
         (None, None) | (Some(_), None) => {
-            let response = create_time_trigger(
+            let mut response = create_time_trigger(
                 &mut deps,
                 &env,
                 &vault,
@@ -180,9 +179,14 @@ pub fn create_vault(
             .expect("time trigger created");
 
             if target_start_time_utc_seconds.is_none() {
-                return Ok(
-                    execute_trigger(deps, env, vault.id, response).expect("time trigger executed")
-                );
+                response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+                    contract_addr: env.contract.address.to_string(),
+                    msg: to_binary(&ExecuteMsg::ExecuteTrigger {
+                        trigger_id: vault.id,
+                    })
+                    .unwrap(),
+                    funds: vec![],
+                }));
             }
 
             Ok(response)
