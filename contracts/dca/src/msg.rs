@@ -75,11 +75,6 @@ pub enum ExecuteMsg {
         paused: Option<bool>,
         dca_plus_escrow_level: Option<Decimal>,
     },
-    UpdateVault {
-        address: Addr,
-        vault_id: Uint128,
-        label: Option<String>,
-    },
     CreateCustomSwapFee {
         denom: String,
         swap_fee_percent: Decimal,

@@ -3,4 +3,4 @@
 813d56538d8d2f183836883479e39a6b30587afdf671704e400e097f77e2dc2f  target/wasm32-unknown-unknown/release/fund_router.wasm
 f785d850502214b852495aea9f3a43496732a19bbad45bb5168dbfab3b4a83d6  target/wasm32-unknown-unknown/release/swap.wasm
 15df7d7b8cf054ce6811c9425a340d9f3fbafc60b00be8a82a12817e2e66fa9f  target/wasm32-unknown-unknown/release/staking_router.wasm
-a09e4b69aae28fa4c468ab416a22ca50f5bc4b1536d79f2aa9027c09e013d3bf  target/wasm32-unknown-unknown/release/dca.wasm
+ec99d3857d5c27e0533f504a3b28c867c5b144b8664636cc743e7f2da3ed48cc  target/wasm32-unknown-unknown/release/dca.wasm

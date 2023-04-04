@@ -359,6 +359,7 @@ dependencies = [
  "cw2",
  "cw20",
  "osmosis-helpers",
+ "osmosis-std",
  "rand",
  "schemars",
  "serde",
