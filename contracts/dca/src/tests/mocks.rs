@@ -647,14 +647,16 @@ pub fn fin_contract_low_swap_price() -> Box<dyn Contract<Empty>> {
 }
 
 pub struct CalcMockQueryHandler<C: DeserializeOwned = Empty> {
-    stargate_handler_result: Option<Binary>,
+    stargate_handler: Box<dyn for<'a> Fn(&'a QueryRequest<C>) -> Binary>,
     mock_querier: MockQuerier<C>,
 }
 
 impl<C: DeserializeOwned> CalcMockQueryHandler<C> {
     pub fn new() -> Self {
         Self {
-            stargate_handler_result: None,
+            stargate_handler: Box::new(|_| {
+                panic!("This should never be called. Use the update_stargate method to set it")
+            }),
             mock_querier: MockQuerier::<C>::new(&[]),
         }
     }
@@ -676,15 +678,18 @@ impl<C: CustomQuery + DeserializeOwned> Querier for CalcMockQueryHandler<C> {
 }
 
 impl<C: CustomQuery + DeserializeOwned> CalcMockQueryHandler<C> {
-    pub fn update_stargate(&mut self, stargate_handler_result: Binary) {
-        self.stargate_handler_result = Some(stargate_handler_result);
+    pub fn update_stargate<WH: 'static>(&mut self, stargate_handler: WH)
+    where
+        WH: Fn(&QueryRequest<C>) -> Binary,
+    {
+        self.stargate_handler = Box::from(stargate_handler);
     }
 
     pub fn handle_query(&self, request: &QueryRequest<C>) -> QuerierResult {
         match &request {
-            QueryRequest::Stargate { .. } => SystemResult::Ok(ContractResult::Ok(
-                self.stargate_handler_result.clone().unwrap(),
-            )),
+            QueryRequest::Stargate { .. } => {
+                SystemResult::Ok(ContractResult::Ok((*self.stargate_handler)(request)))
+            }
             _ => self.mock_querier.handle_query(request),
         }
     }

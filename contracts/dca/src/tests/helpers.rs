@@ -1,4 +1,4 @@
-use super::mocks::{MockApp, ADMIN, DENOM_STAKE, DENOM_UOSMO, FEE_COLLECTOR};
+use super::mocks::{MockApp, ADMIN, DENOM_STAKE, DENOM_UOSMO, FEE_COLLECTOR, USER};
 use crate::{
     constants::{ONE, TEN},
     contract::instantiate,
@@ -9,7 +9,7 @@ use crate::{
         config::FeeCollector,
         pools::POOLS,
         triggers::save_trigger,
-        vaults::save_vault,
+        vaults::{save_vault, update_vault},
     },
     types::{dca_plus_config::DcaPlusConfig, vault::Vault, vault_builder::VaultBuilder},
 };
@@ -19,7 +19,7 @@ use base::{
     triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration},
     vaults::vault::{Destination, PostExecutionAction, VaultStatus},
 };
-use cosmwasm_std::{Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Timestamp, Uint128};
 use std::str::FromStr;
 
 pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
@@ -88,12 +88,81 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
 }
 
+impl Default for Vault {
+    fn default() -> Self {
+        Self {
+            id: Uint128::zero(),
+            created_at: Timestamp::default(),
+            owner: Addr::unchecked(USER),
+            label: Some("vault".to_string()),
+            destinations: vec![Destination {
+                address: Addr::unchecked(USER),
+                allocation: Decimal::percent(100),
+                action: PostExecutionAction::Send,
+            }],
+            status: VaultStatus::Active,
+            balance: Coin::new(TEN.into(), DENOM_UOSMO),
+            pool: Pool {
+                pool_id: 0,
+                base_denom: DENOM_UOSMO.to_string(),
+                quote_denom: DENOM_STAKE.to_string(),
+            },
+            swap_amount: ONE,
+            slippage_tolerance: None,
+            minimum_receive_amount: None,
+            time_interval: TimeInterval::Daily,
+            started_at: None,
+            swapped_amount: Coin::new(0, DENOM_UOSMO),
+            received_amount: Coin::new(0, DENOM_STAKE),
+            trigger: Some(TriggerConfiguration::Time {
+                target_time: Timestamp::from_seconds(0),
+            }),
+            dca_plus_config: None,
+        }
+    }
+}
+
+impl Default for DcaPlusConfig {
+    fn default() -> Self {
+        Self {
+            escrow_level: Decimal::percent(10),
+            model_id: 30,
+            total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
+            standard_dca_swapped_amount: Coin::new(0, DENOM_UOSMO),
+            standard_dca_received_amount: Coin::new(0, DENOM_STAKE),
+            escrowed_balance: Coin::new(0, DENOM_STAKE),
+        }
+    }
+}
+
+pub fn setup_vault_2(deps: DepsMut, env: Env, vault: Vault) -> Vault {
+    POOLS
+        .save(deps.storage, vault.pool.pool_id.clone(), &vault.pool)
+        .unwrap();
+
+    update_vault(deps.storage, &vault).unwrap();
+
+    save_trigger(
+        deps.storage,
+        Trigger {
+            vault_id: vault.id,
+            configuration: TriggerConfiguration::Time {
+                target_time: env.block.time,
+            },
+        },
+    )
+    .unwrap();
+
+    get_vault(deps.as_ref(), vault.id).unwrap().vault
+}
+
 pub fn setup_vault(
     deps: DepsMut,
     env: Env,
     balance: Uint128,
     swap_amount: Uint128,
     status: VaultStatus,
+    slippage_tolerance: Option<Decimal>,
     is_dca_plus: bool,
 ) -> Vault {
     let pair = Pool {
@@ -123,7 +192,7 @@ pub fn setup_vault(
             pool: pair,
             swap_amount,
             position_type: None,
-            slippage_tolerance: None,
+            slippage_tolerance,
             minimum_receive_amount: None,
             balance: Coin::new(balance.into(), DENOM_UOSMO),
             time_interval: TimeInterval::Daily,
@@ -175,11 +244,11 @@ pub fn setup_vault(
 }
 
 pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, false)
+    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, None, false)
 }
 
 pub fn setup_active_dca_plus_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, true)
+    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, None, true)
 }
 
 pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault {
@@ -189,6 +258,7 @@ pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault 
         Uint128::new(500000),
         Uint128::new(500000),
         VaultStatus::Active,
+        None,
         false,
     )
 }
@@ -200,6 +270,7 @@ pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
         Uint128::new(10),
         Uint128::new(100),
         VaultStatus::Active,
+        None,
         false,
     )
 }
@@ -210,7 +281,15 @@ pub fn setup_active_dca_plus_vault_with_low_funds(
     balance: Uint128,
     swap_amount: Uint128,
 ) -> Vault {
-    setup_vault(deps, env, balance, swap_amount, VaultStatus::Active, true)
+    setup_vault(
+        deps,
+        env,
+        balance,
+        swap_amount,
+        VaultStatus::Active,
+        None,
+        true,
+    )
 }
 
 pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {

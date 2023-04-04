@@ -117,19 +117,13 @@ pub fn execute_trigger(
             );
 
             if actual_price_result.is_err() {
-                let error = actual_price_result.unwrap_err();
-
                 create_event(
                     deps.storage,
                     EventBuilder::new(
                         vault.id,
                         env.block.clone(),
                         EventData::SimulatedDcaVaultExecutionSkipped {
-                            reason: if error.to_string().contains("Not enough liquidity to swap") {
-                                ExecutionSkippedReason::SlippageToleranceExceeded
-                            } else {
-                                ExecutionSkippedReason::UnknownFailure
-                            },
+                            reason: ExecutionSkippedReason::UnknownFailure,
                         },
                     ),
                 )?;

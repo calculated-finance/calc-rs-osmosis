@@ -53,6 +53,7 @@ fn with_multiple_vaults_should_return_all_vaults() {
         balance,
         swap_amount,
         status.clone(),
+        None,
         is_dca_plus,
     );
 
@@ -62,6 +63,7 @@ fn with_multiple_vaults_should_return_all_vaults() {
         balance,
         swap_amount,
         status,
+        None,
         is_dca_plus,
     );
 
@@ -103,6 +105,7 @@ fn with_limit_should_return_limited_vaults() {
         balance,
         swap_amount,
         status.clone(),
+        None,
         is_dca_plus,
     );
 
@@ -112,6 +115,7 @@ fn with_limit_should_return_limited_vaults() {
         balance,
         swap_amount,
         status,
+        None,
         is_dca_plus,
     );
 
@@ -154,6 +158,7 @@ fn with_start_after_should_return_vaults_after_start_after() {
         balance,
         swap_amount,
         status.clone(),
+        None,
         is_dca_plus,
     );
 
@@ -163,6 +168,7 @@ fn with_start_after_should_return_vaults_after_start_after() {
         balance,
         swap_amount,
         status,
+        None,
         is_dca_plus,
     );
 
@@ -205,6 +211,7 @@ fn with_limit_and_start_after_should_return_limited_vaults_after_start_after() {
         balance,
         swap_amount,
         status.clone(),
+        None,
         is_dca_plus,
     );
 
@@ -214,6 +221,7 @@ fn with_limit_and_start_after_should_return_limited_vaults_after_start_after() {
         balance,
         swap_amount,
         status.clone(),
+        None,
         is_dca_plus,
     );
 
@@ -223,6 +231,7 @@ fn with_limit_and_start_after_should_return_limited_vaults_after_start_after() {
         balance,
         swap_amount,
         status,
+        None,
         is_dca_plus,
     );
 
@@ -290,6 +299,7 @@ fn with_status_filter_should_return_all_vaults_with_status() {
         balance,
         swap_amount,
         VaultStatus::Active,
+        None,
         is_dca_plus,
     );
 
@@ -299,6 +309,7 @@ fn with_status_filter_should_return_all_vaults_with_status() {
         balance,
         swap_amount,
         VaultStatus::Active,
+        None,
         is_dca_plus,
     );
 
@@ -308,6 +319,7 @@ fn with_status_filter_should_return_all_vaults_with_status() {
         balance,
         swap_amount,
         VaultStatus::Scheduled,
+        None,
         is_dca_plus,
     );
 

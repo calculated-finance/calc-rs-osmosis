@@ -29,6 +29,7 @@ fn updates_the_vault_balance() {
         Uint128::zero(),
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -58,6 +59,7 @@ fn publishes_deposit_event() {
         Uint128::zero(),
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -101,6 +103,7 @@ fn updates_inactive_vault_to_active() {
         Uint128::zero(),
         ONE,
         VaultStatus::Inactive,
+        None,
         false,
     );
 
@@ -134,6 +137,7 @@ fn leaves_scheduled_vault_scheduled() {
         Uint128::zero(),
         ONE,
         VaultStatus::Scheduled,
+        None,
         false,
     );
 
@@ -167,6 +171,7 @@ fn leaves_active_vault_active() {
         Uint128::zero(),
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -200,6 +205,7 @@ fn executes_trigger_for_reactivated_vault() {
         Uint128::zero(),
         ONE,
         VaultStatus::Inactive,
+        None,
         false,
     );
 
@@ -239,6 +245,7 @@ fn does_not_execute_trigger_for_active_vault() {
         Uint128::zero(),
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -269,6 +276,7 @@ fn does_not_execute_trigger_for_scheduled_vault() {
         Uint128::zero(),
         ONE,
         VaultStatus::Scheduled,
+        None,
         false,
     );
 
@@ -299,6 +307,7 @@ fn for_cancelled_vault_should_fail() {
         Uint128::zero(),
         ONE,
         VaultStatus::Cancelled,
+        None,
         false,
     );
 
@@ -329,6 +338,7 @@ fn with_incorrect_denom_should_fail() {
         Uint128::zero(),
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -365,6 +375,7 @@ fn with_multiple_assets_should_fail() {
         Uint128::zero(),
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -412,6 +423,7 @@ fn when_contract_is_paused_should_fail() {
         Uint128::zero(),
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -442,6 +454,7 @@ fn with_dca_plus_should_update_model_id() {
         ONE,
         ONE,
         VaultStatus::Active,
+        None,
         true,
     );
 
@@ -475,6 +488,7 @@ fn with_dca_plus_should_update_total_deposit() {
         ONE,
         ONE,
         VaultStatus::Active,
+        None,
         true,
     );
 

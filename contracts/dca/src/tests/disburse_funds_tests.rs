@@ -1049,6 +1049,7 @@ fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
         ONE,
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -1096,6 +1097,7 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
         ONE,
         ONE,
         VaultStatus::Active,
+        None,
         true,
     );
 
@@ -1151,6 +1153,7 @@ fn for_dca_plus_vault_with_low_funds_and_failed_swap_publishes_unknown_failure_e
         Uint128::new(49000),
         ONE,
         VaultStatus::Active,
+        None,
         true,
     );
 
@@ -1206,6 +1209,7 @@ fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive()
         ONE,
         ONE,
         VaultStatus::Active,
+        None,
         true,
     );
 
