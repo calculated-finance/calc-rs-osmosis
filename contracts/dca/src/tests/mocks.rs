@@ -646,12 +646,12 @@ pub fn fin_contract_low_swap_price() -> Box<dyn Contract<Empty>> {
     unimplemented!()
 }
 
-pub struct CalcMockQueryHandler<C: DeserializeOwned = Empty> {
+pub struct CalcMockQuerier<C: DeserializeOwned = Empty> {
     stargate_handler: Box<dyn for<'a> Fn(&'a QueryRequest<C>) -> Binary>,
     mock_querier: MockQuerier<C>,
 }
 
-impl<C: DeserializeOwned> CalcMockQueryHandler<C> {
+impl<C: DeserializeOwned> CalcMockQuerier<C> {
     pub fn new() -> Self {
         Self {
             stargate_handler: Box::new(|_| {
@@ -662,7 +662,7 @@ impl<C: DeserializeOwned> CalcMockQueryHandler<C> {
     }
 }
 
-impl<C: CustomQuery + DeserializeOwned> Querier for CalcMockQueryHandler<C> {
+impl<C: CustomQuery + DeserializeOwned> Querier for CalcMockQuerier<C> {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         let request: QueryRequest<C> = match from_slice(bin_request) {
             Ok(v) => v,
@@ -677,7 +677,7 @@ impl<C: CustomQuery + DeserializeOwned> Querier for CalcMockQueryHandler<C> {
     }
 }
 
-impl<C: CustomQuery + DeserializeOwned> CalcMockQueryHandler<C> {
+impl<C: CustomQuery + DeserializeOwned> CalcMockQuerier<C> {
     pub fn update_stargate<WH: 'static>(&mut self, stargate_handler: WH)
     where
         WH: Fn(&QueryRequest<C>) -> Binary,
@@ -695,11 +695,11 @@ impl<C: CustomQuery + DeserializeOwned> CalcMockQueryHandler<C> {
     }
 }
 
-pub fn calc_mock_dependencies() -> OwnedDeps<MockStorage, MockApi, CalcMockQueryHandler, Empty> {
+pub fn calc_mock_dependencies() -> OwnedDeps<MockStorage, MockApi, CalcMockQuerier, Empty> {
     OwnedDeps {
         storage: MockStorage::new(),
         api: MockApi::default(),
-        querier: CalcMockQueryHandler::new(),
+        querier: CalcMockQuerier::new(),
         custom_query_type: PhantomData,
     }
 }

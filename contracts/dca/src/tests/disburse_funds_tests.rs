@@ -312,7 +312,7 @@ fn with_succcesful_swap_adjusts_vault_balance() {
     assert_eq!(
         updated_vault.balance.amount,
         vault.balance.amount
-            - get_swap_amount(&deps.as_ref(), &env, vault.clone())
+            - get_swap_amount(&deps.as_ref(), &env, &vault)
                 .unwrap()
                 .amount
     );
@@ -342,7 +342,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
         vec![
             Coin::new(
                 (vault.balance.amount
-                    - get_swap_amount(&deps.as_ref(), &env, vault.clone())
+                    - get_swap_amount(&deps.as_ref(), &env, &vault)
                         .unwrap()
                         .amount)
                     .into(),
@@ -369,7 +369,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
 
     assert_eq!(
         updated_vault.swapped_amount.amount,
-        get_swap_amount(&deps.as_ref(), &env, vault.clone())
+        get_swap_amount(&deps.as_ref(), &env, &vault)
             .unwrap()
             .amount
     );

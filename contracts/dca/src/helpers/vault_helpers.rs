@@ -3,7 +3,7 @@ use base::{helpers::time_helpers::get_total_execution_duration, triggers::trigge
 use cosmwasm_std::{Coin, Decimal, Deps, Env, StdResult, Timestamp, Uint128};
 use std::cmp::min;
 
-pub fn get_swap_amount(deps: &Deps, env: &Env, vault: Vault) -> StdResult<Coin> {
+pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin> {
     let adjusted_amount =
         vault
             .clone()
@@ -79,26 +79,22 @@ pub fn get_dca_plus_performance_factor(
 }
 
 pub fn price_threshold_exceeded(
-    deps: &Deps,
-    env: &Env,
-    vault: &Vault,
+    swap_amount: Uint128,
+    minimum_receive_amount: Option<Uint128>,
     belief_price: Decimal,
 ) -> StdResult<bool> {
-    vault
-        .minimum_receive_amount
-        .map_or(Ok(false), |minimum_receive_amount| {
-            let swap_amount = get_swap_amount(&deps, &env, vault.clone())?;
-            let swap_amount_as_decimal = Decimal::from_ratio(swap_amount.amount, Uint128::one());
+    minimum_receive_amount.map_or(Ok(false), |minimum_receive_amount| {
+        let swap_amount_as_decimal = Decimal::from_ratio(swap_amount, Uint128::one());
 
-            let receive_amount_at_price = swap_amount_as_decimal
-                .checked_div(belief_price)
-                .expect("belief price should be larger than 0");
+        let receive_amount_at_price = swap_amount_as_decimal
+            .checked_div(belief_price)
+            .expect("belief price should be larger than 0");
 
-            let minimum_receive_amount_as_decimal =
-                Decimal::from_ratio(minimum_receive_amount, Uint128::one());
+        let minimum_receive_amount_as_decimal =
+            Decimal::from_ratio(minimum_receive_amount, Uint128::one());
 
-            Ok(receive_amount_at_price < minimum_receive_amount_as_decimal)
-        })
+        Ok(receive_amount_at_price < minimum_receive_amount_as_decimal)
+    })
 }
 
 #[cfg(test)]
@@ -126,7 +122,7 @@ mod get_swap_amount_tests {
         let vault = vault_with(balance, swap_amount);
 
         assert_eq!(
-            get_swap_amount(&deps.as_ref(), &env, vault.clone()).unwrap(),
+            get_swap_amount(&deps.as_ref(), &env, &vault).unwrap(),
             vault.balance
         );
     }
@@ -141,7 +137,7 @@ mod get_swap_amount_tests {
         let vault = vault_with(balance, swap_amount);
 
         assert_eq!(
-            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+            get_swap_amount(&deps.as_ref(), &env, &vault)
                 .unwrap()
                 .amount,
             vault.swap_amount
@@ -198,7 +194,7 @@ mod get_swap_amount_tests {
         .unwrap();
 
         assert_eq!(
-            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+            get_swap_amount(&deps.as_ref(), &env, &vault)
                 .unwrap()
                 .amount,
             vault.swap_amount * swap_adjustment
@@ -256,7 +252,7 @@ mod get_swap_amount_tests {
         .unwrap();
 
         assert_eq!(
-            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+            get_swap_amount(&deps.as_ref(), &env, &vault)
                 .unwrap()
                 .amount,
             vault.swap_amount * swap_adjustment
@@ -313,7 +309,7 @@ mod get_swap_amount_tests {
         .unwrap();
 
         assert_eq!(
-            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+            get_swap_amount(&deps.as_ref(), &env, &vault)
                 .unwrap()
                 .amount,
             vault.balance.amount
@@ -370,7 +366,7 @@ mod get_swap_amount_tests {
         .unwrap();
 
         assert_eq!(
-            get_swap_amount(&deps.as_ref(), &env, vault.clone())
+            get_swap_amount(&deps.as_ref(), &env, &vault)
                 .unwrap()
                 .amount,
             vault.balance.amount
@@ -426,9 +422,10 @@ mod price_threshold_exceeded_tests {
 
         assert_eq!(
             price_threshold_exceeded(
-                &deps.as_ref(),
-                &env,
-                &vault,
+                get_swap_amount(&deps.as_ref(), &env, &vault)
+                    .unwrap()
+                    .amount,
+                vault.minimum_receive_amount,
                 Decimal::from_str("1.9").unwrap()
             ),
             Ok(false)
@@ -446,9 +443,10 @@ mod price_threshold_exceeded_tests {
 
         assert_eq!(
             price_threshold_exceeded(
-                &deps.as_ref(),
-                &env,
-                &vault,
+                get_swap_amount(&deps.as_ref(), &env, &vault)
+                    .unwrap()
+                    .amount,
+                vault.minimum_receive_amount,
                 Decimal::from_str("2.0").unwrap()
             ),
             Ok(false)
@@ -466,9 +464,10 @@ mod price_threshold_exceeded_tests {
 
         assert_eq!(
             price_threshold_exceeded(
-                &deps.as_ref(),
-                &env,
-                &vault,
+                get_swap_amount(&deps.as_ref(), &env, &vault)
+                    .unwrap()
+                    .amount,
+                vault.minimum_receive_amount,
                 Decimal::from_str("2.1").unwrap()
             ),
             Ok(true)

@@ -6,7 +6,7 @@ use crate::{
     msg::{EventsResponse, InstantiateMsg, QueryMsg, VaultResponse},
     state::{
         cache::{Cache, CACHE},
-        config::FeeCollector,
+        config::{Config, FeeCollector},
         pools::POOLS,
         triggers::save_trigger,
         vaults::{save_vault, update_vault},
@@ -88,6 +88,24 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            admin: Addr::unchecked(ADMIN),
+            fee_collectors: vec![FeeCollector {
+                address: ADMIN.to_string(),
+                allocation: Decimal::from_str("1").unwrap(),
+            }],
+            swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
+            delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
+            staking_router_address: Addr::unchecked(ADMIN),
+            page_limit: 1000,
+            paused: false,
+            dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
+        }
+    }
+}
+
 impl Default for Vault {
     fn default() -> Self {
         Self {
@@ -135,7 +153,7 @@ impl Default for DcaPlusConfig {
     }
 }
 
-pub fn setup_vault_2(deps: DepsMut, env: Env, vault: Vault) -> Vault {
+pub fn setup_new_vault(deps: DepsMut, env: Env, vault: Vault) -> Vault {
     POOLS
         .save(deps.storage, vault.pool.pool_id.clone(), &vault.pool)
         .unwrap();
