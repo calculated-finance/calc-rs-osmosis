@@ -312,7 +312,7 @@ fn with_succcesful_swap_adjusts_vault_balance() {
     assert_eq!(
         updated_vault.balance.amount,
         vault.balance.amount
-            - get_swap_amount(&deps.as_ref(), &env, vault.clone())
+            - get_swap_amount(&deps.as_ref(), &env, &vault)
                 .unwrap()
                 .amount
     );
@@ -342,7 +342,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
         vec![
             Coin::new(
                 (vault.balance.amount
-                    - get_swap_amount(&deps.as_ref(), &env, vault.clone())
+                    - get_swap_amount(&deps.as_ref(), &env, &vault)
                         .unwrap()
                         .amount)
                     .into(),
@@ -369,7 +369,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
 
     assert_eq!(
         updated_vault.swapped_amount.amount,
-        get_swap_amount(&deps.as_ref(), &env, vault.clone())
+        get_swap_amount(&deps.as_ref(), &env, &vault)
             .unwrap()
             .amount
     );
@@ -1049,6 +1049,7 @@ fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
         ONE,
         ONE,
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -1096,6 +1097,7 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
         ONE,
         ONE,
         VaultStatus::Active,
+        None,
         true,
     );
 
@@ -1151,6 +1153,7 @@ fn for_dca_plus_vault_with_low_funds_and_failed_swap_publishes_unknown_failure_e
         Uint128::new(49000),
         ONE,
         VaultStatus::Active,
+        None,
         true,
     );
 
@@ -1206,6 +1209,7 @@ fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive()
         ONE,
         ONE,
         VaultStatus::Active,
+        None,
         true,
     );
 

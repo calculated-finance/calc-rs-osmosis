@@ -109,6 +109,23 @@ pub fn execute_trigger(
                 return Ok(false);
             }
 
+            if price_threshold_exceeded(swap_amount, vault.minimum_receive_amount, belief_price)? {
+                create_event(
+                    deps.storage,
+                    EventBuilder::new(
+                        vault.id,
+                        env.block.clone(),
+                        EventData::SimulatedDcaVaultExecutionSkipped {
+                            reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                                price: belief_price,
+                            },
+                        },
+                    ),
+                )?;
+
+                return Ok(dca_plus_config.has_sufficient_funds());
+            }
+
             let actual_price_result = query_price(
                 deps.querier,
                 &env,
@@ -117,19 +134,13 @@ pub fn execute_trigger(
             );
 
             if actual_price_result.is_err() {
-                let error = actual_price_result.unwrap_err();
-
                 create_event(
                     deps.storage,
                     EventBuilder::new(
                         vault.id,
                         env.block.clone(),
                         EventData::SimulatedDcaVaultExecutionSkipped {
-                            reason: if error.to_string().contains("Not enough liquidity to swap") {
-                                ExecutionSkippedReason::SlippageToleranceExceeded
-                            } else {
-                                ExecutionSkippedReason::UnknownFailure
-                            },
+                            reason: ExecutionSkippedReason::UnknownFailure,
                         },
                     ),
                 )?;
@@ -222,7 +233,17 @@ pub fn execute_trigger(
         return Ok(response);
     }
 
-    if price_threshold_exceeded(&deps.as_ref(), &env, &vault, belief_price)? {
+    if vault.is_inactive() {
+        return Ok(response);
+    }
+
+    let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault)?;
+
+    if price_threshold_exceeded(
+        swap_amount.amount,
+        vault.minimum_receive_amount,
+        belief_price,
+    )? {
         create_event(
             deps.storage,
             EventBuilder::new(
@@ -263,7 +284,7 @@ pub fn execute_trigger(
         deps.querier,
         &env,
         vault.pool.clone(),
-        get_swap_amount(&deps.as_ref(), &env, vault.clone())?,
+        swap_amount,
         vault.slippage_tolerance,
         Some(AFTER_FIN_SWAP_REPLY_ID),
         Some(ReplyOn::Always),

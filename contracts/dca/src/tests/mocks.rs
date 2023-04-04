@@ -8,13 +8,17 @@ use base::helpers::message_helpers::get_flat_map_for_event_type;
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::Destination;
 use cosmwasm_schema::serde::Serialize;
+use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
 use cosmwasm_std::{
-    to_binary, Addr, BankMsg, Binary, Coin, Decimal, Decimal256, Empty, Env, Event, MessageInfo,
-    Response, StdResult, Uint128, Uint64,
+    from_slice, to_binary, Addr, BankMsg, Binary, Coin, ContractResult, CustomQuery, Decimal,
+    Decimal256, Empty, Env, Event, MessageInfo, OwnedDeps, Querier, QuerierResult, QueryRequest,
+    Response, StdResult, SystemError, SystemResult, Uint128, Uint64,
 };
 use cw_multi_test::{App, AppBuilder, Contract, ContractWrapper, Executor};
 use rand::Rng;
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::str::FromStr;
 
 pub const USER: &str = "user";
@@ -640,4 +644,62 @@ pub fn fin_contract_high_swap_price() -> Box<dyn Contract<Empty>> {
 
 pub fn fin_contract_low_swap_price() -> Box<dyn Contract<Empty>> {
     unimplemented!()
+}
+
+pub struct CalcMockQuerier<C: DeserializeOwned = Empty> {
+    stargate_handler: Box<dyn for<'a> Fn(&'a QueryRequest<C>) -> Binary>,
+    mock_querier: MockQuerier<C>,
+}
+
+impl<C: DeserializeOwned> CalcMockQuerier<C> {
+    pub fn new() -> Self {
+        Self {
+            stargate_handler: Box::new(|_| {
+                panic!("This should never be called. Use the update_stargate method to set it")
+            }),
+            mock_querier: MockQuerier::<C>::new(&[]),
+        }
+    }
+}
+
+impl<C: CustomQuery + DeserializeOwned> Querier for CalcMockQuerier<C> {
+    fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
+        let request: QueryRequest<C> = match from_slice(bin_request) {
+            Ok(v) => v,
+            Err(e) => {
+                return SystemResult::Err(SystemError::InvalidRequest {
+                    error: format!("Parsing query request: {}", e),
+                    request: bin_request.into(),
+                })
+            }
+        };
+        self.handle_query(&request)
+    }
+}
+
+impl<C: CustomQuery + DeserializeOwned> CalcMockQuerier<C> {
+    pub fn update_stargate<WH: 'static>(&mut self, stargate_handler: WH)
+    where
+        WH: Fn(&QueryRequest<C>) -> Binary,
+    {
+        self.stargate_handler = Box::from(stargate_handler);
+    }
+
+    pub fn handle_query(&self, request: &QueryRequest<C>) -> QuerierResult {
+        match &request {
+            QueryRequest::Stargate { .. } => {
+                SystemResult::Ok(ContractResult::Ok((*self.stargate_handler)(request)))
+            }
+            _ => self.mock_querier.handle_query(request),
+        }
+    }
+}
+
+pub fn calc_mock_dependencies() -> OwnedDeps<MockStorage, MockApi, CalcMockQuerier, Empty> {
+    OwnedDeps {
+        storage: MockStorage::new(),
+        api: MockApi::default(),
+        querier: CalcMockQuerier::new(),
+        custom_query_type: PhantomData,
+    }
 }

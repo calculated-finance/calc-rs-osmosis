@@ -25,6 +25,7 @@ fn should_return_balance_to_owner() {
         balance,
         Uint128::new(100000),
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -52,6 +53,7 @@ fn should_publish_vault_cancelled_event() {
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -80,6 +82,7 @@ fn when_vault_has_time_trigger_should_cancel_vault() {
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -107,6 +110,7 @@ fn should_empty_vault_balance() {
         balance,
         Uint128::new(100000),
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -132,6 +136,7 @@ fn on_already_cancelled_vault_should_fail() {
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -155,6 +160,7 @@ fn for_vault_with_different_owner_should_fail() {
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -183,6 +189,7 @@ fn should_delete_the_trigger() {
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
+        None,
         false,
     );
 
@@ -208,6 +215,7 @@ fn with_dca_plus_should_save_disburse_escrow_task() {
         Uint128::new(1000000),
         Uint128::new(100000),
         VaultStatus::Active,
+        None,
         true,
     );
 

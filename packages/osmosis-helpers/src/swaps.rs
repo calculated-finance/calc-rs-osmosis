@@ -2,7 +2,7 @@ use crate::{constants::OSMOSIS_SWAP_FEE_RATE, queries::query_belief_price};
 use base::pool::Pool;
 use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, ReplyOn, StdResult, SubMsg, Uint128};
 use osmosis_std::types::osmosis::{
-    gamm::v1beta1::MsgSwapExactAmountIn, poolmanager::v1beta1::SwapAmountInRoute,
+    poolmanager::v1beta1::MsgSwapExactAmountIn, poolmanager::v1beta1::SwapAmountInRoute,
 };
 use std::str::FromStr;
 

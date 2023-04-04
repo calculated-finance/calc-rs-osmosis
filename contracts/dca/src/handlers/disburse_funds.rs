@@ -69,7 +69,7 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
                 false,
             )?);
 
-            vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, vault.clone())?.amount;
+            vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, &vault)?.amount;
             vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount);
             vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee);
 

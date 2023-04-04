@@ -11,7 +11,7 @@ use crate::handlers::disburse_funds::disburse_funds;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_custom_swap_fees::get_custom_swap_fees;
 use crate::handlers::get_dca_plus_performance::get_dca_plus_performance_handler;
-use crate::handlers::get_disburse_escrow_tasks_handler::get_disburse_escrow_tasks_handler;
+use crate::handlers::get_disburse_escrow_tasks::get_disburse_escrow_tasks_handler;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_pools::get_pools;
@@ -22,7 +22,6 @@ use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
-use crate::handlers::update_vault::update_vault_handler;
 use crate::helpers::validation_helpers::{
     assert_dca_plus_escrow_level_is_less_than_100_percent,
     assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
@@ -173,11 +172,6 @@ pub fn execute(
             paused,
             dca_plus_escrow_level,
         ),
-        ExecuteMsg::UpdateVault {
-            address: _,
-            vault_id,
-            label,
-        } => update_vault_handler(deps, info, vault_id, label),
         ExecuteMsg::CreateCustomSwapFee {
             denom,
             swap_fee_percent,

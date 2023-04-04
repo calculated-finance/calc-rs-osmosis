@@ -17,12 +17,6 @@ pub mod cancel_vault_tests;
 pub mod execute_trigger_tests;
 
 #[cfg(test)]
-pub mod get_time_trigger_ids_tests;
-
-#[cfg(test)]
-pub mod get_trigger_id_by_fin_limit_order_idx_tests;
-
-#[cfg(test)]
 pub mod get_vaults_by_address_tests;
 
 #[cfg(test)]
@@ -36,9 +30,6 @@ pub mod disburse_funds_tests;
 
 #[cfg(test)]
 pub mod get_events_by_resource_id_tests;
-
-#[cfg(test)]
-pub mod update_vault_tests;
 
 #[cfg(test)]
 pub mod create_custom_swap_fee_tests;
