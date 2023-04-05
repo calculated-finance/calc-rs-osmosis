@@ -421,55 +421,6 @@ fn should_create_vault() {
 }
 
 #[test]
-fn should_publish_vault_created_event() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    let mut info = mock_info(ADMIN, &[]);
-
-    instantiate_contract(deps.as_mut(), env.clone(), info.clone());
-
-    create_pool(
-        deps.as_mut(),
-        env.clone(),
-        info.clone(),
-        0,
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
-    )
-    .unwrap();
-
-    let swap_amount = Uint128::new(100000);
-    info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
-
-    create_vault(
-        deps.as_mut(),
-        env.clone(),
-        &info,
-        info.sender.clone(),
-        None,
-        vec![],
-        0,
-        None,
-        None,
-        None,
-        swap_amount,
-        TimeInterval::Daily,
-        Some(env.block.time.plus_seconds(10).seconds().into()),
-        None,
-        Some(false),
-    )
-    .unwrap();
-
-    let events = get_events_by_resource_id(deps.as_ref(), Uint128::one(), None, None)
-        .unwrap()
-        .events;
-
-    assert!(events.contains(
-        &EventBuilder::new(Uint128::one(), env.block, EventData::DcaVaultCreated {}).build(1),
-    ))
-}
-
-#[test]
 fn should_publish_deposit_event() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -520,7 +471,7 @@ fn should_publish_deposit_event() {
                 amount: info.funds[0].clone()
             },
         )
-        .build(2),
+        .build(1),
     ))
 }
 

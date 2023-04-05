@@ -58,8 +58,6 @@ describe('when creating a vault', () => {
     it('has the correct received amount', () =>
       expect(parseInt(vault.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 2));
 
-    it('has a vault created event', () => expect(eventPayloads).to.include.deep.members([{ dca_vault_created: {} }]));
-
     it('has a funds deposited event', () =>
       expect(eventPayloads).to.include.deep.members([
         {
@@ -98,7 +96,7 @@ describe('when creating a vault', () => {
         );
     });
 
-    it('has no other events', () => expect(eventPayloads).to.have.lengthOf(4));
+    it('has no other events', () => expect(eventPayloads).to.have.lengthOf(3));
 
     it('has a time trigger', () =>
       expect(vault.trigger).to.eql({
@@ -140,12 +138,10 @@ describe('when creating a vault', () => {
 
     it('has the correct received amount', () => expect(vault.received_amount).to.eql(coin(0, 'uion')));
 
-    it('has a vault created event', () => expect(eventPayloads).to.include.deep.members([{ dca_vault_created: {} }]));
-
     it('has a funds deposited event', () =>
       expect(eventPayloads).to.include.deep.members([{ dca_vault_funds_deposited: { amount: vault.balance } }]));
 
-    it('has no other events', () => expect(eventPayloads).to.have.lengthOf(2));
+    it('has no other events', () => expect(eventPayloads).to.have.lengthOf(1));
 
     it('has a time trigger', () => expect(vault.trigger).to.eql({ time: { target_time: `${targetTime}000000000` } }));
 

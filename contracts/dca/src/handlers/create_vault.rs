@@ -144,11 +144,6 @@ pub fn create_vault(
 
     create_event(
         deps.storage,
-        EventBuilder::new(vault.id, env.block.clone(), EventData::DcaVaultCreated {}),
-    )?;
-
-    create_event(
-        deps.storage,
         EventBuilder::new(
             vault.id,
             env.block.clone(),
