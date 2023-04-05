@@ -47,7 +47,7 @@ pub fn clear_config(store: &mut dyn Storage) {
     CONFIG.remove(store);
 }
 
-const CUSTOM_FEES: Map<String, Decimal> = Map::new("fees_v1");
+const CUSTOM_FEES: Map<String, Decimal> = Map::new("fees_v3");
 
 pub fn create_custom_fee(
     storage: &mut dyn Storage,

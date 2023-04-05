@@ -2,9 +2,9 @@ use crate::error::ContractError;
 use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
-use crate::handlers::create_pool::create_pool;
+use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
-use crate::handlers::delete_pool::delete_pool;
+use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
 use crate::handlers::disburse_escrow::disburse_escrow_handler;
 use crate::handlers::disburse_funds::disburse_funds;
@@ -14,7 +14,7 @@ use crate::handlers::get_dca_plus_performance::get_dca_plus_performance_handler;
 use crate::handlers::get_disburse_escrow_tasks::get_disburse_escrow_tasks_handler;
 use crate::handlers::get_events::get_events;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
-use crate::handlers::get_pools::get_pools;
+use crate::handlers::get_pairs::get_pairs;
 use crate::handlers::get_time_trigger_ids::get_time_trigger_ids;
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults::get_vaults_handler;
@@ -113,17 +113,18 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::CreatePool {
+        ExecuteMsg::CreatePair {
             pool_id,
+            address,
             base_denom,
             quote_denom,
-        } => create_pool(deps, env, info, pool_id, base_denom, quote_denom),
-        ExecuteMsg::DeletePool { pool_id } => delete_pool(deps, env, info, pool_id),
+        } => create_pair(deps, env, info, pool_id, address, base_denom, quote_denom),
+        ExecuteMsg::DeletePair { address } => delete_pair(deps, info, address),
         ExecuteMsg::CreateVault {
             owner,
             label,
             destinations,
-            pool_id,
+            pair_address,
             position_type,
             slippage_tolerance,
             minimum_receive_amount,
@@ -139,7 +140,7 @@ pub fn execute(
             owner.unwrap_or(info.sender.clone()),
             label,
             destinations.unwrap_or(vec![]),
-            pool_id,
+            pair_address,
             position_type,
             slippage_tolerance,
             minimum_receive_amount,
@@ -200,7 +201,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::GetPools {} => to_binary(&get_pools(deps)?),
+        QueryMsg::GetPairs {} => to_binary(&get_pairs(deps)?),
         QueryMsg::GetTimeTriggerIds { limit } => {
             to_binary(&get_time_trigger_ids(deps, env, limit)?)
         }

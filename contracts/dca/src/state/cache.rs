@@ -8,7 +8,7 @@ pub struct Cache {
     pub owner: Addr,
 }
 
-pub const CACHE: Item<Cache> = Item::new("cache_v1");
+pub const CACHE: Item<Cache> = Item::new("cache_v3");
 
 #[cw_serde]
 pub struct SwapCache {
@@ -16,4 +16,4 @@ pub struct SwapCache {
     pub receive_denom_balance: Coin,
 }
 
-pub const SWAP_CACHE: Item<SwapCache> = Item::new("swap_cache_v1");
+pub const SWAP_CACHE: Item<SwapCache> = Item::new("swap_cache_v3");

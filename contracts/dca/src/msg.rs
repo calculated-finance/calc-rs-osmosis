@@ -1,7 +1,7 @@
 use crate::state::config::{Config, FeeCollector};
 use crate::types::vault::Vault;
 use base::events::event::Event;
-use base::pool::Pool;
+use base::pair::Pair;
 use base::triggers::trigger::TimeInterval;
 use base::vaults::vault::{Destination, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
@@ -34,19 +34,20 @@ pub struct MigrateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    CreatePool {
+    CreatePair {
         pool_id: u64,
+        address: Addr,
         base_denom: String,
         quote_denom: String,
     },
-    DeletePool {
-        pool_id: u64,
+    DeletePair {
+        address: Addr,
     },
     CreateVault {
         owner: Option<Addr>,
         label: Option<String>,
         destinations: Option<Vec<Destination>>,
-        pool_id: u64,
+        pair_address: Addr,
         position_type: Option<PositionType>,
         slippage_tolerance: Option<Decimal>,
         minimum_receive_amount: Option<Uint128>,
@@ -96,8 +97,8 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(ConfigResponse)]
     GetConfig {},
-    #[returns(PoolsResponse)]
-    GetPools {},
+    #[returns(PairsResponse)]
+    GetPairs {},
     #[returns(TriggerIdsResponse)]
     GetTimeTriggerIds { limit: Option<u16> },
     #[returns(TriggerIdResponse)]
@@ -141,8 +142,8 @@ pub struct ConfigResponse {
 }
 
 #[cw_serde]
-pub struct PoolsResponse {
-    pub pools: Vec<Pool>,
+pub struct PairsResponse {
+    pub pairs: Vec<Pair>,
 }
 
 #[cw_serde]

@@ -3,7 +3,7 @@ import { Config } from '../shared/config';
 import { Addr } from '../types/dca/execute';
 import { Pair } from '../types/dca/response/get_pairs';
 import * as mocha from 'mocha';
-import { Pool } from '../types/dca/response/get_vault';
+import { Pair } from '../types/dca/response/get_vault';
 
 declare module 'mocha' {
   export interface Context {
@@ -19,7 +19,7 @@ declare module 'mocha' {
     userWalletAddress: Addr;
     stakingRouterContractAddress: Addr;
     osmosisSwapFee: number;
-    pool: Pool;
+    pair: Pair;
     validatorAddress: string;
     swapAdjustment: number;
   }

@@ -1,6 +1,6 @@
 use super::{dca_plus_config::DcaPlusConfig, vault::Vault};
 use base::{
-    pool::Pool,
+    pair::Pair,
     triggers::trigger::TimeInterval,
     vaults::vault::{Destination, VaultStatus},
 };
@@ -14,7 +14,7 @@ pub struct VaultBuilder {
     pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
-    pub pool: Pool,
+    pub pair: Pair,
     pub swap_amount: Uint128,
     pub position_type: Option<PositionType>,
     pub slippage_tolerance: Option<Decimal>,
@@ -34,7 +34,7 @@ impl VaultBuilder {
         destinations: Vec<Destination>,
         status: VaultStatus,
         balance: Coin,
-        pool: Pool,
+        pair: Pair,
         swap_amount: Uint128,
         position_type: Option<PositionType>,
         slippage_tolerance: Option<Decimal>,
@@ -52,7 +52,7 @@ impl VaultBuilder {
             destinations,
             status,
             balance,
-            pool,
+            pair,
             swap_amount,
             position_type,
             slippage_tolerance,
@@ -74,7 +74,7 @@ impl VaultBuilder {
             destinations: self.destinations,
             status: self.status,
             balance: self.balance.clone(),
-            pool: self.pool.clone(),
+            pair: self.pair.clone(),
             swap_amount: self.swap_amount,
             slippage_tolerance: self.slippage_tolerance,
             minimum_receive_amount: self.minimum_receive_amount,

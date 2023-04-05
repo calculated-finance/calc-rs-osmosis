@@ -7,15 +7,16 @@
 
 export type ExecuteMsg =
   | {
-      create_pool: {
+      create_pair: {
+        address: Addr;
         base_denom: string;
         pool_id: number;
         quote_denom: string;
       };
     }
   | {
-      delete_pool: {
-        pool_id: number;
+      delete_pair: {
+        address: Addr;
       };
     }
   | {
@@ -24,7 +25,7 @@ export type ExecuteMsg =
         label?: string | null;
         minimum_receive_amount?: Uint128 | null;
         owner?: Addr | null;
-        pool_id: number;
+        pair_address: Addr;
         position_type?: PositionType | null;
         slippage_tolerance?: Decimal | null;
         swap_amount: Uint128;
@@ -62,13 +63,6 @@ export type ExecuteMsg =
       };
     }
   | {
-      update_vault: {
-        address: Addr;
-        label?: string | null;
-        vault_id: Uint128;
-      };
-    }
-  | {
       create_custom_swap_fee: {
         denom: string;
         swap_fee_percent: Decimal;
@@ -90,7 +84,6 @@ export type ExecuteMsg =
         vault_id: Uint128;
       };
     };
-export type PostExecutionAction = "send" | "z_delegate";
 /**
  * A human readable address.
  *
@@ -101,6 +94,7 @@ export type PostExecutionAction = "send" | "z_delegate";
  * This type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.
  */
 export type Addr = string;
+export type PostExecutionAction = "send" | "z_delegate";
 /**
  * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
  *

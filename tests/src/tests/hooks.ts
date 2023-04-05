@@ -7,7 +7,7 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { cosmos, FEES, osmosis } from 'osmojs';
 import { getPoolsPricesPairs } from '@cosmology/core';
 import { find, reverse } from 'ramda';
-import { Pool } from '../types/dca/response/get_pools';
+import { Pair } from '../types/dca/response/get_pairs';
 
 const calcSwapFee = 0.0005;
 const automationFee = 0.0075;
@@ -64,13 +64,13 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
     FEES.osmosis.swapExactAmountIn('medium'),
   );
 
-  const contractPools = (
+  const contractpairs = (
     await cosmWasmClient.queryContractSmart(dcaContractAddress, {
-      get_pools: {},
+      get_pairs: {},
     })
-  ).pools;
+  ).pairs;
 
-  const pool = find((pool: Pool) => pool.base_denom == 'stake' && pool.quote_denom == 'uion', reverse(contractPools));
+  const pair = find((pair: Pair) => pair.base_denom == 'stake' && pair.quote_denom == 'uion', reverse(contractpairs));
 
   return {
     beforeAll(this: Mocha.Context) {
@@ -87,7 +87,7 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
         userWalletAddress,
         stakingRouterContractAddress,
         osmosisSwapFee,
-        pool,
+        pair,
         validatorAddress,
         swapAdjustment,
       };
@@ -124,10 +124,11 @@ const instantiateDCAContract = async (
 
   for (const pool of pools) {
     await execute(cosmWasmClient, adminContractAddress, dcaContractAddress, {
-      create_pool: {
+      create_pair: {
+        pool_id: pool.id.low,
+        address: pool.address,
         base_denom: pool.poolAssets[0].token.denom,
         quote_denom: pool.poolAssets[1].token.denom,
-        pool_id: pool.id.low,
       },
     });
   }

@@ -82,7 +82,7 @@ pub fn execute_trigger(
 
     update_vault(deps.storage, &vault)?;
 
-    let belief_price = query_belief_price(deps.querier, &vault.pool, &vault.get_swap_denom())?;
+    let belief_price = query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -90,8 +90,8 @@ pub fn execute_trigger(
             vault.id,
             env.block.to_owned(),
             EventData::DcaVaultExecutionTriggered {
-                base_denom: vault.pool.base_denom.clone(),
-                quote_denom: vault.pool.quote_denom.clone(),
+                base_denom: vault.pair.base_denom.clone(),
+                quote_denom: vault.pair.quote_denom.clone(),
                 asset_price: belief_price.clone(),
             },
         ),
@@ -129,7 +129,7 @@ pub fn execute_trigger(
             let actual_price_result = query_price(
                 deps.querier,
                 &env,
-                &vault.pool,
+                &vault.pair,
                 &Coin::new(swap_amount.into(), vault.get_swap_denom()),
             );
 
@@ -283,7 +283,7 @@ pub fn execute_trigger(
     Ok(response.add_submessage(create_osmosis_swap_message(
         deps.querier,
         &env,
-        vault.pool.clone(),
+        vault.pair.clone(),
         swap_amount,
         vault.slippage_tolerance,
         Some(AFTER_FIN_SWAP_REPLY_ID),

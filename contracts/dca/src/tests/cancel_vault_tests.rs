@@ -1,9 +1,12 @@
-use super::helpers::{instantiate_contract, setup_vault};
+use super::helpers::instantiate_contract;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_vault::get_vault;
 use crate::state::disburse_escrow_tasks::get_disburse_escrow_tasks;
+use crate::tests::helpers::setup_new_vault;
 use crate::tests::mocks::ADMIN;
+use crate::types::dca_plus_config::DcaPlusConfig;
+use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
@@ -17,17 +20,7 @@ fn should_return_balance_to_owner() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let balance = Uint128::new(1000000);
-
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        balance,
-        Uint128::new(100000),
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let response = cancel_vault(deps.as_mut(), env, info, vault.id).unwrap();
 
@@ -47,15 +40,7 @@ fn should_publish_vault_cancelled_event() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::new(1000000),
-        Uint128::new(100000),
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     cancel_vault(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
@@ -76,15 +61,7 @@ fn when_vault_has_time_trigger_should_cancel_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::new(1000000),
-        Uint128::new(100000),
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     cancel_vault(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
@@ -102,24 +79,14 @@ fn should_empty_vault_balance() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let balance = Uint128::new(1000000);
-
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        balance,
-        Uint128::new(100000),
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     cancel_vault(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
     let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 
-    assert_eq!(vault.balance.amount, balance);
-    assert_eq!(updated_vault.balance.amount, Uint128::zero());
+    assert!(vault.balance.amount.gt(&Uint128::zero()));
+    assert!(updated_vault.balance.amount.is_zero());
 }
 
 #[test]
@@ -130,17 +97,15 @@ fn on_already_cancelled_vault_should_fail() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::new(1000000),
-        Uint128::new(100000),
-        VaultStatus::Active,
-        None,
-        false,
+        Vault {
+            status: VaultStatus::Cancelled,
+            ..Vault::default()
+        },
     );
 
-    cancel_vault(deps.as_mut(), env.clone(), info.clone(), vault.id).unwrap();
     let err = cancel_vault(deps.as_mut(), env.clone(), info, vault.id).unwrap_err();
 
     assert_eq!(err.to_string(), "Error: vault is already cancelled");
@@ -154,15 +119,7 @@ fn for_vault_with_different_owner_should_fail() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::new(1000000),
-        Uint128::new(100000),
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let err = cancel_vault(
         deps.as_mut(),
@@ -183,15 +140,7 @@ fn should_delete_the_trigger() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::new(1000000),
-        Uint128::new(100000),
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     cancel_vault(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
@@ -209,14 +158,13 @@ fn with_dca_plus_should_save_disburse_escrow_task() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::new(1000000),
-        Uint128::new(100000),
-        VaultStatus::Active,
-        None,
-        true,
+        Vault {
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        },
     );
 
     cancel_vault(deps.as_mut(), env.clone(), info, vault.id).unwrap();

@@ -1,38 +1,41 @@
 use crate::error::ContractError;
 use crate::helpers::validation_helpers::assert_sender_is_admin;
-use crate::state::pools::POOLS;
-use base::pool::Pool;
-use cosmwasm_std::DepsMut;
+use crate::state::pairs::PAIRS;
+use base::pair::Pair;
+use cosmwasm_std::{Addr, DepsMut};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Env, MessageInfo, Response};
 
-pub fn create_pool(
+pub fn create_pair(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     pool_id: u64,
+    address: Addr,
     base_denom: String,
     quote_denom: String,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
 
-    let pool = Pool {
+    let pair = Pair {
         pool_id: pool_id.clone(),
+        address: address.clone(),
         base_denom: base_denom.clone(),
         quote_denom: quote_denom.clone(),
     };
 
-    let existing_pool = POOLS.may_load(deps.storage, pool_id.clone())?;
+    let existing_pair = PAIRS.may_load(deps.storage, address.clone())?;
 
-    match existing_pool {
-        Some(_pool) => Err(ContractError::CustomError {
-            val: format!("pool already exists for id {}", pool_id),
+    match existing_pair {
+        Some(_) => Err(ContractError::CustomError {
+            val: format!("pair already exists for address {}", address),
         }),
         None => {
-            POOLS.save(deps.storage, pool_id.clone(), &pool)?;
+            PAIRS.save(deps.storage, address.clone(), &pair)?;
             Ok(Response::new()
-                .add_attribute("method", "create_pool")
+                .add_attribute("method", "create_pair")
                 .add_attribute("pool_id", pool_id.to_string())
+                .add_attribute("address", address.to_string())
                 .add_attribute("base_denom", base_denom)
                 .add_attribute("quote_denom", quote_denom))
         }

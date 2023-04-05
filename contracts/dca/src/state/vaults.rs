@@ -1,10 +1,10 @@
-use super::{pools::POOLS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
+use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
 use crate::types::{
     dca_plus_config::DcaPlusConfig, price_delta_limit::PriceDeltaLimit, vault::Vault,
     vault_builder::VaultBuilder,
 };
 use base::{
-    pool::Pool,
+    pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
     vaults::vault::{Destination, DestinationDeprecated, VaultStatus},
 };
@@ -14,10 +14,10 @@ use cosmwasm_std::{
 };
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 
-const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v1");
+const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v3");
 
 #[cw_serde]
-struct VaultDTO {
+struct VaultData {
     pub id: Uint128,
     pub created_at: Timestamp,
     pub owner: Addr,
@@ -25,7 +25,7 @@ struct VaultDTO {
     pub destinations: Vec<DestinationDeprecated>,
     pub status: VaultStatus,
     pub balance: Coin,
-    pub pool_id: u64,
+    pub pair_address: Addr,
     pub swap_amount: Uint128,
     pub slippage_tolerance: Option<Decimal>,
     pub minimum_receive_amount: Option<Uint128>,
@@ -36,7 +36,7 @@ struct VaultDTO {
     pub price_delta_limits: Vec<PriceDeltaLimit>,
 }
 
-impl From<Vault> for VaultDTO {
+impl From<Vault> for VaultData {
     fn from(vault: Vault) -> Self {
         Self {
             id: vault.id,
@@ -46,7 +46,7 @@ impl From<Vault> for VaultDTO {
             destinations: vec![],
             status: vault.status,
             balance: vault.balance,
-            pool_id: vault.pool.pool_id,
+            pair_address: vault.pair.address,
             swap_amount: vault.swap_amount,
             slippage_tolerance: vault.slippage_tolerance,
             minimum_receive_amount: vault.minimum_receive_amount,
@@ -60,8 +60,8 @@ impl From<Vault> for VaultDTO {
 }
 
 fn vault_from(
-    data: &VaultDTO,
-    pool: Pool,
+    data: &VaultData,
+    pair: Pair,
     trigger: Option<TriggerConfiguration>,
     destinations: &mut Vec<Destination>,
     dca_plus_config: Option<DcaPlusConfig>,
@@ -82,7 +82,7 @@ fn vault_from(
         destinations: destinations.clone(),
         status: data.status.clone(),
         balance: data.balance.clone(),
-        pool,
+        pair,
         swap_amount: data.swap_amount,
         slippage_tolerance: data.slippage_tolerance,
         minimum_receive_amount: data.minimum_receive_amount,
@@ -95,7 +95,7 @@ fn vault_from(
     }
 }
 
-const DESTINATIONS: Map<u128, Binary> = Map::new("destinations_v1");
+const DESTINATIONS: Map<u128, Binary> = Map::new("destinations_v3");
 
 fn get_destinations(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vec<Destination>> {
     let destinations = DESTINATIONS.may_load(store, vault_id.into())?;
@@ -105,7 +105,7 @@ fn get_destinations(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vec<Des
     }
 }
 
-const DCA_PLUS_CONFIGS: Map<u128, DcaPlusConfig> = Map::new("dca_plus_configs_v1");
+const DCA_PLUS_CONFIGS: Map<u128, DcaPlusConfig> = Map::new("dca_plus_configs_v3");
 
 fn get_dca_plus_config(store: &dyn Storage, vault_id: Uint128) -> Option<DcaPlusConfig> {
     DCA_PLUS_CONFIGS
@@ -114,26 +114,26 @@ fn get_dca_plus_config(store: &dyn Storage, vault_id: Uint128) -> Option<DcaPlus
 }
 
 struct VaultIndexes<'a> {
-    pub owner: UniqueIndex<'a, (Addr, u128), VaultDTO, u128>,
-    pub owner_status: UniqueIndex<'a, (Addr, u8, u128), VaultDTO, u128>,
+    pub owner: UniqueIndex<'a, (Addr, u128), VaultData, u128>,
+    pub owner_status: UniqueIndex<'a, (Addr, u8, u128), VaultData, u128>,
 }
 
-impl<'a> IndexList<VaultDTO> for VaultIndexes<'a> {
-    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<VaultDTO>> + '_> {
-        let v: Vec<&dyn Index<VaultDTO>> = vec![&self.owner, &self.owner_status];
+impl<'a> IndexList<VaultData> for VaultIndexes<'a> {
+    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<VaultData>> + '_> {
+        let v: Vec<&dyn Index<VaultData>> = vec![&self.owner, &self.owner_status];
         Box::new(v.into_iter())
     }
 }
 
-fn vault_store<'a>() -> IndexedMap<'a, u128, VaultDTO, VaultIndexes<'a>> {
+fn vault_store<'a>() -> IndexedMap<'a, u128, VaultData, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
-        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v1__owner"),
+        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v3__owner"),
         owner_status: UniqueIndex::new(
             |v| (v.owner.clone(), v.status.clone() as u8, v.id.into()),
-            "vaults_v1__owner_status",
+            "vaults_v3__owner_status",
         ),
     };
-    IndexedMap::new("vaults_v1", indexes)
+    IndexedMap::new("vaults_v3", indexes)
 }
 
 pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdResult<Vault> {
@@ -154,7 +154,7 @@ pub fn get_vault(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vault> {
     let data = vault_store().load(store, vault_id.into())?;
     Ok(vault_from(
         &data,
-        POOLS.load(store, data.pool_id.clone())?,
+        PAIRS.load(store, data.pair_address.clone())?,
         get_trigger(store, vault_id)?.map(|t| t.configuration),
         &mut get_destinations(store, vault_id)?,
         get_dca_plus_config(store, vault_id),
@@ -189,9 +189,9 @@ pub fn get_vaults_by_address(
                 result.expect(format!("a vault with id after {:?}", start_after).as_str());
             vault_from(
                 &vault_data,
-                POOLS
-                    .load(store, vault_data.pool_id.clone())
-                    .expect(format!("a pool for pool address {:?}", vault_data.pool_id).as_str()),
+                PAIRS.load(store, vault_data.pair_address.clone()).expect(
+                    format!("a pair for pair address {:?}", vault_data.pair_address).as_str(),
+                ),
                 get_trigger(store, vault_data.id.into())
                     .expect(format!("a trigger for vault id {}", vault_data.id).as_str())
                     .map(|trigger| trigger.configuration),
@@ -220,9 +220,9 @@ pub fn get_vaults(
                 result.expect(format!("a vault with id after {:?}", start_after).as_str());
             vault_from(
                 &vault_data,
-                POOLS
-                    .load(store, vault_data.pool_id.clone())
-                    .expect(format!("a pool for pool address {:?}", vault_data.pool_id).as_str()),
+                PAIRS.load(store, vault_data.pair_address.clone()).expect(
+                    format!("a pair for pair address {:?}", vault_data.pair_address).as_str(),
+                ),
                 get_trigger(store, vault_data.id.into())
                     .expect(format!("a trigger for vault id {}", vault_data.id).as_str())
                     .map(|trigger| trigger.configuration),
@@ -253,9 +253,12 @@ pub fn clear_vaults(store: &mut dyn Storage) {
 #[cfg(test)]
 mod destination_store_tests {
     use super::*;
-    use crate::types::vault_builder::VaultBuilder;
+    use crate::{
+        tests::mocks::{DENOM_STAKE, DENOM_UOSMO},
+        types::vault_builder::VaultBuilder,
+    };
     use base::{
-        pool::Pool,
+        pair::Pair,
         triggers::trigger::TimeInterval,
         vaults::vault::{Destination, PostExecutionAction, VaultStatus},
     };
@@ -275,11 +278,12 @@ mod destination_store_tests {
                 action: PostExecutionAction::Send,
             }],
             VaultStatus::Active,
-            Coin::new(1000u128, "uosmo".to_string()),
-            Pool {
+            Coin::new(1000u128, DENOM_UOSMO.to_string()),
+            Pair {
                 pool_id: 0,
-                base_denom: "ion".to_string(),
-                quote_denom: "uosmo".to_string(),
+                address: Addr::unchecked("pair"),
+                base_denom: DENOM_STAKE.to_string(),
+                quote_denom: DENOM_UOSMO.to_string(),
             },
             Uint128::new(100),
             None,
@@ -288,11 +292,11 @@ mod destination_store_tests {
             TimeInterval::Daily,
             None,
             Coin {
-                denom: "ion".to_string(),
+                denom: DENOM_STAKE.to_string(),
                 amount: Uint128::zero(),
             },
             Coin {
-                denom: "uosmo".to_string(),
+                denom: DENOM_UOSMO.to_string(),
                 amount: Uint128::zero(),
             },
             None,
@@ -320,14 +324,15 @@ mod destination_store_tests {
         let env = mock_env();
         let store = deps.as_mut().storage;
 
-        let pool = Pool {
+        let pair = Pair {
             pool_id: 0,
-            base_denom: "ion".to_string(),
-            quote_denom: "uosmo".to_string(),
+            address: Addr::unchecked("pair"),
+            base_denom: DENOM_STAKE.to_string(),
+            quote_denom: DENOM_UOSMO.to_string(),
         };
 
-        POOLS
-            .save(store, pool.pool_id.clone(), &pool.clone())
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
             .unwrap();
 
         let vault_builder = create_vault_builder(env);
@@ -344,14 +349,15 @@ mod destination_store_tests {
         let env = mock_env();
         let store = deps.as_mut().storage;
 
-        let pool = Pool {
+        let pair = Pair {
             pool_id: 0,
-            base_denom: "ion".to_string(),
-            quote_denom: "uosmo".to_string(),
+            address: Addr::unchecked("pair"),
+            base_denom: DENOM_STAKE.to_string(),
+            quote_denom: DENOM_UOSMO.to_string(),
         };
 
-        POOLS
-            .save(store, pool.pool_id.clone(), &pool.clone())
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
             .unwrap();
 
         let vault_builder = create_vault_builder(env);
@@ -371,19 +377,20 @@ mod destination_store_tests {
         let env = mock_env();
         let store = deps.as_mut().storage;
 
-        let pool = Pool {
+        let pair = Pair {
             pool_id: 0,
-            base_denom: "ion".to_string(),
-            quote_denom: "uosmo".to_string(),
+            address: Addr::unchecked("pair"),
+            base_denom: DENOM_STAKE.to_string(),
+            quote_denom: DENOM_UOSMO.to_string(),
         };
 
-        POOLS
-            .save(store, pool.pool_id.clone(), &pool.clone())
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
             .unwrap();
 
         let vault = create_vault_builder(env).build(Uint128::one());
 
-        let mut vault_dto: VaultDTO = vault.clone().into();
+        let mut vault_dto: VaultData = vault.clone().into();
         vault_dto.destinations = vault
             .clone()
             .destinations
@@ -407,19 +414,20 @@ mod destination_store_tests {
         let env = mock_env();
         let store = deps.as_mut().storage;
 
-        let pool = Pool {
+        let pair = Pair {
             pool_id: 0,
-            base_denom: "ion".to_string(),
-            quote_denom: "uosmo".to_string(),
+            address: Addr::unchecked("pair"),
+            base_denom: DENOM_STAKE.to_string(),
+            quote_denom: DENOM_UOSMO.to_string(),
         };
 
-        POOLS
-            .save(store, pool.pool_id.clone(), &pool.clone())
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
             .unwrap();
 
         let mut vault = create_vault_builder(env).build(Uint128::one());
 
-        let mut vault_dto: VaultDTO = vault.clone().into();
+        let mut vault_dto: VaultData = vault.clone().into();
         vault_dto.destinations = vault
             .clone()
             .destinations
@@ -447,19 +455,20 @@ mod destination_store_tests {
         let env = mock_env();
         let store = deps.as_mut().storage;
 
-        let pool = Pool {
+        let pair = Pair {
             pool_id: 0,
-            base_denom: "ion".to_string(),
-            quote_denom: "uosmo".to_string(),
+            address: Addr::unchecked("pair"),
+            base_denom: DENOM_STAKE.to_string(),
+            quote_denom: DENOM_UOSMO.to_string(),
         };
 
-        POOLS
-            .save(store, pool.pool_id.clone(), &pool.clone())
+        PAIRS
+            .save(store, pair.address.clone(), &pair.clone())
             .unwrap();
 
         let mut vault = create_vault_builder(env).build(Uint128::one());
 
-        let mut vault_dto: VaultDTO = vault.clone().into();
+        let mut vault_dto: VaultData = vault.clone().into();
         vault_dto.destinations = vault
             .clone()
             .destinations

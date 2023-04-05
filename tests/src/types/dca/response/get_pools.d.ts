@@ -5,10 +5,10 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export interface PoolsResponse {
-  pools: Pool[];
+export interface pairsResponse {
+  pairs: Pair[];
 }
-export interface Pool {
+export interface Pair {
   base_denom: string;
   pool_id: number;
   quote_denom: string;

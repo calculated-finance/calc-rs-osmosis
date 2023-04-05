@@ -1,4 +1,4 @@
-use crate::handlers::create_pool::create_pool;
+use crate::handlers::create_pair::create_pair;
 use crate::handlers::create_vault::create_vault;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_vault::get_vault;
@@ -9,7 +9,7 @@ use crate::tests::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
 use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::vault::Vault;
 use base::events::event::{EventBuilder, EventData};
-use base::pool::Pool;
+use base::pair::Pair;
 use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
 use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
@@ -32,7 +32,7 @@ fn with_no_assets_should_fail() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -68,7 +68,7 @@ fn with_multiple_assets_should_fail() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -101,7 +101,7 @@ fn with_non_existent_pool_id_should_fail() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -113,7 +113,7 @@ fn with_non_existent_pool_id_should_fail() {
     )
     .unwrap_err();
 
-    assert_eq!(err.to_string(), "base::pool::Pool not found");
+    assert_eq!(err.to_string(), "base::pair::Pair not found");
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
             allocation: Decimal::percent(50),
             action: PostExecutionAction::Send,
         }],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -179,7 +179,7 @@ fn with_destination_allocation_equal_to_zero_should_fail() {
                 action: PostExecutionAction::Send,
             },
         ],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -219,7 +219,7 @@ fn with_more_than_10_destination_allocations_should_fail() {
                 action: PostExecutionAction::Send,
             })
             .collect(),
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -252,7 +252,7 @@ fn with_swap_amount_less_than_50000_should_fail() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -296,7 +296,7 @@ fn when_contract_is_paused_should_fail() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -326,7 +326,7 @@ fn with_time_trigger_with_target_time_in_the_past_should_fail() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -352,11 +352,12 @@ fn should_create_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    create_pool(
+    create_pair(
         deps.as_mut(),
         env.clone(),
         info.clone(),
         0,
+        Addr::unchecked("pair"),
         DENOM_STAKE.to_string(),
         DENOM_UOSMO.to_string(),
     )
@@ -372,7 +373,7 @@ fn should_create_vault() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -404,8 +405,9 @@ fn should_create_vault() {
             balance: info.funds[0].clone(),
             slippage_tolerance: None,
             swap_amount,
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: DENOM_STAKE.to_string(),
                 quote_denom: DENOM_UOSMO.to_string(),
             },
@@ -428,11 +430,12 @@ fn should_publish_deposit_event() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    create_pool(
+    create_pair(
         deps.as_mut(),
         env.clone(),
         info.clone(),
         0,
+        Addr::unchecked("pair"),
         DENOM_STAKE.to_string(),
         DENOM_UOSMO.to_string(),
     )
@@ -447,7 +450,7 @@ fn should_publish_deposit_event() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -483,11 +486,12 @@ fn for_different_owner_should_succeed() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    create_pool(
+    create_pair(
         deps.as_mut(),
         env.clone(),
         info.clone(),
         0,
+        Addr::unchecked("pair"),
         DENOM_STAKE.to_string(),
         DENOM_UOSMO.to_string(),
     )
@@ -503,7 +507,7 @@ fn for_different_owner_should_succeed() {
         owner,
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -528,11 +532,12 @@ fn with_multiple_destinations_should_succeed() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    create_pool(
+    create_pair(
         deps.as_mut(),
         env.clone(),
         info.clone(),
         0,
+        Addr::unchecked("pair"),
         DENOM_STAKE.to_string(),
         DENOM_UOSMO.to_string(),
     )
@@ -560,7 +565,7 @@ fn with_multiple_destinations_should_succeed() {
         info.sender.clone(),
         None,
         destinations.clone(),
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -585,11 +590,12 @@ fn with_insufficient_funds_should_create_inactive_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    create_pool(
+    create_pair(
         deps.as_mut(),
         env.clone(),
         info.clone(),
         0,
+        Addr::unchecked("pair"),
         DENOM_STAKE.to_string(),
         DENOM_UOSMO.to_string(),
     )
@@ -604,7 +610,7 @@ fn with_insufficient_funds_should_create_inactive_vault() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -629,11 +635,12 @@ fn with_use_dca_plus_true_should_create_dca_plus_config() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    create_pool(
+    create_pair(
         deps.as_mut(),
         env.clone(),
         info.clone(),
         0,
+        Addr::unchecked("pair"),
         DENOM_STAKE.to_string(),
         DENOM_UOSMO.to_string(),
     )
@@ -648,7 +655,7 @@ fn with_use_dca_plus_true_should_create_dca_plus_config() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -684,11 +691,12 @@ fn with_large_deposit_should_select_longer_duration_model() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    create_pool(
+    create_pair(
         deps.as_mut(),
         env.clone(),
         info.clone(),
         0,
+        Addr::unchecked("pair"),
         DENOM_STAKE.to_string(),
         DENOM_UOSMO.to_string(),
     )
@@ -703,7 +711,7 @@ fn with_large_deposit_should_select_longer_duration_model() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -728,11 +736,12 @@ fn with_no_target_time_should_execute_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    create_pool(
+    create_pair(
         deps.as_mut(),
         env.clone(),
         info.clone(),
         0,
+        Addr::unchecked("pair"),
         DENOM_STAKE.to_string(),
         DENOM_UOSMO.to_string(),
     )
@@ -747,7 +756,7 @@ fn with_no_target_time_should_execute_vault() {
         info.sender.clone(),
         None,
         vec![],
-        0,
+        Addr::unchecked("pair"),
         None,
         None,
         None,
@@ -877,7 +886,7 @@ fn with_no_target_time_should_execute_vault() {
 //             ),
 //             slippage_tolerance: None,
 //             swap_amount,
-//             pool: Pool {
+//             pair: Pair {
 //                 pool_id: 0,
 //                 base_denom: DENOM_STAKE.to_string(),
 //                 quote_denom: DENOM_UOSMO.to_string(),

@@ -1,7 +1,7 @@
 use super::dca_plus_config::DcaPlusConfig;
 use base::{
     helpers::time_helpers::get_total_execution_duration,
-    pool::Pool,
+    pair::Pair,
     triggers::trigger::{TimeInterval, TriggerConfiguration},
     vaults::vault::{Destination, VaultStatus},
 };
@@ -19,7 +19,7 @@ pub struct Vault {
     pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
-    pub pool: Pool,
+    pub pair: Pair,
     pub swap_amount: Uint128,
     pub slippage_tolerance: Option<Decimal>,
     pub minimum_receive_amount: Option<Uint128>,
@@ -33,7 +33,7 @@ pub struct Vault {
 
 impl Vault {
     pub fn get_position_type(&self) -> PositionType {
-        match self.balance.denom == self.pool.quote_denom {
+        match self.balance.denom == self.pair.quote_denom {
             true => PositionType::Enter,
             false => PositionType::Exit,
         }
@@ -44,10 +44,10 @@ impl Vault {
     }
 
     pub fn get_receive_denom(&self) -> String {
-        if self.balance.denom == self.pool.quote_denom {
-            return self.pool.base_denom.clone();
+        if self.balance.denom == self.pair.quote_denom {
+            return self.pair.base_denom.clone();
         }
-        self.pool.quote_denom.clone()
+        self.pair.quote_denom.clone()
     }
 
     pub fn get_expected_execution_completed_date(&self, current_time: Timestamp) -> Timestamp {
@@ -170,7 +170,7 @@ impl Vault {
 //             vec![],
 //             VaultStatus::Active,
 //             coin(balance, "quote"),
-//             Pool {
+//             Pair {
 //                 pool_id: 0,
 //                 base_denom: "base".to_string(),
 //                 quote_denom: "quote".to_string(),
@@ -292,7 +292,7 @@ impl Vault {
 //                     PositionType::Exit => "base",
 //                 },
 //             ),
-//             pair: Pool {
+//             pair: Pair {
 //                 pool_id: 0,
 //                 base_denom: "base".to_string(),
 //                 quote_denom: "quote".to_string(),
@@ -331,7 +331,7 @@ impl Vault {
 //     };
 
 //     use super::Vault;
-//     use base::{pool::Pool, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
+//     use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
 //     use cosmwasm_std::{coin, testing::mock_env, Addr, Coin, Decimal, Timestamp, Uint128};
 
 //     #[test]
@@ -421,7 +421,7 @@ impl Vault {
 //             destinations: vec![],
 //             status: VaultStatus::Active,
 //             balance: Coin::new(balance.into(), "quote"),
-//             pair: Pool {
+//             pair: Pair {
 //                 pool_id: 0,
 //                 base_denom: "base".to_string(),
 //                 quote_denom: "quote".to_string(),

@@ -1,4 +1,3 @@
-use super::helpers::setup_vault;
 use super::mocks::DENOM_STAKE;
 use crate::constants::{ONE, ONE_HUNDRED, TEN};
 use crate::handlers::deposit::deposit;
@@ -6,13 +5,15 @@ use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_vault::get_vault;
 use crate::msg::ExecuteMsg;
 use crate::state::config::{get_config, update_config, Config};
-use crate::tests::helpers::instantiate_contract;
-use crate::tests::mocks::{ADMIN, DENOM_UOSMO};
+use crate::tests::helpers::{instantiate_contract, setup_new_vault};
+use crate::tests::mocks::{ADMIN, DENOM_UOSMO, USER};
+use crate::types::dca_plus_config::DcaPlusConfig;
+use crate::types::vault::Vault;
 use base::events::event::EventBuilder;
 use base::helpers::coin_helpers::{add, subtract};
 use base::vaults::vault::VaultStatus;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, SubMsg, WasmMsg};
 
 #[test]
 fn updates_the_vault_balance() {
@@ -23,17 +24,16 @@ fn updates_the_vault_balance() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Active,
-        None,
-        false,
+        Vault {
+            balance: Coin::new(0, DENOM_UOSMO),
+            ..Vault::default()
+        },
     );
 
-    deposit(deps.as_mut(), env, info, Addr::unchecked(ADMIN), vault.id).unwrap();
+    deposit(deps.as_mut(), env, info, vault.owner, vault.id).unwrap();
 
     let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 
@@ -53,24 +53,9 @@ fn publishes_deposit_event() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
-    deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap();
+    deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
     let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
         .unwrap()
@@ -97,24 +82,16 @@ fn updates_inactive_vault_to_active() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Inactive,
-        None,
-        false,
+        Vault {
+            status: VaultStatus::Inactive,
+            ..Vault::default()
+        },
     );
 
-    deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap();
+    deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
     let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 
@@ -131,24 +108,16 @@ fn leaves_scheduled_vault_scheduled() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Scheduled,
-        None,
-        false,
+        Vault {
+            status: VaultStatus::Scheduled,
+            ..Vault::default()
+        },
     );
 
-    deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap();
+    deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
     let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 
@@ -165,24 +134,9 @@ fn leaves_active_vault_active() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
-    deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap();
+    deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
     let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 
@@ -199,24 +153,16 @@ fn executes_trigger_for_reactivated_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Inactive,
-        None,
-        false,
+        Vault {
+            status: VaultStatus::Inactive,
+            ..Vault::default()
+        },
     );
 
-    let response = deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap();
+    let response = deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
     assert!(response
         .messages
@@ -239,21 +185,13 @@ fn does_not_execute_trigger_for_active_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let response = deposit(
         deps.as_mut(),
         env.clone(),
         info,
-        Addr::unchecked(ADMIN),
+        Addr::unchecked(USER),
         vault.id,
     )
     .unwrap();
@@ -270,21 +208,20 @@ fn does_not_execute_trigger_for_scheduled_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Scheduled,
-        None,
-        false,
+        Vault {
+            status: VaultStatus::Scheduled,
+            ..Vault::default()
+        },
     );
 
     let response = deposit(
         deps.as_mut(),
         env.clone(),
         info,
-        Addr::unchecked(ADMIN),
+        Addr::unchecked(USER),
         vault.id,
     )
     .unwrap();
@@ -301,24 +238,16 @@ fn for_cancelled_vault_should_fail() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Cancelled,
-        None,
-        false,
+        Vault {
+            status: VaultStatus::Cancelled,
+            ..Vault::default()
+        },
     );
 
-    let err = deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap_err();
+    let err = deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap_err();
 
     assert_eq!(err.to_string(), "Error: vault is already cancelled");
 }
@@ -332,21 +261,13 @@ fn with_incorrect_denom_should_fail() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let err = deposit(
         deps.as_mut(),
         env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
+        mock_info(USER, &[Coin::new(ONE.into(), vault.received_amount.denom)]),
+        vault.owner,
         vault.id,
     )
     .unwrap_err();
@@ -369,24 +290,9 @@ fn with_multiple_assets_should_fail() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
-    let err = deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap_err();
+    let err = deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap_err();
 
     assert_eq!(
         err.to_string(),
@@ -417,24 +323,9 @@ fn when_contract_is_paused_should_fail() {
     )
     .unwrap();
 
-    let vault = setup_vault(
-        deps.as_mut(),
-        env.clone(),
-        Uint128::zero(),
-        ONE,
-        VaultStatus::Active,
-        None,
-        false,
-    );
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
-    let err = deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap_err();
+    let err = deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap_err();
 
     assert_eq!(err.to_string(), "Error: contract is paused");
 }
@@ -448,24 +339,16 @@ fn with_dca_plus_should_update_model_id() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        ONE,
-        ONE,
-        VaultStatus::Active,
-        None,
-        true,
+        Vault {
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        },
     );
 
-    deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap();
+    deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
     let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 
@@ -482,24 +365,16 @@ fn with_dca_plus_should_update_total_deposit() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        ONE,
-        ONE,
-        VaultStatus::Active,
-        None,
-        true,
+        Vault {
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        },
     );
 
-    deposit(
-        deps.as_mut(),
-        env.clone(),
-        info,
-        Addr::unchecked(ADMIN),
-        vault.id,
-    )
-    .unwrap();
+    deposit(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
     let updated_vault = get_vault(deps.as_ref(), vault.id).unwrap().vault;
 

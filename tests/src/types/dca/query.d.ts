@@ -10,7 +10,7 @@ export type QueryMsg =
       get_config: {};
     }
   | {
-      get_pools: {};
+      get_pairs: {};
     }
   | {
       get_time_trigger_ids: {

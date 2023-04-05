@@ -22,5 +22,6 @@ export interface PairsResponse {
 export interface Pair {
   address: Addr;
   base_denom: string;
+  pool_id: number;
   quote_denom: string;
 }

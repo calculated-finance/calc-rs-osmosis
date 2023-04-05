@@ -102,7 +102,7 @@ export interface Vault {
   label?: string | null;
   minimum_receive_amount?: Uint128 | null;
   owner: Addr;
-  pool: Pool;
+  pair: Pair;
   received_amount: Coin;
   slippage_tolerance?: Decimal | null;
   started_at?: Timestamp | null;
@@ -131,7 +131,8 @@ export interface Destination {
   address: Addr;
   allocation: Decimal;
 }
-export interface Pool {
+export interface Pair {
+  address: Addr;
   base_denom: string;
   pool_id: number;
   quote_denom: string;

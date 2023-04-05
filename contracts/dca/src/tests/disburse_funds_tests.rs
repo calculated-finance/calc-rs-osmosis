@@ -1,5 +1,5 @@
 use crate::{
-    constants::{ONE, TEN},
+    constants::{ONE, TEN, TWO_MICRONS},
     contract::AFTER_FIN_SWAP_REPLY_ID,
     handlers::{
         disburse_funds::disburse_funds, get_events_by_resource_id::get_events_by_resource_id,
@@ -14,11 +14,11 @@ use crate::{
     tests::{
         helpers::{
             instantiate_contract, instantiate_contract_with_multiple_fee_collectors,
-            setup_active_dca_plus_vault_with_funds, setup_active_vault_with_funds,
-            setup_active_vault_with_low_funds, setup_active_vault_with_slippage_funds, setup_vault,
+            setup_new_vault,
         },
-        mocks::ADMIN,
+        mocks::{ADMIN, DENOM_UOSMO},
     },
+    types::{dca_plus_config::DcaPlusConfig, vault::Vault},
 };
 use base::{
     events::event::{Event, EventBuilder, EventData, ExecutionSkippedReason},
@@ -32,7 +32,7 @@ use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
     BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
 };
-use osmosis_helpers::{codes::ERROR_SWAP_SLIPPAGE_EXCEEDED, position_type::PositionType};
+use osmosis_helpers::position_type::PositionType;
 use std::{cmp::min, str::FromStr};
 
 #[test]
@@ -41,7 +41,7 @@ fn with_succcesful_swap_returns_funds_to_destination() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
     let receive_amount = Uint128::new(10000);
 
     SWAP_CACHE
@@ -107,7 +107,7 @@ fn with_succcesful_swap_returns_fee_to_fee_collector() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
     let receive_amount = Uint128::new(234312312);
 
     SWAP_CACHE
@@ -187,7 +187,7 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
         ],
     );
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
     let receive_amount = Uint128::new(234312312);
 
     SWAP_CACHE
@@ -273,7 +273,7 @@ fn with_succcesful_swap_adjusts_vault_balance() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
     let receive_amount = Uint128::new(234312312);
 
     SWAP_CACHE
@@ -321,7 +321,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
     let receive_amount = Uint128::new(234312312);
 
     SWAP_CACHE
@@ -378,7 +378,7 @@ fn with_succcesful_swap_adjusts_received_amount_stat() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
     let receive_amount = Uint128::new(234312312);
 
     SWAP_CACHE
@@ -435,7 +435,15 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(
+        deps.as_mut(),
+        env.clone(),
+        Vault {
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        },
+    );
+
     let receive_amount = Uint128::new(10000);
 
     SWAP_CACHE
@@ -521,7 +529,8 @@ fn with_succcesful_swap_publishes_dca_execution_completed_event() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+
     let receive_amount = Uint128::new(10000);
 
     SWAP_CACHE
@@ -604,7 +613,15 @@ fn with_succcesful_swap_with_dca_plus_publishes_execution_completed_event() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_dca_plus_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(
+        deps.as_mut(),
+        env.clone(),
+        Vault {
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        },
+    );
+
     let receive_amount = Uint128::new(10000);
 
     SWAP_CACHE
@@ -678,8 +695,16 @@ fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
+    let balance = Coin::new(TWO_MICRONS.into(), DENOM_UOSMO);
+
+    let vault = setup_new_vault(
+        deps.as_mut(),
+        env.clone(),
+        Vault {
+            balance: balance.clone(),
+            ..Vault::default()
+        },
+    );
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
@@ -688,12 +713,10 @@ fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
 
     disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
-    let vault = get_vault(&mut deps.storage, vault_id).unwrap();
+    let updated_vault = get_vault(&mut deps.storage, vault.id).unwrap();
 
-    assert_eq!(
-        vault.balance,
-        Coin::new(Uint128::new(10).into(), vault.get_swap_denom())
-    );
+    assert_eq!(vault.balance, balance);
+    assert_eq!(updated_vault.balance, balance);
 }
 
 #[test]
@@ -702,8 +725,14 @@ fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    setup_active_vault_with_low_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
+    let vault = setup_new_vault(
+        deps.as_mut(),
+        env.clone(),
+        Vault {
+            balance: Coin::new(TWO_MICRONS.into(), DENOM_UOSMO),
+            ..Vault::default()
+        },
+    );
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
@@ -712,15 +741,13 @@ fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_
 
     disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
         .unwrap()
         .events;
 
-    println!("{:?}", events);
-
     assert!(events.contains(
         &EventBuilder::new(
-            vault_id,
+            vault.id,
             env.block.clone(),
             EventData::DcaVaultExecutionSkipped {
                 reason: ExecutionSkippedReason::UnknownFailure
@@ -735,23 +762,23 @@ fn with_failed_swap_publishes_skipped_event_with_slippage_failure() {
     let mut deps = mock_dependencies();
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-    setup_active_vault_with_slippage_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
+
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
+        result: SubMsgResult::Err("failed for slippage".to_string()),
     };
 
     disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault_id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
         .unwrap()
         .events;
 
     assert!(events.contains(
         &EventBuilder::new(
-            vault_id,
+            vault.id,
             env.block.clone(),
             EventData::DcaVaultExecutionSkipped {
                 reason: ExecutionSkippedReason::SlippageToleranceExceeded
@@ -766,17 +793,16 @@ fn with_failed_swap_leaves_vault_active() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup_active_vault_with_slippage_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
+        result: SubMsgResult::Err("failed for slippage".to_string()),
     };
 
     disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
-    let vault = get_vault(&mut deps.storage, vault_id).unwrap();
+    let vault = get_vault(&mut deps.storage, vault.id).unwrap();
 
     assert_eq!(vault.status, VaultStatus::Active);
 }
@@ -786,17 +812,16 @@ fn with_failed_swap_does_not_reduce_vault_balance() {
     let mut deps = mock_dependencies();
     let env = mock_env();
 
-    setup_active_vault_with_funds(deps.as_mut(), env.clone());
-    let vault_id = Uint128::one();
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let reply = Reply {
         id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err(ERROR_SWAP_SLIPPAGE_EXCEEDED.to_string()),
+        result: SubMsgResult::Err("failed for slippage".to_string()),
     };
 
     disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
-    let vault = get_vault(&mut deps.storage, vault_id).unwrap();
+    let vault = get_vault(&mut deps.storage, vault.id).unwrap();
 
     assert_eq!(vault.balance, Coin::new(TEN.into(), vault.get_swap_denom()));
 }
@@ -807,7 +832,7 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let custom_fee_percent = Decimal::percent(20);
 
@@ -881,7 +906,7 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let custom_fee_percent = Decimal::percent(20);
 
@@ -955,7 +980,7 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_active_vault_with_funds(deps.as_mut(), env.clone());
+    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let swap_denom_fee_percent = Decimal::percent(20);
     let receive_denom_fee_percent = Decimal::percent(40);
@@ -1037,14 +1062,14 @@ fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        ONE,
-        ONE,
-        VaultStatus::Active,
-        None,
-        false,
+        Vault {
+            balance: Coin::new(ONE.into(), DENOM_UOSMO),
+            swap_amount: ONE,
+            ..Vault::default()
+        },
     );
 
     SWAP_CACHE
@@ -1085,14 +1110,15 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        ONE,
-        ONE,
-        VaultStatus::Active,
-        None,
-        true,
+        Vault {
+            balance: Coin::new(ONE.into(), DENOM_UOSMO),
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        },
     );
 
     SWAP_CACHE
@@ -1141,14 +1167,15 @@ fn for_dca_plus_vault_with_low_funds_and_failed_swap_publishes_unknown_failure_e
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        Uint128::new(49000),
-        ONE,
-        VaultStatus::Active,
-        None,
-        true,
+        Vault {
+            balance: Coin::new(49999, DENOM_UOSMO),
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        },
     );
 
     SWAP_CACHE
@@ -1197,14 +1224,15 @@ fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive()
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_vault(
+    let vault = setup_new_vault(
         deps.as_mut(),
         env.clone(),
-        ONE,
-        ONE,
-        VaultStatus::Active,
-        None,
-        true,
+        Vault {
+            balance: Coin::new(49999, DENOM_UOSMO),
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        },
     );
 
     SWAP_CACHE

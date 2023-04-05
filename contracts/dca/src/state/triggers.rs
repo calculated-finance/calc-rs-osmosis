@@ -18,11 +18,11 @@ fn trigger_store<'a>() -> IndexedMap<'a, u128, Trigger, TriggerIndexes<'a>> {
     let indexes = TriggerIndexes {
         due_date: MultiIndex::new(
             |_, trigger| trigger.configuration.as_time().unwrap().seconds().clone(),
-            "triggers_v1",
-            "triggers_v1__due_date",
+            "triggers_v3",
+            "triggers_v3__due_date",
         ),
     };
-    IndexedMap::new("triggers_v1", indexes)
+    IndexedMap::new("triggers_v3", indexes)
 }
 
 pub fn save_trigger(store: &mut dyn Storage, trigger: Trigger) -> StdResult<()> {
