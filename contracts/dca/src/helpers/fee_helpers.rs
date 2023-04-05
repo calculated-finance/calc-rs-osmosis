@@ -116,7 +116,7 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
     let dca_plus_config = vault
         .dca_plus_config
         .clone()
-        .expect("Only DCA plus vaults should try to get fee");
+        .expect("DCA plus config for the vault");
 
     let dca_plus_total_value = dca_plus_config.total_deposit.amount - vault.swapped_amount.amount
         + vault.received_amount.amount * current_price;

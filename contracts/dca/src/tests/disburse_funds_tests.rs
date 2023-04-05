@@ -1,6 +1,6 @@
 use crate::{
     constants::{ONE, TEN},
-    contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_FIN_SWAP_REPLY_ID},
+    contract::AFTER_FIN_SWAP_REPLY_ID,
     handlers::{
         disburse_funds::disburse_funds, get_events_by_resource_id::get_events_by_resource_id,
     },
@@ -92,16 +92,13 @@ fn with_succcesful_swap_returns_funds_to_destination() {
             },
         );
 
-    assert!(response.messages.contains(&SubMsg::reply_on_success(
-        BankMsg::Send {
-            to_address: vault.destinations.first().unwrap().address.to_string(),
-            amount: vec![Coin::new(
-                (receive_amount - fee - automation_fees.amount).into(),
-                vault.get_receive_denom(),
-            )],
-        },
-        AFTER_BANK_SWAP_REPLY_ID,
-    )));
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: vault.destinations.first().unwrap().address.to_string(),
+        amount: vec![Coin::new(
+            (receive_amount - fee - automation_fees.amount).into(),
+            vault.get_receive_denom(),
+        )],
+    },)));
 }
 
 #[test]
@@ -502,21 +499,18 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
             .escrowed_balance
             .amount
     );
-    assert!(response.messages.contains(&SubMsg::reply_on_success(
-        BankMsg::Send {
-            to_address: updated_vault
-                .destinations
-                .first()
-                .unwrap()
-                .address
-                .to_string(),
-            amount: vec![Coin::new(
-                (receive_amount - escrow_amount).into(),
-                updated_vault.get_receive_denom(),
-            )],
-        },
-        AFTER_BANK_SWAP_REPLY_ID,
-    )));
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: updated_vault
+            .destinations
+            .first()
+            .unwrap()
+            .address
+            .to_string(),
+        amount: vec![Coin::new(
+            (receive_amount - escrow_amount).into(),
+            updated_vault.get_receive_denom(),
+        )],
+    },)));
     assert_ne!(escrow_level, Decimal::zero());
     assert_ne!(escrow_amount, Uint128::zero());
 }

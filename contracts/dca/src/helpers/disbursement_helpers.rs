@@ -1,7 +1,5 @@
 use crate::{
-    contract::{AFTER_BANK_SWAP_REPLY_ID, AFTER_Z_DELEGATION_REPLY_ID},
-    state::config::get_config,
-    types::vault::Vault,
+    contract::AFTER_Z_DELEGATION_REPLY_ID, state::config::get_config, types::vault::Vault,
 };
 use base::{helpers::math_helpers::checked_mul, vaults::vault::PostExecutionAction};
 use cosmwasm_std::{
@@ -38,13 +36,10 @@ pub fn get_disbursement_messages(
                     }
                     PostExecutionAction::ZDelegate => {
                         vec![
-                            SubMsg::reply_on_success(
-                                BankMsg::Send {
-                                    to_address: vault.owner.to_string(),
-                                    amount: vec![allocation_amount.clone()],
-                                },
-                                AFTER_BANK_SWAP_REPLY_ID,
-                            ),
+                            SubMsg::new(BankMsg::Send {
+                                to_address: vault.owner.to_string(),
+                                amount: vec![allocation_amount.clone()],
+                            }),
                             SubMsg::reply_always(
                                 CosmosMsg::Wasm(WasmMsg::Execute {
                                     contract_addr: config.staking_router_address.to_string(),

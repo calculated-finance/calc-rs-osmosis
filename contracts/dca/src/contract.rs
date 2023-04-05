@@ -39,7 +39,6 @@ pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const AFTER_FIN_SWAP_REPLY_ID: u64 = 1;
 pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 3;
-pub const AFTER_BANK_SWAP_REPLY_ID: u64 = 4;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -192,7 +191,6 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
     match reply.id {
         AFTER_FIN_SWAP_REPLY_ID => disburse_funds(deps, &env, reply),
         AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
-        AFTER_BANK_SWAP_REPLY_ID => Ok(Response::new().add_attribute("method", "after_bank_swap")),
         id => Err(ContractError::CustomError {
             val: format!("unknown reply id: {}", id),
         }),
