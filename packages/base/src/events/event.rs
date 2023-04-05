@@ -17,7 +17,6 @@ pub enum ExecutionSkippedReason {
 
 #[cw_serde]
 pub enum EventData {
-    DcaVaultCreated {},
     DcaVaultFundsDeposited {
         amount: Coin,
     },
