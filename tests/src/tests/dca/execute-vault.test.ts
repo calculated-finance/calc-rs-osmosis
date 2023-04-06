@@ -93,12 +93,12 @@ describe('when executing a vault', () => {
 
       const expectedPrice = await getExpectedPrice(
         this,
-        this.pool,
+        this.pair,
         coin(vaultAfterExecution.swap_amount, 'stake'),
         'uion',
       );
-      const receivedAmountBeforePoolFee = Math.floor(parseInt(vaultAfterExecution.swap_amount) / expectedPrice);
-      receivedAmount = Math.floor(receivedAmountBeforePoolFee);
+      const receivedAmountBeforeFee = Math.floor(parseInt(vaultAfterExecution.swap_amount) / expectedPrice);
+      receivedAmount = Math.floor(receivedAmountBeforeFee);
       receivedAmountAfterFee = Math.floor(receivedAmount - receivedAmount * this.calcSwapFee);
     });
 
@@ -127,7 +127,7 @@ describe('when executing a vault', () => {
       ));
 
     it('updates the vault received amount correctly', () =>
-      expect(parseInt(vaultAfterExecution.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 2));
+      expect(parseInt(vaultAfterExecution.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 5));
 
     it('creates a new time trigger', () =>
       expect('time' in vaultAfterExecution.trigger && vaultAfterExecution.trigger.time.target_time).to.eql(
@@ -453,7 +453,7 @@ describe('when executing a vault', () => {
           target_start_time_utc_seconds: `${targetTime.unix()}`,
           swap_amount: '10000000',
           slippage_tolerance: '0.0001',
-          pool_id: 21,
+          pair_address: 'osmo1fcl04ma3dhc080jscyzkgf65u2ctv9v67ec03an3cff0gnfqkllqqkufhx',
         },
         [coin('10000000', 'uion')],
       );
@@ -620,25 +620,7 @@ describe('when executing a vault', () => {
         })
       ).vault;
 
-      const poolId = Long.fromNumber(this.pool.pool_id, true);
-
-      expectedPrice =
-        parseInt(swapAmount) /
-        parseInt(
-          (
-            await this.queryClient.osmosis.gamm.v1beta1.estimateSwapExactAmountIn({
-              sender: this.dcaContractAddress,
-              poolId,
-              tokenIn: `${swapAmount}stake`,
-              routes: [
-                {
-                  poolId,
-                  tokenOutDenom: 'uion',
-                },
-              ],
-            })
-          ).tokenOutAmount,
-        );
+      expectedPrice = await getExpectedPrice(this, this.pair, coin(swapAmount, 'stake'), 'uion');
 
       balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
     });

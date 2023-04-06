@@ -1,21 +1,20 @@
-use super::mocks::{MockApp, ADMIN, DENOM_STAKE, DENOM_UOSMO, FEE_COLLECTOR, USER};
+use super::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, FEE_COLLECTOR, USER};
 use crate::{
     constants::{ONE, TEN},
     contract::instantiate,
     handlers::get_vault::get_vault,
-    msg::{EventsResponse, InstantiateMsg, QueryMsg, VaultResponse},
+    msg::InstantiateMsg,
     state::{
         cache::{Cache, CACHE},
         config::{Config, FeeCollector},
-        pools::POOLS,
+        pairs::PAIRS,
         triggers::save_trigger,
-        vaults::{save_vault, update_vault},
+        vaults::update_vault,
     },
-    types::{dca_plus_config::DcaPlusConfig, vault::Vault, vault_builder::VaultBuilder},
+    types::{dca_plus_config::DcaPlusConfig, vault::Vault},
 };
 use base::{
-    events::event::Event,
-    pool::Pool,
+    pair::Pair,
     triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration},
     vaults::vault::{Destination, PostExecutionAction, VaultStatus},
 };
@@ -116,12 +115,13 @@ impl Default for Vault {
             destinations: vec![Destination {
                 address: Addr::unchecked(USER),
                 allocation: Decimal::percent(100),
-                action: PostExecutionAction::Send,
+                action: PostExecutionAction::ZDelegate,
             }],
             status: VaultStatus::Active,
             balance: Coin::new(TEN.into(), DENOM_UOSMO),
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: DENOM_UOSMO.to_string(),
                 quote_denom: DENOM_STAKE.to_string(),
             },
@@ -153,89 +153,19 @@ impl Default for DcaPlusConfig {
     }
 }
 
-pub fn setup_new_vault(deps: DepsMut, env: Env, vault: Vault) -> Vault {
-    POOLS
-        .save(deps.storage, vault.pool.pool_id.clone(), &vault.pool)
+pub fn setup_new_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
+    PAIRS
+        .save(deps.storage, vault.pair.address.clone(), &vault.pair)
         .unwrap();
+
+    let mut existing_vault = get_vault(deps.as_ref(), vault.id);
+
+    while existing_vault.is_ok() {
+        vault.id = existing_vault.unwrap().vault.id + Uint128::one();
+        existing_vault = get_vault(deps.as_ref(), vault.id);
+    }
 
     update_vault(deps.storage, &vault).unwrap();
-
-    save_trigger(
-        deps.storage,
-        Trigger {
-            vault_id: vault.id,
-            configuration: TriggerConfiguration::Time {
-                target_time: env.block.time,
-            },
-        },
-    )
-    .unwrap();
-
-    get_vault(deps.as_ref(), vault.id).unwrap().vault
-}
-
-pub fn setup_vault(
-    deps: DepsMut,
-    env: Env,
-    balance: Uint128,
-    swap_amount: Uint128,
-    status: VaultStatus,
-    slippage_tolerance: Option<Decimal>,
-    is_dca_plus: bool,
-) -> Vault {
-    let pair = Pool {
-        pool_id: 0,
-        base_denom: DENOM_UOSMO.to_string(),
-        quote_denom: DENOM_STAKE.to_string(),
-    };
-
-    POOLS
-        .save(deps.storage, pair.pool_id.clone(), &pair)
-        .unwrap();
-
-    let owner = Addr::unchecked(ADMIN);
-
-    let vault = save_vault(
-        deps.storage,
-        VaultBuilder {
-            owner: owner.clone(),
-            label: None,
-            destinations: vec![Destination {
-                address: owner,
-                allocation: Decimal::percent(100),
-                action: PostExecutionAction::ZDelegate,
-            }],
-            created_at: env.block.time.clone(),
-            status,
-            pool: pair,
-            swap_amount,
-            position_type: None,
-            slippage_tolerance,
-            minimum_receive_amount: None,
-            balance: Coin::new(balance.into(), DENOM_UOSMO),
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: Coin {
-                denom: DENOM_UOSMO.to_string(),
-                amount: Uint128::new(0),
-            },
-            received_amount: Coin {
-                denom: DENOM_STAKE.to_string(),
-                amount: Uint128::new(0),
-            },
-            dca_plus_config: if is_dca_plus {
-                Some(DcaPlusConfig::new(
-                    Decimal::percent(5),
-                    30,
-                    Coin::new(balance.into(), DENOM_UOSMO),
-                    DENOM_STAKE.to_string(),
-                ))
-            } else {
-                None
-            },
-        },
-    )
-    .unwrap();
 
     save_trigger(
         deps.storage,
@@ -253,119 +183,10 @@ pub fn setup_vault(
             deps.storage,
             &Cache {
                 vault_id: vault.id,
-                owner: Addr::unchecked("owner"),
+                owner: vault.owner,
             },
         )
         .unwrap();
 
     get_vault(deps.as_ref(), vault.id).unwrap().vault
-}
-
-pub fn setup_active_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, None, false)
-}
-
-pub fn setup_active_dca_plus_vault_with_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(deps, env, TEN, ONE, VaultStatus::Active, None, true)
-}
-
-pub fn setup_active_vault_with_slippage_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(
-        deps,
-        env,
-        Uint128::new(500000),
-        Uint128::new(500000),
-        VaultStatus::Active,
-        None,
-        false,
-    )
-}
-
-pub fn setup_active_vault_with_low_funds(deps: DepsMut, env: Env) -> Vault {
-    setup_vault(
-        deps,
-        env,
-        Uint128::new(10),
-        Uint128::new(100),
-        VaultStatus::Active,
-        None,
-        false,
-    )
-}
-
-pub fn setup_active_dca_plus_vault_with_low_funds(
-    deps: DepsMut,
-    env: Env,
-    balance: Uint128,
-    swap_amount: Uint128,
-) -> Vault {
-    setup_vault(
-        deps,
-        env,
-        balance,
-        swap_amount,
-        VaultStatus::Active,
-        None,
-        true,
-    )
-}
-
-pub fn assert_address_balances(mock: &MockApp, address_balances: &[(&Addr, &str, Uint128)]) {
-    address_balances
-        .iter()
-        .for_each(|(address, denom, expected_balance)| {
-            assert_eq!(
-                mock.get_balance(address, denom),
-                expected_balance,
-                "Balance mismatch for {} at {}",
-                address,
-                denom
-            );
-        })
-}
-
-pub fn assert_events_published(mock: &MockApp, resource_id: Uint128, expected_events: &[Event]) {
-    let events_response: EventsResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(
-            &mock.dca_contract_address,
-            &QueryMsg::GetEventsByResourceId {
-                resource_id,
-                start_after: None,
-                limit: None,
-            },
-        )
-        .unwrap();
-
-    expected_events.iter().for_each(|expected_event| {
-        assert!(
-            events_response.events.contains(expected_event),
-            "Expected actual_events: \n\n{:?}\n\nto contain event:\n\n{:?}\n\n but it wasn't found",
-            events_response.events,
-            expected_event
-        );
-    });
-}
-
-pub fn assert_vault_balance(
-    mock: &MockApp,
-    contract_address: &Addr,
-    address: Addr,
-    vault_id: Uint128,
-    balance: Uint128,
-) {
-    let vault_response: VaultResponse = mock
-        .app
-        .wrap()
-        .query_wasm_smart(contract_address, &QueryMsg::GetVault { vault_id })
-        .unwrap();
-
-    let vault = &vault_response.vault;
-
-    assert_eq!(
-        vault.balance.amount, balance,
-        "Vault balance mismatch for vault_id: {}, owner: {}",
-        vault_id, address
-    );
 }

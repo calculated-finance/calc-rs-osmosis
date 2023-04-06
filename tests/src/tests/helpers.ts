@@ -11,7 +11,7 @@ import { execute } from '../shared/cosmwasm';
 import { Addr } from '../types/dca/execute';
 import { EventsResponse } from '../types/dca/response/get_events';
 import { Timestamp } from 'cosmjs-types/google/protobuf/timestamp';
-import { Pool } from '../types/dca/response/get_pools';
+import { Pair } from '../types/dca/response/get_pairs';
 import Long from 'long';
 
 export const createWallet = async (config: Config) =>
@@ -52,7 +52,7 @@ export const createVault = async (
       create_vault: {
         label: 'test',
         swap_amount: '100000',
-        pool_id: context.pool.pool_id,
+        pair_address: context.pair.address,
         time_interval: 'hourly',
         ...overrides,
       },
@@ -149,11 +149,11 @@ export const isWithinPercent = (total: number, actual: number, expected: number,
 
 export const getExpectedPrice = async (
   context: Context,
-  pool: Pool,
+  pair: Pair,
   swapAmount: Coin,
   tokenOutDenom: string,
 ): Promise<number> => {
-  const poolId = Long.fromNumber(pool.pool_id, true);
+  const poolId = Long.fromNumber(pair.pool_id, true);
 
   return (
     parseInt(swapAmount.amount) /

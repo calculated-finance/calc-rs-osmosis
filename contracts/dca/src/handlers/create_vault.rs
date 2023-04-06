@@ -4,7 +4,7 @@ use crate::helpers::validation_helpers::{
     assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
     assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
     assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
-    assert_send_denom_is_in_pool_denoms, assert_swap_amount_is_greater_than_50000,
+    assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_greater_than_50000,
     assert_target_start_time_is_in_future,
 };
 use crate::helpers::vault_helpers::get_dca_plus_model_id;
@@ -12,7 +12,7 @@ use crate::msg::ExecuteMsg;
 use crate::state::cache::{Cache, CACHE};
 use crate::state::config::get_config;
 use crate::state::events::create_event;
-use crate::state::pools::POOLS;
+use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
 use crate::types::dca_plus_config::DcaPlusConfig;
@@ -33,7 +33,7 @@ pub fn create_vault(
     owner: Addr,
     label: Option<String>,
     mut destinations: Vec<Destination>,
-    pool_id: u64,
+    pair_address: Addr,
     position_type: Option<PositionType>,
     slippage_tolerance: Option<Decimal>,
     minimum_receive_amount: Option<Uint128>,
@@ -69,16 +69,16 @@ pub fn create_vault(
     assert_no_destination_allocations_are_zero(&destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
-    let pool = POOLS.load(deps.storage, pool_id)?;
+    let pair = PAIRS.load(deps.storage, pair_address)?;
 
     let send_denom = info.funds[0].denom.clone();
 
-    assert_send_denom_is_in_pool_denoms(pool.clone(), send_denom.clone())?;
+    assert_send_denom_is_in_pair_denoms(pair.clone(), send_denom.clone())?;
 
-    let receive_denom = if send_denom == pool.quote_denom {
-        pool.base_denom.clone()
+    let receive_denom = if send_denom == pair.quote_denom {
+        pair.base_denom.clone()
     } else {
-        pool.quote_denom.clone()
+        pair.quote_denom.clone()
     };
 
     assert_delegation_denom_is_stakeable(&destinations, receive_denom.clone())?;
@@ -113,7 +113,7 @@ pub fn create_vault(
         } else {
             VaultStatus::Scheduled
         },
-        pool: pool.clone(),
+        pair: pair.clone(),
         swap_amount,
         position_type,
         slippage_tolerance,
@@ -124,9 +124,9 @@ pub fn create_vault(
         swapped_amount: coin(0, info.funds[0].clone().denom.clone()),
         received_amount: coin(
             0,
-            match info.funds[0].clone().denom == pool.quote_denom {
-                true => pool.base_denom,
-                false => pool.quote_denom,
+            match info.funds[0].clone().denom == pair.quote_denom {
+                true => pair.base_denom,
+                false => pair.quote_denom,
             },
         ),
         dca_plus_config,

@@ -104,7 +104,7 @@ mod get_swap_amount_tests {
     };
 
     use super::*;
-    use base::{pool::Pool, vaults::vault::VaultStatus};
+    use base::{pair::Pair, vaults::vault::VaultStatus};
     use cosmwasm_std::{
         coin,
         testing::{mock_dependencies, mock_env},
@@ -160,8 +160,9 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -218,8 +219,9 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -275,8 +277,9 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -332,8 +335,9 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -382,8 +386,9 @@ mod get_swap_amount_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(balance.into(), "base"),
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -403,7 +408,7 @@ mod get_swap_amount_tests {
 #[cfg(test)]
 mod price_threshold_exceeded_tests {
     use super::*;
-    use base::{pool::Pool, vaults::vault::VaultStatus};
+    use base::{pair::Pair, vaults::vault::VaultStatus};
     use cosmwasm_std::{
         coin,
         testing::{mock_dependencies, mock_env},
@@ -483,8 +488,9 @@ mod price_threshold_exceeded_tests {
             destinations: vec![],
             status: VaultStatus::Active,
             balance: coin(1000, "base"),
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: "base".to_string(),
                 quote_denom: "quote".to_string(),
             },
@@ -572,7 +578,7 @@ mod get_dca_plus_performance_factor_tests {
         helpers::vault_helpers::get_dca_plus_performance_factor,
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
-    use base::{pool::Pool, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
+    use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
     use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
     use std::str::FromStr;
 
@@ -621,8 +627,9 @@ mod get_dca_plus_performance_factor_tests {
             label: None,
             destinations: vec![],
             status: VaultStatus::Active,
-            pool: Pool {
+            pair: Pair {
                 pool_id: 0,
+                address: Addr::unchecked("pair"),
                 base_denom: "receive_denom".to_string(),
                 quote_denom: "swap_denom".to_string(),
             },

@@ -12,7 +12,7 @@ pub fn create_osmosis_liquidity_provision_message(
     reply_id: Option<u64>,
     reply_on: Option<ReplyOn>,
 ) -> StdResult<SubMsg> {
-    let join_liquidity_pool = MsgJoinSwapExternAmountIn {
+    let join_liquidity_pair = MsgJoinSwapExternAmountIn {
         sender,
         pool_id,
         token_in: Some(amount_in.into()),
@@ -21,7 +21,7 @@ pub fn create_osmosis_liquidity_provision_message(
 
     Ok(SubMsg {
         id: reply_id.unwrap_or(0),
-        msg: join_liquidity_pool.into(),
+        msg: join_liquidity_pair.into(),
         gas_limit: None,
         reply_on: reply_on.unwrap_or(ReplyOn::Never),
     })

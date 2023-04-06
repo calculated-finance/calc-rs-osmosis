@@ -1,5 +1,4 @@
 mod error;
-pub mod msg;
 pub mod queries;
 pub mod swaps;
 pub use crate::error::ContractError;

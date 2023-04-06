@@ -71,19 +71,6 @@
         {
           "type": "object",
           "required": [
-            "dca_vault_created"
-          ],
-          "properties": {
-            "dca_vault_created": {
-              "type": "object",
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
             "dca_vault_funds_deposited"
           ],
           "properties": {

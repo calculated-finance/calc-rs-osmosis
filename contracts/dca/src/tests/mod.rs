@@ -50,7 +50,7 @@ pub mod disburse_escrow_tests;
 pub mod update_swap_adjustments_tests;
 
 #[cfg(test)]
-pub mod create_pool_tests;
+pub mod create_pair_tests;
 
 #[cfg(test)]
-mod get_pools_tests;
+mod get_pairs_tests;

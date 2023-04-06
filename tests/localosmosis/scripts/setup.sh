@@ -139,7 +139,7 @@ create_two_asset_pool() {
 }
 
 create_three_asset_pool() {
-  run_with_retries "osmosisd tx gamm create-pool --pool-file=nativeDenomThreeAssetPool.json --from pools --chain-id=$CHAIN_ID --home $OSMOSIS_HOME --keyring-backend=test -b block --fees 5000uosmo --gas 900000 --yes" "create three asset pool: successful"
+  run_with_retries "osmosisd tx gamm create-pool --pool-file=nativeDenomThreeAssetpool.json --from pools --chain-id=$CHAIN_ID --home $OSMOSIS_HOME --keyring-backend=test -b block --fees 5000uosmo --gas 900000 --yes" "create three asset pool: successful"
 }
 
 create_concentrated_pool() {

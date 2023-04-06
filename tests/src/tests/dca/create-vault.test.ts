@@ -19,7 +19,7 @@ describe('when creating a vault', () => {
     let receivedAmountAfterFee: number;
 
     before(async function (this: Context) {
-      const expectedPrice = await getExpectedPrice(this, this.pool, coin(swapAmount, 'stake'), 'uion');
+      const expectedPrice = await getExpectedPrice(this, this.pair, coin(swapAmount, 'stake'), 'uion');
 
       const vaultId = await createVault(
         this,
@@ -46,8 +46,8 @@ describe('when creating a vault', () => {
 
       executionTriggeredEvent = find((event) => 'dca_vault_execution_triggered' in event, eventPayloads) as EventData;
 
-      const receivedAmountBeforePoolFee = Math.floor(parseInt(vault.swap_amount) / expectedPrice);
-      receivedAmount = Math.floor(receivedAmountBeforePoolFee);
+      const receivedAmountBeforeFee = Math.floor(parseInt(vault.swap_amount) / expectedPrice);
+      receivedAmount = Math.floor(receivedAmountBeforeFee);
       receivedAmountAfterFee = Math.floor(receivedAmount - receivedAmount * this.calcSwapFee);
     });
 
@@ -277,7 +277,7 @@ describe('when creating a vault', () => {
   describe('with a funds denom not in the pair denoms', () => {
     it('fails with the correct error message', async function (this: Context) {
       await expect(createVault(this, {}, [coin(1000000, 'uosmo')])).to.be.rejectedWith(
-        /send denom uosmo does not match pool base denom stake or quote denom uion/,
+        /send denom uosmo does not match pair base denom stake or quote denom uion/,
       );
     });
   });
@@ -352,25 +352,7 @@ describe('when creating a vault', () => {
     before(async function (this: Context) {
       balancesBeforeExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
 
-      const poolId = Long.fromNumber(this.pool.pool_id, true);
-
-      expectedPrice =
-        parseInt(swapAmount) /
-        parseInt(
-          (
-            await this.queryClient.osmosis.gamm.v1beta1.estimateSwapExactAmountIn({
-              sender: this.dcaContractAddress,
-              poolId,
-              tokenIn: `${swapAmount}stake`,
-              routes: [
-                {
-                  poolId,
-                  tokenOutDenom: 'uion',
-                },
-              ],
-            })
-          ).tokenOutAmount,
-        );
+      expectedPrice = await getExpectedPrice(this, this.pair, coin(swapAmount, 'stake'), 'uion');
 
       const vault_id = await createVault(
         this,

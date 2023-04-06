@@ -5,17 +5,21 @@
     {
       "type": "object",
       "required": [
-        "create_pool"
+        "create_pair"
       ],
       "properties": {
-        "create_pool": {
+        "create_pair": {
           "type": "object",
           "required": [
+            "address",
             "base_denom",
             "pool_id",
             "quote_denom"
           ],
           "properties": {
+            "address": {
+              "$ref": "#/definitions/Addr"
+            },
             "base_denom": {
               "type": "string"
             },
@@ -36,19 +40,17 @@
     {
       "type": "object",
       "required": [
-        "delete_pool"
+        "delete_pair"
       ],
       "properties": {
-        "delete_pool": {
+        "delete_pair": {
           "type": "object",
           "required": [
-            "pool_id"
+            "address"
           ],
           "properties": {
-            "pool_id": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
+            "address": {
+              "$ref": "#/definitions/Addr"
             }
           },
           "additionalProperties": false
@@ -65,7 +67,7 @@
         "create_vault": {
           "type": "object",
           "required": [
-            "pool_id",
+            "pair_address",
             "swap_amount",
             "time_interval"
           ],
@@ -105,10 +107,8 @@
                 }
               ]
             },
-            "pool_id": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
+            "pair_address": {
+              "$ref": "#/definitions/Addr"
             },
             "position_type": {
               "anyOf": [
@@ -306,37 +306,6 @@
                   "type": "null"
                 }
               ]
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "update_vault"
-      ],
-      "properties": {
-        "update_vault": {
-          "type": "object",
-          "required": [
-            "address",
-            "vault_id"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
-            "label": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "vault_id": {
-              "$ref": "#/definitions/Uint128"
             }
           },
           "additionalProperties": false

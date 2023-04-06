@@ -95,14 +95,18 @@
       },
       "additionalProperties": false
     },
-    "Pool": {
+    "Pair": {
       "type": "object",
       "required": [
+        "address",
         "base_denom",
         "pool_id",
         "quote_denom"
       ],
       "properties": {
+        "address": {
+          "$ref": "#/definitions/Addr"
+        },
         "base_denom": {
           "type": "string"
         },
@@ -218,7 +222,7 @@
         "destinations",
         "id",
         "owner",
-        "pool",
+        "pair",
         "received_amount",
         "status",
         "swap_amount",
@@ -270,8 +274,8 @@
         "owner": {
           "$ref": "#/definitions/Addr"
         },
-        "pool": {
-          "$ref": "#/definitions/Pool"
+        "pair": {
+          "$ref": "#/definitions/Pair"
         },
         "received_amount": {
           "$ref": "#/definitions/Coin"

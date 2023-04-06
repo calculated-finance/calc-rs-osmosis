@@ -7,9 +7,6 @@
 
 export type EventData =
   | {
-      dca_vault_created: {};
-    }
-  | {
       dca_vault_funds_deposited: {
         amount: Coin;
       };
