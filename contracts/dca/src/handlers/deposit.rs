@@ -81,7 +81,7 @@ pub fn deposit(
 
     let mut response = Response::new().add_attribute("method", "deposit");
 
-    if vault.is_active() && vault_was_inactive {
+    if vault.is_active() && vault_was_inactive && vault.trigger.is_none() {
         save_trigger(
             deps.storage,
             Trigger {

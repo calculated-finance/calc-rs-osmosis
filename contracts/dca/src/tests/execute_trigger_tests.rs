@@ -3,6 +3,7 @@ use crate::constants::{ONE, ONE_DECIMAL, ONE_MICRON, TEN, TWO_MICRONS};
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
+use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
 use crate::helpers::vault_helpers::get_swap_amount;
 use crate::msg::ExecuteMsg;
 use crate::state::config::{update_config, Config};
@@ -286,6 +287,14 @@ fn with_dca_plus_should_simulate_execution() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
+    let fee_rate = get_swap_fee_rate(deps.as_mut().storage, &vault).unwrap()
+        + get_delegation_fee_rate(deps.as_mut().storage, &vault).unwrap()
+        + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+
+    let received_amount_before_fee = vault.swap_amount * Decimal::one();
+    let fee_amount = received_amount_before_fee * fee_rate;
+    let received_amount_after_fee = received_amount_before_fee - fee_amount;
+
     assert_eq!(
         updated_vault.dca_plus_config.unwrap(),
         DcaPlusConfig {
@@ -293,7 +302,10 @@ fn with_dca_plus_should_simulate_execution() {
                 vault.swap_amount.into(),
                 vault.get_swap_denom()
             ),
-            standard_dca_received_amount: Coin::new(ONE.into(), vault.get_receive_denom()),
+            standard_dca_received_amount: Coin::new(
+                received_amount_after_fee.into(),
+                vault.get_receive_denom()
+            ),
             ..vault.dca_plus_config.unwrap()
         }
     );
@@ -621,6 +633,14 @@ fn for_inactive_vault_with_active_dca_plus_should_simulate_execution() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
+    let fee_rate = get_swap_fee_rate(deps.as_ref().storage, &vault).unwrap()
+        + get_delegation_fee_rate(deps.as_ref().storage, &vault).unwrap()
+        + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+
+    let received_amount_before_fee = vault.swap_amount;
+    let fee_amount = received_amount_before_fee * fee_rate;
+    let received_amount_after_fee = received_amount_before_fee - fee_amount;
+
     assert_eq!(
         updated_vault.dca_plus_config.unwrap(),
         DcaPlusConfig {
@@ -628,7 +648,10 @@ fn for_inactive_vault_with_active_dca_plus_should_simulate_execution() {
                 vault.swap_amount.into(),
                 vault.get_swap_denom()
             ),
-            standard_dca_received_amount: Coin::new(ONE.into(), vault.get_receive_denom()),
+            standard_dca_received_amount: Coin::new(
+                received_amount_after_fee.into(),
+                vault.get_receive_denom()
+            ),
             ..vault.dca_plus_config.unwrap()
         }
     );
@@ -718,7 +741,7 @@ fn for_inactive_vault_with_unfinished_dca_plus_should_not_disburse_escrow() {
             .unwrap(),
             "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
                 to_binary(&EstimateSwapExactAmountInResponse {
-                    token_out_amount: (ONE / TWO_MICRONS).to_string(),
+                    token_out_amount: ONE.to_string(),
                 })
                 .unwrap()
             }
@@ -899,11 +922,21 @@ fn for_inactive_vault_with_finished_dca_plus_should_create_a_new_trigger() {
         },
     );
 
-    deps.querier.update_stargate(|_| {
-        to_binary(&QuerySpotPriceResponse {
-            spot_price: "1.0".to_string(),
-        })
-        .unwrap()
+    deps.querier.update_stargate(|query| match query {
+        QueryRequest::Stargate { path, .. } => match path.as_str() {
+            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
+                spot_price: ONE_DECIMAL.to_string(),
+            })
+            .unwrap(),
+            "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
+                to_binary(&EstimateSwapExactAmountInResponse {
+                    token_out_amount: ONE.to_string(),
+                })
+                .unwrap()
+            }
+            _ => panic!("unexpected query"),
+        },
+        _ => panic!("unexpected query"),
     });
 
     execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();

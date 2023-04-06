@@ -7,7 +7,7 @@ use osmosis_std::types::osmosis::{
 };
 
 pub fn query_belief_price(
-    querier: QuerierWrapper,
+    querier: &QuerierWrapper,
     pair: &Pair,
     swap_denom: &str,
 ) -> StdResult<Decimal> {
@@ -42,7 +42,7 @@ pub fn query_belief_price(
 }
 
 pub fn query_price(
-    querier: QuerierWrapper,
+    querier: &QuerierWrapper,
     env: &Env,
     pair: &Pair,
     swap_amount: &Coin,

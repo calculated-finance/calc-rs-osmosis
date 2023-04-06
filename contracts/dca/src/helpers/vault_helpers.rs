@@ -1,7 +1,21 @@
-use crate::{state::swap_adjustments::get_swap_adjustment, types::vault::Vault};
-use base::{helpers::time_helpers::get_total_execution_duration, triggers::trigger::TimeInterval};
-use cosmwasm_std::{Coin, Decimal, Deps, Env, StdResult, Timestamp, Uint128};
-use std::cmp::min;
+use super::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
+use crate::{
+    state::{events::create_event, swap_adjustments::get_swap_adjustment, vaults::update_vault},
+    types::{dca_plus_config::DcaPlusConfig, vault::Vault},
+};
+use base::{
+    events::event::{EventBuilder, EventData, ExecutionSkippedReason},
+    helpers::{coin_helpers::add_to_coin, time_helpers::get_total_execution_duration},
+    triggers::trigger::TimeInterval,
+};
+use cosmwasm_std::{
+    Coin, Decimal, Deps, Env, QuerierWrapper, StdResult, Storage, Timestamp, Uint128,
+};
+use osmosis_helpers::{
+    constants::OSMOSIS_SWAP_FEE_RATE,
+    queries::{calculate_slippage, query_price},
+};
+use std::{cmp::min, str::FromStr};
 
 pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin> {
     let adjusted_amount =
@@ -97,18 +111,126 @@ pub fn price_threshold_exceeded(
     })
 }
 
+pub fn simulate_standard_dca_execution(
+    querier: &QuerierWrapper,
+    storage: &mut dyn Storage,
+    env: &Env,
+    vault: Vault,
+    belief_price: Decimal,
+) -> StdResult<Vault> {
+    vault
+        .dca_plus_config
+        .clone()
+        .map_or(Ok(vault.clone()), |dca_plus_config| {
+            let swap_amount = min(
+                dca_plus_config.clone().standard_dca_balance().amount,
+                vault.swap_amount,
+            );
+
+            if swap_amount.is_zero() {
+                return Ok(vault);
+            }
+
+            let actual_price = query_price(
+                &querier,
+                env,
+                &vault.pair,
+                &Coin::new(swap_amount.into(), vault.get_swap_denom()),
+            )?;
+
+            if price_threshold_exceeded(swap_amount, vault.minimum_receive_amount, belief_price)? {
+                create_event(
+                    storage,
+                    EventBuilder::new(
+                        vault.id,
+                        env.block.clone(),
+                        EventData::SimulatedDcaVaultExecutionSkipped {
+                            reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                                price: belief_price,
+                            },
+                        },
+                    ),
+                )?;
+
+                return Ok(vault);
+            }
+
+            if let Some(slippage_tolerance) = vault.slippage_tolerance {
+                let slippage = calculate_slippage(actual_price, belief_price);
+
+                if slippage > slippage_tolerance {
+                    create_event(
+                        storage,
+                        EventBuilder::new(
+                            vault.id,
+                            env.block.clone(),
+                            EventData::SimulatedDcaVaultExecutionSkipped {
+                                reason: ExecutionSkippedReason::SlippageToleranceExceeded,
+                            },
+                        ),
+                    )?;
+
+                    return Ok(vault);
+                }
+            }
+
+            let fee_rate = get_swap_fee_rate(storage, &vault)?
+                + get_delegation_fee_rate(storage, &vault)?
+                + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE)?; // fin taker fee - TODO: remove once we can get this from the pair contracts
+
+            let received_amount_before_fee = swap_amount * (Decimal::one() / actual_price);
+            let fee_amount = received_amount_before_fee * fee_rate;
+            let received_amount_after_fee = received_amount_before_fee - fee_amount;
+
+            let vault = Vault {
+                dca_plus_config: Some(DcaPlusConfig {
+                    standard_dca_swapped_amount: add_to_coin(
+                        dca_plus_config.standard_dca_swapped_amount,
+                        swap_amount,
+                    ),
+                    standard_dca_received_amount: add_to_coin(
+                        dca_plus_config.standard_dca_received_amount,
+                        received_amount_after_fee,
+                    ),
+                    ..dca_plus_config
+                }),
+                ..vault
+            };
+
+            update_vault(storage, &vault)?;
+
+            create_event(
+                storage,
+                EventBuilder::new(
+                    vault.id,
+                    env.block.clone(),
+                    EventData::SimulatedDcaVaultExecutionCompleted {
+                        sent: Coin::new(swap_amount.into(), vault.get_swap_denom()),
+                        received: Coin::new(
+                            received_amount_before_fee.into(),
+                            vault.get_receive_denom(),
+                        ),
+                        fee: Coin::new(fee_amount.into(), vault.get_receive_denom()),
+                    },
+                ),
+            )?;
+
+            Ok(vault)
+        })
+}
+
 #[cfg(test)]
 mod get_swap_amount_tests {
-    use crate::{
-        state::swap_adjustments::update_swap_adjustments, types::dca_plus_config::DcaPlusConfig,
-    };
-
     use super::*;
-    use base::{pair::Pair, vaults::vault::VaultStatus};
+    use crate::{
+        constants::{ONE, TWO_MICRONS},
+        state::swap_adjustments::update_swap_adjustments,
+        tests::mocks::DENOM_UOSMO,
+        types::dca_plus_config::DcaPlusConfig,
+    };
     use cosmwasm_std::{
         coin,
         testing::{mock_dependencies, mock_env},
-        Addr,
     };
     use osmosis_helpers::position_type::PositionType;
 
@@ -117,9 +239,11 @@ mod get_swap_amount_tests {
         let deps = mock_dependencies();
         let env = mock_env();
 
-        let balance = Uint128::new(50);
-        let swap_amount = Uint128::new(100);
-        let vault = vault_with(balance, swap_amount);
+        let vault = Vault {
+            balance: Coin::new(ONE.into(), DENOM_UOSMO),
+            swap_amount: ONE + ONE,
+            ..Vault::default()
+        };
 
         assert_eq!(
             get_swap_amount(&deps.as_ref(), &env, &vault).unwrap(),
@@ -132,9 +256,7 @@ mod get_swap_amount_tests {
         let deps = mock_dependencies();
         let env = mock_env();
 
-        let balance = Uint128::new(100);
-        let swap_amount = Uint128::new(50);
-        let vault = vault_with(balance, swap_amount);
+        let vault = Vault::default();
 
         assert_eq!(
             get_swap_amount(&deps.as_ref(), &env, &vault)
@@ -149,39 +271,9 @@ mod get_swap_amount_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let balance = Uint128::new(100);
-        let swap_amount = Uint128::new(50);
-
         let vault = Vault {
-            id: Uint128::new(1),
-            created_at: Timestamp::from_seconds(0),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: coin(balance.into(), "base"),
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: "base".to_string(),
-                quote_denom: "quote".to_string(),
-            },
-            swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: coin(0, "base"),
-            received_amount: coin(0, "quote"),
-            trigger: None,
-            dca_plus_config: Some(DcaPlusConfig {
-                escrow_level: Decimal::percent(5),
-                escrowed_balance: Coin::new(0, "quote"),
-                model_id: 30,
-                total_deposit: coin(100, "base"),
-                standard_dca_swapped_amount: coin(0, "base"),
-                standard_dca_received_amount: coin(0, "quote"),
-            }),
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
         };
 
         let swap_adjustment = Decimal::percent(90);
@@ -208,42 +300,14 @@ mod get_swap_amount_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let balance = Uint128::new(50);
-        let swap_amount = Uint128::new(100);
-
         let vault = Vault {
-            id: Uint128::new(1),
-            created_at: Timestamp::from_seconds(0),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: coin(balance.into(), "base"),
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: "base".to_string(),
-                quote_denom: "quote".to_string(),
-            },
-            swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: coin(0, "base"),
-            received_amount: coin(0, "quote"),
-            trigger: None,
-            dca_plus_config: Some(DcaPlusConfig {
-                escrow_level: Decimal::percent(5),
-                escrowed_balance: Coin::new(0, "quote"),
-                model_id: 30,
-                total_deposit: coin(100, "base"),
-                standard_dca_swapped_amount: coin(0, "base"),
-                standard_dca_received_amount: coin(0, "quote"),
-            }),
+            balance: coin((ONE / TWO_MICRONS).into(), DENOM_UOSMO),
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
         };
 
-        let swap_adjustment = Decimal::percent(20);
+        let swap_adjustment = Decimal::percent(17);
 
         update_swap_adjustments(
             deps.as_mut().storage,
@@ -266,39 +330,11 @@ mod get_swap_amount_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let balance = Uint128::new(50);
-        let swap_amount = Uint128::new(100);
-
         let vault = Vault {
-            id: Uint128::new(1),
-            created_at: Timestamp::from_seconds(0),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: coin(balance.into(), "base"),
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: "base".to_string(),
-                quote_denom: "quote".to_string(),
-            },
-            swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: coin(0, "base"),
-            received_amount: coin(0, "quote"),
-            trigger: None,
-            dca_plus_config: Some(DcaPlusConfig {
-                escrow_level: Decimal::percent(5),
-                escrowed_balance: Coin::new(0, "quote"),
-                model_id: 30,
-                total_deposit: coin(100, "base"),
-                standard_dca_swapped_amount: coin(0, "base"),
-                standard_dca_received_amount: coin(0, "quote"),
-            }),
+            balance: coin((ONE / TWO_MICRONS).into(), DENOM_UOSMO),
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
         };
 
         let swap_adjustment = Decimal::percent(120);
@@ -324,39 +360,11 @@ mod get_swap_amount_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let balance = Uint128::new(100);
-        let swap_amount = Uint128::new(80);
-
         let vault = Vault {
-            id: Uint128::new(1),
-            created_at: Timestamp::from_seconds(0),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: coin(balance.into(), "base"),
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: "base".to_string(),
-                quote_denom: "quote".to_string(),
-            },
-            swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: coin(0, "base"),
-            received_amount: coin(0, "quote"),
-            trigger: None,
-            dca_plus_config: Some(DcaPlusConfig {
-                escrow_level: Decimal::percent(5),
-                escrowed_balance: Coin::new(0, "quote"),
-                model_id: 30,
-                total_deposit: coin(100, "base"),
-                standard_dca_swapped_amount: coin(0, "base"),
-                standard_dca_received_amount: coin(0, "quote"),
-            }),
+            balance: coin((ONE * Decimal::percent(150)).into(), DENOM_UOSMO),
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
         };
 
         let swap_adjustment = Decimal::percent(200);
@@ -376,44 +384,12 @@ mod get_swap_amount_tests {
             vault.balance.amount
         );
     }
-
-    fn vault_with(balance: Uint128, swap_amount: Uint128) -> Vault {
-        Vault {
-            id: Uint128::new(1),
-            created_at: Timestamp::from_seconds(0),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: coin(balance.into(), "base"),
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: "base".to_string(),
-                quote_denom: "quote".to_string(),
-            },
-            swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: coin(0, "base"),
-            received_amount: coin(0, "quote"),
-            trigger: None,
-            dca_plus_config: None,
-        }
-    }
 }
 
 #[cfg(test)]
 mod price_threshold_exceeded_tests {
     use super::*;
-    use base::{pair::Pair, vaults::vault::VaultStatus};
-    use cosmwasm_std::{
-        coin,
-        testing::{mock_dependencies, mock_env},
-        Addr,
-    };
+    use cosmwasm_std::testing::{mock_dependencies, mock_env};
     use std::str::FromStr;
 
     #[test]
@@ -421,9 +397,11 @@ mod price_threshold_exceeded_tests {
         let deps = mock_dependencies();
         let env = mock_env();
 
-        let swap_amount = Uint128::new(100);
-        let minimum_receive_amount = Uint128::new(50);
-        let vault = vault_with(swap_amount, minimum_receive_amount);
+        let vault = Vault {
+            swap_amount: Uint128::new(100),
+            minimum_receive_amount: Some(Uint128::new(50)),
+            ..Vault::default()
+        };
 
         assert_eq!(
             price_threshold_exceeded(
@@ -442,9 +420,11 @@ mod price_threshold_exceeded_tests {
         let deps = mock_dependencies();
         let env = mock_env();
 
-        let swap_amount = Uint128::new(100);
-        let minimum_receive_amount = Uint128::new(50);
-        let vault = vault_with(swap_amount, minimum_receive_amount);
+        let vault = Vault {
+            swap_amount: Uint128::new(100),
+            minimum_receive_amount: Some(Uint128::new(50)),
+            ..Vault::default()
+        };
 
         assert_eq!(
             price_threshold_exceeded(
@@ -463,9 +443,11 @@ mod price_threshold_exceeded_tests {
         let deps = mock_dependencies();
         let env = mock_env();
 
-        let swap_amount = Uint128::new(100);
-        let minimum_receive_amount = Uint128::new(50);
-        let vault = vault_with(swap_amount, minimum_receive_amount);
+        let vault = Vault {
+            swap_amount: Uint128::new(100),
+            minimum_receive_amount: Some(Uint128::new(50)),
+            ..Vault::default()
+        };
 
         assert_eq!(
             price_threshold_exceeded(
@@ -477,33 +459,6 @@ mod price_threshold_exceeded_tests {
             ),
             Ok(true)
         );
-    }
-
-    fn vault_with(swap_amount: Uint128, minimum_receive_amount: Uint128) -> Vault {
-        Vault {
-            id: Uint128::new(1),
-            created_at: Timestamp::from_seconds(0),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: coin(1000, "base"),
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: "base".to_string(),
-                quote_denom: "quote".to_string(),
-            },
-            swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: Some(minimum_receive_amount),
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            swapped_amount: coin(0, "base"),
-            received_amount: coin(0, "quote"),
-            trigger: None,
-            dca_plus_config: None,
-        }
     }
 }
 
@@ -578,8 +533,7 @@ mod get_dca_plus_performance_factor_tests {
         helpers::vault_helpers::get_dca_plus_performance_factor,
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
-    use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
-    use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
+    use cosmwasm_std::{Coin, Decimal, Uint128};
     use std::str::FromStr;
 
     fn get_vault(
@@ -592,6 +546,7 @@ mod get_dca_plus_performance_factor_tests {
         let escrow_level = Decimal::percent(5);
 
         Vault {
+            swap_amount: swapped_amount / Uint128::new(2),
             balance: Coin {
                 denom: "swap_denom".to_string(),
                 amount: total_deposit - swapped_amount,
@@ -618,27 +573,9 @@ mod get_dca_plus_performance_factor_tests {
                     (received_amount * escrow_level).into(),
                     "denom".to_string(),
                 ),
-                model_id: 30,
-                escrow_level,
+                ..DcaPlusConfig::default()
             }),
-            id: Uint128::one(),
-            created_at: Timestamp::from_seconds(10000000),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: "receive_denom".to_string(),
-                quote_denom: "swap_denom".to_string(),
-            },
-            swap_amount: swapped_amount / Uint128::new(2),
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            trigger: None,
+            ..Vault::default()
         }
     }
 
@@ -765,6 +702,331 @@ mod get_dca_plus_performance_factor_tests {
             standard_dca_received_amount,
             current_price,
             expected_performance_factor,
+        );
+    }
+}
+
+#[cfg(test)]
+mod simulate_standard_dca_execution_tests {
+    use super::simulate_standard_dca_execution;
+    use crate::{
+        constants::{ONE, TEN},
+        handlers::get_events_by_resource_id::get_events_by_resource_id,
+        helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate},
+        tests::{
+            helpers::instantiate_contract,
+            mocks::{calc_mock_dependencies, ADMIN, DENOM_UOSMO},
+        },
+        types::{dca_plus_config::DcaPlusConfig, vault::Vault},
+    };
+    use base::events::event::{Event, EventData, ExecutionSkippedReason};
+    use cosmwasm_std::{
+        testing::{mock_dependencies, mock_env, mock_info},
+        to_binary, Coin, Decimal, QueryRequest,
+    };
+    use osmosis_helpers::constants::OSMOSIS_SWAP_FEE_RATE;
+    use osmosis_std::types::osmosis::poolmanager::v1beta1::EstimateSwapExactAmountInResponse;
+    use std::str::FromStr;
+
+    #[test]
+    fn for_non_dca_plus_vault_succeeds() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        let vault = Vault::default();
+
+        let updated_vault = simulate_standard_dca_execution(
+            &deps.as_ref().querier,
+            mock_dependencies().as_mut().storage,
+            &env,
+            vault.clone(),
+            Decimal::one(),
+        )
+        .unwrap();
+
+        let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+            .unwrap()
+            .events;
+
+        assert_eq!(events.len(), 0);
+        assert_eq!(updated_vault, vault);
+    }
+
+    #[test]
+    fn with_finished_standard_dca_succeeds() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        deps.querier.update_stargate(|query| match query {
+            QueryRequest::Stargate { path, .. } => match path.as_str() {
+                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
+                    to_binary(&EstimateSwapExactAmountInResponse {
+                        token_out_amount: ONE.to_string(),
+                    })
+                    .unwrap()
+                }
+                _ => panic!("unexpected query"),
+            },
+            _ => panic!("unexpected query"),
+        });
+
+        let vault = Vault {
+            dca_plus_config: Some(DcaPlusConfig {
+                total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
+                standard_dca_swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                ..DcaPlusConfig::default()
+            }),
+            ..Vault::default()
+        };
+
+        let updated_vault = simulate_standard_dca_execution(
+            &deps.as_ref().querier,
+            mock_dependencies().as_mut().storage,
+            &env,
+            vault.clone(),
+            Decimal::one(),
+        )
+        .unwrap();
+
+        let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+            .unwrap()
+            .events;
+
+        assert_eq!(events.len(), 0);
+        assert_eq!(updated_vault, vault);
+    }
+
+    #[test]
+    fn publishes_simulated_execution_skipped_event_when_price_threshold_exceeded() {
+        let mut deps = calc_mock_dependencies();
+        let mut storage_deps = mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        deps.querier.update_stargate(|query| match query {
+            QueryRequest::Stargate { path, .. } => match path.as_str() {
+                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
+                    to_binary(&EstimateSwapExactAmountInResponse {
+                        token_out_amount: ONE.to_string(),
+                    })
+                    .unwrap()
+                }
+                _ => panic!("unexpected query"),
+            },
+            _ => panic!("unexpected query"),
+        });
+
+        let vault = Vault {
+            swap_amount: ONE,
+            minimum_receive_amount: Some(ONE + ONE),
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        };
+
+        let belief_price = Decimal::one();
+
+        simulate_standard_dca_execution(
+            &deps.as_ref().querier,
+            storage_deps.as_mut().storage,
+            &env,
+            vault.clone(),
+            belief_price,
+        )
+        .unwrap();
+
+        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None)
+            .unwrap()
+            .events;
+
+        assert!(events.contains(&Event {
+            id: 1,
+            resource_id: vault.id,
+            timestamp: env.block.time,
+            block_height: env.block.height,
+            data: EventData::SimulatedDcaVaultExecutionSkipped {
+                reason: ExecutionSkippedReason::PriceThresholdExceeded {
+                    price: belief_price
+                }
+            }
+        }))
+    }
+
+    #[test]
+    fn publishes_simulated_execution_skipped_event_when_slippage_exceeded() {
+        let mut deps = calc_mock_dependencies();
+        let mut storage_deps = mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        deps.querier.update_stargate(|query| match query {
+            QueryRequest::Stargate { path, .. } => match path.as_str() {
+                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
+                    to_binary(&EstimateSwapExactAmountInResponse {
+                        token_out_amount: ONE.to_string(),
+                    })
+                    .unwrap()
+                }
+                _ => panic!("unexpected query"),
+            },
+            _ => panic!("unexpected query"),
+        });
+
+        let vault = Vault {
+            swap_amount: TEN,
+            slippage_tolerance: Some(Decimal::percent(2)),
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        };
+
+        simulate_standard_dca_execution(
+            &deps.as_ref().querier,
+            storage_deps.as_mut().storage,
+            &env,
+            vault.clone(),
+            Decimal::one(),
+        )
+        .unwrap();
+
+        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None)
+            .unwrap()
+            .events;
+
+        assert!(events.contains(&Event {
+            id: 1,
+            resource_id: vault.id,
+            timestamp: env.block.time,
+            block_height: env.block.height,
+            data: EventData::SimulatedDcaVaultExecutionSkipped {
+                reason: ExecutionSkippedReason::SlippageToleranceExceeded
+            }
+        }))
+    }
+
+    #[test]
+    fn publishes_simulated_execution_completed_event() {
+        let mut deps = calc_mock_dependencies();
+        let mut storage_deps = mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        deps.querier.update_stargate(|query| match query {
+            QueryRequest::Stargate { path, .. } => match path.as_str() {
+                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
+                    to_binary(&EstimateSwapExactAmountInResponse {
+                        token_out_amount: ONE.to_string(),
+                    })
+                    .unwrap()
+                }
+                _ => panic!("unexpected query"),
+            },
+            _ => panic!("unexpected query"),
+        });
+
+        let vault = Vault {
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig::default()),
+            ..Vault::default()
+        };
+
+        let belief_price = Decimal::one();
+
+        simulate_standard_dca_execution(
+            &deps.as_ref().querier,
+            storage_deps.as_mut().storage,
+            &env,
+            vault.clone(),
+            belief_price,
+        )
+        .unwrap();
+
+        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None)
+            .unwrap()
+            .events;
+
+        let fee_rate = get_swap_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
+            + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
+            + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+
+        let received_amount = vault.swap_amount * Decimal::one();
+        let fee_amount = received_amount * fee_rate;
+
+        assert!(events.contains(&Event {
+            id: 1,
+            resource_id: vault.id,
+            timestamp: env.block.time,
+            block_height: env.block.height,
+            data: EventData::SimulatedDcaVaultExecutionCompleted {
+                sent: Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
+                received: Coin::new(received_amount.into(), vault.get_receive_denom()),
+                fee: Coin::new(fee_amount.into(), vault.get_receive_denom())
+            }
+        }));
+    }
+
+    #[test]
+    fn updates_the_standard_dca_statistics() {
+        let mut deps = calc_mock_dependencies();
+        let mut storage_deps = mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        deps.querier.update_stargate(|query| match query {
+            QueryRequest::Stargate { path, .. } => match path.as_str() {
+                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
+                    to_binary(&EstimateSwapExactAmountInResponse {
+                        token_out_amount: ONE.to_string(),
+                    })
+                    .unwrap()
+                }
+                _ => panic!("unexpected query"),
+            },
+            _ => panic!("unexpected query"),
+        });
+
+        let belief_price = Decimal::one();
+
+        let vault = simulate_standard_dca_execution(
+            &deps.as_ref().querier,
+            storage_deps.as_mut().storage,
+            &env,
+            Vault {
+                swap_amount: ONE,
+                dca_plus_config: Some(DcaPlusConfig::default()),
+                ..Vault::default()
+            },
+            belief_price,
+        )
+        .unwrap();
+
+        let fee_rate = get_swap_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
+            + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
+            + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+
+        let received_amount_before_fee = vault.swap_amount * Decimal::one();
+        let fee_amount = received_amount_before_fee * fee_rate;
+        let received_amount_after_fee = received_amount_before_fee - fee_amount;
+
+        assert_eq!(
+            vault.dca_plus_config.clone().unwrap(),
+            DcaPlusConfig {
+                standard_dca_swapped_amount: Coin::new(
+                    vault.swap_amount.into(),
+                    vault.get_swap_denom()
+                ),
+                standard_dca_received_amount: Coin::new(
+                    received_amount_after_fee.into(),
+                    vault.get_receive_denom()
+                ),
+                ..DcaPlusConfig::default()
+            }
         );
     }
 }

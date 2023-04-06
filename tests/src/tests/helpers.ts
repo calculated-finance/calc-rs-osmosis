@@ -78,7 +78,7 @@ export const getBalances = async (
             await Promise.all(
               map(
                 async (denom) => ({
-                  [denom]: parseInt((await cosmWasmClient.getBalance(address, denom)).amount),
+                  [denom]: Number((await cosmWasmClient.getBalance(address, denom)).amount),
                 }),
                 denoms,
               ),
@@ -102,7 +102,7 @@ export const getVaultLastUpdatedTime = async (
     },
   })) as EventsResponse;
 
-  return dayjs(parseInt(response.events.pop().timestamp) / 1000000);
+  return dayjs(Number(response.events.pop().timestamp) / 1000000);
 };
 
 export const provideAuthGrant = async (
@@ -156,8 +156,8 @@ export const getExpectedPrice = async (
   const poolId = Long.fromNumber(pair.pool_id, true);
 
   return (
-    parseInt(swapAmount.amount) /
-    parseInt(
+    Number(swapAmount.amount) /
+    Number(
       (
         await context.queryClient.osmosis.gamm.v1beta1.estimateSwapExactAmountIn({
           sender: context.dcaContractAddress,
