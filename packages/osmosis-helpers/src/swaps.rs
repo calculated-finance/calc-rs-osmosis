@@ -23,7 +23,7 @@ pub fn create_osmosis_swap_message(
 
     let token_out_min_amount = slippage_tolerance
         .map_or(Uint128::one(), |slippage_tolerance| {
-            let belief_price = query_belief_price(querier, &pair, &swap_amount.denom)
+            let belief_price = query_belief_price(&querier, &pair, &swap_amount.denom)
                 .expect("belief price of the pair");
             swap_amount.amount
                 * (Decimal::one() / belief_price)

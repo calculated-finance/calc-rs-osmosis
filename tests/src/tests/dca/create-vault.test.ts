@@ -46,7 +46,7 @@ describe('when creating a vault', () => {
 
       executionTriggeredEvent = find((event) => 'dca_vault_execution_triggered' in event, eventPayloads) as EventData;
 
-      const receivedAmountBeforeFee = Math.floor(parseInt(vault.swap_amount) / expectedPrice);
+      const receivedAmountBeforeFee = Math.floor(Number(vault.swap_amount) / expectedPrice);
       receivedAmount = Math.floor(receivedAmountBeforeFee);
       receivedAmountAfterFee = Math.floor(receivedAmount - receivedAmount * this.calcSwapFee);
     });
@@ -56,13 +56,13 @@ describe('when creating a vault', () => {
     it('has the correct swapped amount', () => expect(vault.swapped_amount).to.eql(coin(100000, vault.balance.denom)));
 
     it('has the correct received amount', () =>
-      expect(parseInt(vault.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 2));
+      expect(Number(vault.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 2));
 
     it('has a funds deposited event', () =>
       expect(eventPayloads).to.include.deep.members([
         {
           dca_vault_funds_deposited: {
-            amount: coin(parseInt(vault.balance.amount) + parseInt(vault.swap_amount), vault.balance.denom),
+            amount: coin(Number(vault.balance.amount) + Number(vault.swap_amount), vault.balance.denom),
           },
         },
       ]));
@@ -86,11 +86,11 @@ describe('when creating a vault', () => {
       expect(executionCompletedEvent).to.not.be.undefined;
       'dca_vault_execution_completed' in executionCompletedEvent &&
         expect(executionCompletedEvent.dca_vault_execution_completed?.sent.amount).to.equal(vault.swap_amount) &&
-        expect(parseInt(executionCompletedEvent.dca_vault_execution_completed?.received.amount)).to.approximately(
+        expect(Number(executionCompletedEvent.dca_vault_execution_completed?.received.amount)).to.approximately(
           receivedAmount,
           2,
         ) &&
-        expect(parseInt(executionCompletedEvent.dca_vault_execution_completed?.fee.amount)).to.approximately(
+        expect(Number(executionCompletedEvent.dca_vault_execution_completed?.fee.amount)).to.approximately(
           Math.round(receivedAmount * this.calcSwapFee) - 1,
           2,
         );
@@ -378,27 +378,28 @@ describe('when creating a vault', () => {
       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
         Math.round(
           balancesBeforeExecution[this.userWalletAddress]['uion'] +
-            parseInt(vault.received_amount.amount) -
-            parseInt(vault.dca_plus_config.escrowed_balance.amount),
+            Number(vault.received_amount.amount) -
+            Number(vault.dca_plus_config.escrowed_balance.amount),
         ),
       );
     });
 
     it('stores the escrowed balance', async function (this: Context) {
       expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
-        `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
+        `${Math.floor(Number(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
       );
     });
 
     it('calculates the standard dca swapped amount', async function (this: Context) {
       expect(vault.dca_plus_config.standard_dca_swapped_amount.amount).to.equal(
-        `${parseInt(vault.swapped_amount.amount) / this.swapAdjustment}`,
+        `${Number(vault.swapped_amount.amount) / this.swapAdjustment}`,
       );
     });
 
     it('calculates the standard dca received amount', async function (this: Context) {
-      expect(vault.dca_plus_config.standard_dca_received_amount.amount).to.equal(
-        `${Math.round(parseInt(vault.swap_amount) / expectedPrice)}`,
+      expect(Number(vault.dca_plus_config.standard_dca_received_amount.amount)).to.be.approximately(
+        Math.round((Number(vault.swap_amount) / expectedPrice) * (1 - this.osmosisSwapFee - this.calcSwapFee)),
+        2,
       );
     });
   });

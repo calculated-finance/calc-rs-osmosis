@@ -62,8 +62,8 @@ describe('when depositing into a vault', () => {
     });
 
     it('should deposit into the vault', () =>
-      expect(parseInt(vaultAfterExecution.balance.amount)).to.equal(
-        parseInt(vaultBeforeExecution.balance.amount) + parseInt(deposit.amount),
+      expect(Number(vaultAfterExecution.balance.amount)).to.equal(
+        Number(vaultBeforeExecution.balance.amount) + Number(deposit.amount),
       ));
 
     it('has a funds deposited event', () =>
@@ -123,8 +123,8 @@ describe('when depositing into a vault', () => {
     it('should change the vault status', () => expect(vaultAfterDeposit.status).to.equal('active'));
 
     it('should execute the vault', () => {
-      expect(parseInt(vaultBeforeDeposit.swapped_amount.amount)).to.equal(0);
-      expect(parseInt(vaultAfterDeposit.swapped_amount.amount)).to.equal(swapAmount);
+      expect(Number(vaultBeforeDeposit.swapped_amount.amount)).to.equal(0);
+      expect(Number(vaultAfterDeposit.swapped_amount.amount)).to.equal(swapAmount);
     });
   });
 });

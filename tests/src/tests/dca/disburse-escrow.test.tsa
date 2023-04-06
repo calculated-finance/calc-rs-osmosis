@@ -28,7 +28,7 @@
 //         })
 //       ).vault;
 
-//       performanceFee = parseInt(
+//       performanceFee = Number(
 //         (
 //           await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
 //             get_dca_plus_performance: { vault_id },
@@ -65,7 +65,7 @@
 //     it('sends the funds back to the user', async function (this: Context) {
 //       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
 //         balancesBeforeExecution[this.userWalletAddress]['uion'] +
-//           parseInt(vaultBeforeExecution.dca_plus_config.escrowed_balance.amount) -
+//           Number(vaultBeforeExecution.dca_plus_config.escrowed_balance.amount) -
 //           performanceFee,
 //       );
 //     });

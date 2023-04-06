@@ -47,12 +47,12 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
 
             let swap_fee_rate = match vault.dca_plus_config {
                 Some(_) => Decimal::zero(),
-                None => get_swap_fee_rate(&deps, &vault)?,
+                None => get_swap_fee_rate(deps.storage, &vault)?,
             };
 
             let automation_fee_rate = match vault.dca_plus_config {
                 Some(_) => Decimal::zero(),
-                None => get_delegation_fee_rate(&deps, &vault)?,
+                None => get_delegation_fee_rate(deps.storage, &vault)?,
             };
 
             let swap_fee = checked_mul(coin_received.amount, swap_fee_rate)?;

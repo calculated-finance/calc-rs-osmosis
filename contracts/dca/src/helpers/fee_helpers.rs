@@ -9,7 +9,7 @@ use base::{
     vaults::vault::PostExecutionAction,
 };
 use cosmwasm_std::{
-    BankMsg, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, StdResult, SubMsg, Uint128,
+    BankMsg, Coin, CosmosMsg, Decimal, Deps, Env, StdResult, Storage, SubMsg, Uint128,
 };
 
 pub fn get_fee_messages(
@@ -81,8 +81,8 @@ pub fn get_fee_messages(
         .collect::<Vec<SubMsg>>())
 }
 
-pub fn get_delegation_fee_rate(deps: &DepsMut, vault: &Vault) -> StdResult<Decimal> {
-    let config = get_config(deps.storage)?;
+pub fn get_delegation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
+    let config = get_config(storage)?;
 
     Ok(config.delegation_fee_percent.checked_mul(
         vault
@@ -94,13 +94,13 @@ pub fn get_delegation_fee_rate(deps: &DepsMut, vault: &Vault) -> StdResult<Decim
     )?)
 }
 
-pub fn get_swap_fee_rate(deps: &DepsMut, vault: &Vault) -> StdResult<Decimal> {
-    let config = get_config(deps.storage)?;
+pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
+    let config = get_config(storage)?;
 
     Ok(
         match (
-            get_custom_fee(deps.storage, vault.get_swap_denom()),
-            get_custom_fee(deps.storage, vault.get_receive_denom()),
+            get_custom_fee(storage, vault.get_swap_denom()),
+            get_custom_fee(storage, vault.get_receive_denom()),
         ) {
             (Some(swap_denom_fee_percent), Some(receive_denom_fee_percent)) => {
                 min(swap_denom_fee_percent, receive_denom_fee_percent)

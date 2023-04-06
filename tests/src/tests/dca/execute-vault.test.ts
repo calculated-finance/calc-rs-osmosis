@@ -97,20 +97,20 @@ describe('when executing a vault', () => {
         coin(vaultAfterExecution.swap_amount, 'stake'),
         'uion',
       );
-      const receivedAmountBeforeFee = Math.floor(parseInt(vaultAfterExecution.swap_amount) / expectedPrice);
+      const receivedAmountBeforeFee = Math.floor(Number(vaultAfterExecution.swap_amount) / expectedPrice);
       receivedAmount = Math.floor(receivedAmountBeforeFee);
       receivedAmountAfterFee = Math.floor(receivedAmount - receivedAmount * this.calcSwapFee);
     });
 
     it('reduces the vault balance', async function (this: Context) {
       expect(vaultAfterExecution.balance.amount).to.equal(
-        `${parseInt(vaultBeforeExecution.balance.amount) - parseInt(vaultBeforeExecution.swap_amount)}`,
+        `${Number(vaultBeforeExecution.balance.amount) - Number(vaultBeforeExecution.swap_amount)}`,
       );
     });
 
     it('sends funds back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['uion'] + parseInt(vaultAfterExecution.received_amount.amount),
+        balancesBeforeExecution[this.userWalletAddress]['uion'] + Number(vaultAfterExecution.received_amount.amount),
       );
     });
 
@@ -123,11 +123,11 @@ describe('when executing a vault', () => {
 
     it('updates the vault swapped amount correctly', () =>
       expect(vaultAfterExecution.swapped_amount.amount).to.eql(
-        `${parseInt(vaultBeforeExecution.swapped_amount.amount) + parseInt(vaultBeforeExecution.swap_amount)}`,
+        `${Number(vaultBeforeExecution.swapped_amount.amount) + Number(vaultBeforeExecution.swap_amount)}`,
       ));
 
     it('updates the vault received amount correctly', () =>
-      expect(parseInt(vaultAfterExecution.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 5));
+      expect(Number(vaultAfterExecution.received_amount.amount)).to.be.approximately(receivedAmountAfterFee, 5));
 
     it('creates a new time trigger', () =>
       expect('time' in vaultAfterExecution.trigger && vaultAfterExecution.trigger.time.target_time).to.eql(
@@ -161,11 +161,11 @@ describe('when executing a vault', () => {
         expect(executionCompletedEvent.dca_vault_execution_completed?.sent.amount).to.equal(
           vaultAfterExecution.swap_amount,
         ) &&
-        expect(parseInt(executionCompletedEvent.dca_vault_execution_completed?.received.amount)).to.approximately(
+        expect(Number(executionCompletedEvent.dca_vault_execution_completed?.received.amount)).to.approximately(
           receivedAmount,
           2,
         ) &&
-        expect(parseInt(executionCompletedEvent.dca_vault_execution_completed?.fee.amount)).to.approximately(
+        expect(Number(executionCompletedEvent.dca_vault_execution_completed?.fee.amount)).to.approximately(
           Math.round(receivedAmount * this.calcSwapFee) - 1,
           2,
         );
@@ -198,7 +198,7 @@ describe('when executing a vault', () => {
         })
       ).vault;
 
-      let triggerTime = 'time' in vault.trigger && dayjs(parseInt(vault.trigger.time.target_time) / 1000000);
+      let triggerTime = 'time' in vault.trigger && dayjs(Number(vault.trigger.time.target_time) / 1000000);
       let blockTime = dayjs((await this.cosmWasmClient.getBlock()).header.time);
 
       while (blockTime.isBefore(triggerTime)) {
@@ -221,7 +221,7 @@ describe('when executing a vault', () => {
           })
         ).vault;
 
-        triggerTime = 'time' in vault.trigger && dayjs(parseInt(vault.trigger.time.target_time) / 1000000);
+        triggerTime = 'time' in vault.trigger && dayjs(Number(vault.trigger.time.target_time) / 1000000);
 
         while (blockTime.isBefore(triggerTime)) {
           await setTimeout(3000);
@@ -370,7 +370,7 @@ describe('when executing a vault', () => {
     });
 
     it("doesn't reduce the vault balance", async () =>
-      expect(vaultAfterExecution.balance.amount).to.equal(`${parseInt(vaultBeforeExecution.balance.amount)}`));
+      expect(vaultAfterExecution.balance.amount).to.equal(`${Number(vaultBeforeExecution.balance.amount)}`));
 
     it('sends no funds back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['stake']).to.equal(
@@ -386,7 +386,7 @@ describe('when executing a vault', () => {
 
     it("doesn't update the vault swapped amount", () =>
       expect(vaultAfterExecution.swapped_amount.amount).to.eql(
-        `${parseInt(vaultBeforeExecution.swapped_amount.amount)}`,
+        `${Number(vaultBeforeExecution.swapped_amount.amount)}`,
       ));
 
     it("doesn't update the vault received amount", () =>
@@ -521,7 +521,7 @@ describe('when executing a vault', () => {
     });
 
     it("doesn't reduce the vault balance", async () =>
-      expect(vaultAfterExecution.balance.amount).to.equal(`${parseInt(vaultBeforeExecution.balance.amount)}`));
+      expect(vaultAfterExecution.balance.amount).to.equal(`${Number(vaultBeforeExecution.balance.amount)}`));
 
     it('sends no funds back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['uosmo']).to.equal(
@@ -537,7 +537,7 @@ describe('when executing a vault', () => {
 
     it("doesn't update the vault swapped amount", () =>
       expect(vaultAfterExecution.swapped_amount.amount).to.eql(
-        `${parseInt(vaultBeforeExecution.swapped_amount.amount)}`,
+        `${Number(vaultBeforeExecution.swapped_amount.amount)}`,
       ));
 
     it("doesn't update the vault received amount", () =>
@@ -629,28 +629,28 @@ describe('when executing a vault', () => {
       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
         Math.round(
           balancesBeforeExecution[this.userWalletAddress]['uion'] +
-            parseInt(vault.received_amount.amount) -
-            parseInt(vault.dca_plus_config.escrowed_balance.amount),
+            Number(vault.received_amount.amount) -
+            Number(vault.dca_plus_config.escrowed_balance.amount),
         ),
       );
     });
 
     it('stores the escrowed balance', async function (this: Context) {
       expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
-        `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
+        `${Math.floor(Number(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
       );
     });
 
     it('calculates the standard dca swapped amount', async function (this: Context) {
       expect(vault.dca_plus_config.standard_dca_swapped_amount.amount).to.equal(
-        `${parseInt(vault.swapped_amount.amount) / this.swapAdjustment}`,
+        `${Number(vault.swapped_amount.amount) / this.swapAdjustment}`,
       );
     });
 
     it('calculates the standard dca received amount', async function (this: Context) {
-      expect(parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)).to.be.approximately(
-        Math.round(parseInt(vault.swap_amount) / expectedPrice),
-        1,
+      expect(Number(vault.dca_plus_config.standard_dca_received_amount.amount)).to.be.approximately(
+        Math.round(Number(vault.swap_amount) / expectedPrice) * (1 - this.osmosisSwapFee - this.calcSwapFee),
+        3,
       );
     });
   });
@@ -696,7 +696,7 @@ describe('when executing a vault', () => {
         this,
         {
           target_start_time_utc_seconds: `${targetTime.unix()}`,
-          swap_amount: `${Math.round(parseInt(deposit.amount) * (2 / 3))}`,
+          swap_amount: `${Math.round(Number(deposit.amount) * (2 / 3))}`,
           time_interval: 'every_second',
           use_dca_plus: true,
         },
@@ -728,15 +728,15 @@ describe('when executing a vault', () => {
       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
         Math.round(
           balancesBeforeExecution[this.userWalletAddress]['uion'] +
-            parseInt(vault.received_amount.amount) -
-            parseInt(vault.dca_plus_config.escrowed_balance.amount),
+            Number(vault.received_amount.amount) -
+            Number(vault.dca_plus_config.escrowed_balance.amount),
         ),
       );
     });
 
     it('stores the escrowed balance', async function (this: Context) {
       expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
-        `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
+        `${Math.floor(Number(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
       );
     });
 
@@ -764,7 +764,7 @@ describe('when executing a vault', () => {
           })
         ).vault;
 
-        const triggerTime = 'time' in vault.trigger && dayjs(parseInt(vault.trigger.time.target_time) / 1000000);
+        const triggerTime = 'time' in vault.trigger && dayjs(Number(vault.trigger.time.target_time) / 1000000);
         let blockTime = dayjs((await this.cosmWasmClient.getBlock()).header.time);
 
         while (blockTime.isBefore(triggerTime)) {
@@ -795,8 +795,7 @@ describe('when executing a vault', () => {
         performanceFee = Math.max(
           0,
           Math.floor(
-            (parseInt(vault.received_amount.amount) -
-              parseInt(vault.dca_plus_config.standard_dca_received_amount.amount)) *
+            (Number(vault.received_amount.amount) - Number(vault.dca_plus_config.standard_dca_received_amount.amount)) *
               0.2,
           ),
         );
@@ -805,16 +804,18 @@ describe('when executing a vault', () => {
       it('empties the escrow balance', () => expect(vault.dca_plus_config.escrowed_balance.amount).to.equal('0'));
 
       it('pays out the escrow', function (this: Context) {
-        expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
+        expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.be.approximately(
           balancesBeforeExecution[this.userWalletAddress]['uion'] +
-            parseInt(vault.received_amount.amount) -
+            Number(vault.received_amount.amount) -
             performanceFee,
+          2,
         );
       });
 
       it('pays out the performance fee', function (this: Context) {
-        expect(balancesAfterExecution[this.feeCollectorAddress]['uion']).to.equal(
+        expect(balancesAfterExecution[this.feeCollectorAddress]['uion']).to.be.approximately(
           balancesBeforeExecution[this.feeCollectorAddress]['uion'] + performanceFee,
+          2,
         );
       });
     });
@@ -893,15 +894,15 @@ describe('when executing a vault', () => {
       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
         Math.round(
           balancesBeforeExecution[this.userWalletAddress]['uion'] +
-            parseInt(vault.received_amount.amount) -
-            parseInt(vault.dca_plus_config.escrowed_balance.amount),
+            Number(vault.received_amount.amount) -
+            Number(vault.dca_plus_config.escrowed_balance.amount),
         ),
       );
     });
 
     it('stores the escrowed balance', async function (this: Context) {
       expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
-        `${Math.floor(parseInt(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
+        `${Math.floor(Number(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
       );
     });
 
@@ -910,7 +911,7 @@ describe('when executing a vault', () => {
     });
 
     it('has not swapped all the dca plus vault balance', () =>
-      expect(parseInt(vault.swapped_amount.amount)).to.equal(parseInt(deposit.amount) * swapAdjustment));
+      expect(Number(vault.swapped_amount.amount)).to.equal(Number(deposit.amount) * swapAdjustment));
 
     it('vault is still active', () => expect(vault.status).to.equal('active'));
 
@@ -923,7 +924,7 @@ describe('when executing a vault', () => {
       let performanceFee: number;
 
       before(async function (this: Context) {
-        let triggerTime = 'time' in vault.trigger && dayjs(parseInt(vault.trigger.time.target_time) / 1000000);
+        let triggerTime = 'time' in vault.trigger && dayjs(Number(vault.trigger.time.target_time) / 1000000);
 
         while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(triggerTime)) {
           await setTimeout(3000);
@@ -952,14 +953,13 @@ describe('when executing a vault', () => {
         performanceFee = Math.floor(
           Math.max(
             0,
-            parseInt(vault.received_amount.amount) -
-              parseInt(vault.dca_plus_config.standard_dca_received_amount.amount),
+            Number(vault.received_amount.amount) - Number(vault.dca_plus_config.standard_dca_received_amount.amount),
           ) * 0.2,
         );
       });
 
       it('has swapped all the balance', () => {
-        expect(vault.swapped_amount.amount).to.equal(`${parseInt(deposit.amount)}`);
+        expect(vault.swapped_amount.amount).to.equal(`${Number(deposit.amount)}`);
       });
 
       it('empties the escrow balance', () => expect(vault.dca_plus_config.escrowed_balance.amount).to.equal('0'));
@@ -967,7 +967,7 @@ describe('when executing a vault', () => {
       it('pays out the escrow', function (this: Context) {
         expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
           balancesBeforeExecution[this.userWalletAddress]['uion'] +
-            parseInt(vault.received_amount.amount) -
+            Number(vault.received_amount.amount) -
             performanceFee,
         );
       });

@@ -73,7 +73,7 @@ describe('when cancelling a vault', () => {
 
     it('sends vault balance back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['stake']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['stake'] + parseInt(vaultBeforeExecution.balance.amount),
+        balancesBeforeExecution[this.userWalletAddress]['stake'] + Number(vaultBeforeExecution.balance.amount),
       );
     });
 
@@ -153,7 +153,7 @@ describe('when cancelling a vault', () => {
 
     it('sends vault balance back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['stake']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['stake'] + parseInt(vaultBeforeExecution.balance.amount),
+        balancesBeforeExecution[this.userWalletAddress]['stake'] + Number(vaultBeforeExecution.balance.amount),
       );
     });
 
@@ -233,7 +233,7 @@ describe('when cancelling a vault', () => {
 
     it('sends vault balance back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['stake']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['stake'] + parseInt(vaultBeforeExecution.balance.amount),
+        balancesBeforeExecution[this.userWalletAddress]['stake'] + Number(vaultBeforeExecution.balance.amount),
       );
     });
 
@@ -309,8 +309,8 @@ describe('when cancelling a vault', () => {
           ).events,
         )[0].data.dca_vault_escrow_disbursed;
 
-        amountDisbursed = parseInt(escrow_disbursed_event.amount_disbursed.amount);
-        performanceFee = parseInt(escrow_disbursed_event.performance_fee.amount);
+        amountDisbursed = Number(escrow_disbursed_event.amount_disbursed.amount);
+        performanceFee = Number(escrow_disbursed_event.performance_fee.amount);
       });
 
       it('empties the escrow balance', () =>

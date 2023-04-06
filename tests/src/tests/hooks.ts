@@ -11,7 +11,7 @@ import { Pair } from '../types/dca/response/get_pairs';
 
 const calcSwapFee = 0.0005;
 const automationFee = 0.0075;
-const osmosisSwapFee = 0.01;
+const osmosisSwapFee = 0.001;
 const swapAdjustment = 1.3;
 
 export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {

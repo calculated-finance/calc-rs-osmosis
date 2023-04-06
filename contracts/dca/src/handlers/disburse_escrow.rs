@@ -37,7 +37,7 @@ pub fn disburse_escrow_handler(
 
     let dca_plus_config = vault.dca_plus_config.clone().unwrap();
 
-    let current_price = query_belief_price(deps.querier, &vault.pair, &vault.get_swap_denom())?;
+    let current_price = query_belief_price(&deps.querier, &vault.pair, &vault.get_swap_denom())?;
 
     let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
     let amount_to_disburse = subtract(&dca_plus_config.escrowed_balance, &performance_fee)?;
