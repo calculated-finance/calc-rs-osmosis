@@ -1,7 +1,6 @@
+use super::position_type::PositionType;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
-
-use super::position_type::PositionType;
 
 #[cw_serde]
 pub struct Pair {

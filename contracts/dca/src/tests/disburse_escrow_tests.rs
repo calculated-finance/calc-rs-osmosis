@@ -94,7 +94,7 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
         },
     );
 
-    deps.querier.update_stargate(|path| match path {
+    deps.querier.update_stargate(|path, _| match path {
         "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
             spot_price: "10.0".to_string(),
         }),

@@ -8,4 +8,4 @@ pub struct Config {
     pub allowed_z_callers: Vec<Addr>,
 }
 
-pub const CONFIG: Item<Config> = Item::new("config_v3");
+pub const CONFIG: Item<Config> = Item::new("config_v4");

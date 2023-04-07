@@ -382,7 +382,7 @@ fn with_dca_plus_and_exceeded_slippage_tolerance_should_simulate_skipped_executi
         },
     );
 
-    deps.querier.update_stargate(|path| match path {
+    deps.querier.update_stargate(|path, _| match path {
         "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
             to_binary(&EstimateSwapExactAmountInResponse {
                 token_out_amount: (ONE / TWO_MICRONS).to_string(),
@@ -461,7 +461,7 @@ fn with_dca_plus_and_exceeded_slippage_tolerance_should_publish_execution_skippe
         },
     );
 
-    deps.querier.update_stargate(|path| match path {
+    deps.querier.update_stargate(|path, _| match path {
         "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
             to_binary(&EstimateSwapExactAmountInResponse {
                 token_out_amount: (ONE / TWO_MICRONS).to_string(),
@@ -557,7 +557,7 @@ fn for_inactive_vault_with_finished_dca_plus_should_disburse_escrow() {
         },
     );
 
-    deps.querier.update_stargate(|path| match path {
+    deps.querier.update_stargate(|path, _| match path {
         "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
             to_binary(&EstimateSwapExactAmountInResponse {
                 token_out_amount: (ONE / TWO_MICRONS).to_string(),
@@ -718,7 +718,7 @@ fn for_inactive_vault_with_active_dca_plus_should_create_a_new_trigger() {
         },
     );
 
-    deps.querier.update_stargate(|path| match path {
+    deps.querier.update_stargate(|path, _| match path {
         "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
             to_binary(&EstimateSwapExactAmountInResponse {
                 token_out_amount: (ONE / TWO_MICRONS).to_string(),
@@ -955,13 +955,6 @@ fn should_create_new_trigger_if_price_threshold_exceeded() {
         },
     );
 
-    // deps.querier.update_stargate(|_| {
-    //     to_binary(&QuerySpotPriceResponse {
-    //         spot_price: "1.0".to_string(),
-    //     })
-    //     .unwrap()
-    // });
-
     execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
@@ -998,13 +991,6 @@ fn should_trigger_execution_if_price_threshold_not_exceeded() {
             ..Vault::default()
         },
     );
-
-    // deps.querier.update_stargate(|_| {
-    //     to_binary(&QuerySpotPriceResponse {
-    //         spot_price: "1.0".to_string(),
-    //     })
-    //     .unwrap()
-    // });
 
     let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 

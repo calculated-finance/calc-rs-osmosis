@@ -2,4 +2,4 @@ use crate::types::pair::Pair;
 use cosmwasm_std::Addr;
 use cw_storage_plus::Map;
 
-pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v3");
+pub const PAIRS: Map<Addr, Pair> = Map::new("pairs_v4");
