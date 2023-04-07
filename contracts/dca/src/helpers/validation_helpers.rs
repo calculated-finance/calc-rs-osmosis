@@ -1,8 +1,9 @@
 use crate::error::ContractError;
 use crate::state::config::{get_config, FeeCollector};
-use crate::types::vault::Vault;
-use base::pair::Pair;
-use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
+use crate::types::destination::Destination;
+use crate::types::pair::Pair;
+use crate::types::post_execution_action::PostExecutionAction;
+use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, Storage, Timestamp, Uint128};
 
 pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {

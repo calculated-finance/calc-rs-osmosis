@@ -1,4 +1,12 @@
 pub mod dca_plus_config;
+pub mod destination;
+pub mod event;
+pub mod pair;
+pub mod position_type;
+pub mod post_execution_action;
 pub mod price_delta_limit;
+pub mod price_type;
+pub mod time_interval;
+pub mod trigger;
 pub mod vault;
 pub mod vault_builder;

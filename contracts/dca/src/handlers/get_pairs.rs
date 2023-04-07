@@ -1,5 +1,4 @@
-use crate::{msg::PairsResponse, state::pairs::PAIRS};
-use base::pair::Pair;
+use crate::{msg::PairsResponse, state::pairs::PAIRS, types::pair::Pair};
 use cosmwasm_std::{Deps, Order, StdResult};
 
 pub fn get_pairs(deps: Deps) -> StdResult<PairsResponse> {

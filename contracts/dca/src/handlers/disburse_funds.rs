@@ -8,10 +8,10 @@ use crate::state::events::create_event;
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::dca_plus_config::DcaPlusConfig;
-use base::events::event::{EventBuilder, EventData, ExecutionSkippedReason};
+use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
+use crate::types::vault::VaultStatus;
 use base::helpers::coin_helpers::add_to_coin;
 use base::helpers::math_helpers::checked_mul;
-use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{to_binary, CosmosMsg, Decimal, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};

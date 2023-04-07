@@ -6,8 +6,8 @@ use crate::state::disburse_escrow_tasks::save_disburse_escrow_task;
 use crate::state::events::create_event;
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
-use base::events::event::{EventBuilder, EventData};
-use base::vaults::vault::VaultStatus;
+use crate::types::event::{EventBuilder, EventData};
+use crate::types::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
 use cosmwasm_std::{Coin, CosmosMsg, Env, MessageInfo};

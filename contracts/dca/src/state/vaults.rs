@@ -1,12 +1,13 @@
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
 use crate::types::{
-    dca_plus_config::DcaPlusConfig, price_delta_limit::PriceDeltaLimit, vault::Vault,
-    vault_builder::VaultBuilder,
-};
-use base::{
+    dca_plus_config::DcaPlusConfig,
+    destination::Destination,
     pair::Pair,
-    triggers::trigger::{TimeInterval, TriggerConfiguration},
-    vaults::vault::{Destination, DestinationDeprecated, VaultStatus},
+    price_delta_limit::PriceDeltaLimit,
+    time_interval::TimeInterval,
+    trigger::TriggerConfiguration,
+    vault::{Vault, VaultStatus},
+    vault_builder::VaultBuilder,
 };
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
@@ -22,7 +23,7 @@ struct VaultData {
     pub created_at: Timestamp,
     pub owner: Addr,
     pub label: Option<String>,
-    pub destinations: Vec<DestinationDeprecated>,
+    pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
     pub pair_address: Addr,
@@ -255,12 +256,7 @@ mod destination_store_tests {
     use super::*;
     use crate::{
         tests::mocks::{DENOM_STAKE, DENOM_UOSMO},
-        types::vault_builder::VaultBuilder,
-    };
-    use base::{
-        pair::Pair,
-        triggers::trigger::TimeInterval,
-        vaults::vault::{Destination, PostExecutionAction, VaultStatus},
+        types::{post_execution_action::PostExecutionAction, vault_builder::VaultBuilder},
     };
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env},

@@ -8,10 +8,9 @@ use crate::state::config::{get_config, update_config, Config};
 use crate::tests::helpers::{instantiate_contract, setup_new_vault};
 use crate::tests::mocks::{ADMIN, DENOM_UOSMO, USER};
 use crate::types::dca_plus_config::DcaPlusConfig;
-use crate::types::vault::Vault;
-use base::events::event::EventBuilder;
+use crate::types::event::{EventBuilder, EventData};
+use crate::types::vault::{Vault, VaultStatus};
 use base::helpers::coin_helpers::{add, subtract};
-use base::vaults::vault::VaultStatus;
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, SubMsg, WasmMsg};
 
@@ -65,7 +64,7 @@ fn publishes_deposit_event() {
         &EventBuilder::new(
             vault.id,
             env.block,
-            base::events::event::EventData::DcaVaultFundsDeposited {
+            EventData::DcaVaultFundsDeposited {
                 amount: deposit_amount,
             },
         )
@@ -158,6 +157,7 @@ fn executes_trigger_for_reactivated_vault() {
         env.clone(),
         Vault {
             status: VaultStatus::Inactive,
+            trigger: None,
             ..Vault::default()
         },
     );

@@ -1,7 +1,8 @@
-use base::triggers::trigger::Trigger;
 use cosmwasm_std::{Order, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex};
 use std::marker::PhantomData;
+
+use crate::types::trigger::{Trigger, TriggerConfiguration};
 
 struct TriggerIndexes<'a> {
     pub due_date: MultiIndex<'a, u64, Trigger, u128>,
@@ -17,7 +18,9 @@ impl<'a> IndexList<Trigger> for TriggerIndexes<'a> {
 fn trigger_store<'a>() -> IndexedMap<'a, u128, Trigger, TriggerIndexes<'a>> {
     let indexes = TriggerIndexes {
         due_date: MultiIndex::new(
-            |_, trigger| trigger.configuration.as_time().unwrap().seconds().clone(),
+            |_, trigger| match trigger.configuration {
+                TriggerConfiguration::Time { target_time } => target_time.seconds().clone(),
+            },
             "triggers_v3",
             "triggers_v3__due_date",
         ),
@@ -61,8 +64,9 @@ pub fn get_time_triggers(
 
 #[cfg(test)]
 mod tests {
+    use crate::types::trigger::TriggerConfiguration;
+
     use super::*;
-    use base::triggers::trigger::TriggerConfiguration;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
     use cosmwasm_std::Uint128;
 

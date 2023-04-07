@@ -1,12 +1,11 @@
 use crate::{
     handlers::update_swap_adjustments_handler::update_swap_adjustments_handler,
-    state::swap_adjustments::get_swap_adjustment,
+    state::swap_adjustments::get_swap_adjustment, types::position_type::PositionType,
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env},
     Decimal,
 };
-use osmosis_helpers::position_type::PositionType;
 use std::str::FromStr;
 
 #[test]

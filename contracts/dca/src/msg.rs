@@ -1,12 +1,12 @@
 use crate::state::config::{Config, FeeCollector};
-use crate::types::vault::Vault;
-use base::events::event::Event;
-use base::pair::Pair;
-use base::triggers::trigger::TimeInterval;
-use base::vaults::vault::{Destination, VaultStatus};
+use crate::types::destination::Destination;
+use crate::types::event::Event;
+use crate::types::pair::Pair;
+use crate::types::position_type::PositionType;
+use crate::types::time_interval::TimeInterval;
+use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, Uint128, Uint64};
-use osmosis_helpers::position_type::PositionType;
 
 #[cw_serde]
 pub struct InstantiateMsg {

@@ -3,6 +3,7 @@ use crate::{
     helpers::{
         disbursement_helpers::get_disbursement_messages,
         fee_helpers::{get_dca_plus_performance_fee, get_fee_messages},
+        osmosis_helpers::query_belief_price,
         validation_helpers::assert_sender_is_contract_or_admin,
     },
     state::{
@@ -10,14 +11,13 @@ use crate::{
         events::create_event,
         vaults::{get_vault, update_vault},
     },
-    types::dca_plus_config::DcaPlusConfig,
+    types::{
+        dca_plus_config::DcaPlusConfig,
+        event::{EventBuilder, EventData},
+    },
 };
-use base::{
-    events::event::{EventBuilder, EventData},
-    helpers::coin_helpers::{empty_of, subtract},
-};
+use base::helpers::coin_helpers::{empty_of, subtract};
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
-use osmosis_helpers::queries::query_belief_price;
 
 pub fn disburse_escrow_handler(
     deps: DepsMut,

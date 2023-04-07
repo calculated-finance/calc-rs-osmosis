@@ -2,12 +2,9 @@ use std::cmp::min;
 
 use crate::{
     state::config::{get_config, get_custom_fee, FeeCollector},
-    types::vault::Vault,
+    types::{post_execution_action::PostExecutionAction, vault::Vault},
 };
-use base::{
-    helpers::{community_pool::create_fund_community_pool_msg, math_helpers::checked_mul},
-    vaults::vault::PostExecutionAction,
-};
+use base::helpers::{community_pool::create_fund_community_pool_msg, math_helpers::checked_mul};
 use cosmwasm_std::{
     BankMsg, Coin, CosmosMsg, Decimal, Deps, Env, StdResult, Storage, SubMsg, Uint128,
 };
@@ -148,9 +145,13 @@ mod tests {
     use crate::{
         constants::TEN,
         helpers::fee_helpers::get_dca_plus_performance_fee,
-        types::{dca_plus_config::DcaPlusConfig, vault::Vault},
+        types::{
+            dca_plus_config::DcaPlusConfig,
+            pair::Pair,
+            time_interval::TimeInterval,
+            vault::{Vault, VaultStatus},
+        },
     };
-    use base::{pair::Pair, triggers::trigger::TimeInterval, vaults::vault::VaultStatus};
     use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
     use std::str::FromStr;
 

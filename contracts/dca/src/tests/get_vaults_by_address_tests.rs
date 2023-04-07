@@ -2,8 +2,7 @@ use crate::contract::query;
 use crate::msg::{QueryMsg, VaultsResponse};
 use crate::tests::helpers::{instantiate_contract, setup_new_vault};
 use crate::tests::mocks::ADMIN;
-use crate::types::vault::Vault;
-use base::vaults::vault::VaultStatus;
+use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{from_binary, Uint128};
 

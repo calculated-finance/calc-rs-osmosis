@@ -13,13 +13,13 @@ use crate::{
         helpers::{instantiate_contract, setup_new_vault},
         mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO, FEE_COLLECTOR},
     },
-    types::{dca_plus_config::DcaPlusConfig, vault::Vault},
+    types::{
+        dca_plus_config::DcaPlusConfig,
+        event::{Event, EventData},
+        vault::{Vault, VaultStatus},
+    },
 };
-use base::{
-    events::event::{Event, EventData},
-    helpers::coin_helpers::subtract,
-    vaults::vault::VaultStatus,
-};
+use base::helpers::coin_helpers::subtract;
 use cosmwasm_std::{
     testing::{mock_env, mock_info},
     to_binary, BankMsg, Coin, CosmosMsg, Decimal, SubMsg,

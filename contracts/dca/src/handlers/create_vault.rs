@@ -16,15 +16,17 @@ use crate::state::pairs::PAIRS;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
 use crate::types::dca_plus_config::DcaPlusConfig;
-use crate::types::vault::Vault;
+use crate::types::destination::Destination;
+use crate::types::event::{EventBuilder, EventData};
+use crate::types::position_type::PositionType;
+use crate::types::post_execution_action::PostExecutionAction;
+use crate::types::time_interval::TimeInterval;
+use crate::types::trigger::{Trigger, TriggerConfiguration};
+use crate::types::vault::{Vault, VaultStatus};
 use crate::types::vault_builder::VaultBuilder;
-use base::events::event::{EventBuilder, EventData};
-use base::triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration};
-use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
 use cosmwasm_std::{coin, to_binary, Addr, CosmosMsg, Decimal, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
-use osmosis_helpers::position_type::PositionType;
 
 pub fn create_vault(
     mut deps: DepsMut,

@@ -1,4 +1,4 @@
-use base::pair::Pair;
+use crate::types::pair::Pair;
 use cosmwasm_std::Addr;
 use cw_storage_plus::Map;
 

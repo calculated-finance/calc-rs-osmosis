@@ -7,11 +7,13 @@ use crate::state::config::{get_config, update_config, Config};
 use crate::tests::helpers::instantiate_contract;
 use crate::tests::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
 use crate::types::dca_plus_config::DcaPlusConfig;
-use crate::types::vault::Vault;
-use base::events::event::{EventBuilder, EventData};
-use base::pair::Pair;
-use base::triggers::trigger::{TimeInterval, TriggerConfiguration};
-use base::vaults::vault::{Destination, PostExecutionAction, VaultStatus};
+use crate::types::destination::Destination;
+use crate::types::event::{EventBuilder, EventData};
+use crate::types::pair::Pair;
+use crate::types::post_execution_action::PostExecutionAction;
+use crate::types::time_interval::TimeInterval;
+use crate::types::trigger::TriggerConfiguration;
+use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{
     to_binary, Addr, Coin, CosmosMsg, Decimal, SubMsg, Timestamp, Uint128, WasmMsg,
@@ -113,7 +115,7 @@ fn with_non_existent_pool_id_should_fail() {
     )
     .unwrap_err();
 
-    assert_eq!(err.to_string(), "base::pair::Pair not found");
+    assert_eq!(err.to_string(), "dca::types::pair::Pair not found");
 }
 
 #[test]

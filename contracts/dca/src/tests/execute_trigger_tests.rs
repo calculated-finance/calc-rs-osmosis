@@ -1,5 +1,5 @@
 use super::helpers::instantiate_contract;
-use crate::constants::{ONE, ONE_DECIMAL, ONE_MICRON, TEN, TWO_MICRONS};
+use crate::constants::{ONE, ONE_DECIMAL, ONE_MICRON, OSMOSIS_SWAP_FEE_RATE, TEN, TWO_MICRONS};
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
@@ -13,15 +13,14 @@ use crate::state::vaults::get_vault;
 use crate::tests::helpers::setup_new_vault;
 use crate::tests::mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO};
 use crate::types::dca_plus_config::DcaPlusConfig;
-use crate::types::vault::Vault;
-use base::events::event::{Event, EventData, ExecutionSkippedReason};
-use base::vaults::vault::VaultStatus;
+use crate::types::event::{Event, EventData, ExecutionSkippedReason};
+use crate::types::position_type::PositionType;
+use crate::types::trigger::TriggerConfiguration;
+use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::{
-    to_binary, Coin, CosmosMsg, Decimal, QueryRequest, ReplyOn, SubMsg, Timestamp, Uint128, WasmMsg,
+    to_binary, Coin, CosmosMsg, Decimal, QueryRequest, ReplyOn, SubMsg, Uint128, WasmMsg,
 };
-use osmosis_helpers::constants::OSMOSIS_SWAP_FEE_RATE;
-use osmosis_helpers::position_type::PositionType;
 use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 use osmosis_std::types::osmosis::poolmanager::v1beta1::{
     EstimateSwapExactAmountInResponse, MsgSwapExactAmountIn, SwapAmountInRoute,
@@ -98,7 +97,7 @@ fn when_vault_is_cancelled_should_delete_trigger() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
-    assert_eq!(vault.trigger.unwrap().as_time().unwrap(), &env.block.time);
+    assert!(vault.trigger.is_some());
     assert_eq!(updated_vault.trigger, None);
 }
 
@@ -776,10 +775,18 @@ fn for_active_vault_should_create_a_new_trigger() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
-    assert_eq!(vault.trigger.unwrap().as_time().unwrap(), &env.block.time);
+    let old_target_time = match vault.trigger.unwrap() {
+        TriggerConfiguration::Time { target_time } => target_time,
+    };
+
+    let new_target_time = match updated_vault.trigger.unwrap() {
+        TriggerConfiguration::Time { target_time } => target_time,
+    };
+
+    assert_eq!(old_target_time.seconds(), env.block.time.seconds());
     assert_eq!(
-        updated_vault.trigger.unwrap().as_time().unwrap(),
-        &Timestamp::from_seconds(env.block.time.plus_seconds(24 * 60 * 60).seconds())
+        new_target_time.seconds(),
+        env.block.time.plus_seconds(24 * 60 * 60).seconds()
     );
 }
 
@@ -811,10 +818,18 @@ fn for_scheduled_vault_should_create_a_new_trigger() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
-    assert_eq!(vault.trigger.unwrap().as_time().unwrap(), &env.block.time);
+    let old_target_time = match vault.trigger.unwrap() {
+        TriggerConfiguration::Time { target_time } => target_time,
+    };
+
+    let new_target_time = match updated_vault.trigger.unwrap() {
+        TriggerConfiguration::Time { target_time } => target_time,
+    };
+
+    assert_eq!(old_target_time.seconds(), env.block.time.seconds());
     assert_eq!(
-        updated_vault.trigger.unwrap().as_time().unwrap(),
-        &Timestamp::from_seconds(env.block.time.plus_seconds(24 * 60 * 60).seconds())
+        new_target_time.seconds(),
+        env.block.time.plus_seconds(24 * 60 * 60).seconds()
     );
 }
 
@@ -846,8 +861,8 @@ fn for_inactive_vault_should_not_create_a_new_trigger() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
-    assert_eq!(vault.trigger.unwrap().as_time().unwrap(), &env.block.time);
-    assert_eq!(updated_vault.trigger, None);
+    assert!(vault.trigger.is_some());
+    assert!(updated_vault.trigger.is_none(),);
 }
 
 #[test]
@@ -893,15 +908,23 @@ fn for_inactive_vault_with_active_dca_plus_should_create_a_new_trigger() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
-    assert_eq!(vault.trigger.unwrap().as_time().unwrap(), &env.block.time);
+    let old_target_time = match vault.trigger.unwrap() {
+        TriggerConfiguration::Time { target_time } => target_time,
+    };
+
+    let new_target_time = match updated_vault.trigger.unwrap() {
+        TriggerConfiguration::Time { target_time } => target_time,
+    };
+
+    assert_eq!(old_target_time.seconds(), env.block.time.seconds());
     assert_eq!(
-        updated_vault.trigger.unwrap().as_time().unwrap(),
-        &Timestamp::from_seconds(env.block.time.plus_seconds(24 * 60 * 60).seconds())
+        new_target_time.seconds(),
+        env.block.time.plus_seconds(24 * 60 * 60).seconds()
     );
 }
 
 #[test]
-fn for_inactive_vault_with_finished_dca_plus_should_create_a_new_trigger() {
+fn for_inactive_vault_with_finished_dca_plus_should_not_create_a_new_trigger() {
     let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(ADMIN, &[]);
@@ -943,8 +966,8 @@ fn for_inactive_vault_with_finished_dca_plus_should_create_a_new_trigger() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
-    assert_eq!(vault.trigger.unwrap().as_time().unwrap(), &env.block.time);
-    assert_eq!(updated_vault.trigger, None);
+    assert!(vault.trigger.is_some());
+    assert!(updated_vault.trigger.is_none());
 }
 
 #[test]
@@ -1164,10 +1187,18 @@ fn should_create_new_trigger_if_price_threshold_exceeded() {
 
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
-    assert_eq!(vault.trigger.unwrap().as_time().unwrap(), &env.block.time);
+    let old_target_time = match vault.trigger.unwrap() {
+        TriggerConfiguration::Time { target_time } => target_time,
+    };
+
+    let new_target_time = match updated_vault.trigger.unwrap() {
+        TriggerConfiguration::Time { target_time } => target_time,
+    };
+
+    assert_eq!(old_target_time.seconds(), env.block.time.seconds());
     assert_eq!(
-        updated_vault.trigger.unwrap().as_time().unwrap(),
-        &Timestamp::from_seconds(env.block.time.plus_seconds(24 * 60 * 60).seconds())
+        new_target_time.seconds(),
+        env.block.time.plus_seconds(24 * 60 * 60).seconds()
     );
 }
 

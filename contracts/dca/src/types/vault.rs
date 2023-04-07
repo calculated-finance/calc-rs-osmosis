@@ -1,14 +1,20 @@
-use super::dca_plus_config::DcaPlusConfig;
-use base::{
-    helpers::time_helpers::get_total_execution_duration,
-    pair::Pair,
-    triggers::trigger::{TimeInterval, TriggerConfiguration},
-    vaults::vault::{Destination, VaultStatus},
-};
+use crate::helpers::time_helpers::get_total_execution_duration;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
-use osmosis_helpers::position_type::PositionType;
 use std::cmp::max;
+
+use super::{
+    dca_plus_config::DcaPlusConfig, destination::Destination, pair::Pair,
+    position_type::PositionType, time_interval::TimeInterval, trigger::TriggerConfiguration,
+};
+
+#[cw_serde]
+pub enum VaultStatus {
+    Scheduled,
+    Active,
+    Inactive,
+    Cancelled,
+}
 
 #[cw_serde]
 pub struct Vault {
