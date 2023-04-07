@@ -1,6 +1,7 @@
 use cosmwasm_std::{Decimal, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
-use osmosis_helpers::position_type::PositionType;
+
+use crate::types::position_type::PositionType;
 
 const BUY_ADJUSTMENTS: Map<u8, Decimal> = Map::new("buy_adjustments_v3");
 const SELL_ADJUSTMENTS: Map<u8, Decimal> = Map::new("sell_adjustments_v3");
@@ -61,7 +62,6 @@ mod tests {
         testing::{mock_dependencies, mock_env},
         Decimal,
     };
-    use osmosis_helpers::position_type::PositionType;
 
     #[test]
     fn gets_swap_adjustment_if_updated_within_30_hours() {

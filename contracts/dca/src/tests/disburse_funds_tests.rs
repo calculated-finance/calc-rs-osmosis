@@ -18,21 +18,22 @@ use crate::{
         },
         mocks::{ADMIN, DENOM_UOSMO},
     },
-    types::{dca_plus_config::DcaPlusConfig, vault::Vault},
-};
-use base::{
-    events::event::{Event, EventBuilder, EventData, ExecutionSkippedReason},
-    helpers::{
-        coin_helpers::add_to_coin, community_pool::create_fund_community_pool_msg,
-        math_helpers::checked_mul,
+    types::{
+        dca_plus_config::DcaPlusConfig,
+        event::{Event, EventBuilder, EventData, ExecutionSkippedReason},
+        position_type::PositionType,
+        post_execution_action::PostExecutionAction,
+        vault::{Vault, VaultStatus},
     },
-    vaults::vault::{PostExecutionAction, VaultStatus},
+};
+use base::helpers::{
+    coin_helpers::add_to_coin, community_pool::create_fund_community_pool_msg,
+    math_helpers::checked_mul,
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
     BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
 };
-use osmosis_helpers::position_type::PositionType;
 use std::{cmp::min, str::FromStr};
 
 #[test]

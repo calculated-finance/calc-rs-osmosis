@@ -1,8 +1,6 @@
 use cosmwasm_std::{Coin, Event, StdError, StdResult, Uint128};
 use std::collections::HashMap;
 
-use crate::ContractError;
-
 pub fn get_coin_from_display_formatted_coin(formatted_coin: String) -> Coin {
     let denom_start_index = formatted_coin
         .chars()
@@ -22,7 +20,7 @@ pub fn get_coin_from_display_formatted_coin(formatted_coin: String) -> Coin {
 pub fn get_flat_map_for_event_type(
     events: &[Event],
     event_type: &str,
-) -> Result<HashMap<String, String>, ContractError> {
+) -> StdResult<HashMap<String, String>> {
     let events_with_type = events.iter().filter(|event| event.ty == event_type);
 
     events_with_type
@@ -30,7 +28,7 @@ pub fn get_flat_map_for_event_type(
         .flat_map(|event| event.attributes.iter())
         .try_fold(HashMap::new(), |mut map, attribute| {
             map.insert(attribute.key.clone(), attribute.value.clone());
-            Ok::<_, ContractError>(map)
+            Ok(map)
         })
 }
 

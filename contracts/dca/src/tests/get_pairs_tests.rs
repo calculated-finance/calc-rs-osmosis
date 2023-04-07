@@ -3,8 +3,8 @@ use crate::{
     handlers::create_pair::create_pair,
     msg::{PairsResponse, QueryMsg},
     tests::{helpers::instantiate_contract, mocks::ADMIN},
+    types::pair::Pair,
 };
-use base::pair::Pair;
 use cosmwasm_std::{
     from_binary,
     testing::{mock_dependencies, mock_env, mock_info},

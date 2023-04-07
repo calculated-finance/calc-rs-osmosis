@@ -1,12 +1,12 @@
 use crate::{
     helpers::{
-        fee_helpers::get_dca_plus_performance_fee, vault_helpers::get_dca_plus_performance_factor,
+        fee_helpers::get_dca_plus_performance_fee, osmosis_helpers::query_belief_price,
+        vault_helpers::get_dca_plus_performance_factor,
     },
     msg::DcaPlusPerformanceResponse,
     state::vaults::get_vault,
 };
 use cosmwasm_std::{Deps, StdError, StdResult, Uint128};
-use osmosis_helpers::queries::query_belief_price;
 
 pub fn get_dca_plus_performance_handler(
     deps: Deps,

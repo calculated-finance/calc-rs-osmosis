@@ -9,10 +9,10 @@ use crate::state::events::create_event;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::dca_plus_config::DcaPlusConfig;
-use base::events::event::{EventBuilder, EventData};
+use crate::types::event::{EventBuilder, EventData};
+use crate::types::trigger::{Trigger, TriggerConfiguration};
+use crate::types::vault::VaultStatus;
 use base::helpers::coin_helpers::add_to_coin;
-use base::triggers::trigger::{Trigger, TriggerConfiguration};
-use base::vaults::vault::VaultStatus;
 use cosmwasm_std::{to_binary, Addr, CosmosMsg, Env, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};

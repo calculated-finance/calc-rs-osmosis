@@ -2,12 +2,12 @@ use super::{
     helpers::instantiate_contract,
     mocks::{ADMIN, DENOM_UOSMO},
 };
+use crate::types::event::{Event, EventBuilder, EventData};
 use crate::{
     constants::ONE,
     handlers::get_events_by_resource_id::get_events_by_resource_id,
     state::events::{create_event, create_events},
 };
-use base::events::event::{Event, EventBuilder, EventData};
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
     Coin, Deps, Uint128,

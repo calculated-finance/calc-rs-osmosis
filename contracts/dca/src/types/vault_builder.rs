@@ -1,11 +1,12 @@
-use super::{dca_plus_config::DcaPlusConfig, vault::Vault};
-use base::{
+use super::{
+    dca_plus_config::DcaPlusConfig,
+    destination::Destination,
     pair::Pair,
-    triggers::trigger::TimeInterval,
-    vaults::vault::{Destination, VaultStatus},
+    position_type::PositionType,
+    time_interval::TimeInterval,
+    vault::{Vault, VaultStatus},
 };
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
-use osmosis_helpers::position_type::PositionType;
 
 pub struct VaultBuilder {
     pub created_at: Timestamp,

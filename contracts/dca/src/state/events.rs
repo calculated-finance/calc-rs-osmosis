@@ -1,5 +1,5 @@
 use super::state_helpers::fetch_and_increment_counter;
-use base::events::event::{Event, EventBuilder};
+use crate::types::event::{Event, EventBuilder};
 use cosmwasm_std::{from_binary, to_binary, Binary, StdResult, Storage};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, UniqueIndex};
 

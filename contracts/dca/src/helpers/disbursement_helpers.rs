@@ -1,7 +1,9 @@
 use crate::{
-    contract::AFTER_Z_DELEGATION_REPLY_ID, state::config::get_config, types::vault::Vault,
+    contract::AFTER_Z_DELEGATION_REPLY_ID,
+    state::config::get_config,
+    types::{post_execution_action::PostExecutionAction, vault::Vault},
 };
-use base::{helpers::math_helpers::checked_mul, vaults::vault::PostExecutionAction};
+use base::helpers::math_helpers::checked_mul;
 use cosmwasm_std::{
     to_binary, BankMsg, Coin, CosmosMsg, Deps, StdResult, SubMsg, Uint128, WasmMsg,
 };

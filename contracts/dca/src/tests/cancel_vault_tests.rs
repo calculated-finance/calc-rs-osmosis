@@ -6,9 +6,8 @@ use crate::state::disburse_escrow_tasks::get_disburse_escrow_tasks;
 use crate::tests::helpers::setup_new_vault;
 use crate::tests::mocks::ADMIN;
 use crate::types::dca_plus_config::DcaPlusConfig;
-use crate::types::vault::Vault;
-use base::events::event::{EventBuilder, EventData};
-use base::vaults::vault::VaultStatus;
+use crate::types::event::{EventBuilder, EventData};
+use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{BankMsg, CosmosMsg, SubMsg, Uint128};
 

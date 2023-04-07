@@ -1,19 +1,21 @@
-use super::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
+use super::{
+    fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate},
+    osmosis_helpers::{calculate_slippage, query_price},
+    time_helpers::get_total_execution_duration,
+};
 use crate::{
+    constants::OSMOSIS_SWAP_FEE_RATE,
     state::{events::create_event, swap_adjustments::get_swap_adjustment, vaults::update_vault},
-    types::{dca_plus_config::DcaPlusConfig, vault::Vault},
+    types::{
+        dca_plus_config::DcaPlusConfig,
+        event::{EventBuilder, EventData, ExecutionSkippedReason},
+        time_interval::TimeInterval,
+        vault::Vault,
+    },
 };
-use base::{
-    events::event::{EventBuilder, EventData, ExecutionSkippedReason},
-    helpers::{coin_helpers::add_to_coin, time_helpers::get_total_execution_duration},
-    triggers::trigger::TimeInterval,
-};
+use base::helpers::coin_helpers::add_to_coin;
 use cosmwasm_std::{
     Coin, Decimal, Deps, Env, QuerierWrapper, StdResult, Storage, Timestamp, Uint128,
-};
-use osmosis_helpers::{
-    constants::OSMOSIS_SWAP_FEE_RATE,
-    queries::{calculate_slippage, query_price},
 };
 use std::{cmp::min, str::FromStr};
 
@@ -226,13 +228,12 @@ mod get_swap_amount_tests {
         constants::{ONE, TWO_MICRONS},
         state::swap_adjustments::update_swap_adjustments,
         tests::mocks::DENOM_UOSMO,
-        types::dca_plus_config::DcaPlusConfig,
+        types::{dca_plus_config::DcaPlusConfig, position_type::PositionType},
     };
     use cosmwasm_std::{
         coin,
         testing::{mock_dependencies, mock_env},
     };
-    use osmosis_helpers::position_type::PositionType;
 
     #[test]
     fn should_return_full_balance_when_vault_has_low_funds() {
@@ -464,13 +465,12 @@ mod price_threshold_exceeded_tests {
 
 #[cfg(test)]
 mod get_dca_plus_model_id_tests {
-    use base::triggers::trigger::TimeInterval;
-    use cosmwasm_std::{testing::mock_env, Coin, Uint128};
-
     use crate::{
         constants::{ONE, TEN},
         helpers::vault_helpers::get_dca_plus_model_id,
+        types::time_interval::TimeInterval,
     };
+    use cosmwasm_std::{testing::mock_env, Coin, Uint128};
 
     #[test]
     fn should_return_30_when_days_less_than_30() {
@@ -709,8 +709,9 @@ mod get_dca_plus_performance_factor_tests {
 #[cfg(test)]
 mod simulate_standard_dca_execution_tests {
     use super::simulate_standard_dca_execution;
+    use crate::types::event::{Event, EventData, ExecutionSkippedReason};
     use crate::{
-        constants::{ONE, TEN},
+        constants::{ONE, OSMOSIS_SWAP_FEE_RATE, TEN},
         handlers::get_events_by_resource_id::get_events_by_resource_id,
         helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate},
         tests::{
@@ -719,12 +720,10 @@ mod simulate_standard_dca_execution_tests {
         },
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
-    use base::events::event::{Event, EventData, ExecutionSkippedReason};
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
         to_binary, Coin, Decimal, QueryRequest,
     };
-    use osmosis_helpers::constants::OSMOSIS_SWAP_FEE_RATE;
     use osmosis_std::types::osmosis::poolmanager::v1beta1::EstimateSwapExactAmountInResponse;
     use std::str::FromStr;
 

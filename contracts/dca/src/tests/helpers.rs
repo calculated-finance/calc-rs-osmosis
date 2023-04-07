@@ -11,15 +11,18 @@ use crate::{
         triggers::save_trigger,
         vaults::update_vault,
     },
-    types::{dca_plus_config::DcaPlusConfig, vault::Vault},
-};
-use base::{
-    pair::Pair,
-    triggers::trigger::{TimeInterval, Trigger, TriggerConfiguration},
-    vaults::vault::{Destination, PostExecutionAction, VaultStatus},
+    types::{
+        dca_plus_config::DcaPlusConfig,
+        destination::Destination,
+        pair::Pair,
+        post_execution_action::PostExecutionAction,
+        time_interval::TimeInterval,
+        trigger::{Trigger, TriggerConfiguration},
+        vault::{Vault, VaultStatus},
+    },
 };
 use cosmwasm_std::{Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Timestamp, Uint128};
-use std::str::FromStr;
+use std::{cmp::max, str::FromStr};
 
 pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
     let instantiate_message = InstantiateMsg {
@@ -167,16 +170,21 @@ pub fn setup_new_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
 
     update_vault(deps.storage, &vault).unwrap();
 
-    save_trigger(
-        deps.storage,
-        Trigger {
-            vault_id: vault.id,
-            configuration: TriggerConfiguration::Time {
-                target_time: env.block.time,
+    if let Some(TriggerConfiguration::Time { target_time }) = vault.trigger {
+        let trigger_time =
+            Timestamp::from_seconds(max(target_time.seconds(), env.block.time.seconds()));
+
+        save_trigger(
+            deps.storage,
+            Trigger {
+                vault_id: vault.id,
+                configuration: TriggerConfiguration::Time {
+                    target_time: trigger_time,
+                },
             },
-        },
-    )
-    .unwrap();
+        )
+        .unwrap();
+    }
 
     CACHE
         .save(

@@ -1,7 +1,8 @@
-use crate::triggers::trigger::TimeInterval;
 use chrono::{DateTime, Datelike, Duration, TimeZone, Utc};
 use cosmwasm_std::Timestamp;
 use std::convert::TryInto;
+
+use crate::types::time_interval::TimeInterval;
 
 pub fn target_time_elapsed(current_time: Timestamp, target_execution_time: Timestamp) -> bool {
     if current_time.seconds().ge(&target_execution_time.seconds()) {
@@ -604,8 +605,9 @@ mod tests {
 
 #[cfg(test)]
 mod get_total_execution_duration_tests {
+    use crate::types::time_interval::TimeInterval;
+
     use super::{get_total_execution_duration, shift_months};
-    use crate::triggers::trigger::TimeInterval;
     use chrono::{Duration, TimeZone, Utc};
     use cosmwasm_std::Timestamp;
 

@@ -37,7 +37,6 @@ dependencies = [
  "cw-multi-test",
  "cw-storage-plus",
  "cw2",
- "enum-as-inner",
  "schemars",
  "serde",
  "thiserror",
@@ -351,6 +350,7 @@ name = "dca"
 version = "1.0.0"
 dependencies = [
  "base",
+ "chrono",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -358,7 +358,7 @@ dependencies = [
  "cw-storage-plus",
  "cw2",
  "cw20",
- "osmosis-helpers",
+ "enum-as-inner",
  "osmosis-std",
  "rand",
  "schemars",
@@ -649,23 +649,6 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
-
-[[package]]
-name = "osmosis-helpers"
-version = "1.0.0"
-dependencies = [
- "base",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-multi-test",
- "cw-storage-plus",
- "cw2",
- "osmosis-std",
- "schemars",
- "serde",
- "thiserror",
-]
 
 [[package]]
 name = "osmosis-std"
