@@ -1,19 +1,11 @@
+use crate::types::position_type::PositionType;
 use cosmwasm_std::{Decimal, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
-
-use crate::types::position_type::PositionType;
 
 const BUY_ADJUSTMENTS: Map<u8, Decimal> = Map::new("buy_adjustments_v3");
 const SELL_ADJUSTMENTS: Map<u8, Decimal> = Map::new("sell_adjustments_v3");
 const BUY_ADJUSTMENTS_UPDATED_AT: Item<Timestamp> = Item::new("buy_adjustments_updated_at_v3");
 const SELL_ADJUSTMENTS_UPDATED_AT: Item<Timestamp> = Item::new("buy_adjustments_updated_at_v3");
-
-fn last_updated(storage: &dyn Storage, position_type: PositionType) -> StdResult<Timestamp> {
-    match position_type {
-        PositionType::Enter => BUY_ADJUSTMENTS_UPDATED_AT.load(storage),
-        PositionType::Exit => SELL_ADJUSTMENTS_UPDATED_AT.load(storage),
-    }
-}
 
 fn adjustments_updated_store(position_type: PositionType) -> &'static Item<'static, Timestamp> {
     match position_type {
@@ -27,6 +19,10 @@ pub fn adjustments_store(position_type: PositionType) -> &'static Map<'static, u
         PositionType::Enter => &BUY_ADJUSTMENTS,
         PositionType::Exit => &SELL_ADJUSTMENTS,
     }
+}
+
+fn last_updated(storage: &dyn Storage, position_type: PositionType) -> StdResult<Timestamp> {
+    adjustments_updated_store(position_type).load(storage)
 }
 
 pub fn update_swap_adjustments(

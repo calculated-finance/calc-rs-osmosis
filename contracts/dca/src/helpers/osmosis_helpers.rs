@@ -1,3 +1,7 @@
+use crate::{
+    constants::OSMOSIS_SWAP_FEE_RATE,
+    types::{pair::Pair, position_type::PositionType},
+};
 use cosmwasm_std::{
     Addr, Coin, Decimal, Env, QuerierWrapper, ReplyOn, StdError, StdResult, SubMsg, Uint128,
 };
@@ -10,11 +14,6 @@ use osmosis_std::{
     },
 };
 use std::str::FromStr;
-
-use crate::{
-    constants::OSMOSIS_SWAP_FEE_RATE,
-    types::{pair::Pair, position_type::PositionType},
-};
 
 pub fn query_belief_price(
     querier: &QuerierWrapper,
@@ -70,22 +69,23 @@ pub fn query_price(
         pair.base_denom.clone()
     };
 
+    let routes = vec![SwapAmountInRoute {
+        pool_id: pair.pool_id,
+        token_out_denom: token_out_denom.clone(),
+    }];
+
     let token_out_amount = PoolmanagerQuerier::new(&querier)
         .estimate_swap_exact_amount_in(
             env.contract.address.to_string(),
             pair.pool_id,
             swap_amount.to_string(),
-            vec![SwapAmountInRoute {
-                pool_id: pair.pool_id,
-                token_out_denom: token_out_denom.clone(),
-            }],
+            routes.clone(),
         )
         .expect(&format!(
-            "token out amount of {} for swapping {} on pair {} from sender {}",
+            "amount of {} received for swapping {} via {:#?}",
             token_out_denom,
             swap_amount.to_string(),
-            pair.pool_id,
-            env.contract.address.to_string()
+            routes,
         ))
         .token_out_amount
         .parse::<Uint128>()?;
