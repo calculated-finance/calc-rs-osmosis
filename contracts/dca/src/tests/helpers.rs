@@ -108,6 +108,17 @@ impl Default for Config {
     }
 }
 
+impl Default for Pair {
+    fn default() -> Self {
+        Self {
+            address: Addr::unchecked("pair"),
+            base_denom: DENOM_UOSMO.to_string(),
+            quote_denom: DENOM_STAKE.to_string(),
+            route: vec![0],
+        }
+    }
+}
+
 impl Default for Vault {
     fn default() -> Self {
         Self {
@@ -122,12 +133,7 @@ impl Default for Vault {
             }],
             status: VaultStatus::Active,
             balance: Coin::new(TEN.into(), DENOM_UOSMO),
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: DENOM_UOSMO.to_string(),
-                quote_denom: DENOM_STAKE.to_string(),
-            },
+            pair: Pair::default(),
             swap_amount: ONE,
             slippage_tolerance: None,
             minimum_receive_amount: None,

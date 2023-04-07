@@ -35,10 +35,10 @@ pub struct MigrateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     CreatePair {
-        pool_id: u64,
         address: Addr,
         base_denom: String,
         quote_denom: String,
+        route: Vec<u64>,
     },
     DeletePair {
         address: Addr,

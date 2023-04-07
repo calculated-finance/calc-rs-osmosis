@@ -22,7 +22,7 @@ use crate::{
 use base::helpers::coin_helpers::subtract;
 use cosmwasm_std::{
     testing::{mock_env, mock_info},
-    to_binary, BankMsg, Coin, CosmosMsg, Decimal, SubMsg,
+    to_binary, BankMsg, Coin, CosmosMsg, Decimal, StdError, SubMsg,
 };
 use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 
@@ -37,13 +37,6 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
         env.clone(),
         info.clone(),
     );
-
-    deps.querier.update_stargate(|_| {
-        to_binary(&QuerySpotPriceResponse {
-            spot_price: "1.0".to_string(),
-        })
-        .unwrap()
-    });
 
     let vault = setup_new_vault(
         deps.as_mut(),
@@ -101,11 +94,11 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
         },
     );
 
-    deps.querier.update_stargate(|_| {
-        to_binary(&QuerySpotPriceResponse {
+    deps.querier.update_stargate(|path| match path {
+        "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
             spot_price: "10.0".to_string(),
-        })
-        .unwrap()
+        }),
+        _ => Err(StdError::generic_err("message not customised")),
     });
 
     let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
@@ -151,13 +144,6 @@ fn publishes_escrow_disbursed_event() {
         },
     );
 
-    deps.querier.update_stargate(|_| {
-        to_binary(&QuerySpotPriceResponse {
-            spot_price: "1.0".to_string(),
-        })
-        .unwrap()
-    });
-
     disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
     let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
@@ -197,13 +183,6 @@ fn sets_escrow_balance_to_zero() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
-
-    deps.querier.update_stargate(|_| {
-        to_binary(&QuerySpotPriceResponse {
-            spot_price: "1.0".to_string(),
-        })
-        .unwrap()
-    });
 
     let vault = setup_new_vault(
         deps.as_mut(),
@@ -246,13 +225,6 @@ fn deletes_disburse_escrow_task() {
     let info = mock_info(ADMIN, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
-
-    deps.querier.update_stargate(|_| {
-        to_binary(&QuerySpotPriceResponse {
-            spot_price: "1.0".to_string(),
-        })
-        .unwrap()
-    });
 
     let vault = setup_new_vault(
         deps.as_mut(),
@@ -305,13 +277,6 @@ fn when_not_a_dca_vault_returns_an_error() {
         env.clone(),
         info.clone(),
     );
-
-    deps.querier.update_stargate(|_| {
-        to_binary(&QuerySpotPriceResponse {
-            spot_price: "1.0".to_string(),
-        })
-        .unwrap()
-    });
 
     let vault = setup_new_vault(
         deps.as_mut(),

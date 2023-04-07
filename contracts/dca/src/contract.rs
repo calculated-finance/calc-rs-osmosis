@@ -114,11 +114,11 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreatePair {
-            pool_id,
             address,
             base_denom,
             quote_denom,
-        } => create_pair(deps, env, info, pool_id, address, base_denom, quote_denom),
+            route,
+        } => create_pair(deps, info, address, base_denom, quote_denom, route),
         ExecuteMsg::DeletePair { address } => delete_pair(deps, info, address),
         ExecuteMsg::CreateVault {
             owner,

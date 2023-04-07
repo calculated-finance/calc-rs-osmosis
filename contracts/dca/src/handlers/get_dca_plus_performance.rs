@@ -1,6 +1,6 @@
 use crate::{
     helpers::{
-        fee_helpers::get_dca_plus_performance_fee, osmosis_helpers::query_belief_price,
+        fee_helpers::get_dca_plus_performance_fee, price_helpers::query_belief_price,
         vault_helpers::get_dca_plus_performance_factor,
     },
     msg::DcaPlusPerformanceResponse,
@@ -14,7 +14,7 @@ pub fn get_dca_plus_performance_handler(
 ) -> StdResult<DcaPlusPerformanceResponse> {
     let vault = get_vault(deps.storage, vault_id)?;
 
-    let current_price = query_belief_price(&deps.querier, &vault.pair, &vault.get_swap_denom())?;
+    let current_price = query_belief_price(&deps.querier, &vault.pair, vault.get_swap_denom())?;
 
     vault.dca_plus_config.clone().map_or(
         Err(StdError::GenericErr {

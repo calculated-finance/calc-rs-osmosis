@@ -64,13 +64,13 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
     FEES.osmosis.swapExactAmountIn('medium'),
   );
 
-  const contractpairs = (
+  const contractPairs = (
     await cosmWasmClient.queryContractSmart(dcaContractAddress, {
       get_pairs: {},
     })
   ).pairs;
 
-  const pair = find((pair: Pair) => pair.base_denom == 'stake' && pair.quote_denom == 'uion', reverse(contractpairs));
+  const pair = find((pair: Pair) => pair.base_denom == 'stake' && pair.quote_denom == 'uion', reverse(contractPairs));
 
   return {
     beforeAll(this: Mocha.Context) {

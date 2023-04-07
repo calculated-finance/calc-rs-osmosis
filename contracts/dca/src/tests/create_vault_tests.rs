@@ -354,14 +354,15 @@ fn should_create_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
+    let pair = Pair::default();
+
     create_pair(
         deps.as_mut(),
-        env.clone(),
         info.clone(),
-        0,
-        Addr::unchecked("pair"),
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
+        pair.address.clone(),
+        pair.base_denom.clone(),
+        pair.quote_denom.clone(),
+        pair.route.clone(),
     )
     .unwrap();
 
@@ -407,12 +408,7 @@ fn should_create_vault() {
             balance: info.funds[0].clone(),
             slippage_tolerance: None,
             swap_amount,
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: DENOM_STAKE.to_string(),
-                quote_denom: DENOM_UOSMO.to_string(),
-            },
+            pair,
             started_at: None,
             swapped_amount: Coin::new(0, DENOM_STAKE.to_string()),
             received_amount: Coin::new(0, DENOM_UOSMO.to_string()),
@@ -432,14 +428,15 @@ fn should_publish_deposit_event() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
+    let pair = Pair::default();
+
     create_pair(
         deps.as_mut(),
-        env.clone(),
         info.clone(),
-        0,
-        Addr::unchecked("pair"),
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
+        pair.address,
+        pair.base_denom,
+        pair.quote_denom,
+        pair.route,
     )
     .unwrap();
 
@@ -488,14 +485,15 @@ fn for_different_owner_should_succeed() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
+    let pair = Pair::default();
+
     create_pair(
         deps.as_mut(),
-        env.clone(),
         info.clone(),
-        0,
-        Addr::unchecked("pair"),
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
+        pair.address,
+        pair.base_denom,
+        pair.quote_denom,
+        pair.route,
     )
     .unwrap();
 
@@ -534,14 +532,15 @@ fn with_multiple_destinations_should_succeed() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
+    let pair = Pair::default();
+
     create_pair(
         deps.as_mut(),
-        env.clone(),
         info.clone(),
-        0,
-        Addr::unchecked("pair"),
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
+        pair.address,
+        pair.base_denom,
+        pair.quote_denom,
+        pair.route,
     )
     .unwrap();
 
@@ -592,14 +591,15 @@ fn with_insufficient_funds_should_create_inactive_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
+    let pair = Pair::default();
+
     create_pair(
         deps.as_mut(),
-        env.clone(),
         info.clone(),
-        0,
-        Addr::unchecked("pair"),
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
+        pair.address,
+        pair.base_denom,
+        pair.quote_denom,
+        pair.route,
     )
     .unwrap();
 
@@ -637,14 +637,15 @@ fn with_use_dca_plus_true_should_create_dca_plus_config() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
+    let pair = Pair::default();
+
     create_pair(
         deps.as_mut(),
-        env.clone(),
         info.clone(),
-        0,
-        Addr::unchecked("pair"),
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
+        pair.address,
+        pair.base_denom,
+        pair.quote_denom,
+        pair.route,
     )
     .unwrap();
 
@@ -693,14 +694,15 @@ fn with_large_deposit_should_select_longer_duration_model() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
+    let pair = Pair::default();
+
     create_pair(
         deps.as_mut(),
-        env.clone(),
         info.clone(),
-        0,
-        Addr::unchecked("pair"),
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
+        pair.address,
+        pair.base_denom,
+        pair.quote_denom,
+        pair.route,
     )
     .unwrap();
 
@@ -738,14 +740,15 @@ fn with_no_target_time_should_execute_vault() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
+    let pair = Pair::default();
+
     create_pair(
         deps.as_mut(),
-        env.clone(),
         info.clone(),
-        0,
-        Addr::unchecked("pair"),
-        DENOM_STAKE.to_string(),
-        DENOM_UOSMO.to_string(),
+        pair.address,
+        pair.base_denom,
+        pair.quote_denom,
+        pair.route,
     )
     .unwrap();
 
