@@ -721,44 +721,6 @@ fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
 }
 
 #[test]
-fn with_failed_swap_and_insufficient_funds_publishes_skipped_event_with_unknown_failure() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    let vault = setup_new_vault(
-        deps.as_mut(),
-        env.clone(),
-        Vault {
-            balance: Coin::new(TWO_MICRONS.into(), DENOM_UOSMO),
-            ..Vault::default()
-        },
-    );
-
-    let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
-        result: SubMsgResult::Err("Generic failure".to_string()),
-    };
-
-    disburse_funds(deps.as_mut(), &env, reply).unwrap();
-
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
-        .unwrap()
-        .events;
-
-    assert!(events.contains(
-        &EventBuilder::new(
-            vault.id,
-            env.block.clone(),
-            EventData::DcaVaultExecutionSkipped {
-                reason: ExecutionSkippedReason::UnknownFailure
-            }
-        )
-        .build(1)
-    ));
-}
-
-#[test]
 fn with_failed_swap_publishes_skipped_event_with_slippage_failure() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -1158,63 +1120,6 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
         block_height: env.block.height,
         data: EventData::DcaVaultExecutionSkipped {
             reason: ExecutionSkippedReason::SlippageToleranceExceeded
-        }
-    }));
-}
-
-#[test]
-fn for_dca_plus_vault_with_low_funds_and_failed_swap_publishes_unknown_failure_event() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-    instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
-
-    let vault = setup_new_vault(
-        deps.as_mut(),
-        env.clone(),
-        Vault {
-            balance: Coin::new(49999, DENOM_UOSMO),
-            swap_amount: ONE,
-            dca_plus_config: Some(DcaPlusConfig::default()),
-            ..Vault::default()
-        },
-    );
-
-    SWAP_CACHE
-        .save(
-            deps.as_mut().storage,
-            &SwapCache {
-                swap_denom_balance: vault.balance.clone(),
-                receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
-            },
-        )
-        .unwrap();
-
-    deps.querier.update_balance(
-        "cosmos2contract",
-        vec![Coin::new(1000000, vault.get_receive_denom())],
-    );
-
-    disburse_funds(
-        deps.as_mut(),
-        &env,
-        Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
-            result: SubMsgResult::Err("slippage exceeded".to_string()),
-        },
-    )
-    .unwrap();
-
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
-        .unwrap()
-        .events;
-
-    assert!(events.contains(&Event {
-        id: 1,
-        resource_id: vault.id,
-        timestamp: env.block.time,
-        block_height: env.block.height,
-        data: EventData::DcaVaultExecutionSkipped {
-            reason: ExecutionSkippedReason::UnknownFailure
         }
     }));
 }

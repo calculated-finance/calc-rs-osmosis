@@ -4,7 +4,7 @@ use cosmwasm_std::Addr;
 #[cw_serde]
 pub struct Pair {
     pub address: Addr,
-    pub pool_id: u64,
     pub base_denom: String,
     pub quote_denom: String,
+    pub pool_id: u64,
 }
