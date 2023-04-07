@@ -1,8 +1,7 @@
+use crate::types::time_interval::TimeInterval;
 use chrono::{DateTime, Datelike, Duration, TimeZone, Utc};
 use cosmwasm_std::Timestamp;
 use std::convert::TryInto;
-
-use crate::types::time_interval::TimeInterval;
 
 pub fn target_time_elapsed(current_time: Timestamp, target_execution_time: Timestamp) -> bool {
     if current_time.seconds().ge(&target_execution_time.seconds()) {
@@ -135,9 +134,8 @@ fn normalise_day(year: i32, month: u32, day: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::Uint64;
-
     use super::*;
+    use cosmwasm_std::Uint64;
 
     pub fn assert_expected_next_execution_time(
         last_execution_time: DateTime<Utc>,
@@ -605,9 +603,8 @@ mod tests {
 
 #[cfg(test)]
 mod get_total_execution_duration_tests {
-    use crate::types::time_interval::TimeInterval;
-
     use super::{get_total_execution_duration, shift_months};
+    use crate::types::time_interval::TimeInterval;
     use chrono::{Duration, TimeZone, Utc};
     use cosmwasm_std::Timestamp;
 
