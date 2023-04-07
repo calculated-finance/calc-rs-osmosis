@@ -118,17 +118,10 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
                     vault.id,
                     env.block.to_owned(),
                     EventData::DcaVaultExecutionSkipped {
-                        reason: match vault.has_sufficient_funds() {
-                            true => ExecutionSkippedReason::SlippageToleranceExceeded,
-                            false => ExecutionSkippedReason::UnknownFailure,
-                        },
+                        reason: ExecutionSkippedReason::SlippageToleranceExceeded,
                     },
                 ),
             )?;
-
-            if !vault.has_sufficient_funds() {
-                vault.status = VaultStatus::Inactive;
-            }
 
             attributes.push(Attribute::new("status", "skipped"));
         }

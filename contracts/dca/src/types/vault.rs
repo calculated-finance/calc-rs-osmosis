@@ -87,15 +87,6 @@ impl Vault {
         self.balance.amount < self.swap_amount
     }
 
-    pub fn has_sufficient_funds(&self) -> bool {
-        let swap_amount = match self.has_low_funds() {
-            true => self.balance.amount,
-            false => self.swap_amount,
-        };
-
-        swap_amount > Uint128::new(50000)
-    }
-
     pub fn is_dca_plus(&self) -> bool {
         self.dca_plus_config.is_some()
     }
@@ -129,100 +120,23 @@ impl Vault {
 }
 
 #[cfg(test)]
-mod has_sufficient_funds_tests {
-    use crate::{state::vaults::save_vault, types::vault_builder::VaultBuilder};
-
-    use super::*;
-    use cosmwasm_std::{coin, testing::mock_dependencies};
-
-    #[test]
-    fn should_return_false_when_vault_has_insufficient_swap_amount() {
-        let mut deps = mock_dependencies();
-        let vault_builder = vault_with(100000, Uint128::new(50000));
-        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(!vault.has_sufficient_funds());
-    }
-
-    #[test]
-    fn should_return_false_when_vault_has_insufficient_balance() {
-        let mut deps = mock_dependencies();
-        let vault_builder = vault_with(50000, Uint128::new(50001));
-        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(!vault.has_sufficient_funds());
-    }
-
-    #[test]
-    fn should_return_true_when_vault_has_sufficient_swap_amount() {
-        let mut deps = mock_dependencies();
-        let vault_builder = vault_with(100000, Uint128::new(50001));
-        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(vault.has_sufficient_funds());
-    }
-
-    #[test]
-    fn should_return_true_when_vault_has_sufficient_balance() {
-        let mut deps = mock_dependencies();
-        let vault_builder = vault_with(50001, Uint128::new(50002));
-        let vault = save_vault(deps.as_mut().storage, vault_builder).unwrap();
-        assert!(vault.has_sufficient_funds());
-    }
-
-    fn vault_with(balance: u128, swap_amount: Uint128) -> VaultBuilder {
-        VaultBuilder::new(
-            Timestamp::from_seconds(0),
-            Addr::unchecked("owner"),
-            None,
-            vec![],
-            VaultStatus::Active,
-            coin(balance, "quote"),
-            Pair {
-                pool_id: 0,
-                base_denom: "base".to_string(),
-                quote_denom: "quote".to_string(),
-                address: Addr::unchecked("pair"),
-            },
-            swap_amount,
-            None,
-            None,
-            None,
-            TimeInterval::Daily,
-            None,
-            Coin {
-                denom: "quote".to_string(),
-                amount: Uint128::new(0),
-            },
-            Coin {
-                denom: "base".to_string(),
-                amount: Uint128::new(0),
-            },
-            None,
-        )
-    }
-}
-
-#[cfg(test)]
 mod get_expected_execution_completed_date_tests {
     use super::Vault;
     use crate::{
         constants::{ONE, TEN},
         tests::mocks::DENOM_UOSMO,
-        types::{
-            dca_plus_config::DcaPlusConfig, pair::Pair, time_interval::TimeInterval,
-            vault::VaultStatus,
-        },
+        types::{dca_plus_config::DcaPlusConfig, vault::VaultStatus},
     };
-    use cosmwasm_std::{coin, testing::mock_env, Addr, Coin, Decimal, Timestamp, Uint128};
+    use cosmwasm_std::{testing::mock_env, Coin, Decimal};
 
     #[test]
     fn expected_execution_end_date_is_now_when_vault_is_empty() {
         let env = mock_env();
-        let created_at = env.block.time.minus_seconds(60 * 60 * 24);
-        let vault = vault_with(
-            created_at,
-            Uint128::zero(),
-            Uint128::new(100),
-            TimeInterval::Daily,
-        );
+        let vault = Vault {
+            balance: Coin::new(0, DENOM_UOSMO),
+            ..Vault::default()
+        };
+
         assert_eq!(
             vault.get_expected_execution_completed_date(env.block.time),
             env.block.time
@@ -232,12 +146,8 @@ mod get_expected_execution_completed_date_tests {
     #[test]
     fn expected_execution_end_date_is_in_future_when_vault_is_not_empty() {
         let env = mock_env();
-        let vault = vault_with(
-            env.block.time,
-            Uint128::new(1000),
-            Uint128::new(100),
-            TimeInterval::Daily,
-        );
+        let vault = Vault::default();
+
         assert_eq!(
             vault.get_expected_execution_completed_date(env.block.time),
             env.block.time.plus_seconds(1000 / 100 * 24 * 60 * 60)
@@ -247,18 +157,19 @@ mod get_expected_execution_completed_date_tests {
     #[test]
     fn expected_execution_end_date_is_at_end_of_standard_dca_execution() {
         let env = mock_env();
-        let mut vault = vault_with(env.block.time, Uint128::zero(), ONE, TimeInterval::Daily);
-
-        vault.status = VaultStatus::Inactive;
-
-        vault.dca_plus_config = Some(DcaPlusConfig {
-            escrow_level: Decimal::percent(5),
-            model_id: 30,
-            total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-            standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
-            standard_dca_received_amount: Coin::new(ONE.into(), DENOM_UOSMO),
-            escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UOSMO),
-        });
+        let vault = Vault {
+            status: VaultStatus::Inactive,
+            balance: Coin::new(ONE.into(), DENOM_UOSMO),
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig {
+                total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
+                standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
+                standard_dca_received_amount: Coin::new(ONE.into(), DENOM_UOSMO),
+                escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UOSMO),
+                ..DcaPlusConfig::default()
+            }),
+            ..Vault::default()
+        };
 
         assert_eq!(
             vault.get_expected_execution_completed_date(env.block.time),
@@ -269,52 +180,22 @@ mod get_expected_execution_completed_date_tests {
     #[test]
     fn expected_execution_end_date_is_at_end_of_dca_plus_execution() {
         let env = mock_env();
-        let mut vault = vault_with(env.block.time, TEN - ONE, ONE, TimeInterval::Daily);
-
-        vault.dca_plus_config = Some(DcaPlusConfig {
-            escrow_level: Decimal::percent(5),
-            model_id: 30,
-            total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-            standard_dca_swapped_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UOSMO),
-            standard_dca_received_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UOSMO),
-            escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UOSMO),
-        });
+        let vault = Vault {
+            balance: Coin::new((TEN - ONE).into(), DENOM_UOSMO),
+            swap_amount: ONE,
+            dca_plus_config: Some(DcaPlusConfig {
+                total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
+                standard_dca_swapped_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UOSMO),
+                standard_dca_received_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UOSMO),
+                escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UOSMO),
+                ..DcaPlusConfig::default()
+            }),
+            ..Vault::default()
+        };
 
         assert_eq!(
             vault.get_expected_execution_completed_date(env.block.time),
             env.block.time.plus_seconds(9 * 24 * 60 * 60)
         );
-    }
-
-    fn vault_with(
-        created_at: Timestamp,
-        balance: Uint128,
-        swap_amount: Uint128,
-        time_interval: TimeInterval,
-    ) -> Vault {
-        Vault {
-            id: Uint128::new(1),
-            created_at,
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            balance: Coin::new(balance.into(), "quote"),
-            pair: Pair {
-                pool_id: 0,
-                base_denom: "base".to_string(),
-                quote_denom: "quote".to_string(),
-                address: Addr::unchecked("pair"),
-            },
-            swap_amount,
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval,
-            started_at: None,
-            swapped_amount: coin(0, "quote"),
-            received_amount: coin(0, "base"),
-            trigger: None,
-            dca_plus_config: None,
-        }
     }
 }
