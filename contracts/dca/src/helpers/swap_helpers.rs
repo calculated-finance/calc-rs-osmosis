@@ -28,15 +28,16 @@ pub fn create_osmosis_swap_message(
         _ => Uint128::one(),
     };
 
+    let msg = MsgSwapExactAmountIn {
+        sender: env.contract.address.to_string(),
+        token_in: Some(swap_amount.clone().into()),
+        token_out_min_amount: token_out_min_amount.to_string(),
+        routes,
+    };
+
     Ok(SubMsg {
         id: reply_id.unwrap_or(0),
-        msg: MsgSwapExactAmountIn {
-            sender: env.contract.address.to_string(),
-            token_in: Some(swap_amount.clone().into()),
-            token_out_min_amount: token_out_min_amount.to_string(),
-            routes,
-        }
-        .into(),
+        msg: msg.into(),
         gas_limit: None,
         reply_on: reply_on.unwrap_or(ReplyOn::Never),
     })

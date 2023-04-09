@@ -114,7 +114,7 @@ impl Default for Pair {
             address: Addr::unchecked("pair"),
             base_denom: DENOM_UOSMO.to_string(),
             quote_denom: DENOM_STAKE.to_string(),
-            route: vec![0],
+            route: vec![3],
         }
     }
 }

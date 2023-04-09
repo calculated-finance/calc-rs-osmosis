@@ -10,8 +10,8 @@ export type ExecuteMsg =
       create_pair: {
         address: Addr;
         base_denom: string;
-        pool_id: number;
         quote_denom: string;
+        route: number[];
       };
     }
   | {
@@ -29,7 +29,6 @@ export type ExecuteMsg =
         position_type?: PositionType | null;
         slippage_tolerance?: Decimal | null;
         swap_amount: Uint128;
-        target_receive_amount?: Uint128 | null;
         target_start_time_utc_seconds?: Uint64 | null;
         time_interval: TimeInterval;
         use_dca_plus?: boolean | null;

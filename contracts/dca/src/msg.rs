@@ -54,7 +54,6 @@ pub enum ExecuteMsg {
         swap_amount: Uint128,
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
-        target_receive_amount: Option<Uint128>,
         use_dca_plus: Option<bool>,
     },
     Deposit {

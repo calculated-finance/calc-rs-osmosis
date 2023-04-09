@@ -2,7 +2,10 @@ use crate::{
     contract::query,
     handlers::create_pair::create_pair,
     msg::{PairsResponse, QueryMsg},
-    tests::{helpers::instantiate_contract, mocks::ADMIN},
+    tests::{
+        helpers::instantiate_contract,
+        mocks::{calc_mock_dependencies, ADMIN},
+    },
     types::pair::Pair,
 };
 use cosmwasm_std::{
@@ -12,7 +15,7 @@ use cosmwasm_std::{
 
 #[test]
 fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(ADMIN, &vec![]);
 

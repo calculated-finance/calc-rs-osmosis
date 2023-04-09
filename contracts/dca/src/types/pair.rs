@@ -18,4 +18,16 @@ impl Pair {
             PositionType::Exit
         }
     }
+
+    pub fn denoms(&self) -> Vec<String> {
+        vec![self.base_denom.clone(), self.quote_denom.clone()]
+    }
+
+    pub fn other_denom(&self, swap_denom: String) -> String {
+        if self.quote_denom == swap_denom {
+            self.base_denom.clone()
+        } else {
+            self.quote_denom.clone()
+        }
+    }
 }

@@ -354,7 +354,7 @@ fn with_dca_plus_should_adjust_swap_amount() {
             ),
             token_out_min_amount: Uint128::one().to_string(),
             routes: vec![SwapAmountInRoute {
-                pool_id: 0,
+                pool_id: 3,
                 token_out_denom: vault.get_receive_denom(),
             }],
         }
@@ -799,7 +799,7 @@ fn should_create_swap_message() {
             ),
             token_out_min_amount: Uint128::one().to_string(),
             routes: vec![SwapAmountInRoute {
-                pool_id: 0,
+                pool_id: 3,
                 token_out_denom: vault.get_receive_denom(),
             }],
         }
@@ -833,14 +833,10 @@ fn should_create_reduced_swap_message_when_balance_is_low() {
         id: AFTER_FIN_SWAP_REPLY_ID,
         msg: MsgSwapExactAmountIn {
             sender: env.contract.address.to_string(),
-            token_in: Some(
-                Coin::new((ONE / TWO_MICRONS).into(), vault.get_swap_denom())
-                    .clone()
-                    .into()
-            ),
+            token_in: Some(vault.balance.clone().into()),
             token_out_min_amount: Uint128::one().to_string(),
             routes: vec![SwapAmountInRoute {
-                pool_id: 0,
+                pool_id: 3,
                 token_out_denom: vault.get_receive_denom(),
             }],
         }
@@ -890,7 +886,7 @@ fn should_create_swap_message_with_target_receive_amount_when_slippage_tolerance
             ),
             token_out_min_amount: token_out_min_amount.to_string(),
             routes: vec![SwapAmountInRoute {
-                pool_id: 0,
+                pool_id: 3,
                 token_out_denom: vault.get_receive_denom(),
             }],
         }
@@ -1005,7 +1001,7 @@ fn should_trigger_execution_if_price_threshold_not_exceeded() {
             ),
             token_out_min_amount: Uint128::one().to_string(),
             routes: vec![SwapAmountInRoute {
-                pool_id: 0,
+                pool_id: 3,
                 token_out_denom: vault.get_receive_denom(),
             }],
         }

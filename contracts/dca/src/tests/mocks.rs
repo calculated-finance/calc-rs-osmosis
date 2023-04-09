@@ -46,7 +46,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                 "/osmosis.gamm.v1beta1.Query/Pool" => {
                     let pools = vec![
                         Pool {
-                            id: 1,
+                            id: 0,
                             pool_assets: vec![
                                 PoolAsset {
                                     token: Some(Coin {
@@ -66,7 +66,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                             ..Pool::default()
                         },
                         Pool {
-                            id: 2,
+                            id: 1,
                             pool_assets: vec![
                                 PoolAsset {
                                     token: Some(Coin {
@@ -86,7 +86,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                             ..Pool::default()
                         },
                         Pool {
-                            id: 3,
+                            id: 2,
                             pool_assets: vec![
                                 PoolAsset {
                                     token: Some(Coin {
@@ -105,6 +105,46 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                             ],
                             ..Pool::default()
                         },
+                        Pool {
+                            id: 3,
+                            pool_assets: vec![
+                                PoolAsset {
+                                    token: Some(Coin {
+                                        denom: DENOM_STAKE.to_string(),
+                                        amount: TEN.to_string(),
+                                    }),
+                                    weight: TEN.to_string(),
+                                },
+                                PoolAsset {
+                                    token: Some(Coin {
+                                        denom: DENOM_UOSMO.to_string(),
+                                        amount: TEN.to_string(),
+                                    }),
+                                    weight: TEN.to_string(),
+                                },
+                            ],
+                            ..Pool::default()
+                        },
+                        Pool {
+                            id: 4,
+                            pool_assets: vec![
+                                PoolAsset {
+                                    token: Some(Coin {
+                                        denom: DENOM_STAKE.to_string(),
+                                        amount: TEN.to_string(),
+                                    }),
+                                    weight: TEN.to_string(),
+                                },
+                                PoolAsset {
+                                    token: Some(Coin {
+                                        denom: DENOM_UION.to_string(),
+                                        amount: TEN.to_string(),
+                                    }),
+                                    weight: TEN.to_string(),
+                                },
+                            ],
+                            ..Pool::default()
+                        },
                     ];
 
                     let pool_id = QueryPoolRequest::decode(data.as_slice()).unwrap().pool_id;
@@ -112,7 +152,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                     to_binary(&QueryPoolResponse {
                         pool: Some(Any {
                             type_url: Pool::TYPE_URL.to_string(),
-                            value: pools[pool_id as usize - 1].clone().encode_to_vec(),
+                            value: pools[pool_id as usize].clone().encode_to_vec(),
                         }),
                     })
                 }

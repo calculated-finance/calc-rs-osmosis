@@ -8,6 +8,7 @@ import { cosmos, FEES, osmosis } from 'osmojs';
 import { getPoolsPricesPairs } from '@cosmology/core';
 import { find, reverse } from 'ramda';
 import { Pair } from '../types/dca/response/get_pairs';
+import Long from 'long';
 
 const calcSwapFee = 0.0005;
 const automationFee = 0.0075;
@@ -128,7 +129,7 @@ const instantiateDCAContract = async (
         address: pool.address,
         base_denom: pool.poolAssets[0].token.denom,
         quote_denom: pool.poolAssets[1].token.denom,
-        route: [pool.id],
+        route: [pool.id.low],
       },
     });
   }

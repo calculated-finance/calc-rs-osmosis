@@ -5,7 +5,7 @@ import { coin, Coin, DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { GasPrice, QueryClient } from '@cosmjs/stargate';
 import dayjs, { Dayjs } from 'dayjs';
 import { Context } from 'mocha';
-import { indexBy, map, mergeAll, omit, pipe, prop } from 'ramda';
+import { indexBy, map, mergeAll, omit, pipe, prop, reduce, reverse, sum } from 'ramda';
 import { Config } from '../shared/config';
 import { execute } from '../shared/cosmwasm';
 import { Addr } from '../types/dca/execute';
@@ -152,25 +152,32 @@ export const getExpectedPrice = async (
   pair: Pair,
   swapAmount: Coin,
   tokenOutDenom: string,
-): Promise<number> => {
-  const poolId = Long.fromNumber(pair.pool_id, true);
-
-  return (
-    Number(swapAmount.amount) /
-    Number(
-      (
-        await context.queryClient.osmosis.gamm.v1beta1.estimateSwapExactAmountIn({
-          sender: context.dcaContractAddress,
-          poolId,
-          tokenIn: `${swapAmount.amount}${swapAmount.denom}`,
-          routes: [
-            {
-              poolId,
-              tokenOutDenom,
-            },
-          ],
-        })
-      ).tokenOutAmount,
-    )
+): Promise<number> =>
+  sum(
+    await Promise.all(
+      map(
+        async (poolId: any) => {
+          poolId = Long.fromNumber(poolId, true);
+          return (
+            Number(swapAmount.amount) /
+            Number(
+              (
+                await context.queryClient.osmosis.gamm.v1beta1.estimateSwapExactAmountIn({
+                  sender: context.dcaContractAddress,
+                  poolId,
+                  tokenIn: `${swapAmount.amount}${swapAmount.denom}`,
+                  routes: [
+                    {
+                      poolId,
+                      tokenOutDenom,
+                    },
+                  ],
+                })
+              ).tokenOutAmount,
+            )
+          );
+        },
+        swapAmount.denom == pair.quote_denom ? pair.route : reverse(pair.route),
+      ),
+    ),
   );
-};

@@ -1,11 +1,11 @@
 use crate::handlers::create_pair::create_pair;
-use crate::handlers::create_vault::create_vault;
+use crate::handlers::create_vault::create_vault_handler;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::handlers::get_vault::get_vault;
 use crate::msg::ExecuteMsg;
 use crate::state::config::{get_config, update_config, Config};
 use crate::tests::helpers::instantiate_contract;
-use crate::tests::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
+use crate::tests::mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
 use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::destination::Destination;
 use crate::types::event::{EventBuilder, EventData};
@@ -14,20 +14,20 @@ use crate::types::post_execution_action::PostExecutionAction;
 use crate::types::time_interval::TimeInterval;
 use crate::types::trigger::TriggerConfiguration;
 use crate::types::vault::{Vault, VaultStatus};
-use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::{
     to_binary, Addr, Coin, CosmosMsg, Decimal, SubMsg, Timestamp, Uint128, WasmMsg,
 };
 
 #[test]
 fn with_no_assets_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(USER, &[]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env,
         &info,
@@ -40,7 +40,6 @@ fn with_no_assets_should_fail() {
         None,
         Uint128::new(10000),
         TimeInterval::Daily,
-        None,
         None,
         Some(false),
     )
@@ -54,7 +53,7 @@ fn with_no_assets_should_fail() {
 
 #[test]
 fn with_multiple_assets_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(
         USER,
@@ -63,7 +62,7 @@ fn with_multiple_assets_should_fail() {
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env,
         &info,
@@ -77,7 +76,6 @@ fn with_multiple_assets_should_fail() {
         Uint128::new(10000),
         TimeInterval::Daily,
         None,
-        None,
         Some(false),
     )
     .unwrap_err();
@@ -90,13 +88,13 @@ fn with_multiple_assets_should_fail() {
 
 #[test]
 fn with_non_existent_pool_id_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env,
         &info,
@@ -110,7 +108,6 @@ fn with_non_existent_pool_id_should_fail() {
         Uint128::new(100000),
         TimeInterval::Daily,
         None,
-        None,
         Some(false),
     )
     .unwrap_err();
@@ -120,13 +117,13 @@ fn with_non_existent_pool_id_should_fail() {
 
 #[test]
 fn with_destination_allocations_less_than_100_percent_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env,
         &info,
@@ -144,7 +141,6 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
         Uint128::new(100000),
         TimeInterval::Daily,
         None,
-        None,
         Some(false),
     )
     .unwrap_err();
@@ -157,13 +153,13 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
 
 #[test]
 fn with_destination_allocation_equal_to_zero_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env,
         &info,
@@ -188,7 +184,6 @@ fn with_destination_allocation_equal_to_zero_should_fail() {
         Uint128::new(100000),
         TimeInterval::Daily,
         None,
-        None,
         Some(false),
     )
     .unwrap_err();
@@ -201,13 +196,13 @@ fn with_destination_allocation_equal_to_zero_should_fail() {
 
 #[test]
 fn with_more_than_10_destination_allocations_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env,
         &info,
@@ -228,7 +223,6 @@ fn with_more_than_10_destination_allocations_should_fail() {
         Uint128::new(100000),
         TimeInterval::Daily,
         None,
-        None,
         Some(false),
     )
     .unwrap_err();
@@ -241,13 +235,13 @@ fn with_more_than_10_destination_allocations_should_fail() {
 
 #[test]
 fn with_swap_amount_less_than_50000_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env,
         &info,
@@ -261,7 +255,6 @@ fn with_swap_amount_less_than_50000_should_fail() {
         Uint128::new(10000),
         TimeInterval::Daily,
         None,
-        None,
         Some(false),
     )
     .unwrap_err();
@@ -274,7 +267,7 @@ fn with_swap_amount_less_than_50000_should_fail() {
 
 #[test]
 fn when_contract_is_paused_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
@@ -291,7 +284,7 @@ fn when_contract_is_paused_should_fail() {
     )
     .unwrap();
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env,
         &info,
@@ -305,7 +298,6 @@ fn when_contract_is_paused_should_fail() {
         Uint128::new(100000),
         TimeInterval::Daily,
         None,
-        None,
         Some(false),
     )
     .unwrap_err();
@@ -315,13 +307,13 @@ fn when_contract_is_paused_should_fail() {
 
 #[test]
 fn with_time_trigger_with_target_time_in_the_past_should_fail() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
     instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-    let err = create_vault(
+    let err = create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -335,7 +327,6 @@ fn with_time_trigger_with_target_time_in_the_past_should_fail() {
         Uint128::new(100000),
         TimeInterval::Daily,
         Some(env.block.time.minus_seconds(10).seconds().into()),
-        None,
         Some(false),
     )
     .unwrap_err();
@@ -348,7 +339,7 @@ fn with_time_trigger_with_target_time_in_the_past_should_fail() {
 
 #[test]
 fn should_create_vault() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let mut info = mock_info(ADMIN, &[]);
 
@@ -369,7 +360,7 @@ fn should_create_vault() {
     let swap_amount = Uint128::new(100000);
     info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
 
-    create_vault(
+    create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -383,7 +374,6 @@ fn should_create_vault() {
         swap_amount,
         TimeInterval::Daily,
         Some(env.block.time.plus_seconds(10).seconds().into()),
-        None,
         Some(false),
     )
     .unwrap();
@@ -422,7 +412,7 @@ fn should_create_vault() {
 
 #[test]
 fn should_publish_deposit_event() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let mut info = mock_info(ADMIN, &[]);
 
@@ -442,7 +432,7 @@ fn should_publish_deposit_event() {
 
     info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
 
-    create_vault(
+    create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -456,7 +446,6 @@ fn should_publish_deposit_event() {
         Uint128::new(100000),
         TimeInterval::Daily,
         Some(env.block.time.plus_seconds(10).seconds().into()),
-        None,
         Some(false),
     )
     .unwrap();
@@ -479,7 +468,7 @@ fn should_publish_deposit_event() {
 
 #[test]
 fn for_different_owner_should_succeed() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let mut info = mock_info(ADMIN, &[]);
 
@@ -500,7 +489,7 @@ fn for_different_owner_should_succeed() {
     let owner = Addr::unchecked(USER);
     info = mock_info(ADMIN, &[Coin::new(100000, DENOM_STAKE)]);
 
-    create_vault(
+    create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -514,7 +503,6 @@ fn for_different_owner_should_succeed() {
         Uint128::new(100000),
         TimeInterval::Daily,
         Some(env.block.time.plus_seconds(10).seconds().into()),
-        None,
         Some(false),
     )
     .unwrap();
@@ -526,7 +514,7 @@ fn for_different_owner_should_succeed() {
 
 #[test]
 fn with_multiple_destinations_should_succeed() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let mut info = mock_info(ADMIN, &[]);
 
@@ -559,7 +547,7 @@ fn with_multiple_destinations_should_succeed() {
         },
     ];
 
-    create_vault(
+    create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -573,7 +561,6 @@ fn with_multiple_destinations_should_succeed() {
         Uint128::new(100000),
         TimeInterval::Daily,
         Some(env.block.time.plus_seconds(10).seconds().into()),
-        None,
         Some(false),
     )
     .unwrap();
@@ -585,7 +572,7 @@ fn with_multiple_destinations_should_succeed() {
 
 #[test]
 fn with_insufficient_funds_should_create_inactive_vault() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let mut info = mock_info(ADMIN, &[]);
 
@@ -605,7 +592,7 @@ fn with_insufficient_funds_should_create_inactive_vault() {
 
     info = mock_info(USER, &[Coin::new(1, DENOM_STAKE)]);
 
-    create_vault(
+    create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -619,7 +606,6 @@ fn with_insufficient_funds_should_create_inactive_vault() {
         Uint128::new(100000),
         TimeInterval::Daily,
         Some(env.block.time.plus_seconds(10).seconds().into()),
-        None,
         Some(false),
     )
     .unwrap();
@@ -631,7 +617,7 @@ fn with_insufficient_funds_should_create_inactive_vault() {
 
 #[test]
 fn with_use_dca_plus_true_should_create_dca_plus_config() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let mut info = mock_info(ADMIN, &[]);
 
@@ -651,7 +637,7 @@ fn with_use_dca_plus_true_should_create_dca_plus_config() {
 
     info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
 
-    create_vault(
+    create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -665,7 +651,6 @@ fn with_use_dca_plus_true_should_create_dca_plus_config() {
         Uint128::new(100000),
         TimeInterval::Daily,
         Some(env.block.time.plus_seconds(10).seconds().into()),
-        None,
         Some(true),
     )
     .unwrap();
@@ -688,7 +673,7 @@ fn with_use_dca_plus_true_should_create_dca_plus_config() {
 
 #[test]
 fn with_large_deposit_should_select_longer_duration_model() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let mut info = mock_info(ADMIN, &[]);
 
@@ -708,7 +693,7 @@ fn with_large_deposit_should_select_longer_duration_model() {
 
     info = mock_info(USER, &[Coin::new(1000000000, DENOM_STAKE)]);
 
-    create_vault(
+    create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -722,7 +707,6 @@ fn with_large_deposit_should_select_longer_duration_model() {
         Uint128::new(100000),
         TimeInterval::Daily,
         Some(env.block.time.plus_seconds(10).seconds().into()),
-        None,
         Some(true),
     )
     .unwrap();
@@ -734,7 +718,7 @@ fn with_large_deposit_should_select_longer_duration_model() {
 
 #[test]
 fn with_no_target_time_should_execute_vault() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let mut info = mock_info(ADMIN, &[]);
 
@@ -754,7 +738,7 @@ fn with_no_target_time_should_execute_vault() {
 
     info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
 
-    let response = create_vault(
+    let response = create_vault_handler(
         deps.as_mut(),
         env.clone(),
         &info,
@@ -767,7 +751,6 @@ fn with_no_target_time_should_execute_vault() {
         None,
         Uint128::new(100000),
         TimeInterval::Daily,
-        None,
         None,
         Some(true),
     )

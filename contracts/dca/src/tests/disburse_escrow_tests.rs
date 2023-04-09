@@ -2,8 +2,7 @@ use super::{helpers::instantiate_contract_with_community_pool_fee_collector, moc
 use crate::{
     constants::{ONE, TEN},
     handlers::{
-        disburse_escrow::disburse_escrow_handler,
-        get_events_by_resource_id::get_events_by_resource_id,
+        disburse_escrow::disburse_escrow, get_events_by_resource_id::get_events_by_resource_id,
     },
     state::{
         disburse_escrow_tasks::{get_disburse_escrow_tasks, save_disburse_escrow_task},
@@ -54,7 +53,7 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
         },
     );
 
-    let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
+    let response = disburse_escrow(deps.as_mut(), &env, info, vault.id).unwrap();
 
     assert!(response
         .messages
@@ -101,7 +100,7 @@ fn when_large_fee_is_owed_returns_entire_escrow_to_fee_collector() {
         _ => Err(StdError::generic_err("message not customised")),
     });
 
-    let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
+    let response = disburse_escrow(deps.as_mut(), &env, info, vault.id).unwrap();
 
     assert!(response
         .messages
@@ -144,7 +143,7 @@ fn publishes_escrow_disbursed_event() {
         },
     );
 
-    disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
+    disburse_escrow(deps.as_mut(), &env, info, vault.id).unwrap();
 
     let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
         .unwrap()
@@ -205,7 +204,7 @@ fn sets_escrow_balance_to_zero() {
         },
     );
 
-    disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
+    disburse_escrow(deps.as_mut(), &env, info, vault.id).unwrap();
 
     let dca_plus_config = get_vault(deps.as_ref().storage, vault.id)
         .unwrap()
@@ -257,7 +256,7 @@ fn deletes_disburse_escrow_task() {
     let disburse_escrow_tasks_before =
         get_disburse_escrow_tasks(deps.as_ref().storage, env.block.time, None).unwrap();
 
-    disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
+    disburse_escrow(deps.as_mut(), &env, info, vault.id).unwrap();
 
     let disburse_escrow_tasks_after =
         get_disburse_escrow_tasks(deps.as_ref().storage, env.block.time, None).unwrap();
@@ -287,7 +286,7 @@ fn when_not_a_dca_vault_returns_an_error() {
         },
     );
 
-    let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap_err();
+    let response = disburse_escrow(deps.as_mut(), &env, info, vault.id).unwrap_err();
 
     assert_eq!(response.to_string(), "Error: Vault is not a DCA+ vault");
 }

@@ -19,7 +19,7 @@ use crate::{
 use base::helpers::coin_helpers::{empty_of, subtract};
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
 
-pub fn disburse_escrow_handler(
+pub fn disburse_escrow(
     deps: DepsMut,
     env: &Env,
     info: MessageInfo,
