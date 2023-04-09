@@ -148,17 +148,6 @@ describe('when creating a vault', () => {
     it('is scheduled', () => expect(vault.status).to.equal('scheduled'));
   });
 
-  describe('with a price trigger and a time trigger', () => {
-    it('fails with the correct error message', async function (this: Context) {
-      await expect(
-        createVault(this, {
-          target_receive_amount: `1000000`,
-          target_start_time_utc_seconds: `${dayjs().add(1, 'hour').unix()}`,
-        }),
-      ).to.be.rejectedWith(/cannot provide both a target_start_time_utc_seconds and a target_price/);
-    });
-  });
-
   describe('with a time trigger in the past', () => {
     it('fails with the correct error message', async function (this: Context) {
       await expect(

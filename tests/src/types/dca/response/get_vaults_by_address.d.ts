@@ -71,24 +71,11 @@ export type TimeInterval =
   | "weekly"
   | "fortnightly"
   | "monthly";
-export type TriggerConfiguration =
-  | {
-      time: {
-        target_time: Timestamp;
-      };
-    }
-  | {
-      fin_limit_order: {
-        order_idx?: Uint128 | null;
-        target_price: Decimal256;
-      };
-    };
-/**
- * A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0
- *
- * The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)
- */
-export type Decimal256 = string;
+export type TriggerConfiguration = {
+  time: {
+    target_time: Timestamp;
+  };
+};
 
 export interface VaultsResponse {
   vaults: Vault[];
@@ -134,6 +121,6 @@ export interface Destination {
 export interface Pair {
   address: Addr;
   base_denom: string;
-  pool_id: number;
   quote_denom: string;
+  route: number[];
 }

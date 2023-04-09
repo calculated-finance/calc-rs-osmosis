@@ -1,6 +1,6 @@
 use super::{
     fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate},
-    osmosis_helpers::{calculate_slippage, query_price},
+    price_helpers::{calculate_slippage, query_price},
     time_helpers::get_total_execution_duration,
 };
 use crate::{
@@ -720,11 +720,11 @@ mod simulate_standard_dca_execution_tests {
         },
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
+    use cosmwasm_std::Coin;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
-        to_binary, Coin, Decimal, QueryRequest,
+        Decimal,
     };
-    use osmosis_std::types::osmosis::poolmanager::v1beta1::EstimateSwapExactAmountInResponse;
     use std::str::FromStr;
 
     #[test]
@@ -755,23 +755,10 @@ mod simulate_standard_dca_execution_tests {
 
     #[test]
     fn with_finished_standard_dca_succeeds() {
-        let mut deps = calc_mock_dependencies();
+        let mut deps = mock_dependencies();
         let env = mock_env();
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
-
-        deps.querier.update_stargate(|query| match query {
-            QueryRequest::Stargate { path, .. } => match path.as_str() {
-                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
-                    to_binary(&EstimateSwapExactAmountInResponse {
-                        token_out_amount: ONE.to_string(),
-                    })
-                    .unwrap()
-                }
-                _ => panic!("unexpected query"),
-            },
-            _ => panic!("unexpected query"),
-        });
 
         let vault = Vault {
             dca_plus_config: Some(DcaPlusConfig {
@@ -801,24 +788,11 @@ mod simulate_standard_dca_execution_tests {
 
     #[test]
     fn publishes_simulated_execution_skipped_event_when_price_threshold_exceeded() {
-        let mut deps = calc_mock_dependencies();
+        let deps = calc_mock_dependencies();
         let mut storage_deps = mock_dependencies();
         let env = mock_env();
 
         instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
-
-        deps.querier.update_stargate(|query| match query {
-            QueryRequest::Stargate { path, .. } => match path.as_str() {
-                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
-                    to_binary(&EstimateSwapExactAmountInResponse {
-                        token_out_amount: ONE.to_string(),
-                    })
-                    .unwrap()
-                }
-                _ => panic!("unexpected query"),
-            },
-            _ => panic!("unexpected query"),
-        });
 
         let vault = Vault {
             swap_amount: ONE,
@@ -857,24 +831,11 @@ mod simulate_standard_dca_execution_tests {
 
     #[test]
     fn publishes_simulated_execution_skipped_event_when_slippage_exceeded() {
-        let mut deps = calc_mock_dependencies();
+        let deps = calc_mock_dependencies();
         let mut storage_deps = mock_dependencies();
         let env = mock_env();
 
         instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
-
-        deps.querier.update_stargate(|query| match query {
-            QueryRequest::Stargate { path, .. } => match path.as_str() {
-                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
-                    to_binary(&EstimateSwapExactAmountInResponse {
-                        token_out_amount: ONE.to_string(),
-                    })
-                    .unwrap()
-                }
-                _ => panic!("unexpected query"),
-            },
-            _ => panic!("unexpected query"),
-        });
 
         let vault = Vault {
             swap_amount: TEN,
@@ -909,24 +870,11 @@ mod simulate_standard_dca_execution_tests {
 
     #[test]
     fn publishes_simulated_execution_completed_event() {
-        let mut deps = calc_mock_dependencies();
+        let deps = calc_mock_dependencies();
         let mut storage_deps = mock_dependencies();
         let env = mock_env();
 
         instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
-
-        deps.querier.update_stargate(|query| match query {
-            QueryRequest::Stargate { path, .. } => match path.as_str() {
-                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
-                    to_binary(&EstimateSwapExactAmountInResponse {
-                        token_out_amount: ONE.to_string(),
-                    })
-                    .unwrap()
-                }
-                _ => panic!("unexpected query"),
-            },
-            _ => panic!("unexpected query"),
-        });
 
         let vault = Vault {
             swap_amount: ONE,
@@ -971,24 +919,11 @@ mod simulate_standard_dca_execution_tests {
 
     #[test]
     fn updates_the_standard_dca_statistics() {
-        let mut deps = calc_mock_dependencies();
+        let deps = calc_mock_dependencies();
         let mut storage_deps = mock_dependencies();
         let env = mock_env();
 
         instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
-
-        deps.querier.update_stargate(|query| match query {
-            QueryRequest::Stargate { path, .. } => match path.as_str() {
-                "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
-                    to_binary(&EstimateSwapExactAmountInResponse {
-                        token_out_amount: ONE.to_string(),
-                    })
-                    .unwrap()
-                }
-                _ => panic!("unexpected query"),
-            },
-            _ => panic!("unexpected query"),
-        });
 
         let belief_price = Decimal::one();
 

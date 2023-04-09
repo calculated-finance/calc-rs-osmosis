@@ -3,10 +3,10 @@ use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
 use crate::handlers::create_pair::create_pair;
-use crate::handlers::create_vault::create_vault;
+use crate::handlers::create_vault::create_vault_handler;
 use crate::handlers::delete_pair::delete_pair;
 use crate::handlers::deposit::deposit;
-use crate::handlers::disburse_escrow::disburse_escrow_handler;
+use crate::handlers::disburse_escrow::disburse_escrow;
 use crate::handlers::disburse_funds::disburse_funds;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_custom_swap_fees::get_custom_swap_fees;
@@ -114,11 +114,11 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreatePair {
-            pool_id,
             address,
             base_denom,
             quote_denom,
-        } => create_pair(deps, env, info, pool_id, address, base_denom, quote_denom),
+            route,
+        } => create_pair(deps, info, address, base_denom, quote_denom, route),
         ExecuteMsg::DeletePair { address } => delete_pair(deps, info, address),
         ExecuteMsg::CreateVault {
             owner,
@@ -131,9 +131,8 @@ pub fn execute(
             swap_amount,
             time_interval,
             target_start_time_utc_seconds,
-            target_receive_amount,
             use_dca_plus,
-        } => create_vault(
+        } => create_vault_handler(
             deps,
             env,
             &info,
@@ -147,7 +146,6 @@ pub fn execute(
             swap_amount,
             time_interval,
             target_start_time_utc_seconds,
-            target_receive_amount,
             use_dca_plus,
         ),
         ExecuteMsg::CancelVault { vault_id } => cancel_vault(deps, env, info, vault_id),
@@ -181,9 +179,7 @@ pub fn execute(
             position_type,
             adjustments,
         } => update_swap_adjustments_handler(deps, env, position_type, adjustments),
-        ExecuteMsg::DisburseEscrow { vault_id } => {
-            disburse_escrow_handler(deps, &env, info, vault_id)
-        }
+        ExecuteMsg::DisburseEscrow { vault_id } => disburse_escrow(deps, &env, info, vault_id),
     }
 }
 

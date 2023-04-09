@@ -68,10 +68,6 @@
       "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
       "type": "string"
     },
-    "Decimal256": {
-      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^256 - 1) / 10^18)",
-      "type": "string"
-    },
     "Destination": {
       "type": "object",
       "required": [
@@ -97,8 +93,8 @@
       "required": [
         "address",
         "base_denom",
-        "pool_id",
-        "quote_denom"
+        "quote_denom",
+        "route"
       ],
       "properties": {
         "address": {
@@ -107,13 +103,16 @@
         "base_denom": {
           "type": "string"
         },
-        "pool_id": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        },
         "quote_denom": {
           "type": "string"
+        },
+        "route": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          }
         }
       },
       "additionalProperties": false
@@ -163,37 +162,6 @@
               "properties": {
                 "target_time": {
                   "$ref": "#/definitions/Timestamp"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "fin_limit_order"
-          ],
-          "properties": {
-            "fin_limit_order": {
-              "type": "object",
-              "required": [
-                "target_price"
-              ],
-              "properties": {
-                "order_idx": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/definitions/Uint128"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "target_price": {
-                  "$ref": "#/definitions/Decimal256"
                 }
               },
               "additionalProperties": false

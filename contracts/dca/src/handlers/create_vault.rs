@@ -22,14 +22,14 @@ use crate::types::position_type::PositionType;
 use crate::types::post_execution_action::PostExecutionAction;
 use crate::types::time_interval::TimeInterval;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
-use crate::types::vault::{Vault, VaultStatus};
+use crate::types::vault::VaultStatus;
 use crate::types::vault_builder::VaultBuilder;
 use cosmwasm_std::{coin, to_binary, Addr, CosmosMsg, Decimal, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 
-pub fn create_vault(
-    mut deps: DepsMut,
+pub fn create_vault_handler(
+    deps: DepsMut,
     env: Env,
     info: &MessageInfo,
     owner: Addr,
@@ -42,7 +42,6 @@ pub fn create_vault(
     swap_amount: Uint128,
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
-    target_receive_amount: Option<Uint128>,
     use_dca_plus: Option<bool>,
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
@@ -155,7 +154,7 @@ pub fn create_vault(
         ),
     )?;
 
-    let response = Response::new()
+    let mut response = Response::new()
         .add_attribute("method", "create_vault")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id);
@@ -164,60 +163,29 @@ pub fn create_vault(
         return Ok(response);
     }
 
-    match (target_start_time_utc_seconds, target_receive_amount) {
-        (None, None) | (Some(_), None) => {
-            let mut response = create_time_trigger(
-                &mut deps,
-                &env,
-                &vault,
-                target_start_time_utc_seconds,
-                &response,
-            )
-            .expect("time trigger created");
-
-            if target_start_time_utc_seconds.is_none() {
-                response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: env.contract.address.to_string(),
-                    msg: to_binary(&ExecuteMsg::ExecuteTrigger {
-                        trigger_id: vault.id,
-                    })
-                    .unwrap(),
-                    funds: vec![],
-                }));
-            }
-
-            Ok(response)
-        }
-        (None, Some(_)) => {
-            unimplemented!()
-        }
-        (Some(_), Some(_)) => Err(ContractError::CustomError {
-            val: String::from(
-                "cannot provide both a target_start_time_utc_seconds and a target_price",
-            ),
-        }),
-    }
-}
-
-fn create_time_trigger(
-    deps: &mut DepsMut,
-    env: &Env,
-    vault: &Vault,
-    target_start_time_utc_seconds: Option<Uint64>,
-    response: &Response,
-) -> Result<Response, ContractError> {
-    let target_time: Timestamp = match target_start_time_utc_seconds {
-        Some(time) => Timestamp::from_seconds(time.u64()),
-        None => env.block.time,
-    };
-
     save_trigger(
         deps.storage,
         Trigger {
             vault_id: vault.id,
-            configuration: TriggerConfiguration::Time { target_time },
+            configuration: TriggerConfiguration::Time {
+                target_time: match target_start_time_utc_seconds {
+                    Some(time) => Timestamp::from_seconds(time.u64()),
+                    None => env.block.time,
+                },
+            },
         },
     )?;
 
-    Ok(response.to_owned())
+    if target_start_time_utc_seconds.is_none() {
+        response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::ExecuteTrigger {
+                trigger_id: vault.id,
+            })
+            .unwrap(),
+            funds: vec![],
+        }));
+    }
+
+    Ok(response)
 }

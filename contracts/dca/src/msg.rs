@@ -35,10 +35,10 @@ pub struct MigrateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     CreatePair {
-        pool_id: u64,
         address: Addr,
         base_denom: String,
         quote_denom: String,
+        route: Vec<u64>,
     },
     DeletePair {
         address: Addr,
@@ -54,7 +54,6 @@ pub enum ExecuteMsg {
         swap_amount: Uint128,
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
-        target_receive_amount: Option<Uint128>,
         use_dca_plus: Option<bool>,
     },
     Deposit {

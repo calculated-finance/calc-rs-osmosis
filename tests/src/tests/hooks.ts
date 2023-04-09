@@ -8,6 +8,7 @@ import { cosmos, FEES, osmosis } from 'osmojs';
 import { getPoolsPricesPairs } from '@cosmology/core';
 import { find, reverse } from 'ramda';
 import { Pair } from '../types/dca/response/get_pairs';
+import Long from 'long';
 
 const calcSwapFee = 0.0005;
 const automationFee = 0.0075;
@@ -64,13 +65,13 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
     FEES.osmosis.swapExactAmountIn('medium'),
   );
 
-  const contractpairs = (
+  const contractPairs = (
     await cosmWasmClient.queryContractSmart(dcaContractAddress, {
       get_pairs: {},
     })
   ).pairs;
 
-  const pair = find((pair: Pair) => pair.base_denom == 'stake' && pair.quote_denom == 'uion', reverse(contractpairs));
+  const pair = find((pair: Pair) => pair.base_denom == 'stake' && pair.quote_denom == 'uion', reverse(contractPairs));
 
   return {
     beforeAll(this: Mocha.Context) {
@@ -125,10 +126,10 @@ const instantiateDCAContract = async (
   for (const pool of pools) {
     await execute(cosmWasmClient, adminContractAddress, dcaContractAddress, {
       create_pair: {
-        pool_id: pool.id.low,
         address: pool.address,
         base_denom: pool.poolAssets[0].token.denom,
         quote_denom: pool.poolAssets[1].token.denom,
+        route: [pool.id.low],
       },
     });
   }

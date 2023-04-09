@@ -1,6 +1,7 @@
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
 use crate::error::ContractError;
-use crate::helpers::osmosis_helpers::{create_osmosis_swap_message, query_belief_price};
+use crate::helpers::price_helpers::query_belief_price;
+use crate::helpers::swap_helpers::create_osmosis_swap_message;
 use crate::helpers::time_helpers::get_next_target_time;
 use crate::helpers::validation_helpers::{
     assert_contract_is_not_paused, assert_target_time_is_in_past,
@@ -67,7 +68,7 @@ pub fn execute_trigger_handler(
 
     update_vault(deps.storage, &vault)?;
 
-    let belief_price = query_belief_price(&deps.querier, &vault.pair, &vault.get_swap_denom())?;
+    let belief_price = query_belief_price(&deps.querier, &vault.pair, vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -177,9 +178,9 @@ pub fn execute_trigger_handler(
     )?;
 
     Ok(response.add_submessage(create_osmosis_swap_message(
-        deps.querier,
+        &deps.querier,
         &env,
-        vault.pair.clone(),
+        &vault.pair.clone(),
         swap_amount,
         vault.slippage_tolerance,
         Some(AFTER_FIN_SWAP_REPLY_ID),

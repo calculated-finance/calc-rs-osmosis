@@ -200,12 +200,7 @@ mod tests {
             label: None,
             destinations: vec![],
             status: VaultStatus::Active,
-            pair: Pair {
-                pool_id: 0,
-                address: Addr::unchecked("pair"),
-                base_denom: "receive_denom".to_string(),
-                quote_denom: "swap_denom".to_string(),
-            },
+            pair: Pair::default(),
             swap_amount: swapped_amount / Uint128::new(2),
             slippage_tolerance: None,
             minimum_receive_amount: None,

@@ -18,11 +18,11 @@ fn disburse_escrow_task_store<'a>(
     let indexes = DisburseEscrowTaskIndexes {
         due_date: MultiIndex::new(
             |_, (due_date, _)| due_date.clone(),
-            "disburse_escrow_task_v3",
-            "disburse_escrow_task_v3__due_date",
+            "disburse_escrow_task_v4",
+            "disburse_escrow_task_v4__due_date",
         ),
     };
-    IndexedMap::new("disburse_escrow_task_v3", indexes)
+    IndexedMap::new("disburse_escrow_task_v4", indexes)
 }
 
 pub fn save_disburse_escrow_task(
