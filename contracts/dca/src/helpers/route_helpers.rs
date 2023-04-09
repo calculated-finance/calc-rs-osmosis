@@ -86,6 +86,40 @@ pub fn calculate_route(
 }
 
 #[cfg(test)]
+mod get_token_out_denom_tests {
+    use super::get_token_out_denom;
+    use crate::{
+        tests::mocks::{calc_mock_dependencies, DENOM_UATOM, DENOM_UOSMO},
+        types::pair::Pair,
+    };
+
+    #[test]
+    fn fails_when_swap_denom_not_in_pair_denoms() {
+        let deps = calc_mock_dependencies();
+
+        let pair = Pair {
+            route: vec![0],
+            quote_denom: DENOM_UATOM.to_string(),
+            base_denom: DENOM_UOSMO.to_string(),
+            ..Pair::default()
+        };
+
+        let swap_denom = "not_in_pair".to_string();
+
+        let err = get_token_out_denom(&deps.as_ref().querier, swap_denom.clone(), pair.route[0])
+            .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            format!(
+                "Generic error: denom {} not found in pool id {}",
+                swap_denom, pair.route[0]
+            )
+        );
+    }
+}
+
+#[cfg(test)]
 mod calculate_route_tests {
     use super::calculate_route;
     use crate::{
