@@ -71,10 +71,8 @@ pub fn disburse_escrow(
         )?)
         .add_submessages(get_fee_messages(
             deps.as_ref(),
-            env,
             vec![performance_fee.amount],
             vault.get_receive_denom(),
-            true,
         )?)
         .add_attribute("performance_fee", format!("{:?}", performance_fee))
         .add_attribute("escrow_disbursed", format!("{:?}", amount_to_disburse)))

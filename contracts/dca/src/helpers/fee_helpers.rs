@@ -1,47 +1,21 @@
 use std::cmp::min;
 
 use crate::{
-    state::config::{get_config, get_custom_fee, FeeCollector},
+    state::config::{get_config, get_custom_fee},
     types::{post_execution_action::PostExecutionAction, vault::Vault},
 };
-use base::helpers::{community_pool::create_fund_community_pool_msg, math_helpers::checked_mul};
-use cosmwasm_std::{
-    BankMsg, Coin, CosmosMsg, Decimal, Deps, Env, StdResult, Storage, SubMsg, Uint128,
-};
+use base::helpers::math_helpers::checked_mul;
+use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Decimal, Deps, StdResult, Storage, SubMsg, Uint128};
 
 pub fn get_fee_messages(
     deps: Deps,
-    env: &Env,
     fee_amounts: Vec<Uint128>,
     denom: String,
-    skip_community_pool: bool,
 ) -> StdResult<Vec<SubMsg>> {
     let config = get_config(deps.storage)?;
 
-    let fee_collectors = config
+    Ok(config
         .fee_collectors
-        .iter()
-        .flat_map(|fee_collector| {
-            if skip_community_pool && fee_collector.address == "community_pool" {
-                return None;
-            }
-            return Some(FeeCollector {
-                address: fee_collector.address.clone(),
-                allocation: if skip_community_pool {
-                    let community_pool_allocation = config
-                        .fee_collectors
-                        .iter()
-                        .find(|fee_collector| fee_collector.address == "community_pool")
-                        .map_or(Decimal::zero(), |community_pool| community_pool.allocation);
-                    fee_collector.allocation / (Decimal::one() - community_pool_allocation)
-                } else {
-                    fee_collector.allocation
-                },
-            });
-        })
-        .collect::<Vec<FeeCollector>>();
-
-    Ok(fee_collectors
         .iter()
         .flat_map(|fee_collector| {
             fee_amounts.iter().flat_map(|fee| {
@@ -54,22 +28,10 @@ pub fn get_fee_messages(
                 );
 
                 if fee_allocation.amount.gt(&Uint128::zero()) {
-                    match fee_collector.address.as_str() {
-                        "community_pool" => {
-                            if skip_community_pool {
-                                None
-                            } else {
-                                Some(create_fund_community_pool_msg(
-                                    env.contract.address.to_string(),
-                                    vec![fee_allocation.clone()],
-                                ))
-                            }
-                        }
-                        _ => Some(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-                            to_address: fee_collector.address.to_string(),
-                            amount: vec![fee_allocation],
-                        }))),
-                    }
+                    Some(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
+                        to_address: fee_collector.address.to_string(),
+                        amount: vec![fee_allocation],
+                    })))
                 } else {
                     None
                 }
