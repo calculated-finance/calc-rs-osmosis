@@ -4,7 +4,6 @@ use super::{
     time_helpers::get_total_execution_duration,
 };
 use crate::{
-    constants::OSMOSIS_SWAP_FEE_RATE,
     state::{events::create_event, swap_adjustments::get_swap_adjustment, vaults::update_vault},
     types::{
         dca_plus_config::DcaPlusConfig,
@@ -17,7 +16,7 @@ use base::helpers::coin_helpers::add_to_coin;
 use cosmwasm_std::{
     Coin, Decimal, Deps, Env, QuerierWrapper, StdResult, Storage, Timestamp, Uint128,
 };
-use std::{cmp::min, str::FromStr};
+use std::cmp::min;
 
 pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin> {
     let adjusted_amount =
@@ -176,9 +175,8 @@ pub fn simulate_standard_dca_execution(
                 }
             }
 
-            let fee_rate = get_swap_fee_rate(storage, &vault)?
-                + get_delegation_fee_rate(storage, &vault)?
-                + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE)?; // fin taker fee - TODO: remove once we can get this from the pair contracts
+            let fee_rate =
+                get_swap_fee_rate(storage, &vault)? + get_delegation_fee_rate(storage, &vault)?;
 
             let received_amount_before_fee = swap_amount * (Decimal::one() / actual_price);
             let fee_amount = received_amount_before_fee * fee_rate;
@@ -711,7 +709,7 @@ mod simulate_standard_dca_execution_tests {
     use super::simulate_standard_dca_execution;
     use crate::types::event::{Event, EventData, ExecutionSkippedReason};
     use crate::{
-        constants::{ONE, OSMOSIS_SWAP_FEE_RATE, TEN},
+        constants::{ONE, TEN},
         handlers::get_events_by_resource_id::get_events_by_resource_id,
         helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate},
         tests::{
@@ -725,7 +723,6 @@ mod simulate_standard_dca_execution_tests {
         testing::{mock_dependencies, mock_env, mock_info},
         Decimal,
     };
-    use std::str::FromStr;
 
     #[test]
     fn for_non_dca_plus_vault_succeeds() {
@@ -898,8 +895,7 @@ mod simulate_standard_dca_execution_tests {
             .events;
 
         let fee_rate = get_swap_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
-            + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
-            + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+            + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap();
 
         let received_amount = vault.swap_amount * Decimal::one();
         let fee_amount = received_amount * fee_rate;
@@ -941,8 +937,7 @@ mod simulate_standard_dca_execution_tests {
         .unwrap();
 
         let fee_rate = get_swap_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
-            + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
-            + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+            + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap();
 
         let received_amount_before_fee = vault.swap_amount * Decimal::one();
         let fee_amount = received_amount_before_fee * fee_rate;

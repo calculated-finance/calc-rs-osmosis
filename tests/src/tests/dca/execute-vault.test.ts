@@ -649,7 +649,7 @@ describe('when executing a vault', () => {
 
     it('calculates the standard dca received amount', async function (this: Context) {
       expect(Number(vault.dca_plus_config.standard_dca_received_amount.amount)).to.be.approximately(
-        Math.round(Number(vault.swap_amount) / expectedPrice) * (1 - this.osmosisSwapFee - this.calcSwapFee),
+        Math.round(Number(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee),
         3,
       );
     });

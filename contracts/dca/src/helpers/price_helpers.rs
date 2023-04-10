@@ -1,4 +1,4 @@
-use super::route_helpers::{calculate_route, get_token_out_denom};
+use super::route_helpers::{calculate_route, get_pool, get_token_out_denom};
 use crate::types::{pair::Pair, position_type::PositionType};
 use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, StdResult, Uint128};
 use osmosis_std::types::osmosis::{
@@ -20,7 +20,16 @@ pub fn query_belief_price(
     for pool_id in pool_ids.into_iter() {
         let target_denom = get_token_out_denom(querier, swap_denom.clone(), pool_id)?;
 
-        price = QuerySpotPriceRequest {
+        let pool = get_pool(querier, pool_id)?;
+
+        let swap_fee = pool
+            .pool_params
+            .unwrap()
+            .swap_fee
+            .parse::<Decimal>()
+            .unwrap();
+
+        let pool_price = QuerySpotPriceRequest {
             pool_id,
             base_asset_denom: target_denom.clone(),
             quote_asset_denom: swap_denom,
@@ -28,7 +37,9 @@ pub fn query_belief_price(
         .query(&querier)?
         .spot_price
         .parse::<Decimal>()?
-            * price;
+            * (Decimal::one() + swap_fee);
+
+        price = pool_price * price;
 
         swap_denom = target_denom;
     }
@@ -77,10 +88,15 @@ pub fn calculate_slippage(actual_price: Decimal, belief_price: Decimal) -> Decim
 
 #[cfg(test)]
 mod query_belief_price_tests {
+    use std::str::FromStr;
+
     use super::*;
-    use crate::tests::{
-        helpers::instantiate_contract,
-        mocks::{calc_mock_dependencies, ADMIN},
+    use crate::{
+        constants::OSMOSIS_SWAP_FEE_RATE,
+        tests::{
+            helpers::instantiate_contract,
+            mocks::{calc_mock_dependencies, ADMIN},
+        },
     };
     use cosmwasm_std::{
         testing::{mock_env, mock_info},
@@ -119,7 +135,11 @@ mod query_belief_price_tests {
         let price =
             query_belief_price(&deps.as_ref().querier, &pair.clone(), pair.quote_denom).unwrap();
 
-        assert_eq!(price, Decimal::percent(80));
+        assert_eq!(
+            price,
+            Decimal::percent(80)
+                * (Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap())
+        );
     }
 
     #[test]
@@ -156,6 +176,12 @@ mod query_belief_price_tests {
         let price =
             query_belief_price(&deps.as_ref().querier, &pair.clone(), pair.quote_denom).unwrap();
 
-        assert_eq!(price, Decimal::percent(20) * Decimal::percent(120));
+        assert_eq!(
+            price,
+            Decimal::percent(20)
+                * (Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap())
+                * Decimal::percent(120)
+                * (Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap())
+        );
     }
 }

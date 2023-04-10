@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use super::helpers::instantiate_contract;
 use crate::constants::{ONE, ONE_MICRON, OSMOSIS_SWAP_FEE_RATE, TEN, TWO_MICRONS};
 use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
@@ -24,7 +26,6 @@ use cosmwasm_std::{
 use osmosis_std::types::osmosis::poolmanager::v1beta1::{
     EstimateSwapExactAmountInResponse, MsgSwapExactAmountIn, SwapAmountInRoute,
 };
-use std::str::FromStr;
 
 #[test]
 fn when_contract_is_paused_should_fail() {
@@ -221,7 +222,7 @@ fn publishes_execution_triggered_event() {
         data: EventData::DcaVaultExecutionTriggered {
             base_denom: DENOM_UOSMO.to_string(),
             quote_denom: DENOM_STAKE.to_string(),
-            asset_price: Decimal::one()
+            asset_price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
         }
     }));
 }
@@ -248,8 +249,7 @@ fn with_dca_plus_should_simulate_execution() {
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
     let fee_rate = get_swap_fee_rate(deps.as_mut().storage, &vault).unwrap()
-        + get_delegation_fee_rate(deps.as_mut().storage, &vault).unwrap()
-        + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+        + get_delegation_fee_rate(deps.as_mut().storage, &vault).unwrap();
 
     let received_amount_before_fee = vault.swap_amount * Decimal::one();
     let fee_amount = received_amount_before_fee * fee_rate;
@@ -437,7 +437,7 @@ fn with_dca_plus_and_exceeded_price_threshold_should_publish_execution_skipped_e
         block_height: env.block.height,
         data: EventData::SimulatedDcaVaultExecutionSkipped {
             reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                price: Decimal::one()
+                price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
             },
         }
     }));
@@ -510,8 +510,7 @@ fn for_inactive_vault_with_active_dca_plus_should_simulate_execution() {
     let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
     let fee_rate = get_swap_fee_rate(deps.as_ref().storage, &vault).unwrap()
-        + get_delegation_fee_rate(deps.as_ref().storage, &vault).unwrap()
-        + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+        + get_delegation_fee_rate(deps.as_ref().storage, &vault).unwrap();
 
     let received_amount_before_fee = vault.swap_amount;
     let fee_amount = received_amount_before_fee * fee_rate;
@@ -863,7 +862,7 @@ fn should_create_swap_message_with_target_receive_amount_when_slippage_tolerance
         },
     );
 
-    let belief_price = Decimal::one();
+    let belief_price = Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
 
     let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
@@ -871,9 +870,7 @@ fn should_create_swap_message_with_target_receive_amount_when_slippage_tolerance
         .unwrap()
         .amount
         * (Decimal::one() / belief_price)
-        * (Decimal::one()
-            - Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
-            - vault.slippage_tolerance.unwrap());
+        * (Decimal::one() - vault.slippage_tolerance.unwrap());
 
     assert!(response.messages.contains(&SubMsg {
         id: AFTER_FIN_SWAP_REPLY_ID,
@@ -927,7 +924,7 @@ fn should_skip_execution_if_price_threshold_exceeded() {
         block_height: env.block.height,
         data: EventData::DcaVaultExecutionSkipped {
             reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                price: Decimal::one()
+                price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
             }
         }
     }));
@@ -983,7 +980,7 @@ fn should_trigger_execution_if_price_threshold_not_exceeded() {
         env.clone(),
         Vault {
             swap_amount: ONE,
-            minimum_receive_amount: Some(ONE),
+            minimum_receive_amount: Some(ONE / Uint128::new(2)),
             ..Vault::default()
         },
     );

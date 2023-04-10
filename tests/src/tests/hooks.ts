@@ -8,11 +8,9 @@ import { cosmos, FEES, osmosis } from 'osmojs';
 import { getPoolsPricesPairs } from '@cosmology/core';
 import { find, reverse } from 'ramda';
 import { Pair } from '../types/dca/response/get_pairs';
-import Long from 'long';
 
 const calcSwapFee = 0.0005;
 const automationFee = 0.0075;
-const osmosisSwapFee = 0.001;
 const swapAdjustment = 1.3;
 
 export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
@@ -87,7 +85,6 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
         feeCollectorAddress,
         userWalletAddress,
         stakingRouterContractAddress,
-        osmosisSwapFee,
         pair,
         validatorAddress,
         swapAdjustment,

@@ -1,8 +1,7 @@
 use super::{price_helpers::query_belief_price, route_helpers::calculate_route};
-use crate::{constants::OSMOSIS_SWAP_FEE_RATE, types::pair::Pair};
+use crate::types::pair::Pair;
 use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, ReplyOn, StdResult, SubMsg, Uint128};
 use osmosis_std::types::osmosis::poolmanager::v1beta1::MsgSwapExactAmountIn;
-use std::str::FromStr;
 
 pub fn create_osmosis_swap_message(
     querier: &QuerierWrapper,
@@ -21,9 +20,7 @@ pub fn create_osmosis_swap_message(
 
             swap_amount.amount
                 * (Decimal::one() / belief_price)
-                * (Decimal::one()
-                    - Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
-                    - slippage_tolerance)
+                * (Decimal::one() - slippage_tolerance)
         }
         _ => Uint128::one(),
     };
