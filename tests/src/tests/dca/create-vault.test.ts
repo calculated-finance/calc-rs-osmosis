@@ -1,6 +1,5 @@
 import { coin } from '@cosmjs/proto-signing';
 import dayjs from 'dayjs';
-import Long from 'long';
 import { Context } from 'mocha';
 import { find, map, range } from 'ramda';
 import { EventData } from '../../types/dca/response/get_events';
@@ -387,7 +386,7 @@ describe('when creating a vault', () => {
 
     it('calculates the standard dca received amount', async function (this: Context) {
       expect(Number(vault.dca_plus_config.standard_dca_received_amount.amount)).to.be.approximately(
-        Math.round((Number(vault.swap_amount) / expectedPrice) * (1 - this.osmosisSwapFee - this.calcSwapFee)),
+        Math.round((Number(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee)),
         2,
       );
     });

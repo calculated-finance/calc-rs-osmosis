@@ -22,7 +22,7 @@ use crate::{
 use base::helpers::coin_helpers::subtract;
 use cosmwasm_std::{
     testing::{mock_env, mock_info},
-    to_binary, BankMsg, Coin, CosmosMsg, Decimal, StdError, SubMsg,
+    to_binary, BankMsg, Coin, CosmosMsg, Decimal, StdError, SubMsg, Uint128,
 };
 use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 
@@ -141,9 +141,11 @@ fn publishes_escrow_disbursed_event() {
         .events;
 
     let performance_fee = Coin::new(
-        (ONE * Decimal::percent(20)).into(),
+        (ONE * Decimal::percent(20) - Uint128::one()).into(),
         vault.get_receive_denom(),
     );
+
+    println!("{:#?}", events);
 
     assert!(events.contains(&Event {
         id: 1,

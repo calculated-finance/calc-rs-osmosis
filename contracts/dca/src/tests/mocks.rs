@@ -6,7 +6,7 @@ use cosmwasm_std::{
 use osmosis_std::shim::Any;
 use osmosis_std::types::cosmos::base::v1beta1::Coin;
 use osmosis_std::types::osmosis::gamm::v1beta1::{
-    Pool, PoolAsset, QueryPoolRequest, QueryPoolResponse,
+    Pool, PoolAsset, PoolParams, QueryPoolRequest, QueryPoolResponse,
 };
 use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 use osmosis_std::types::osmosis::poolmanager::v1beta1::EstimateSwapExactAmountInResponse;
@@ -14,7 +14,7 @@ use prost::Message;
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
 
-use crate::constants::{ONE, ONE_DECIMAL, TEN};
+use crate::constants::{ONE, ONE_DECIMAL, OSMOSIS_SWAP_FEE_RATE, TEN};
 
 pub const USER: &str = "user";
 pub const ADMIN: &str = "admin";
@@ -63,6 +63,11 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                     weight: TEN.to_string(),
                                 },
                             ],
+                            pool_params: Some(PoolParams {
+                                swap_fee: "0.001".to_string(),
+                                exit_fee: ".01".to_string(),
+                                smooth_weight_change_params: None,
+                            }),
                             ..Pool::default()
                         },
                         Pool {
@@ -83,6 +88,10 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                     weight: TEN.to_string(),
                                 },
                             ],
+                            pool_params: Some(PoolParams {
+                                swap_fee: OSMOSIS_SWAP_FEE_RATE.to_string(),
+                                ..PoolParams::default()
+                            }),
                             ..Pool::default()
                         },
                         Pool {
@@ -103,6 +112,10 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                     weight: TEN.to_string(),
                                 },
                             ],
+                            pool_params: Some(PoolParams {
+                                swap_fee: OSMOSIS_SWAP_FEE_RATE.to_string(),
+                                ..PoolParams::default()
+                            }),
                             ..Pool::default()
                         },
                         Pool {
@@ -123,6 +136,10 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                     weight: TEN.to_string(),
                                 },
                             ],
+                            pool_params: Some(PoolParams {
+                                swap_fee: OSMOSIS_SWAP_FEE_RATE.to_string(),
+                                ..PoolParams::default()
+                            }),
                             ..Pool::default()
                         },
                         Pool {
@@ -143,6 +160,10 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                     weight: TEN.to_string(),
                                 },
                             ],
+                            pool_params: Some(PoolParams {
+                                swap_fee: OSMOSIS_SWAP_FEE_RATE.to_string(),
+                                ..PoolParams::default()
+                            }),
                             ..Pool::default()
                         },
                     ];

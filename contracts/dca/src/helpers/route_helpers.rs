@@ -11,15 +11,7 @@ pub fn get_token_out_denom(
     token_in_denom: String,
     pool_id: u64,
 ) -> StdResult<String> {
-    let pool: Pool = GammQuerier::new(querier)
-        .pool(pool_id)?
-        .pool
-        .expect(&format!("pool id {}", pool_id))
-        .try_into()
-        .map_err(|e: DecodeError| StdError::ParseErr {
-            target_type: Pool::TYPE_URL.to_string(),
-            msg: e.to_string(),
-        })?;
+    let pool = get_pool(querier, pool_id)?;
 
     if pool
         .pool_assets
@@ -40,6 +32,18 @@ pub fn get_token_out_denom(
         .ok_or(StdError::generic_err("no token out denom found"));
 
     token_out_denom
+}
+
+pub fn get_pool(querier: &QuerierWrapper, pool_id: u64) -> Result<Pool, StdError> {
+    Ok(GammQuerier::new(querier)
+        .pool(pool_id)?
+        .pool
+        .expect(&format!("pool id {}", pool_id))
+        .try_into()
+        .map_err(|e: DecodeError| StdError::ParseErr {
+            target_type: Pool::TYPE_URL.to_string(),
+            msg: e.to_string(),
+        })?)
 }
 
 pub fn calculate_route(
