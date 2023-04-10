@@ -63,10 +63,8 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
 
             sub_msgs.append(&mut get_fee_messages(
                 deps.as_ref(),
-                env,
                 vec![swap_fee, automation_fee],
                 coin_received.denom.clone(),
-                false,
             )?);
 
             vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, &vault)?.amount;

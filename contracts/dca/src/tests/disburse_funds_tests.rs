@@ -26,10 +26,7 @@ use crate::{
         vault::{Vault, VaultStatus},
     },
 };
-use base::helpers::{
-    coin_helpers::add_to_coin, community_pool::create_fund_community_pool_msg,
-    math_helpers::checked_mul,
-};
+use base::helpers::{coin_helpers::add_to_coin, math_helpers::checked_mul};
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
     BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
@@ -170,7 +167,6 @@ fn with_succcesful_swap_returns_fee_to_fee_collector() {
 fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
     let mut deps = mock_dependencies();
     let env = mock_env();
-    let fee_allocation = Decimal::from_str("0.5").unwrap();
 
     instantiate_contract_with_multiple_fee_collectors(
         deps.as_mut(),
@@ -178,12 +174,12 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
         mock_info(ADMIN, &vec![]),
         vec![
             FeeCollector {
-                address: ADMIN.to_string(),
-                allocation: fee_allocation,
+                address: "fee_collector_1".to_string(),
+                allocation: Decimal::percent(20),
             },
             FeeCollector {
-                address: "community_pool".to_string(),
-                allocation: fee_allocation,
+                address: "fee_collector_2".to_string(),
+                allocation: Decimal::percent(80),
             },
         ],
     );
@@ -235,37 +231,27 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
             acc.checked_add(allocation_automation_fee).unwrap()
         });
 
-    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collectors[0].address.to_string(),
-        amount: vec![Coin::new(
-            checked_mul(swap_fee, fee_allocation).unwrap().into(),
-            vault.get_receive_denom()
-        )]
-    })));
+    for fee_collector in config.fee_collectors.iter() {
+        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+            to_address: fee_collector.address.to_string(),
+            amount: vec![Coin::new(
+                checked_mul(swap_fee, fee_collector.allocation)
+                    .unwrap()
+                    .into(),
+                vault.get_receive_denom()
+            )]
+        })));
 
-    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-        to_address: config.fee_collectors[0].address.to_string(),
-        amount: vec![Coin::new(
-            checked_mul(automation_fee, fee_allocation).unwrap().into(),
-            vault.get_receive_denom()
-        )]
-    })));
-
-    assert!(response.messages.contains(&create_fund_community_pool_msg(
-        env.contract.address.to_string(),
-        vec![Coin::new(
-            checked_mul(swap_fee, fee_allocation).unwrap().into(),
-            vault.get_receive_denom()
-        )]
-    )));
-
-    assert!(response.messages.contains(&create_fund_community_pool_msg(
-        env.contract.address.to_string(),
-        vec![Coin::new(
-            checked_mul(automation_fee, fee_allocation).unwrap().into(),
-            vault.get_receive_denom()
-        )]
-    )));
+        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+            to_address: fee_collector.address.to_string(),
+            amount: vec![Coin::new(
+                checked_mul(automation_fee, fee_collector.allocation)
+                    .unwrap()
+                    .into(),
+                vault.get_receive_denom()
+            )]
+        })));
+    }
 }
 
 #[test]
