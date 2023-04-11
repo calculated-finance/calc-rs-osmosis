@@ -1,5 +1,3 @@
-import { StdFee } from '@cosmjs/stargate';
-
 export type Config = {
   chainName: string;
   bech32AddressPrefix: string;
