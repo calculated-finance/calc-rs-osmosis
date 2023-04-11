@@ -8,14 +8,14 @@ use crate::{
         authz_helpers::create_authz_exec_message, validation_helpers::assert_exactly_one_asset,
     },
     state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
+    types::post_execution_action::LockableDuration,
 };
 use cosmwasm_std::{
     Addr, BankMsg, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply, Response, SubMsg,
     SubMsgResult,
 };
-use osmosis_std::{
-    shim::Duration,
-    types::osmosis::{gamm::v1beta1::MsgJoinSwapExternAmountIn, lockup::MsgLockTokens},
+use osmosis_std::types::osmosis::{
+    gamm::v1beta1::MsgJoinSwapExternAmountIn, lockup::MsgLockTokens,
 };
 
 pub fn provide_liquidity_handler(
@@ -24,7 +24,7 @@ pub fn provide_liquidity_handler(
     info: MessageInfo,
     provider_address: Addr,
     pool_id: u64,
-    // duration: Duration,
+    duration: LockableDuration,
 ) -> Result<Response, ContractError> {
     assert_exactly_one_asset(info.funds.clone())?;
 
@@ -33,26 +33,20 @@ pub fn provide_liquidity_handler(
         &ProvideLiquidityCache {
             provider_address,
             pool_id,
-            duration: Duration {
-                seconds: 60 * 60 * 24,
-                nanos: 0,
-            },
+            duration,
             lp_token_balance: None,
         },
     )?;
 
-    Ok(Response::new().add_submessage(
-        SubMsg::reply_on_success(
-            MsgJoinSwapExternAmountIn {
-                sender: env.contract.address.to_string(),
-                pool_id,
-                token_in: Some(info.funds[0].clone().into()),
-                share_out_min_amount: "1".to_string(),
-            },
-            AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
-        )
-        .into(),
-    ))
+    Ok(Response::new().add_submessage(SubMsg::reply_on_success(
+        MsgJoinSwapExternAmountIn {
+            sender: env.contract.address.to_string(),
+            pool_id,
+            token_in: Some(info.funds[0].clone().into()),
+            share_out_min_amount: "1".to_string(),
+        },
+        AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
+    )))
 }
 
 pub fn send_lp_tokens(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
@@ -89,7 +83,7 @@ pub fn bond_lp_tokens(deps: Deps, env: Env) -> Result<Response, ContractError> {
             "/osmosis.lockup.MsgLockTokens".to_string(),
             MsgLockTokens {
                 owner: cache.provider_address.to_string(),
-                duration: Some(cache.duration),
+                duration: Some(cache.duration.into()),
                 coins: vec![cache.lp_token_balance.unwrap().into()],
             },
         ),
@@ -102,8 +96,8 @@ pub fn log_bond_lp_tokens_result(deps: DepsMut, reply: Reply) -> Result<Response
 
     let result = match reply.result {
         SubMsgResult::Ok(_) => "success".to_string(),
-        SubMsgResult::Err(err) => err,
+        SubMsgResult::Err(_) => "failure".to_string(),
     };
 
-    Ok(Response::new().add_attribute("bond_operation_result", result))
+    Ok(Response::new().add_attribute("bond_lp_tokens_result", result))
 }

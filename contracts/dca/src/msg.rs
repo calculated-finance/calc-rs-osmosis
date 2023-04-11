@@ -3,6 +3,7 @@ use crate::types::destination::Destination;
 use crate::types::event::Event;
 use crate::types::pair::Pair;
 use crate::types::position_type::PositionType;
+use crate::types::post_execution_action::LockableDuration;
 use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
@@ -92,7 +93,7 @@ pub enum ExecuteMsg {
     ProvideLiquidity {
         provider_address: Addr,
         pool_id: u64,
-        // duration: Duration,
+        duration: LockableDuration,
     },
 }
 

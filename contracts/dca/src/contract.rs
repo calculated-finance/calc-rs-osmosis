@@ -183,8 +183,8 @@ pub fn execute(
         ExecuteMsg::ProvideLiquidity {
             provider_address,
             pool_id,
-            // duration,
-        } => provide_liquidity_handler(deps, env, info, provider_address, pool_id),
+            duration,
+        } => provide_liquidity_handler(deps, env, info, provider_address, pool_id, duration),
     }
 }
 

@@ -1,7 +1,8 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_storage_plus::Item;
-use osmosis_std::shim::Duration;
+
+use crate::types::post_execution_action::LockableDuration;
 
 #[cw_serde]
 pub struct VaultCache {
@@ -22,7 +23,7 @@ pub const SWAP_CACHE: Item<SwapCache> = Item::new("swap_cache_v4");
 pub struct ProvideLiquidityCache {
     pub provider_address: Addr,
     pub pool_id: u64,
-    pub duration: Duration,
+    pub duration: LockableDuration,
     pub lp_token_balance: Option<Coin>,
 }
 

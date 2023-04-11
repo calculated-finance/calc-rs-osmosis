@@ -2,13 +2,17 @@ import dotenv from 'dotenv';
 import { fetchConfig } from '../shared/config';
 import { createAdminCosmWasmClient, execute, getWallet, uploadAndInstantiate } from '../shared/cosmwasm';
 import { coin } from '@cosmjs/proto-signing';
-import { createCosmWasmClientForWallet, createWallet, provideAuthGrant } from './helpers';
+import { createCosmWasmClientForWallet, createWallet } from './helpers';
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { cosmos, FEES, osmosis } from 'osmojs';
 import { getPoolsPricesPairs } from '@cosmology/core';
 import { find } from 'ramda';
 import { Pair } from '../types/dca/response/get_pairs';
 import { PositionType } from '../types/dca/execute';
+import { FEE } from './constants';
+import Long from 'long';
+import { setTimeout } from 'timers/promises';
+import dayjs from 'dayjs';
 
 const calcSwapFee = 0.0005;
 const automationFee = 0.0075;
@@ -35,6 +39,8 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
   const feeCollectorWallet = await createWallet(config);
   const feeCollectorAddress = (await feeCollectorWallet.getAccounts())[0].address;
 
+  await setTimeout(1000);
+
   const userWallet = await createWallet(config);
   const userWalletAddress = (await userWallet.getAccounts())[0].address;
   const userCosmWasmClient = await createCosmWasmClientForWallet(
@@ -51,6 +57,8 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
     feeCollectorAddress,
   );
 
+  let guages = await queryClient.osmosis.incentives.activeGauges({});
+
   const contractPairs = (
     await cosmWasmClient.queryContractSmart(dcaContractAddress, {
       get_pairs: {},
@@ -58,26 +66,6 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
   ).pairs;
 
   const pair = find((pair: Pair) => pair.base_denom == 'stake' && pair.quote_denom == 'uion', contractPairs);
-  await provideAuthGrant(userCosmWasmClient, userWalletAddress, dcaContractAddress, '/osmosis.lockup.MsgLockTokens');
-
-  const response = await execute(
-    cosmWasmClient,
-    adminContractAddress,
-    dcaContractAddress,
-    {
-      provide_liquidity: {
-        // duration: {
-        //   seconds: 60 * 60 * 24,
-        //   nanos: 0,
-        // },
-        pool_id: pair.route[0],
-        provider_address: adminContractAddress,
-      },
-    },
-    [coin(10000, pair.quote_denom)],
-  );
-
-  console.log(response);
 
   const stakingRouterContractAddress = await instantiateStakingRouterContract(
     cosmWasmClient,
@@ -142,6 +130,29 @@ const instantiateDCAContract = async (
   const { pools } = await getPoolsPricesPairs(queryClient);
 
   for (const pool of pools) {
+    await cosmWasmClient.signAndBroadcast(
+      adminContractAddress,
+      [
+        osmosis.incentives.MessageComposer.withTypeUrl.createGauge({
+          isPerpetual: true,
+          owner: adminContractAddress,
+          coins: [coin(10000, pool.poolAssets[0].token.denom)],
+          distributeTo: {
+            lockQueryType: 0,
+            denom: pool.poolAssets[0].token.denom,
+            duration: {
+              seconds: Long.fromNumber(1000000000, true) as any,
+              nanos: Long.fromNumber(0, true) as any,
+            },
+            timestamp: dayjs().toDate(),
+          },
+          startTime: dayjs().toDate(),
+          numEpochsPaidOver: Long.fromNumber(1, true) as any,
+        }),
+      ],
+      FEE,
+    );
+
     await execute(cosmWasmClient, adminContractAddress, dcaContractAddress, {
       create_pair: {
         address: pool.address,

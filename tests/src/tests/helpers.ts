@@ -1,11 +1,11 @@
-import { CosmWasmClient, SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { GenericAuthorization } from 'cosmjs-types/cosmos/authz/v1beta1/authz';
 import { MsgGrant } from 'cosmjs-types/cosmos/authz/v1beta1/tx';
 import { coin, Coin, DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
-import { GasPrice, QueryClient } from '@cosmjs/stargate';
+import { GasPrice } from '@cosmjs/stargate';
 import dayjs, { Dayjs } from 'dayjs';
 import { Context } from 'mocha';
-import { indexBy, map, mergeAll, omit, pipe, prop, reduce, reverse, sum } from 'ramda';
+import { indexBy, map, mergeAll, prop, reverse, sum } from 'ramda';
 import { Config } from '../shared/config';
 import { execute } from '../shared/cosmwasm';
 import { Addr } from '../types/dca/execute';
@@ -13,6 +13,8 @@ import { EventsResponse } from '../types/dca/response/get_events';
 import { Timestamp } from 'cosmjs-types/google/protobuf/timestamp';
 import { Pair } from '../types/dca/response/get_pairs';
 import Long from 'long';
+import { toTimestamp } from 'cosmjs-types/helpers';
+import { FEES } from 'osmojs';
 
 export const createWallet = async (config: Config) =>
   await DirectSecp256k1HdWallet.generate(12, {
@@ -115,6 +117,7 @@ export const provideAuthGrant = async (
   granter: string,
   grantee: string,
   msg: string,
+  authType: string = '/cosmos.authz.v1beta1.GenericAuthorization',
 ) => {
   const secondsInOneYear = 31536000;
   const message = {
@@ -124,18 +127,20 @@ export const provideAuthGrant = async (
       grantee,
       grant: {
         authorization: {
-          typeUrl: '/cosmos.authz.v1beta1.GenericAuthorization',
-          value: GenericAuthorization.encode(GenericAuthorization.fromPartial({ msg })).finish(),
+          typeUrl: authType,
+          value: GenericAuthorization.encode({ msg }).finish(),
         },
-        expiration: Timestamp.fromPartial({
-          seconds: dayjs().toDate().getTime() / 1000 + secondsInOneYear,
-          nanos: 0,
-        }),
+        expiration: dayjs().add(secondsInOneYear, 'seconds').toDate(),
       },
-    } as MsgGrant,
+    },
   };
 
-  return await client.signAndBroadcast(granter, [message], 'auto', 'creating authz grant for staking to BOW');
+  return await client.signAndBroadcast(
+    granter,
+    [message],
+    FEES.osmosis.joinSwapExternAmountIn('high'),
+    'creating authz grant',
+  );
 };
 
 export const sendTokens = async (

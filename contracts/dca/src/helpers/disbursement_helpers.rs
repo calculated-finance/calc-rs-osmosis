@@ -60,13 +60,13 @@ pub fn get_disbursement_messages(
                             ),
                         ]
                     }
-                    PostExecutionAction::ZProvideLiquidity { pool_id } => {
+                    PostExecutionAction::ZProvideLiquidity { pool_id, duration } => {
                         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                             contract_addr: env.contract.address.to_string(),
                             msg: to_binary(&ExecuteMsg::ProvideLiquidity {
                                 provider_address: destination.address.clone(),
                                 pool_id,
-                                // duration,
+                                duration,
                             })
                             .unwrap(),
                             funds: vec![allocation_amount.clone()],

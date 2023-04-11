@@ -4,11 +4,13 @@ import dayjs, { Dayjs } from 'dayjs';
 import { Context } from 'mocha';
 import { execute } from '../../shared/cosmwasm';
 import { Vault } from '../../types/dca/response/get_vaults';
-import { createVault, getBalances, getExpectedPrice } from '../helpers';
+import { createVault, getBalances, getExpectedPrice, provideAuthGrant } from '../helpers';
 import { setTimeout } from 'timers/promises';
 import { EventData } from '../../types/dca/response/get_events';
 import { find, map } from 'ramda';
 import { PositionType } from '../../types/dca/execute';
+import Long from 'long';
+import { osmosis } from 'osmojs';
 
 describe('when executing a vault', () => {
   describe('with a ready time trigger', () => {
@@ -282,17 +284,23 @@ describe('when executing a vault', () => {
     let vaultId: number;
 
     before(async function (this: Context) {
+      await provideAuthGrant(
+        this.userCosmWasmClient,
+        this.userWalletAddress,
+        this.dcaContractAddress,
+        '/osmosis.lockup.MsgLockTokens',
+      );
+
       vaultId = await createVault(this, {
         destinations: [
           {
-            // action: 'send',
             action: {
               z_provide_liquidity: {
-                duration: {
-                  seconds: 60 * 60 * 24 * 7,
-                  nanos: 0,
-                },
-                pool_id: this.poolId,
+                // duration: {
+                //   seconds: Long.fromNumber(60 * 60 * 24, true),
+                //   nanos: Long.fromNumber(0, true),
+                // },
+                pool_id: this.pair.route[0],
               },
             },
             address: this.adminContractAddress,
