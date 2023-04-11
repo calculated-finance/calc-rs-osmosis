@@ -91,6 +91,25 @@
       },
       "additionalProperties": false
     },
+    "Duration": {
+      "type": "object",
+      "required": [
+        "nanos",
+        "seconds"
+      ],
+      "properties": {
+        "nanos": {
+          "description": "Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.",
+          "type": "integer",
+          "format": "int32"
+        },
+        "seconds": {
+          "description": "Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years",
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
     "Pair": {
       "type": "object",
       "required": [
@@ -121,10 +140,41 @@
       "additionalProperties": false
     },
     "PostExecutionAction": {
-      "type": "string",
-      "enum": [
-        "send",
-        "z_delegate"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "send",
+            "z_delegate"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "z_provide_liquidity"
+          ],
+          "properties": {
+            "z_provide_liquidity": {
+              "type": "object",
+              "required": [
+                "duration",
+                "pool_id"
+              ],
+              "properties": {
+                "duration": {
+                  "$ref": "#/definitions/Duration"
+                },
+                "pool_id": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
       ]
     },
     "TimeInterval": {

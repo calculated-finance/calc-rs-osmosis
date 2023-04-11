@@ -31,7 +31,12 @@ export const createCosmWasmClientForWallet = async (
   });
 
   const [userAccount] = await userWallet.getAccounts();
-  await adminCosmWasmClient.sendTokens(adminContractAddress, userAccount.address, [coin(1000000, 'uosmo')], 'auto');
+  await adminCosmWasmClient.sendTokens(
+    adminContractAddress,
+    userAccount.address,
+    [coin(1000000, 'uion'), coin(1000000, 'uosmo')],
+    'auto',
+  );
 
   return userCosmWasmClient;
 };

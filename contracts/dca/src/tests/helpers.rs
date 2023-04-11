@@ -5,7 +5,7 @@ use crate::{
     handlers::get_vault::get_vault,
     msg::InstantiateMsg,
     state::{
-        cache::{Cache, CACHE},
+        cache::{VaultCache, VAULT_CACHE},
         config::{Config, FeeCollector},
         pairs::PAIRS,
         triggers::save_trigger,
@@ -164,14 +164,8 @@ pub fn setup_new_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
         .unwrap();
     }
 
-    CACHE
-        .save(
-            deps.storage,
-            &Cache {
-                vault_id: vault.id,
-                owner: vault.owner,
-            },
-        )
+    VAULT_CACHE
+        .save(deps.storage, &VaultCache { vault_id: vault.id })
         .unwrap();
 
     get_vault(deps.as_ref(), vault.id).unwrap().vault

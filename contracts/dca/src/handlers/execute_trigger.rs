@@ -1,4 +1,4 @@
-use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
+use crate::contract::AFTER_SWAP_REPLY_ID;
 use crate::error::ContractError;
 use crate::helpers::price_helpers::query_belief_price;
 use crate::helpers::swap_helpers::create_osmosis_swap_message;
@@ -10,7 +10,7 @@ use crate::helpers::vault_helpers::{
     get_swap_amount, price_threshold_exceeded, simulate_standard_dca_execution,
 };
 use crate::msg::ExecuteMsg;
-use crate::state::cache::{Cache, SwapCache, CACHE, SWAP_CACHE};
+use crate::state::cache::{SwapCache, VaultCache, SWAP_CACHE, VAULT_CACHE};
 use crate::state::events::create_event;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
@@ -157,13 +157,7 @@ pub fn execute_trigger_handler(
         return Ok(response.to_owned());
     };
 
-    CACHE.save(
-        deps.storage,
-        &Cache {
-            vault_id: vault.id,
-            owner: vault.owner.clone(),
-        },
-    )?;
+    VAULT_CACHE.save(deps.storage, &VaultCache { vault_id: vault.id })?;
 
     SWAP_CACHE.save(
         deps.storage,
@@ -183,7 +177,7 @@ pub fn execute_trigger_handler(
         &vault.pair.clone(),
         swap_amount,
         vault.slippage_tolerance,
-        Some(AFTER_FIN_SWAP_REPLY_ID),
+        Some(AFTER_SWAP_REPLY_ID),
         Some(ReplyOn::Always),
     )?))
 }

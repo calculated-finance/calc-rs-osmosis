@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use super::helpers::instantiate_contract;
 use crate::constants::{ONE, ONE_MICRON, OSMOSIS_SWAP_FEE_RATE, TEN, TWO_MICRONS};
-use crate::contract::AFTER_FIN_SWAP_REPLY_ID;
+use crate::contract::AFTER_SWAP_REPLY_ID;
 use crate::handlers::execute_trigger::execute_trigger_handler;
 use crate::handlers::get_events_by_resource_id::get_events_by_resource_id;
 use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
@@ -341,7 +341,7 @@ fn with_dca_plus_should_adjust_swap_amount() {
     let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
     assert!(response.messages.contains(&SubMsg {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         msg: MsgSwapExactAmountIn {
             sender: env.contract.address.to_string(),
             token_in: Some(
@@ -788,7 +788,7 @@ fn should_create_swap_message() {
     let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
     assert!(response.messages.contains(&SubMsg {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         msg: MsgSwapExactAmountIn {
             sender: env.contract.address.to_string(),
             token_in: Some(
@@ -829,7 +829,7 @@ fn should_create_reduced_swap_message_when_balance_is_low() {
     let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
     assert!(response.messages.contains(&SubMsg {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         msg: MsgSwapExactAmountIn {
             sender: env.contract.address.to_string(),
             token_in: Some(vault.balance.clone().into()),
@@ -873,7 +873,7 @@ fn should_create_swap_message_with_target_receive_amount_when_slippage_tolerance
         * (Decimal::one() - vault.slippage_tolerance.unwrap());
 
     assert!(response.messages.contains(&SubMsg {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         msg: MsgSwapExactAmountIn {
             sender: env.contract.address.to_string(),
             token_in: Some(
@@ -988,7 +988,7 @@ fn should_trigger_execution_if_price_threshold_not_exceeded() {
     let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
     assert!(response.messages.contains(&SubMsg {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         msg: MsgSwapExactAmountIn {
             sender: env.contract.address.to_string(),
             token_in: Some(

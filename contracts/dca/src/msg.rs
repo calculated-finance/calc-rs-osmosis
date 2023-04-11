@@ -89,6 +89,11 @@ pub enum ExecuteMsg {
     DisburseEscrow {
         vault_id: Uint128,
     },
+    ProvideLiquidity {
+        provider_address: Addr,
+        pool_id: u64,
+        // duration: Duration,
+    },
 }
 
 #[cw_serde]
@@ -100,8 +105,6 @@ pub enum QueryMsg {
     GetPairs {},
     #[returns(TriggerIdsResponse)]
     GetTimeTriggerIds { limit: Option<u16> },
-    #[returns(TriggerIdResponse)]
-    GetTriggerIdByFinLimitOrderIdx { order_idx: Uint128 },
     #[returns(VaultResponse)]
     GetVault { vault_id: Uint128 },
     #[returns(VaultsResponse)]

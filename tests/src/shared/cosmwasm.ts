@@ -7,6 +7,7 @@ import { Config } from './config';
 import RelativeTime from 'dayjs/plugin/relativeTime';
 import fs from 'fs';
 import { getOfflineSignerProto as getOfflineSigner } from 'cosmjs-utils';
+import { ExecuteMsg } from '../types/dca/execute';
 dayjs.extend(RelativeTime);
 
 export const getWallet = async (mnemonic: string, prefix: string): Promise<DirectSecp256k1HdWallet> => {
@@ -34,7 +35,7 @@ export const execute = async (
   cosmWasmClient: SigningCosmWasmClient,
   senderAddress: string,
   contractAddress: string,
-  message: Record<string, unknown>,
+  message: ExecuteMsg,
   funds: Coin[] = [],
 ): Promise<Record<string, unknown>> => {
   const response = await cosmWasmClient.execute(senderAddress, contractAddress, message, 'auto', 'memo', funds);

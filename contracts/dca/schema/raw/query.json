@@ -54,27 +54,6 @@
     {
       "type": "object",
       "required": [
-        "get_trigger_id_by_fin_limit_order_idx"
-      ],
-      "properties": {
-        "get_trigger_id_by_fin_limit_order_idx": {
-          "type": "object",
-          "required": [
-            "order_idx"
-          ],
-          "properties": {
-            "order_idx": {
-              "$ref": "#/definitions/Uint128"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
         "get_vault"
       ],
       "properties": {

@@ -9,7 +9,7 @@ use crate::helpers::validation_helpers::{
 };
 use crate::helpers::vault_helpers::get_dca_plus_model_id;
 use crate::msg::ExecuteMsg;
-use crate::state::cache::{Cache, CACHE};
+use crate::state::cache::{VaultCache, VAULT_CACHE};
 use crate::state::config::get_config;
 use crate::state::events::create_event;
 use crate::state::pairs::PAIRS;
@@ -135,11 +135,10 @@ pub fn create_vault_handler(
 
     let vault = save_vault(deps.storage, vault_builder)?;
 
-    CACHE.save(
+    VAULT_CACHE.save(
         deps.storage,
-        &Cache {
+        &VaultCache {
             vault_id: vault.id.clone(),
-            owner: vault.owner.clone(),
         },
     )?;
 

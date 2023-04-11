@@ -351,6 +351,7 @@ version = "1.0.0"
 dependencies = [
  "base",
  "chrono",
+ "cosmos-sdk-proto 0.14.0",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",

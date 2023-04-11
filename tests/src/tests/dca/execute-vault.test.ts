@@ -8,7 +8,7 @@ import { createVault, getBalances, getExpectedPrice } from '../helpers';
 import { setTimeout } from 'timers/promises';
 import { EventData } from '../../types/dca/response/get_events';
 import { find, map } from 'ramda';
-import Long from 'long';
+import { PositionType } from '../../types/dca/execute';
 
 describe('when executing a vault', () => {
   describe('with a ready time trigger', () => {
@@ -271,7 +271,42 @@ describe('when executing a vault', () => {
       await expect(
         execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
           execute_trigger: {
-            trigger_id: vaultId,
+            trigger_id: `${vaultId}`,
+          },
+        }),
+      ).to.be.rejectedWith(/trigger execution time has not yet elapsed/);
+    });
+  });
+
+  describe.only('with a provide liquidity post execution action', () => {
+    let vaultId: number;
+
+    before(async function (this: Context) {
+      vaultId = await createVault(this, {
+        destinations: [
+          {
+            // action: 'send',
+            action: {
+              z_provide_liquidity: {
+                duration: {
+                  seconds: 60 * 60 * 24 * 7,
+                  nanos: 0,
+                },
+                pool_id: this.poolId,
+              },
+            },
+            address: this.adminContractAddress,
+            allocation: '1.0',
+          },
+        ],
+      });
+    });
+
+    it('fails to execute with the correct error message', async function (this: Context) {
+      await expect(
+        execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+          execute_trigger: {
+            trigger_id: `${vaultId}`,
           },
         }),
       ).to.be.rejectedWith(/trigger execution time has not yet elapsed/);
@@ -673,7 +708,7 @@ describe('when executing a vault', () => {
       for (const position_type of ['enter', 'exit']) {
         await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
           update_swap_adjustments: {
-            position_type,
+            position_type: position_type as PositionType,
             adjustments: [
               [30, `${swapAdjustment}`],
               [35, `${swapAdjustment}`],
@@ -839,7 +874,7 @@ describe('when executing a vault', () => {
       for (const position_type of ['enter', 'exit']) {
         await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
           update_swap_adjustments: {
-            position_type,
+            position_type: position_type as PositionType,
             adjustments: [
               [30, `${swapAdjustment}`],
               [35, `${swapAdjustment}`],
