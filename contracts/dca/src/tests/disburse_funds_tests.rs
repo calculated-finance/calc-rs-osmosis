@@ -1,6 +1,6 @@
 use crate::{
     constants::{ONE, TEN, TWO_MICRONS},
-    contract::AFTER_FIN_SWAP_REPLY_ID,
+    contract::AFTER_SWAP_REPLY_ID,
     handlers::{
         disburse_funds::disburse_funds, get_events_by_resource_id::get_events_by_resource_id,
     },
@@ -61,7 +61,7 @@ fn with_succcesful_swap_returns_funds_to_destination() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -127,7 +127,7 @@ fn with_succcesful_swap_returns_fee_to_fee_collector() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -206,7 +206,7 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -282,7 +282,7 @@ fn with_succcesful_swap_adjusts_vault_balance() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -340,7 +340,7 @@ fn with_succcesful_swap_adjusts_swapped_amount_stat() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -387,7 +387,7 @@ fn with_succcesful_swap_adjusts_received_amount_stat() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -471,7 +471,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -558,7 +558,7 @@ fn with_succcesful_swap_publishes_dca_execution_completed_event() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -649,7 +649,7 @@ fn with_succcesful_swap_with_dca_plus_publishes_execution_completed_event() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -694,7 +694,7 @@ fn with_failed_swap_and_insufficient_funds_does_not_reduce_vault_balance() {
     );
 
     let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         result: SubMsgResult::Err("Generic failure".to_string()),
     };
 
@@ -715,7 +715,7 @@ fn with_failed_swap_publishes_skipped_event_with_slippage_failure() {
     let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         result: SubMsgResult::Err("failed for slippage".to_string()),
     };
 
@@ -745,7 +745,7 @@ fn with_failed_swap_leaves_vault_active() {
     let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         result: SubMsgResult::Err("failed for slippage".to_string()),
     };
 
@@ -764,7 +764,7 @@ fn with_failed_swap_does_not_reduce_vault_balance() {
     let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
 
     let reply = Reply {
-        id: AFTER_FIN_SWAP_REPLY_ID,
+        id: AFTER_SWAP_REPLY_ID,
         result: SubMsgResult::Err("failed for slippage".to_string()),
     };
 
@@ -813,7 +813,7 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -887,7 +887,7 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -969,7 +969,7 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -1040,7 +1040,7 @@ fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,
@@ -1089,7 +1089,7 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Err("slippage exceeded".to_string()),
         },
     )
@@ -1146,7 +1146,7 @@ fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive()
         deps.as_mut(),
         &env,
         Reply {
-            id: AFTER_FIN_SWAP_REPLY_ID,
+            id: AFTER_SWAP_REPLY_ID,
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
                 data: None,

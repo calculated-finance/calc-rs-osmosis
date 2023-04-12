@@ -18,11 +18,6 @@ export type QueryMsg =
       };
     }
   | {
-      get_trigger_id_by_fin_limit_order_idx: {
-        order_idx: Uint128;
-      };
-    }
-  | {
       get_vault: {
         vault_id: Uint128;
       };

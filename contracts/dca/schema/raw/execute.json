@@ -412,6 +412,37 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "provide_liquidity"
+      ],
+      "properties": {
+        "provide_liquidity": {
+          "type": "object",
+          "required": [
+            "duration",
+            "pool_id",
+            "provider_address"
+          ],
+          "properties": {
+            "duration": {
+              "$ref": "#/definitions/LockableDuration"
+            },
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "provider_address": {
+              "$ref": "#/definitions/Addr"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {
@@ -459,6 +490,14 @@
       },
       "additionalProperties": false
     },
+    "LockableDuration": {
+      "type": "string",
+      "enum": [
+        "one_day",
+        "one_week",
+        "two_weeks"
+      ]
+    },
     "PositionType": {
       "type": "string",
       "enum": [
@@ -467,10 +506,41 @@
       ]
     },
     "PostExecutionAction": {
-      "type": "string",
-      "enum": [
-        "send",
-        "z_delegate"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "send",
+            "z_delegate"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "z_provide_liquidity"
+          ],
+          "properties": {
+            "z_provide_liquidity": {
+              "type": "object",
+              "required": [
+                "duration",
+                "pool_id"
+              ],
+              "properties": {
+                "duration": {
+                  "$ref": "#/definitions/LockableDuration"
+                },
+                "pool_id": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
       ]
     },
     "TimeInterval": {

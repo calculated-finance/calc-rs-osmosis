@@ -82,6 +82,13 @@ export type ExecuteMsg =
       disburse_escrow: {
         vault_id: Uint128;
       };
+    }
+  | {
+      provide_liquidity: {
+        duration: LockableDuration;
+        pool_id: number;
+        provider_address: Addr;
+      };
     };
 /**
  * A human readable address.
@@ -93,7 +100,15 @@ export type ExecuteMsg =
  * This type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.
  */
 export type Addr = string;
-export type PostExecutionAction = "send" | "z_delegate";
+export type PostExecutionAction =
+  | ("send" | "z_delegate")
+  | {
+      z_provide_liquidity: {
+        duration: LockableDuration;
+        pool_id: number;
+      };
+    };
+export type LockableDuration = "one_day" | "one_week" | "two_weeks";
 /**
  * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
  *

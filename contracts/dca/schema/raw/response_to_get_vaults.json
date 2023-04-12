@@ -91,6 +91,14 @@
       },
       "additionalProperties": false
     },
+    "LockableDuration": {
+      "type": "string",
+      "enum": [
+        "one_day",
+        "one_week",
+        "two_weeks"
+      ]
+    },
     "Pair": {
       "type": "object",
       "required": [
@@ -121,10 +129,41 @@
       "additionalProperties": false
     },
     "PostExecutionAction": {
-      "type": "string",
-      "enum": [
-        "send",
-        "z_delegate"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "send",
+            "z_delegate"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "z_provide_liquidity"
+          ],
+          "properties": {
+            "z_provide_liquidity": {
+              "type": "object",
+              "required": [
+                "duration",
+                "pool_id"
+              ],
+              "properties": {
+                "duration": {
+                  "$ref": "#/definitions/LockableDuration"
+                },
+                "pool_id": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
       ]
     },
     "TimeInterval": {

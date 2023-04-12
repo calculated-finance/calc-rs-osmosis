@@ -49,7 +49,15 @@ export type Uint64 = string;
  * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
  */
 export type Decimal = string;
-export type PostExecutionAction = "send" | "z_delegate";
+export type PostExecutionAction =
+  | ("send" | "z_delegate")
+  | {
+      z_provide_liquidity: {
+        duration: LockableDuration;
+        pool_id: number;
+      };
+    };
+export type LockableDuration = "one_day" | "one_week" | "two_weeks";
 /**
  * A human readable address.
  *

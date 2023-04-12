@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::cache::CACHE;
+use crate::state::cache::VAULT_CACHE;
 use crate::state::events::create_event;
 use crate::state::vaults::get_vault;
 use crate::types::event::{EventBuilder, EventData};
@@ -15,7 +15,7 @@ pub fn after_z_delegation(
     env: Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
-    let cache = CACHE.load(deps.storage)?;
+    let cache = VAULT_CACHE.load(deps.storage)?;
     let vault = get_vault(deps.storage, cache.vault_id.into())?;
 
     match reply.result {

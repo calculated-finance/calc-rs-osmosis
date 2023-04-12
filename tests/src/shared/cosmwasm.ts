@@ -1,12 +1,20 @@
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { Coin, DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
-import { GasPrice, Attribute, Event } from '@cosmjs/stargate';
+import { Coin, DirectSecp256k1HdWallet, GeneratedType, Registry } from '@cosmjs/proto-signing';
+import { GasPrice, Attribute, Event, SigningStargateClient } from '@cosmjs/stargate';
 import dayjs from 'dayjs';
 import { reduce, assoc } from 'ramda';
 import { Config } from './config';
 import RelativeTime from 'dayjs/plugin/relativeTime';
 import fs from 'fs';
 import { getOfflineSignerProto as getOfflineSigner } from 'cosmjs-utils';
+import { ExecuteMsg } from '../types/dca/execute';
+import {
+  cosmosProtoRegistry,
+  cosmwasmProtoRegistry,
+  getSigningCosmosClient,
+  ibcProtoRegistry,
+  osmosisProtoRegistry,
+} from 'osmojs';
 dayjs.extend(RelativeTime);
 
 export const getWallet = async (mnemonic: string, prefix: string): Promise<DirectSecp256k1HdWallet> => {
@@ -24,17 +32,37 @@ export const createAdminCosmWasmClient = async (config: Config): Promise<Signing
     },
   });
 
+  const protoRegistry: ReadonlyArray<[string, GeneratedType]> = [
+    ...cosmosProtoRegistry,
+    ...cosmwasmProtoRegistry,
+    ...ibcProtoRegistry,
+    ...osmosisProtoRegistry,
+  ];
+
   return await SigningCosmWasmClient.connectWithSigner(config.netUrl, signer, {
     prefix: config.bech32AddressPrefix,
     gasPrice: GasPrice.fromString(`${config.gasPrice}${config.feeDenom}`),
+    registry: new Registry(protoRegistry),
   });
+};
+
+export const createOsmosisClient = async (config: Config): Promise<SigningStargateClient> => {
+  const signer = await getOfflineSigner({
+    mnemonic: config.adminContractMnemonic,
+    chain: {
+      bech32_prefix: config.bech32AddressPrefix,
+      slip44: 118,
+    },
+  });
+
+  return (await getSigningCosmosClient({ rpcEndpoint: config.netUrl, signer })) as unknown as SigningStargateClient;
 };
 
 export const execute = async (
   cosmWasmClient: SigningCosmWasmClient,
   senderAddress: string,
   contractAddress: string,
-  message: Record<string, unknown>,
+  message: ExecuteMsg,
   funds: Coin[] = [],
 ): Promise<Record<string, unknown>> => {
   const response = await cosmWasmClient.execute(senderAddress, contractAddress, message, 'auto', 'memo', funds);

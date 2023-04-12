@@ -19,6 +19,9 @@ use crate::handlers::get_time_trigger_ids::get_time_trigger_ids;
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults::get_vaults_handler;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
+use crate::handlers::provide_liquidity::{
+    bond_lp_tokens, log_bond_lp_tokens_result, provide_liquidity_handler, send_lp_tokens,
+};
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
@@ -36,9 +39,6 @@ use cw2::set_contract_version;
 
 pub const CONTRACT_NAME: &str = "crates.io:calc-dca";
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-pub const AFTER_FIN_SWAP_REPLY_ID: u64 = 1;
-pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 3;
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -180,16 +180,30 @@ pub fn execute(
             adjustments,
         } => update_swap_adjustments_handler(deps, env, position_type, adjustments),
         ExecuteMsg::DisburseEscrow { vault_id } => disburse_escrow(deps, &env, info, vault_id),
+        ExecuteMsg::ProvideLiquidity {
+            provider_address,
+            pool_id,
+            duration,
+        } => provide_liquidity_handler(deps, env, info, provider_address, pool_id, duration),
     }
 }
+
+pub const AFTER_SWAP_REPLY_ID: u64 = 1;
+pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 2;
+pub const AFTER_PROVIDE_LIQUIDITY_REPLY_ID: u64 = 3;
+pub const AFTER_SEND_LP_TOKENS_REPLY_ID: u64 = 4;
+pub const AFTER_BOND_LP_TOKENS_REPLY_ID: u64 = 5;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
-        AFTER_FIN_SWAP_REPLY_ID => disburse_funds(deps, &env, reply),
+        AFTER_SWAP_REPLY_ID => disburse_funds(deps, &env, reply),
         AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
+        AFTER_PROVIDE_LIQUIDITY_REPLY_ID => send_lp_tokens(deps, env),
+        AFTER_SEND_LP_TOKENS_REPLY_ID => bond_lp_tokens(deps.as_ref(), env),
+        AFTER_BOND_LP_TOKENS_REPLY_ID => log_bond_lp_tokens_result(deps, reply),
         id => Err(ContractError::CustomError {
-            val: format!("unknown reply id: {}", id),
+            val: format!("unhandled DCA contract reply id: {}", id),
         }),
     }
 }
@@ -200,9 +214,6 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetPairs {} => to_binary(&get_pairs(deps)?),
         QueryMsg::GetTimeTriggerIds { limit } => {
             to_binary(&get_time_trigger_ids(deps, env, limit)?)
-        }
-        QueryMsg::GetTriggerIdByFinLimitOrderIdx { order_idx: _ } => {
-            unimplemented!()
         }
         QueryMsg::GetVaults { start_after, limit } => {
             to_binary(&get_vaults_handler(deps, start_after, limit)?)
