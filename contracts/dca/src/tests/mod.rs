@@ -56,4 +56,7 @@ pub mod create_pair_tests;
 mod get_pairs_tests;
 
 #[cfg(test)]
-pub mod provide_liquidity_tests;
+pub mod z_provide_liquidity_tests;
+
+#[cfg(test)]
+pub mod z_delegate_tests;
