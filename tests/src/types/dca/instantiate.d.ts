@@ -29,7 +29,6 @@ export interface InstantiateMsg {
   fee_collectors: FeeCollector[];
   page_limit: number;
   paused: boolean;
-  staking_router_address: Addr;
   swap_fee_percent: Decimal;
 }
 export interface FeeCollector {

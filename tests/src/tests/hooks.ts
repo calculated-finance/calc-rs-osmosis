@@ -67,12 +67,6 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
 
   const pair = find((pair: Pair) => pair.base_denom == 'stake' && pair.quote_denom == 'uion', contractPairs);
 
-  const stakingRouterContractAddress = await instantiateStakingRouterContract(
-    cosmWasmClient,
-    adminContractAddress,
-    dcaContractAddress,
-  );
-
   await cosmWasmClient.sendTokens(
     adminContractAddress,
     userWalletAddress,
@@ -93,7 +87,6 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
         adminContractAddress,
         feeCollectorAddress,
         userWalletAddress,
-        stakingRouterContractAddress,
         pair,
         validatorAddress,
         swapAdjustment,
@@ -120,7 +113,6 @@ const instantiateDCAContract = async (
       fee_collectors: [{ address: feeCollectorAdress, allocation: '1.0' }],
       page_limit: 1000,
       paused: false,
-      staking_router_address: adminContractAddress,
       swap_fee_percent: `${calcSwapFee}`,
       dca_plus_escrow_level: '0.05',
     },
@@ -184,31 +176,6 @@ const instantiateDCAContract = async (
   }
 
   return dcaContractAddress;
-};
-
-const instantiateStakingRouterContract = async (
-  cosmWasmClient: SigningCosmWasmClient,
-  adminContractAddress: string,
-  dcaContractAddress: string,
-): Promise<string> => {
-  const address = await uploadAndInstantiate(
-    '../artifacts/staking_router.wasm',
-    cosmWasmClient,
-    adminContractAddress,
-    {
-      admin: adminContractAddress,
-      allowed_z_callers: [dcaContractAddress],
-    },
-    'staking-router',
-  );
-
-  await execute(cosmWasmClient, adminContractAddress, dcaContractAddress, {
-    update_config: {
-      staking_router_address: address,
-    },
-  });
-
-  return address;
 };
 
 export const instantiateFundCoreContract = async (

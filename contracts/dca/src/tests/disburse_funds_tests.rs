@@ -20,6 +20,7 @@ use crate::{
     },
     types::{
         dca_plus_config::DcaPlusConfig,
+        destination::Destination,
         event::{Event, EventBuilder, EventData, ExecutionSkippedReason},
         position_type::PositionType,
         post_execution_action::PostExecutionAction,
@@ -39,7 +40,15 @@ fn with_succcesful_swap_returns_funds_to_destination() {
     let env = mock_env();
     instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-    let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+    let vault = setup_new_vault(
+        deps.as_mut(),
+        env.clone(),
+        Vault {
+            destinations: vec![Destination::default()],
+            ..Vault::default()
+        },
+    );
+
     let receive_amount = Uint128::new(10000);
 
     SWAP_CACHE
@@ -426,6 +435,7 @@ fn with_succcesful_swap_with_dca_plus_escrows_funds() {
         deps.as_mut(),
         env.clone(),
         Vault {
+            destinations: vec![Destination::default()],
             dca_plus_config: Some(DcaPlusConfig::default()),
             ..Vault::default()
         },

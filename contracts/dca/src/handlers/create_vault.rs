@@ -45,7 +45,7 @@ pub fn create_vault_handler(
     use_dca_plus: Option<bool>,
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
-    assert_address_is_valid(deps.as_ref(), owner.clone(), "owner".to_string())?;
+    assert_address_is_valid(deps.as_ref(), owner.clone(), "owner")?;
     assert_exactly_one_asset(info.funds.clone())?;
     assert_swap_amount_is_greater_than_50000(swap_amount)?;
     assert_destinations_limit_is_not_breached(&destinations)?;

@@ -42,11 +42,6 @@ pub enum EventData {
         reason: ExecutionSkippedReason,
     },
     DcaVaultCancelled {},
-    DcaVaultZDelegationSucceeded {
-        validator_address: String,
-        delegation: Coin,
-    },
-    DcaVaultDelegationFailed {},
     DcaVaultEscrowDisbursed {
         amount_disbursed: Coin,
         performance_fee: Coin,

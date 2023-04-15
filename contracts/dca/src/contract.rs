@@ -1,5 +1,4 @@
 use crate::error::ContractError;
-use crate::handlers::after_z_delegation::after_z_delegation;
 use crate::handlers::cancel_vault::cancel_vault;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee;
 use crate::handlers::create_pair::create_pair;
@@ -22,7 +21,7 @@ use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
-use crate::handlers::z_delegate::z_delegate_handler;
+use crate::handlers::z_delegate::{log_delegation_result, z_delegate_handler};
 use crate::handlers::z_provide_liquidity::{
     bond_lp_tokens, log_bond_lp_tokens_result, send_lp_tokens, z_provide_liquidity_handler,
 };
@@ -44,8 +43,6 @@ pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     deps.api.addr_validate(&msg.admin.to_string())?;
-    deps.api
-        .addr_validate(&msg.staking_router_address.to_string())?;
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
@@ -58,7 +55,6 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
             fee_collectors: msg.fee_collectors,
             swap_fee_percent: msg.swap_fee_percent,
             delegation_fee_percent: msg.delegation_fee_percent,
-            staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
             paused: msg.paused,
             dca_plus_escrow_level: msg.dca_plus_escrow_level,
@@ -78,8 +74,6 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     deps.api.addr_validate(&msg.admin.to_string())?;
-    deps.api
-        .addr_validate(&msg.staking_router_address.to_string())?;
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
@@ -92,7 +86,6 @@ pub fn instantiate(
             fee_collectors: msg.fee_collectors,
             swap_fee_percent: msg.swap_fee_percent,
             delegation_fee_percent: msg.delegation_fee_percent,
-            staking_router_address: msg.staking_router_address,
             page_limit: msg.page_limit,
             paused: msg.paused,
             dca_plus_escrow_level: msg.dca_plus_escrow_level,
@@ -156,7 +149,6 @@ pub fn execute(
             fee_collectors,
             swap_fee_percent,
             delegation_fee_percent,
-            staking_router_address,
             page_limit,
             paused,
             dca_plus_escrow_level,
@@ -166,7 +158,6 @@ pub fn execute(
             fee_collectors,
             swap_fee_percent,
             delegation_fee_percent,
-            staking_router_address,
             page_limit,
             paused,
             dca_plus_escrow_level,
@@ -184,7 +175,7 @@ pub fn execute(
         ExecuteMsg::ZDelegate {
             delegator_address,
             validator_address,
-        } => z_delegate_handler(info, delegator_address, validator_address),
+        } => z_delegate_handler(deps.as_ref(), info, delegator_address, validator_address),
         ExecuteMsg::ZProvideLiquidity {
             provider_address,
             pool_id,
@@ -203,7 +194,7 @@ pub fn execute(
 }
 
 pub const AFTER_SWAP_REPLY_ID: u64 = 1;
-pub const AFTER_Z_DELEGATION_REPLY_ID: u64 = 2;
+pub const AFTER_DELEGATION_REPLY_ID: u64 = 2;
 pub const AFTER_PROVIDE_LIQUIDITY_REPLY_ID: u64 = 3;
 pub const AFTER_SEND_LP_TOKENS_REPLY_ID: u64 = 4;
 pub const AFTER_BOND_LP_TOKENS_REPLY_ID: u64 = 5;
@@ -212,7 +203,7 @@ pub const AFTER_BOND_LP_TOKENS_REPLY_ID: u64 = 5;
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
         AFTER_SWAP_REPLY_ID => disburse_funds(deps, &env, reply),
-        AFTER_Z_DELEGATION_REPLY_ID => after_z_delegation(deps, env, reply),
+        AFTER_DELEGATION_REPLY_ID => log_delegation_result(reply),
         AFTER_PROVIDE_LIQUIDITY_REPLY_ID => send_lp_tokens(deps, env),
         AFTER_SEND_LP_TOKENS_REPLY_ID => bond_lp_tokens(deps.as_ref(), env),
         AFTER_BOND_LP_TOKENS_REPLY_ID => log_bond_lp_tokens_result(deps, reply),

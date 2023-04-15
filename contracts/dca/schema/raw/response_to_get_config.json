@@ -25,7 +25,6 @@
         "fee_collectors",
         "page_limit",
         "paused",
-        "staking_router_address",
         "swap_fee_percent"
       ],
       "properties": {
@@ -51,9 +50,6 @@
         },
         "paused": {
           "type": "boolean"
-        },
-        "staking_router_address": {
-          "$ref": "#/definitions/Addr"
         },
         "swap_fee_percent": {
           "$ref": "#/definitions/Decimal"

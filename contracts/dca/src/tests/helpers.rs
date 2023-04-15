@@ -33,7 +33,6 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
         }],
         swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-        staking_router_address: Addr::unchecked("staking-router"),
         page_limit: 1000,
         paused: false,
         dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
@@ -53,7 +52,6 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
         fee_collectors,
         swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-        staking_router_address: Addr::unchecked(ADMIN),
         page_limit: 1000,
         paused: false,
         dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
@@ -72,7 +70,6 @@ impl Default for Config {
             }],
             swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-            staking_router_address: Addr::unchecked(ADMIN),
             page_limit: 1000,
             paused: false,
             dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
@@ -87,6 +84,16 @@ impl Default for Pair {
             base_denom: DENOM_UOSMO.to_string(),
             quote_denom: DENOM_STAKE.to_string(),
             route: vec![3],
+        }
+    }
+}
+
+impl Default for Destination {
+    fn default() -> Self {
+        Self {
+            address: Addr::unchecked(USER),
+            allocation: Decimal::percent(100),
+            action: PostExecutionAction::Send,
         }
     }
 }

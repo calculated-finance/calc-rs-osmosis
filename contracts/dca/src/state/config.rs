@@ -8,7 +8,6 @@ pub struct Config {
     pub fee_collectors: Vec<FeeCollector>,
     pub swap_fee_percent: Decimal,
     pub delegation_fee_percent: Decimal,
-    pub staking_router_address: Addr,
     pub page_limit: u16,
     pub paused: bool,
     pub dca_plus_escrow_level: Decimal,

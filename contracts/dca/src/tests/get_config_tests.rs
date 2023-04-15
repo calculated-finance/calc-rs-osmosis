@@ -33,7 +33,6 @@ fn get_config_should_succeed() {
             }],
             swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-            staking_router_address: Addr::unchecked("staking-router"),
             page_limit: 1000,
             paused: false,
             dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),

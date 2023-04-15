@@ -15,6 +15,7 @@ use crate::{
     },
     types::{
         dca_plus_config::DcaPlusConfig,
+        destination::Destination,
         event::{Event, EventData},
         vault::{Vault, VaultStatus},
     },
@@ -39,6 +40,7 @@ fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
         env.clone(),
         Vault {
             status: VaultStatus::Inactive,
+            destinations: vec![Destination::default()],
             dca_plus_config: Some(DcaPlusConfig {
                 total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
                 standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),

@@ -57,7 +57,6 @@ export type ExecuteMsg =
         fee_collectors?: FeeCollector[] | null;
         page_limit?: number | null;
         paused?: boolean | null;
-        staking_router_address?: Addr | null;
         swap_fee_percent?: Decimal | null;
       };
     }
@@ -84,10 +83,17 @@ export type ExecuteMsg =
       };
     }
   | {
-      provide_liquidity: {
+      z_delegate: {
+        delegator_address: Addr;
+        validator_address: Addr;
+      };
+    }
+  | {
+      z_provide_liquidity: {
         duration: LockableDuration;
         pool_id: number;
         provider_address: Addr;
+        slippage_tolerance?: Decimal | null;
       };
     };
 /**

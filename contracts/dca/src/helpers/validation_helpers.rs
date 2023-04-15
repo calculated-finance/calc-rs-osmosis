@@ -158,7 +158,7 @@ pub fn assert_destination_send_addresses_are_valid(
         .iter()
         .filter(|d| d.action == PostExecutionAction::Send)
     {
-        assert_address_is_valid(deps, destination.address.clone(), "destination".to_string())?;
+        assert_address_is_valid(deps, destination.address.clone(), "destination")?;
     }
     Ok(())
 }
@@ -171,7 +171,7 @@ pub fn assert_fee_collector_addresses_are_valid(
         assert_address_is_valid(
             deps,
             Addr::unchecked(fee_collector.address.clone()),
-            "fee collector".to_string(),
+            "fee collector",
         )?;
     }
     Ok(())
@@ -206,7 +206,7 @@ pub fn assert_delegation_denom_is_stakeable(
 pub fn assert_address_is_valid(
     deps: Deps,
     address: Addr,
-    label: String,
+    label: &str,
 ) -> Result<(), ContractError> {
     match deps.api.addr_validate(&address.to_string()) {
         Ok(_) => Ok(()),
