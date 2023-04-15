@@ -18,7 +18,7 @@ pub mod get_time_trigger_ids;
 pub mod get_vault;
 pub mod get_vaults;
 pub mod get_vaults_by_address;
-pub mod provide_liquidity;
 pub mod remove_custom_swap_fee;
 pub mod update_config;
 pub mod update_swap_adjustments_handler;
+pub mod z_provide_liquidity;

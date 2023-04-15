@@ -1,6 +1,5 @@
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { GenericAuthorization } from 'cosmjs-types/cosmos/authz/v1beta1/authz';
-import { MsgGrant } from 'cosmjs-types/cosmos/authz/v1beta1/tx';
 import { coin, Coin, DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { GasPrice } from '@cosmjs/stargate';
 import dayjs, { Dayjs } from 'dayjs';
@@ -10,10 +9,8 @@ import { Config } from '../shared/config';
 import { execute } from '../shared/cosmwasm';
 import { Addr } from '../types/dca/execute';
 import { EventsResponse } from '../types/dca/response/get_events';
-import { Timestamp } from 'cosmjs-types/google/protobuf/timestamp';
 import { Pair } from '../types/dca/response/get_pairs';
 import Long from 'long';
-import { toTimestamp } from 'cosmjs-types/helpers';
 import { FEES } from 'osmojs';
 
 export const createWallet = async (config: Config) =>

@@ -1,20 +1,21 @@
 use super::mocks::USER;
 use crate::{
+    constants::ONE,
     contract::{
         AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
         AFTER_SEND_LP_TOKENS_REPLY_ID,
     },
-    handlers::provide_liquidity::{
+    handlers::z_provide_liquidity::{
         bond_lp_tokens, log_bond_lp_tokens_result, provide_liquidity_handler, send_lp_tokens,
     },
     helpers::authz_helpers::create_authz_exec_message,
     state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
-    tests::mocks::{DENOM_STAKE, DENOM_UOSMO},
+    tests::mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO},
     types::post_execution_action::LockableDuration,
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    Addr, Attribute, BankMsg, Coin, CosmosMsg, Reply, SubMsg, SubMsgResponse,
+    Addr, Attribute, BankMsg, Coin, CosmosMsg, Decimal, Reply, SubMsg, SubMsgResponse, Uint128,
 };
 use osmosis_std::types::osmosis::{
     gamm::v1beta1::MsgJoinSwapExternAmountIn, lockup::MsgLockTokens,
@@ -33,6 +34,7 @@ fn with_no_asset_fails() {
         Addr::unchecked(USER),
         1,
         LockableDuration::OneDay,
+        None,
     )
     .unwrap_err();
 
@@ -58,6 +60,7 @@ fn with_more_than_one_asset_fails() {
         Addr::unchecked(USER),
         1,
         LockableDuration::OneDay,
+        None,
     )
     .unwrap_err();
 
@@ -69,7 +72,7 @@ fn with_more_than_one_asset_fails() {
 
 #[test]
 fn updates_the_cache_before_providing_liquidity() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(
         &env.contract.address.to_string(),
@@ -87,6 +90,7 @@ fn updates_the_cache_before_providing_liquidity() {
         provider_address.clone(),
         pool_id,
         duration.clone(),
+        None,
     )
     .unwrap();
 
@@ -105,7 +109,7 @@ fn updates_the_cache_before_providing_liquidity() {
 
 #[test]
 fn sends_provide_liquidity_message() {
-    let mut deps = mock_dependencies();
+    let mut deps = calc_mock_dependencies();
     let env = mock_env();
     let info = mock_info(
         &env.contract.address.to_string(),
@@ -121,6 +125,7 @@ fn sends_provide_liquidity_message() {
         Addr::unchecked(USER),
         pool_id,
         LockableDuration::OneDay,
+        None,
     )
     .unwrap();
 
@@ -129,7 +134,41 @@ fn sends_provide_liquidity_message() {
             sender: env.contract.address.to_string(),
             pool_id,
             token_in: Some(info.funds[0].clone().into()),
-            share_out_min_amount: "1".to_string(),
+            share_out_min_amount: Uint128::one().to_string(),
+        },
+        AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
+    )));
+}
+
+#[test]
+fn sends_provide_liquidity_message_with_slippage_included() {
+    let mut deps = calc_mock_dependencies();
+    let env = mock_env();
+    let info = mock_info(
+        &env.contract.address.to_string(),
+        &[Coin::new(100, DENOM_STAKE)],
+    );
+
+    let pool_id = 1;
+    let slippage_tolerance = Decimal::percent(10);
+
+    let response = provide_liquidity_handler(
+        deps.as_mut(),
+        env.clone(),
+        info.clone(),
+        Addr::unchecked(USER),
+        pool_id,
+        LockableDuration::OneDay,
+        Some(slippage_tolerance),
+    )
+    .unwrap();
+
+    assert!(response.messages.contains(&SubMsg::reply_on_success(
+        MsgJoinSwapExternAmountIn {
+            sender: env.contract.address.to_string(),
+            pool_id,
+            token_in: Some(info.funds[0].clone().into()),
+            share_out_min_amount: (ONE * (Decimal::one() - slippage_tolerance)).to_string(),
         },
         AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
     )));

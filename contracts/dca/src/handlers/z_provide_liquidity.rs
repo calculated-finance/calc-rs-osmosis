@@ -11,11 +11,12 @@ use crate::{
     types::post_execution_action::LockableDuration,
 };
 use cosmwasm_std::{
-    Addr, BankMsg, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply, Response, SubMsg,
-    SubMsgResult,
+    Addr, BankMsg, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Reply, Response, SubMsg,
+    SubMsgResult, Uint128,
 };
 use osmosis_std::types::osmosis::{
-    gamm::v1beta1::MsgJoinSwapExternAmountIn, lockup::MsgLockTokens,
+    gamm::v1beta1::{MsgJoinSwapExternAmountIn, QueryCalcJoinPoolSharesRequest},
+    lockup::MsgLockTokens,
 };
 
 pub fn provide_liquidity_handler(
@@ -25,6 +26,7 @@ pub fn provide_liquidity_handler(
     provider_address: Addr,
     pool_id: u64,
     duration: LockableDuration,
+    slippage_tolerance: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     assert_exactly_one_asset(info.funds.clone())?;
 
@@ -38,12 +40,28 @@ pub fn provide_liquidity_handler(
         },
     )?;
 
+    let share_out_min_amount = String::from(slippage_tolerance.map_or(
+        Uint128::one(),
+        |slippage_tolerance| {
+            QueryCalcJoinPoolSharesRequest {
+                pool_id,
+                tokens_in: vec![info.funds[0].clone().into()],
+            }
+            .query(&deps.querier)
+            .expect("share amount out response")
+            .share_out_amount
+            .parse::<Uint128>()
+            .expect("share amount out value")
+                * (Decimal::one() - slippage_tolerance)
+        },
+    ));
+
     Ok(Response::new().add_submessage(SubMsg::reply_on_success(
         MsgJoinSwapExternAmountIn {
             sender: env.contract.address.to_string(),
             pool_id,
             token_in: Some(info.funds[0].clone().into()),
-            share_out_min_amount: "1".to_string(),
+            share_out_min_amount,
         },
         AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
     )))

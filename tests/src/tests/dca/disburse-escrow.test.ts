@@ -9,7 +9,7 @@ import { expect } from '../shared.test';
 
 describe('when disbursing escrow', () => {
   describe('with dca plus & no trigger', () => {
-    let deposit = coin(1000000, 'uosmo');
+    let deposit = coin(1000000, 'stake');
     let vaultBeforeExecution: Vault;
     let vaultAfterExecution: Vault;
     let eventPayloads: EventData[];

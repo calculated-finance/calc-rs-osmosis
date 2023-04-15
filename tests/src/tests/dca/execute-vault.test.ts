@@ -10,7 +10,6 @@ import { EventData } from '../../types/dca/response/get_events';
 import { find, map } from 'ramda';
 import { PositionType } from '../../types/dca/execute';
 import Long from 'long';
-import { osmosis } from 'osmojs';
 
 describe('when executing a vault', () => {
   describe('with a ready time trigger', () => {
@@ -280,7 +279,7 @@ describe('when executing a vault', () => {
     });
   });
 
-  describe.only('with a provide liquidity post execution action', () => {
+  describe('with a provide liquidity post execution action', () => {
     let vaultId: number;
 
     before(async function (this: Context) {
@@ -296,10 +295,7 @@ describe('when executing a vault', () => {
           {
             action: {
               z_provide_liquidity: {
-                // duration: {
-                //   seconds: Long.fromNumber(60 * 60 * 24, true),
-                //   nanos: Long.fromNumber(0, true),
-                // },
+                duration: 'one_week',
                 pool_id: this.pair.route[0],
               },
             },

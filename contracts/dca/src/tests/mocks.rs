@@ -6,7 +6,8 @@ use cosmwasm_std::{
 use osmosis_std::shim::Any;
 use osmosis_std::types::cosmos::base::v1beta1::Coin;
 use osmosis_std::types::osmosis::gamm::v1beta1::{
-    Pool, PoolAsset, PoolParams, QueryPoolRequest, QueryPoolResponse,
+    Pool, PoolAsset, PoolParams, QueryCalcJoinPoolSharesResponse, QueryPoolRequest,
+    QueryPoolResponse,
 };
 use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 use osmosis_std::types::osmosis::poolmanager::v1beta1::EstimateSwapExactAmountInResponse;
@@ -175,6 +176,15 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                             type_url: Pool::TYPE_URL.to_string(),
                             value: pools[pool_id as usize].clone().encode_to_vec(),
                         }),
+                    })
+                }
+                "/osmosis.gamm.v1beta1.Query/CalcJoinPoolShares" => {
+                    to_binary(&QueryCalcJoinPoolSharesResponse {
+                        share_out_amount: ONE.to_string(),
+                        tokens_out: vec![Coin {
+                            amount: ONE.into(),
+                            denom: DENOM_UOSMO.to_string(),
+                        }],
                     })
                 }
                 _ => panic!("Unexpected path: {}", path),
