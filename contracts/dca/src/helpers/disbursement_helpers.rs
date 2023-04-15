@@ -67,6 +67,7 @@ pub fn get_disbursement_messages(
                                 provider_address: destination.address.clone(),
                                 pool_id,
                                 duration,
+                                slippage_tolerance: vault.slippage_tolerance,
                             })
                             .unwrap(),
                             funds: vec![allocation_amount.clone()],

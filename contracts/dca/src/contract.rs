@@ -19,12 +19,12 @@ use crate::handlers::get_time_trigger_ids::get_time_trigger_ids;
 use crate::handlers::get_vault::get_vault;
 use crate::handlers::get_vaults::get_vaults_handler;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address;
-use crate::handlers::provide_liquidity::{
-    bond_lp_tokens, log_bond_lp_tokens_result, provide_liquidity_handler, send_lp_tokens,
-};
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
+use crate::handlers::z_provide_liquidity::{
+    bond_lp_tokens, log_bond_lp_tokens_result, provide_liquidity_handler, send_lp_tokens,
+};
 use crate::helpers::validation_helpers::{
     assert_dca_plus_escrow_level_is_less_than_100_percent,
     assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
@@ -184,7 +184,16 @@ pub fn execute(
             provider_address,
             pool_id,
             duration,
-        } => provide_liquidity_handler(deps, env, info, provider_address, pool_id, duration),
+            slippage_tolerance,
+        } => provide_liquidity_handler(
+            deps,
+            env,
+            info,
+            provider_address,
+            pool_id,
+            duration,
+            slippage_tolerance,
+        ),
     }
 }
 

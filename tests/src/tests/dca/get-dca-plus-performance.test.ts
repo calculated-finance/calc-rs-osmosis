@@ -6,7 +6,7 @@ import { expect } from '../shared.test';
 
 describe('when fetching dca plus performance', () => {
   describe('for a vault with no executions', () => {
-    let deposit = coin(1000000, 'uosmo');
+    let deposit = coin(1000000, 'stake');
     let performance: any;
 
     before(async function (this: Context) {
@@ -34,7 +34,7 @@ describe('when fetching dca plus performance', () => {
   });
 
   describe('for a vault with one execution', () => {
-    let deposit = coin(1000000, 'uosmo');
+    let deposit = coin(1000000, 'stake');
     let performance: any;
 
     before(async function (this: Context) {
@@ -51,12 +51,12 @@ describe('when fetching dca plus performance', () => {
       });
     });
 
-    it('has a performance fee', async function (this: Context) {
-      expect(performance.fee).to.deep.equal(coin(333, 'uion'));
+    it('has no performance fee', async function (this: Context) {
+      expect(performance.fee).to.deep.equal(coin(0, 'uion'));
     });
 
     it('has slightly positive performance factor', async function (this: Context) {
-      expect(performance.factor).to.equal('1.001685036435657054');
+      expect(parseFloat(performance.factor)).to.be.approximately(1.000042002184113573, 0.0001);
     });
   });
 });

@@ -94,6 +94,7 @@ pub enum ExecuteMsg {
         provider_address: Addr,
         pool_id: u64,
         duration: LockableDuration,
+        slippage_tolerance: Option<Decimal>,
     },
 }
 
