@@ -23,7 +23,7 @@ use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
 use crate::handlers::z_delegate::{log_delegation_result, z_delegate_handler};
 use crate::handlers::z_provide_liquidity::{
-    bond_lp_tokens, log_bond_lp_tokens_result, send_lp_tokens, z_provide_liquidity_handler,
+    bond_lp_tokens, log_bond_lp_tokens_result, z_provide_liquidity_handler,
 };
 use crate::helpers::validation_helpers::{
     assert_dca_plus_escrow_level_is_less_than_100_percent,
@@ -196,7 +196,6 @@ pub fn execute(
 pub const AFTER_SWAP_REPLY_ID: u64 = 1;
 pub const AFTER_DELEGATION_REPLY_ID: u64 = 2;
 pub const AFTER_PROVIDE_LIQUIDITY_REPLY_ID: u64 = 3;
-pub const AFTER_SEND_LP_TOKENS_REPLY_ID: u64 = 4;
 pub const AFTER_BOND_LP_TOKENS_REPLY_ID: u64 = 5;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -204,8 +203,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
     match reply.id {
         AFTER_SWAP_REPLY_ID => disburse_funds(deps, &env, reply),
         AFTER_DELEGATION_REPLY_ID => log_delegation_result(reply),
-        AFTER_PROVIDE_LIQUIDITY_REPLY_ID => send_lp_tokens(deps, env),
-        AFTER_SEND_LP_TOKENS_REPLY_ID => bond_lp_tokens(deps.as_ref(), env),
+        AFTER_PROVIDE_LIQUIDITY_REPLY_ID => bond_lp_tokens(deps.as_ref(), env),
         AFTER_BOND_LP_TOKENS_REPLY_ID => log_bond_lp_tokens_result(deps, reply),
         id => Err(ContractError::CustomError {
             val: format!("unhandled DCA contract reply id: {}", id),
