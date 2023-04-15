@@ -22,8 +22,9 @@ use crate::handlers::get_vaults_by_address::get_vaults_by_address;
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee;
 use crate::handlers::update_config::update_config_handler;
 use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
+use crate::handlers::z_delegate::z_delegate_handler;
 use crate::handlers::z_provide_liquidity::{
-    bond_lp_tokens, log_bond_lp_tokens_result, provide_liquidity_handler, send_lp_tokens,
+    bond_lp_tokens, log_bond_lp_tokens_result, send_lp_tokens, z_provide_liquidity_handler,
 };
 use crate::helpers::validation_helpers::{
     assert_dca_plus_escrow_level_is_less_than_100_percent,
@@ -180,12 +181,16 @@ pub fn execute(
             adjustments,
         } => update_swap_adjustments_handler(deps, env, position_type, adjustments),
         ExecuteMsg::DisburseEscrow { vault_id } => disburse_escrow(deps, &env, info, vault_id),
-        ExecuteMsg::ProvideLiquidity {
+        ExecuteMsg::ZDelegate {
+            delegator_address,
+            validator_address,
+        } => z_delegate_handler(info, delegator_address, validator_address),
+        ExecuteMsg::ZProvideLiquidity {
             provider_address,
             pool_id,
             duration,
             slippage_tolerance,
-        } => provide_liquidity_handler(
+        } => z_provide_liquidity_handler(
             deps,
             env,
             info,

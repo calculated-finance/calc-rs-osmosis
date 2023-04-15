@@ -20,6 +20,8 @@ use crate::constants::{ONE, ONE_DECIMAL, OSMOSIS_SWAP_FEE_RATE, TEN};
 pub const USER: &str = "user";
 pub const ADMIN: &str = "admin";
 pub const FEE_COLLECTOR: &str = "fee_collector";
+pub const VALIDATOR: &str = "validator";
+
 pub const DENOM_UOSMO: &str = "uosmo";
 pub const DENOM_STAKE: &str = "stake";
 pub const DENOM_UATOM: &str = "uatom";

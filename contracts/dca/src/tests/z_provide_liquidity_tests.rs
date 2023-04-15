@@ -6,7 +6,7 @@ use crate::{
         AFTER_SEND_LP_TOKENS_REPLY_ID,
     },
     handlers::z_provide_liquidity::{
-        bond_lp_tokens, log_bond_lp_tokens_result, provide_liquidity_handler, send_lp_tokens,
+        bond_lp_tokens, log_bond_lp_tokens_result, send_lp_tokens, z_provide_liquidity_handler,
     },
     helpers::authz_helpers::create_authz_exec_message,
     state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
@@ -27,7 +27,7 @@ fn with_no_asset_fails() {
     let env = mock_env();
     let info = mock_info(&env.contract.address.to_string(), &[]);
 
-    let response = provide_liquidity_handler(
+    let response = z_provide_liquidity_handler(
         deps.as_mut(),
         env,
         info.clone(),
@@ -53,7 +53,7 @@ fn with_more_than_one_asset_fails() {
         &[Coin::new(100, DENOM_STAKE), Coin::new(100, DENOM_UOSMO)],
     );
 
-    let response = provide_liquidity_handler(
+    let response = z_provide_liquidity_handler(
         deps.as_mut(),
         env,
         info.clone(),
@@ -83,7 +83,7 @@ fn updates_the_cache_before_providing_liquidity() {
     let provider_address = Addr::unchecked(USER);
     let duration = LockableDuration::OneDay;
 
-    provide_liquidity_handler(
+    z_provide_liquidity_handler(
         deps.as_mut(),
         env.clone(),
         info.clone(),
@@ -118,7 +118,7 @@ fn sends_provide_liquidity_message() {
 
     let pool_id = 1;
 
-    let response = provide_liquidity_handler(
+    let response = z_provide_liquidity_handler(
         deps.as_mut(),
         env.clone(),
         info.clone(),
@@ -152,7 +152,7 @@ fn sends_provide_liquidity_message_with_slippage_included() {
     let pool_id = 1;
     let slippage_tolerance = Decimal::percent(10);
 
-    let response = provide_liquidity_handler(
+    let response = z_provide_liquidity_handler(
         deps.as_mut(),
         env.clone(),
         info.clone(),

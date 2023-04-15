@@ -19,7 +19,7 @@ use osmosis_std::types::osmosis::{
     lockup::MsgLockTokens,
 };
 
-pub fn provide_liquidity_handler(
+pub fn z_provide_liquidity_handler(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -56,15 +56,20 @@ pub fn provide_liquidity_handler(
         },
     ));
 
-    Ok(Response::new().add_submessage(SubMsg::reply_on_success(
-        MsgJoinSwapExternAmountIn {
-            sender: env.contract.address.to_string(),
-            pool_id,
-            token_in: Some(info.funds[0].clone().into()),
-            share_out_min_amount,
-        },
-        AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
-    )))
+    Ok(Response::new()
+        .add_attributes(vec![
+            ("lp_pool_id", pool_id.clone().to_string()),
+            ("lp_share_out_min_amount", share_out_min_amount.clone()),
+        ])
+        .add_submessage(SubMsg::reply_on_success(
+            MsgJoinSwapExternAmountIn {
+                sender: env.contract.address.to_string(),
+                pool_id,
+                token_in: Some(info.funds[0].clone().into()),
+                share_out_min_amount,
+            },
+            AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
+        )))
 }
 
 pub fn send_lp_tokens(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
@@ -95,18 +100,29 @@ pub fn send_lp_tokens(deps: DepsMut, env: Env) -> Result<Response, ContractError
 pub fn bond_lp_tokens(deps: Deps, env: Env) -> Result<Response, ContractError> {
     let cache = PROVIDE_LIQUIDITY_CACHE.load(deps.storage)?;
 
-    Ok(Response::new().add_submessage(SubMsg::reply_always(
-        create_authz_exec_message(
-            env.contract.address,
-            "/osmosis.lockup.MsgLockTokens".to_string(),
-            MsgLockTokens {
-                owner: cache.provider_address.to_string(),
-                duration: Some(cache.duration.into()),
-                coins: vec![cache.lp_token_balance.unwrap().into()],
-            },
-        ),
-        AFTER_BOND_LP_TOKENS_REPLY_ID,
-    )))
+    Ok(Response::new()
+        .add_attributes(vec![
+            (
+                "bond_lp_tokens_amount",
+                cache.lp_token_balance.clone().unwrap().to_string(),
+            ),
+            (
+                "bond_lp_tokens_duration",
+                cache.duration.clone().to_string(),
+            ),
+        ])
+        .add_submessage(SubMsg::reply_always(
+            create_authz_exec_message(
+                env.contract.address,
+                "/osmosis.lockup.MsgLockTokens".to_string(),
+                MsgLockTokens {
+                    owner: cache.provider_address.to_string(),
+                    duration: Some(cache.duration.into()),
+                    coins: vec![cache.lp_token_balance.unwrap().into()],
+                },
+            ),
+            AFTER_BOND_LP_TOKENS_REPLY_ID,
+        )))
 }
 
 pub fn log_bond_lp_tokens_result(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {

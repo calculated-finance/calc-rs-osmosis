@@ -90,7 +90,11 @@ pub enum ExecuteMsg {
     DisburseEscrow {
         vault_id: Uint128,
     },
-    ProvideLiquidity {
+    ZDelegate {
+        delegator_address: Addr,
+        validator_address: Addr,
+    },
+    ZProvideLiquidity {
         provider_address: Addr,
         pool_id: u64,
         duration: LockableDuration,

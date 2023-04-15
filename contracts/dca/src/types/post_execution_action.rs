@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use cosmwasm_schema::cw_serde;
 use osmosis_std::shim::Duration;
 
@@ -28,5 +30,21 @@ impl From<LockableDuration> for Duration {
             },
             nanos: 0,
         }
+    }
+}
+
+impl Into<String> for LockableDuration {
+    fn into(self) -> String {
+        String::from(match self {
+            LockableDuration::OneDay => "1 day",
+            LockableDuration::OneWeek => "1 weel",
+            LockableDuration::TwoWeeks => "2 weeks",
+        })
+    }
+}
+
+impl Display for LockableDuration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
     }
 }

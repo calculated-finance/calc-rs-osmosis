@@ -8,7 +8,6 @@ use base::helpers::math_helpers::checked_mul;
 use cosmwasm_std::{
     to_binary, BankMsg, Coin, CosmosMsg, Deps, Env, StdResult, SubMsg, Uint128, WasmMsg,
 };
-use staking_router::msg::ExecuteMsg as StakingRouterExecuteMsg;
 
 pub fn get_disbursement_messages(
     deps: Deps,
@@ -47,14 +46,12 @@ pub fn get_disbursement_messages(
                             SubMsg::reply_always(
                                 CosmosMsg::Wasm(WasmMsg::Execute {
                                     contract_addr: config.staking_router_address.to_string(),
-                                    msg: to_binary(&StakingRouterExecuteMsg::ZDelegate {
+                                    msg: to_binary(&ExecuteMsg::ZDelegate {
                                         delegator_address: vault.owner.clone(),
                                         validator_address: destination.address.clone(),
-                                        denom: allocation_amount.denom.clone(),
-                                        amount: allocation_amount.amount.clone(),
                                     })
                                     .unwrap(),
-                                    funds: vec![],
+                                    funds: vec![allocation_amount],
                                 }),
                                 AFTER_Z_DELEGATION_REPLY_ID,
                             ),
@@ -63,7 +60,7 @@ pub fn get_disbursement_messages(
                     PostExecutionAction::ZProvideLiquidity { pool_id, duration } => {
                         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                             contract_addr: env.contract.address.to_string(),
-                            msg: to_binary(&ExecuteMsg::ProvideLiquidity {
+                            msg: to_binary(&ExecuteMsg::ZProvideLiquidity {
                                 provider_address: destination.address.clone(),
                                 pool_id,
                                 duration,
