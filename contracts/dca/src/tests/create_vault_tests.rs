@@ -5,12 +5,13 @@ use crate::handlers::get_vault::get_vault;
 use crate::msg::ExecuteMsg;
 use crate::state::config::{get_config, update_config, Config};
 use crate::tests::helpers::instantiate_contract;
-use crate::tests::mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
+use crate::tests::mocks::{
+    calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO, USER, VALIDATOR,
+};
 use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::destination::Destination;
 use crate::types::event::{EventBuilder, EventData};
 use crate::types::pair::Pair;
-use crate::types::post_execution_action::PostExecutionAction;
 use crate::types::time_interval::TimeInterval;
 use crate::types::trigger::TriggerConfiguration;
 use crate::types::vault::{Vault, VaultStatus};
@@ -130,9 +131,9 @@ fn with_destination_allocations_less_than_100_percent_should_fail() {
         info.sender.clone(),
         None,
         vec![Destination {
-            address: Addr::unchecked("destination"),
             allocation: Decimal::percent(50),
-            action: PostExecutionAction::Send,
+            address: Addr::unchecked(USER),
+            msg: None,
         }],
         Addr::unchecked("pair"),
         None,
@@ -167,14 +168,14 @@ fn with_destination_allocation_equal_to_zero_should_fail() {
         None,
         vec![
             Destination {
-                address: Addr::unchecked("destination-all"),
                 allocation: Decimal::percent(100),
-                action: PostExecutionAction::Send,
+                address: Addr::unchecked(USER),
+                msg: None,
             },
             Destination {
-                address: Addr::unchecked("destination-empty"),
                 allocation: Decimal::percent(0),
-                action: PostExecutionAction::Send,
+                address: Addr::unchecked("other"),
+                msg: None,
             },
         ],
         Addr::unchecked("pair"),
@@ -211,9 +212,9 @@ fn with_more_than_10_destination_allocations_should_fail() {
         (0..20)
             .into_iter()
             .map(|i| Destination {
-                address: Addr::unchecked(format!("destination-{}", i)),
                 allocation: Decimal::percent(5),
-                action: PostExecutionAction::Send,
+                address: Addr::unchecked(format!("destination-{}", i)),
+                msg: None,
             })
             .collect(),
         Addr::unchecked("pair"),
@@ -387,11 +388,7 @@ fn should_create_vault() {
             label: None,
             id: Uint128::new(1),
             owner: info.sender,
-            destinations: vec![Destination {
-                address: Addr::unchecked(USER),
-                allocation: Decimal::percent(100),
-                action: PostExecutionAction::Send
-            }],
+            destinations: vec![Destination::default()],
             created_at: env.block.time,
             status: VaultStatus::Scheduled,
             time_interval: TimeInterval::Daily,
@@ -536,14 +533,26 @@ fn with_multiple_destinations_should_succeed() {
 
     let destinations = vec![
         Destination {
-            address: Addr::unchecked("dest-1"),
             allocation: Decimal::percent(50),
-            action: PostExecutionAction::Send,
+            address: env.contract.address.clone(),
+            msg: Some(
+                to_binary(&ExecuteMsg::ZDelegate {
+                    delegator_address: Addr::unchecked("dest-1"),
+                    validator_address: Addr::unchecked(VALIDATOR),
+                })
+                .unwrap(),
+            ),
         },
         Destination {
-            address: Addr::unchecked("dest-2"),
             allocation: Decimal::percent(50),
-            action: PostExecutionAction::ZDelegate,
+            address: env.contract.address.clone(),
+            msg: Some(
+                to_binary(&ExecuteMsg::ZDelegate {
+                    delegator_address: Addr::unchecked("dest-2"),
+                    validator_address: Addr::unchecked(VALIDATOR),
+                })
+                .unwrap(),
+            ),
         },
     ];
 

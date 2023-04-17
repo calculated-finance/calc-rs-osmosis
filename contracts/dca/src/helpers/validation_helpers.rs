@@ -2,7 +2,6 @@ use crate::error::ContractError;
 use crate::state::config::{get_config, FeeCollector};
 use crate::types::destination::Destination;
 use crate::types::pair::Pair;
-use crate::types::post_execution_action::PostExecutionAction;
 use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, Storage, Timestamp, Uint128};
 
@@ -150,16 +149,13 @@ pub fn assert_destinations_limit_is_not_breached(
     Ok(())
 }
 
-pub fn assert_destination_send_addresses_are_valid(
+pub fn assert_destination_callback_addresses_are_valid(
     deps: Deps,
     destinations: &[Destination],
 ) -> Result<(), ContractError> {
-    for destination in destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::Send)
-    {
-        assert_address_is_valid(deps, destination.address.clone(), "destination")?;
-    }
+    destinations.iter().for_each(|destination| {
+        assert_address_is_valid(deps, destination.address.clone(), "destination").unwrap();
+    });
     Ok(())
 }
 
@@ -173,32 +169,6 @@ pub fn assert_fee_collector_addresses_are_valid(
             Addr::unchecked(fee_collector.address.clone()),
             "fee collector",
         )?;
-    }
-    Ok(())
-}
-
-pub fn assert_destination_validator_addresses_are_valid(
-    deps: Deps,
-    destinations: &[Destination],
-) -> Result<(), ContractError> {
-    for destination in destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
-    {
-        assert_validator_is_valid(deps, destination.address.to_string())?;
-    }
-    Ok(())
-}
-
-pub fn assert_delegation_denom_is_stakeable(
-    destinations: &[Destination],
-    receive_denom: String,
-) -> Result<(), ContractError> {
-    if destinations
-        .iter()
-        .any(|d| d.action == PostExecutionAction::ZDelegate)
-    {
-        assert_denom_is_bond_denom(receive_denom)?;
     }
     Ok(())
 }

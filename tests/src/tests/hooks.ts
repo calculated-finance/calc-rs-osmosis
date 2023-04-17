@@ -39,7 +39,7 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
   const feeCollectorWallet = await createWallet(config);
   const feeCollectorAddress = (await feeCollectorWallet.getAccounts())[0].address;
 
-  await setTimeout(1000);
+  await setTimeout(3000);
 
   const userWallet = await createWallet(config);
   const userWalletAddress = (await userWallet.getAccounts())[0].address;
@@ -56,8 +56,6 @@ export const mochaHooks = async (): Promise<Mocha.RootHookObject> => {
     adminContractAddress,
     feeCollectorAddress,
   );
-
-  let guages = await queryClient.osmosis.incentives.activeGauges({});
 
   const contractPairs = (
     await cosmWasmClient.queryContractSmart(dcaContractAddress, {

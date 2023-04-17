@@ -106,21 +106,18 @@ export type ExecuteMsg =
  * This type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.
  */
 export type Addr = string;
-export type PostExecutionAction =
-  | ("send" | "z_delegate")
-  | {
-      z_provide_liquidity: {
-        duration: LockableDuration;
-        pool_id: number;
-      };
-    };
-export type LockableDuration = "one_day" | "one_week" | "two_weeks";
 /**
  * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
  *
  * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
  */
 export type Decimal = string;
+/**
+ * Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.
+ *
+ * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.
+ */
+export type Binary = string;
 /**
  * A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.
  *
@@ -158,11 +155,12 @@ export type TimeInterval =
   | "weekly"
   | "fortnightly"
   | "monthly";
+export type LockableDuration = "one_day" | "one_week" | "two_weeks";
 
 export interface Destination {
-  action: PostExecutionAction;
   address: Addr;
   allocation: Decimal;
+  msg?: Binary | null;
 }
 export interface FeeCollector {
   address: string;

@@ -23,7 +23,6 @@ use crate::{
         destination::Destination,
         event::{Event, EventBuilder, EventData, ExecutionSkippedReason},
         position_type::PositionType,
-        post_execution_action::PostExecutionAction,
         vault::{Vault, VaultStatus},
     },
 };
@@ -83,21 +82,16 @@ fn with_succcesful_swap_returns_funds_to_destination() {
 
     let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
 
-    let automation_fees = vault
-        .destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
-        .fold(
-            Coin::new(0, vault.get_receive_denom()),
-            |mut accum, destination| {
-                let allocation_amount =
-                    checked_mul(receive_amount - fee, destination.allocation).unwrap();
-                let allocation_automation_fee =
-                    checked_mul(allocation_amount, automation_fee).unwrap();
-                accum.amount = accum.amount.checked_add(allocation_automation_fee).unwrap();
-                accum
-            },
-        );
+    let automation_fees = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
+        Coin::new(0, vault.get_receive_denom()),
+        |mut accum, destination| {
+            let allocation_amount =
+                checked_mul(receive_amount - fee, destination.allocation).unwrap();
+            let allocation_automation_fee = checked_mul(allocation_amount, automation_fee).unwrap();
+            accum.amount = accum.amount.checked_add(allocation_automation_fee).unwrap();
+            accum
+        },
+    );
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: vault.destinations.first().unwrap().address.to_string(),
@@ -149,17 +143,16 @@ fn with_succcesful_swap_returns_fee_to_fee_collector() {
     let swap_fee = config.swap_fee_percent * receive_amount;
     let total_after_swap_fee = receive_amount - swap_fee;
 
-    let automation_fee = vault
-        .destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
-        .fold(Uint128::zero(), |acc, destination| {
+    let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
+        Uint128::zero(),
+        |acc, destination| {
             let allocation_amount =
                 checked_mul(total_after_swap_fee, destination.allocation).unwrap();
             let allocation_automation_fee =
                 checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
             acc.checked_add(allocation_automation_fee).unwrap()
-        });
+        },
+    );
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[0].address.to_string(),
@@ -228,17 +221,16 @@ fn with_succcesful_swap_returns_fee_to_multiple_fee_collectors() {
     let swap_fee = config.swap_fee_percent * receive_amount;
     let total_after_swap_fee = receive_amount - swap_fee;
 
-    let automation_fee = vault
-        .destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
-        .fold(Uint128::zero(), |acc, destination| {
+    let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
+        Uint128::zero(),
+        |acc, destination| {
             let allocation_amount =
                 checked_mul(total_after_swap_fee, destination.allocation).unwrap();
             let allocation_automation_fee =
                 checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
             acc.checked_add(allocation_automation_fee).unwrap()
-        });
+        },
+    );
 
     for fee_collector in config.fee_collectors.iter() {
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
@@ -413,7 +405,7 @@ fn with_succcesful_swap_adjusts_received_amount_stat() {
     vault
         .destinations
         .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
+        .filter(|d| d.msg.is_some())
         .for_each(|destination| {
             let allocation_amount =
                 checked_mul(receive_amount - fee, destination.allocation).unwrap();
@@ -836,17 +828,16 @@ fn with_custom_fee_for_base_denom_takes_custom_fee() {
     let swap_fee = custom_fee_percent * receive_amount;
     let total_after_swap_fee = receive_amount - swap_fee;
 
-    let automation_fee = vault
-        .destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
-        .fold(Uint128::zero(), |acc, destination| {
+    let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
+        Uint128::zero(),
+        |acc, destination| {
             let allocation_amount =
                 checked_mul(total_after_swap_fee, destination.allocation).unwrap();
             let allocation_automation_fee =
                 checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
             acc.checked_add(allocation_automation_fee).unwrap()
-        });
+        },
+    );
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[0].address.to_string(),
@@ -910,17 +901,16 @@ fn with_custom_fee_for_quote_denom_takes_custom_fee() {
     let swap_fee = custom_fee_percent * receive_amount;
     let total_after_swap_fee = receive_amount - swap_fee;
 
-    let automation_fee = vault
-        .destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
-        .fold(Uint128::zero(), |acc, destination| {
+    let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
+        Uint128::zero(),
+        |acc, destination| {
             let allocation_amount =
                 checked_mul(total_after_swap_fee, destination.allocation).unwrap();
             let allocation_automation_fee =
                 checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
             acc.checked_add(allocation_automation_fee).unwrap()
-        });
+        },
+    );
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[0].address.to_string(),
@@ -992,17 +982,16 @@ fn with_custom_fee_for_both_denoms_takes_lower_fee() {
     let swap_fee = min(swap_denom_fee_percent, receive_denom_fee_percent) * receive_amount;
     let total_after_swap_fee = receive_amount - swap_fee;
 
-    let automation_fee = vault
-        .destinations
-        .iter()
-        .filter(|d| d.action == PostExecutionAction::ZDelegate)
-        .fold(Uint128::zero(), |acc, destination| {
+    let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
+        Uint128::zero(),
+        |acc, destination| {
             let allocation_amount =
                 checked_mul(total_after_swap_fee, destination.allocation).unwrap();
             let allocation_automation_fee =
                 checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
             acc.checked_add(allocation_automation_fee).unwrap()
-        });
+        },
+    );
 
     assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
         to_address: config.fee_collectors[0].address.to_string(),

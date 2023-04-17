@@ -163,7 +163,7 @@ describe('when creating a vault', () => {
         createVault(this, {
           destinations: [
             {
-              action: 'send',
+              msg: null,
               address: this.userWalletAddress,
               allocation: '0.1',
             },
@@ -179,7 +179,7 @@ describe('when creating a vault', () => {
         createVault(this, {
           destinations: map(
             () => ({
-              action: 'send',
+              msg: null,
               address: this.userWalletAddress,
               allocation: '0.1',
             }),
@@ -196,7 +196,7 @@ describe('when creating a vault', () => {
         createVault(this, {
           destinations: [
             {
-              action: 'send',
+              msg: null,
               address: this.userWalletAddress,
               allocation: '0.0',
             },
@@ -212,9 +212,9 @@ describe('when creating a vault', () => {
         createVault(this, {
           destinations: [
             {
-              action: 'send',
+              msg: null,
               address: 'notanaddress',
-              allocation: '0.1',
+              allocation: '1.0',
             },
           ],
         }),

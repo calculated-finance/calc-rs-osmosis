@@ -1,15 +1,16 @@
 use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
 use crate::types::{
     dca_plus_config::DcaPlusConfig,
+    destination::Destination,
     time_interval::TimeInterval,
     vault::{Vault, VaultStatus},
     vault_builder::VaultBuilder,
 };
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Binary, Coin, Decimal, StdResult, Storage, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, Item, UniqueIndex};
 
-const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v4");
+const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v5");
 
 struct VaultIndexes<'a> {
     pub owner: UniqueIndex<'a, (Addr, u128), VaultData, u128>,
@@ -25,13 +26,13 @@ impl<'a> IndexList<VaultData> for VaultIndexes<'a> {
 
 fn vault_store<'a>() -> IndexedMap<'a, u128, VaultData, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
-        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v4__owner"),
+        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v5__owner"),
         owner_status: UniqueIndex::new(
             |v| (v.owner.clone(), v.status.clone() as u8, v.id.into()),
-            "vaults_v4__owner_status",
+            "vaults_v5__owner_status",
         ),
     };
-    IndexedMap::new("vaults_v4", indexes)
+    IndexedMap::new("vaults_v5", indexes)
 }
 
 pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdResult<Vault> {
@@ -105,7 +106,7 @@ struct VaultData {
     pub created_at: Timestamp,
     pub owner: Addr,
     pub label: Option<String>,
-    pub destinations: Vec<Binary>, // store destinations as binary to allow post execution action extension
+    pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
     pub pair_address: Addr,
@@ -136,7 +137,7 @@ impl From<Vault> for VaultData {
             swapped_amount: vault.swapped_amount,
             received_amount: vault.received_amount,
             dca_plus_config: vault.dca_plus_config,
-            destinations: vault.destinations.into_iter().map(|d| d.into()).collect(),
+            destinations: vault.destinations,
             pair_address: vault.pair.address,
         }
     }
@@ -166,12 +167,7 @@ fn vault_from(store: &dyn Storage, data: &VaultData) -> Vault {
         swapped_amount: data.swapped_amount.clone(),
         received_amount: data.received_amount.clone(),
         dca_plus_config: data.dca_plus_config.clone(),
-        destinations: data
-            .destinations
-            .clone()
-            .into_iter()
-            .map(|b| b.into())
-            .collect(),
+        destinations: data.destinations.clone(),
         pair,
         trigger,
     }

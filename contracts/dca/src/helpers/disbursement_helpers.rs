@@ -1,12 +1,8 @@
-use crate::{
-    msg::ExecuteMsg,
-    types::{post_execution_action::PostExecutionAction, vault::Vault},
-};
+use crate::types::vault::Vault;
 use base::helpers::math_helpers::checked_mul;
-use cosmwasm_std::{to_binary, BankMsg, Coin, CosmosMsg, Env, StdResult, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{BankMsg, Coin, StdResult, SubMsg, Uint128, WasmMsg};
 
 pub fn get_disbursement_messages(
-    env: &Env,
     vault: &Vault,
     amount_to_disburse: Uint128,
 ) -> StdResult<Vec<SubMsg>> {
@@ -23,41 +19,22 @@ pub fn get_disbursement_messages(
             );
 
             if allocation_amount.amount.gt(&Uint128::zero()) {
-                return match destination.action.clone() {
-                    PostExecutionAction::Send => {
-                        vec![SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-                            to_address: destination.address.to_string(),
-                            amount: vec![allocation_amount],
-                        }))]
-                    }
-                    PostExecutionAction::ZDelegate => {
-                        vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                            contract_addr: env.contract.address.to_string(),
-                            msg: to_binary(&ExecuteMsg::ZDelegate {
-                                delegator_address: vault.owner.clone(),
-                                validator_address: destination.address.clone(),
-                            })
-                            .unwrap(),
+                return Some(destination.msg.clone().map_or(
+                    SubMsg::new(BankMsg::Send {
+                        to_address: destination.address.to_string(),
+                        amount: vec![allocation_amount.clone()],
+                    }),
+                    |msg| {
+                        SubMsg::new(WasmMsg::Execute {
+                            contract_addr: destination.address.to_string(),
+                            msg,
                             funds: vec![allocation_amount],
-                        }))]
-                    }
-                    PostExecutionAction::ZProvideLiquidity { pool_id, duration } => {
-                        vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                            contract_addr: env.contract.address.to_string(),
-                            msg: to_binary(&ExecuteMsg::ZProvideLiquidity {
-                                provider_address: destination.address.clone(),
-                                pool_id,
-                                duration,
-                                slippage_tolerance: vault.slippage_tolerance,
-                            })
-                            .unwrap(),
-                            funds: vec![allocation_amount.clone()],
-                        }))]
-                    }
-                };
+                        })
+                    },
+                ));
             }
 
-            vec![]
+            return None;
         })
         .collect::<Vec<SubMsg>>())
 }

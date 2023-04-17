@@ -46,15 +46,6 @@ export type EventData =
       dca_vault_cancelled: {};
     }
   | {
-      dca_vault_z_delegation_succeeded: {
-        delegation: Coin;
-        validator_address: string;
-      };
-    }
-  | {
-      dca_vault_delegation_failed: {};
-    }
-  | {
       dca_vault_escrow_disbursed: {
         amount_disbursed: Coin;
         performance_fee: Coin;
