@@ -17,7 +17,7 @@ fn disburse_escrow_task_store<'a>(
 ) -> IndexedMap<'a, u128, (u64, u128), DisburseEscrowTaskIndexes<'a>> {
     let indexes = DisburseEscrowTaskIndexes {
         due_date: MultiIndex::new(
-            |_, (due_date, _)| due_date.clone(),
+            |_, (due_date, _)| *due_date,
             "disburse_escrow_task_v5",
             "disburse_escrow_task_v5__due_date",
         ),

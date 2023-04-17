@@ -81,7 +81,7 @@ pub fn create_vault_handler(
 
     let config = get_config(deps.storage)?;
 
-    let dca_plus_config = use_dca_plus.map_or(None, |use_dca_plus| {
+    let dca_plus_config = use_dca_plus.and_then(|use_dca_plus| {
         if !use_dca_plus {
             return None;
         }
@@ -104,7 +104,7 @@ pub fn create_vault_handler(
         label,
         destinations,
         created_at: env.block.time,
-        status: if info.funds[0].amount.clone() <= Uint128::from(50000u128) {
+        status: if info.funds[0].amount <= Uint128::from(50000u128) {
             VaultStatus::Inactive
         } else {
             VaultStatus::Scheduled
@@ -115,9 +115,9 @@ pub fn create_vault_handler(
         slippage_tolerance,
         minimum_receive_amount,
         balance: info.funds[0].clone(),
-        time_interval: time_interval.clone(),
+        time_interval,
         started_at: None,
-        swapped_amount: coin(0, info.funds[0].clone().denom.clone()),
+        swapped_amount: coin(0, info.funds[0].clone().denom),
         received_amount: coin(
             0,
             match info.funds[0].clone().denom == pair.quote_denom {
@@ -130,12 +130,7 @@ pub fn create_vault_handler(
 
     let vault = save_vault(deps.storage, vault_builder)?;
 
-    VAULT_CACHE.save(
-        deps.storage,
-        &VaultCache {
-            vault_id: vault.id.clone(),
-        },
-    )?;
+    VAULT_CACHE.save(deps.storage, &VaultCache { vault_id: vault.id })?;
 
     create_event(
         deps.storage,

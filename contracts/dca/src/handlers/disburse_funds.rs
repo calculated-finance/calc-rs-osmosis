@@ -18,7 +18,7 @@ use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
 
 pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response, ContractError> {
     let cache = VAULT_CACHE.load(deps.storage)?;
-    let mut vault = get_vault(deps.storage, cache.vault_id.into())?;
+    let mut vault = get_vault(deps.storage, cache.vault_id)?;
 
     let mut attributes: Vec<Attribute> = Vec::new();
     let mut sub_msgs: Vec<SubMsg> = Vec::new();
@@ -29,11 +29,11 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
 
             let swap_denom_balance = &deps
                 .querier
-                .query_balance(&env.contract.address, &vault.get_swap_denom())?;
+                .query_balance(&env.contract.address, vault.get_swap_denom())?;
 
             let receive_denom_balance = &deps
                 .querier
-                .query_balance(&env.contract.address, &vault.get_receive_denom())?;
+                .query_balance(&env.contract.address, vault.get_receive_denom())?;
 
             let coin_sent = Coin::new(
                 (swap_cache.swap_denom_balance.amount - swap_denom_balance.amount).into(),
@@ -67,7 +67,7 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
                 coin_received.denom.clone(),
             )?);
 
-            vault.balance.amount -= get_swap_amount(&deps.as_ref(), &env, &vault)?.amount;
+            vault.balance.amount -= get_swap_amount(&deps.as_ref(), env, &vault)?.amount;
             vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount);
             vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee);
 
@@ -99,9 +99,9 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
                     vault.id,
                     env.block.clone(),
                     EventData::DcaVaultExecutionCompleted {
-                        sent: coin_sent.clone(),
+                        sent: coin_sent,
                         received: coin_received.clone(),
-                        fee: Coin::new(total_fee.into(), coin_received.denom.clone()),
+                        fee: Coin::new(total_fee.into(), coin_received.denom),
                     },
                 ),
             )?;

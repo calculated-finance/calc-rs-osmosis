@@ -20,7 +20,7 @@ pub fn event_store<'a>() -> IndexedMap<'a, u64, Binary, EventIndexes<'a>> {
     let indexes = EventIndexes {
         resource_id: UniqueIndex::new(
             |event| {
-                from_binary(&event)
+                from_binary(event)
                     .map(|event: Event| (event.resource_id.into(), event.id))
                     .expect("deserialised event")
             },
@@ -31,7 +31,7 @@ pub fn event_store<'a>() -> IndexedMap<'a, u64, Binary, EventIndexes<'a>> {
 }
 
 pub fn create_event(store: &mut dyn Storage, event_builder: EventBuilder) -> StdResult<u64> {
-    let event = event_builder.build(fetch_and_increment_counter(store, EVENT_COUNTER)?.into());
+    let event = event_builder.build(fetch_and_increment_counter(store, EVENT_COUNTER)?);
     event_store().save(
         store,
         event.id,

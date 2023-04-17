@@ -54,7 +54,7 @@ pub fn get_dca_plus_model_id(
             .checked_div(*swap_amount)
             .expect("deposit divided by swap amount should be larger than 0"))
         .into(),
-        &time_interval,
+        time_interval,
     );
 
     match execution_duration.num_days() {
@@ -133,7 +133,7 @@ pub fn simulate_standard_dca_execution(
             }
 
             let actual_price = query_price(
-                &querier,
+                querier,
                 env,
                 &vault.pair,
                 &Coin::new(swap_amount.into(), vault.get_swap_denom()),

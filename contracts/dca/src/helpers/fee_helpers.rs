@@ -21,7 +21,6 @@ pub fn get_fee_messages(
             fee_amounts.iter().flat_map(|fee| {
                 let fee_allocation = Coin::new(
                     checked_mul(*fee, fee_collector.allocation)
-                        .ok()
                         .expect("amount to be distributed should be valid")
                         .into(),
                     denom.clone(),

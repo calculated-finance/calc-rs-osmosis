@@ -20,7 +20,7 @@ pub fn cancel_vault(
 ) -> Result<Response, ContractError> {
     let mut vault = get_vault(deps.storage, vault_id)?;
 
-    assert_sender_is_admin_or_vault_owner(deps.storage, vault.owner.clone(), info.sender.clone())?;
+    assert_sender_is_admin_or_vault_owner(deps.storage, vault.owner.clone(), info.sender)?;
     assert_vault_is_not_cancelled(&vault)?;
 
     create_event(
@@ -28,7 +28,7 @@ pub fn cancel_vault(
         EventBuilder::new(vault.id, env.block.clone(), EventData::DcaVaultCancelled {}),
     )?;
 
-    if let Some(_) = vault.dca_plus_config {
+    if vault.dca_plus_config.is_some() {
         save_disburse_escrow_task(
             deps.storage,
             vault.id,

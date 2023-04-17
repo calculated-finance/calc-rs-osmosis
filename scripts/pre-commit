@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+cd ${REPO_ROOT}
+cargo update
+cd -
+
+cd ${REPO_ROOT}/contracts/dca
+cargo clippy -- -D warnings
+cargo unit-test
+cargo schema
+cd -
+
+cd ${REPO_ROOT}/packages/base
+cargo clippy -- -D warnings
+cargo unit-test
+cd -

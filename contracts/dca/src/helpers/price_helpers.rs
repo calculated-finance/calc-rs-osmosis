@@ -34,7 +34,7 @@ pub fn query_belief_price(
             base_asset_denom: target_denom.clone(),
             quote_asset_denom: swap_denom,
         }
-        .query(&querier)?
+        .query(querier)?
         .spot_price
         .parse::<Decimal>()?
             * (Decimal::one() + swap_fee);
@@ -55,19 +55,21 @@ pub fn query_price(
 ) -> StdResult<Decimal> {
     let routes = calculate_route(querier, pair, swap_amount.denom.clone())?;
 
-    let token_out_amount = PoolmanagerQuerier::new(&querier)
+    let token_out_amount = PoolmanagerQuerier::new(querier)
         .estimate_swap_exact_amount_in(
             env.contract.address.to_string(),
             0,
             swap_amount.to_string(),
             routes.clone(),
         )
-        .expect(&format!(
-            "amount of {} received for swapping {} via {:#?}",
-            routes.last().unwrap().token_out_denom,
-            swap_amount.to_string(),
-            routes,
-        ))
+        .unwrap_or_else(|_| {
+            panic!(
+                "amount of {} received for swapping {} via {:#?}",
+                routes.last().unwrap().token_out_denom,
+                swap_amount,
+                routes
+            )
+        })
         .token_out_amount
         .parse::<Uint128>()?;
 

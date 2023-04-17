@@ -28,7 +28,7 @@ pub fn deposit(
     deps.api.addr_validate(address.as_str())?;
     assert_exactly_one_asset(info.funds.clone())?;
 
-    let mut vault = get_vault(deps.storage, vault_id.into())?;
+    let mut vault = get_vault(deps.storage, vault_id)?;
     let vault_was_inactive = vault.is_inactive();
 
     if address != vault.owner {
@@ -87,7 +87,7 @@ pub fn deposit(
             Trigger {
                 vault_id,
                 configuration: TriggerConfiguration::Time {
-                    target_time: env.block.time.clone(),
+                    target_time: env.block.time,
                 },
             },
         )?;

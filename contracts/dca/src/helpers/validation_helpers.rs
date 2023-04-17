@@ -178,7 +178,7 @@ pub fn assert_address_is_valid(
     address: Addr,
     label: &str,
 ) -> Result<(), ContractError> {
-    match deps.api.addr_validate(&address.to_string()) {
+    match deps.api.addr_validate(address.as_ref()) {
         Ok(_) => Ok(()),
         Err(_) => Err(ContractError::CustomError {
             val: format!("{} address {} is invalid", label, address),
@@ -270,7 +270,7 @@ pub fn assert_validator_is_valid(
 }
 
 pub fn assert_denom_is_bond_denom(denom: String) -> Result<(), ContractError> {
-    if denom.clone() != "uosmo".to_string() {
+    if denom != *"uosmo" {
         return Err(ContractError::CustomError {
             val: format!("{} is not the bond denomination", denom),
         });

@@ -43,10 +43,12 @@ pub fn get_attribute_in_event(
         .into_iter()
         .flat_map(|event| event.attributes.iter())
         .find(|attribute| attribute.key == attribute_key)
-        .ok_or(StdError::generic_err(format!(
-            "unable to find {} attribute in {} event",
-            attribute_key, event_type
-        )))?;
+        .ok_or_else(|| {
+            StdError::generic_err(format!(
+                "unable to find {} attribute in {} event",
+                attribute_key, event_type
+            ))
+        })?;
 
     Ok(attribute.value.clone())
 }

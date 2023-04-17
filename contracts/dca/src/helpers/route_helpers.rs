@@ -28,22 +28,22 @@ pub fn get_token_out_denom(
         .pool_assets
         .iter()
         .find(|asset| asset.token.clone().unwrap().denom != token_in_denom)
-        .map(|asset| asset.token.clone().unwrap().denom.clone())
-        .ok_or(StdError::generic_err("no token out denom found"));
+        .map(|asset| asset.token.clone().unwrap().denom)
+        .ok_or_else(|| StdError::generic_err("no token out denom found"));
 
     token_out_denom
 }
 
 pub fn get_pool(querier: &QuerierWrapper, pool_id: u64) -> Result<Pool, StdError> {
-    Ok(GammQuerier::new(querier)
+    GammQuerier::new(querier)
         .pool(pool_id)?
         .pool
-        .expect(&format!("pool id {}", pool_id))
+        .unwrap_or_else(|| panic!("pool id {}", pool_id))
         .try_into()
         .map_err(|e: DecodeError| StdError::ParseErr {
             target_type: Pool::TYPE_URL.to_string(),
             msg: e.to_string(),
-        })?)
+        })
 }
 
 pub fn calculate_route(
