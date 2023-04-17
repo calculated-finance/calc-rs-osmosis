@@ -16,7 +16,7 @@ pub fn create_osmosis_swap_message(
 
     let token_out_min_amount = match slippage_tolerance {
         Some(slippage_tolerance) => {
-            let belief_price = query_belief_price(&querier, &pair, swap_amount.denom.clone())?;
+            let belief_price = query_belief_price(querier, pair, swap_amount.denom.clone())?;
 
             swap_amount.amount
                 * (Decimal::one() / belief_price)
@@ -27,7 +27,7 @@ pub fn create_osmosis_swap_message(
 
     let msg = MsgSwapExactAmountIn {
         sender: env.contract.address.to_string(),
-        token_in: Some(swap_amount.clone().into()),
+        token_in: Some(swap_amount.into()),
         token_out_min_amount: token_out_min_amount.to_string(),
         routes,
     };

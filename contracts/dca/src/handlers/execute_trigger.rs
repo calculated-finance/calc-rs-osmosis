@@ -29,7 +29,7 @@ pub fn execute_trigger_handler(
     assert_contract_is_not_paused(deps.storage)?;
 
     let mut response = Response::new().add_attribute("method", "execute_trigger");
-    let mut vault = get_vault(deps.storage, trigger_id.into())?;
+    let mut vault = get_vault(deps.storage, trigger_id)?;
 
     delete_trigger(deps.storage, vault.id)?;
 
@@ -54,7 +54,7 @@ pub fn execute_trigger_handler(
     match vault
         .trigger
         .clone()
-        .expect(format!("trigger for vault id {}", vault.id).as_str())
+        .unwrap_or_else(|| panic!("trigger for vault id {}", vault.id))
     {
         TriggerConfiguration::Time { target_time } => {
             assert_target_time_is_in_past(env.block.time, target_time)?;
@@ -78,7 +78,7 @@ pub fn execute_trigger_handler(
             EventData::DcaVaultExecutionTriggered {
                 base_denom: vault.pair.base_denom.clone(),
                 quote_denom: vault.pair.quote_denom.clone(),
-                asset_price: belief_price.clone(),
+                asset_price: belief_price,
             },
         ),
     )?;
@@ -145,7 +145,7 @@ pub fn execute_trigger_handler(
             deps.storage,
             EventBuilder::new(
                 vault.id,
-                env.block.to_owned(),
+                env.block,
                 EventData::DcaVaultExecutionSkipped {
                     reason: ExecutionSkippedReason::PriceThresholdExceeded {
                         price: belief_price,
@@ -154,7 +154,7 @@ pub fn execute_trigger_handler(
             ),
         )?;
 
-        return Ok(response.to_owned());
+        return Ok(response);
     };
 
     VAULT_CACHE.save(deps.storage, &VaultCache { vault_id: vault.id })?;
@@ -164,17 +164,17 @@ pub fn execute_trigger_handler(
         &SwapCache {
             swap_denom_balance: deps
                 .querier
-                .query_balance(&env.contract.address, &vault.get_swap_denom())?,
+                .query_balance(&env.contract.address, vault.get_swap_denom())?,
             receive_denom_balance: deps
                 .querier
-                .query_balance(&env.contract.address, &vault.get_receive_denom())?,
+                .query_balance(&env.contract.address, vault.get_receive_denom())?,
         },
     )?;
 
     Ok(response.add_submessage(create_osmosis_swap_message(
         &deps.querier,
         &env,
-        &vault.pair.clone(),
+        &vault.pair,
         swap_amount,
         vault.slippage_tolerance,
         Some(AFTER_SWAP_REPLY_ID),

@@ -12,10 +12,9 @@ pub fn get_disbursement_messages(
         .flat_map(|destination| {
             let allocation_amount = Coin::new(
                 checked_mul(amount_to_disburse, destination.allocation)
-                    .ok()
                     .expect("amount to be distributed should be valid")
                     .into(),
-                vault.get_receive_denom().clone(),
+                vault.get_receive_denom(),
             );
 
             if allocation_amount.amount.gt(&Uint128::zero()) {
@@ -34,7 +33,7 @@ pub fn get_disbursement_messages(
                 ));
             }
 
-            return None;
+            None
         })
         .collect::<Vec<SubMsg>>())
 }

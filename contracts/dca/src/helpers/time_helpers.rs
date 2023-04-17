@@ -4,11 +4,7 @@ use cosmwasm_std::Timestamp;
 use std::convert::TryInto;
 
 pub fn target_time_elapsed(current_time: Timestamp, target_execution_time: Timestamp) -> bool {
-    if current_time.seconds().ge(&target_execution_time.seconds()) {
-        return true;
-    } else {
-        return false;
-    }
+    current_time.seconds().ge(&target_execution_time.seconds())
 }
 
 pub fn get_next_target_time(
@@ -61,7 +57,7 @@ pub fn get_total_execution_duration(
 
     (0..iterations).fold(Duration::zero(), |acc, _| {
         let duration = get_duration(start_time, interval);
-        start_time = start_time + duration;
+        start_time += duration;
         acc + duration
     })
 }

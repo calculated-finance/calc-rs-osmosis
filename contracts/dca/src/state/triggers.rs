@@ -18,7 +18,7 @@ fn trigger_store<'a>() -> IndexedMap<'a, u128, Trigger, TriggerIndexes<'a>> {
     let indexes = TriggerIndexes {
         due_date: MultiIndex::new(
             |_, trigger| match trigger.configuration {
-                TriggerConfiguration::Time { target_time } => target_time.seconds().clone(),
+                TriggerConfiguration::Time { target_time } => target_time.seconds(),
             },
             "triggers_v5",
             "triggers_v5__due_date",
@@ -57,7 +57,7 @@ pub fn get_time_triggers(
             Order::Ascending,
         )
         .take(limit.unwrap_or(30) as usize)
-        .flat_map(|result| result.map(|(_, trigger)| trigger.vault_id.into()))
+        .flat_map(|result| result.map(|(_, trigger)| trigger.vault_id))
         .collect::<Vec<Uint128>>())
 }
 

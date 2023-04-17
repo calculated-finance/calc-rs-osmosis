@@ -64,13 +64,14 @@ pub fn get_vaults_by_address(
     Ok(partition
         .range(
             store,
-            start_after.map(|vault_id| Bound::exclusive(vault_id)),
+            start_after.map(Bound::exclusive),
             None,
             cosmwasm_std::Order::Ascending,
         )
         .take(limit.unwrap_or(30) as usize)
         .map(|result| {
-            let (_, vault_data) = result.expect(format!("vault after {:?}", start_after).as_str());
+            let (_, vault_data) =
+                result.unwrap_or_else(|_| panic!("vault after {:?}", start_after));
             vault_from(store, &vault_data)
         })
         .collect::<Vec<Vault>>())
@@ -84,13 +85,14 @@ pub fn get_vaults(
     Ok(vault_store()
         .range(
             store,
-            start_after.map(|vault_id| Bound::exclusive(vault_id)),
+            start_after.map(Bound::exclusive),
             None,
             cosmwasm_std::Order::Ascending,
         )
         .take(limit.unwrap_or(30) as usize)
         .map(|result| {
-            let (_, vault_data) = result.expect(format!("vault after {:?}", start_after).as_str());
+            let (_, vault_data) =
+                result.unwrap_or_else(|_| panic!("vault after {:?}", start_after));
             vault_from(store, &vault_data)
         })
         .collect::<Vec<Vault>>())
@@ -146,10 +148,10 @@ impl From<Vault> for VaultData {
 fn vault_from(store: &dyn Storage, data: &VaultData) -> Vault {
     let pair = PAIRS
         .load(store, data.pair_address.clone())
-        .expect(format!("pair for pair address {:?}", data.pair_address).as_str());
+        .unwrap_or_else(|_| panic!("pair for pair address {:?}", data.pair_address));
 
-    let trigger = get_trigger(store, data.id.into())
-        .expect(format!("trigger for vault id {}", data.id).as_str())
+    let trigger = get_trigger(store, data.id)
+        .unwrap_or_else(|_| panic!("trigger for vault id {}", data.id))
         .map(|t| t.configuration);
 
     Vault {

@@ -16,7 +16,7 @@ pub fn get_events(
         .range(
             deps.storage,
             reverse.map_or(start_after.map(Bound::exclusive), |_| None),
-            reverse.map_or(None, |_| start_after.map(Bound::exclusive)),
+            reverse.and_then(|_| start_after.map(Bound::exclusive)),
             reverse.map_or(Order::Ascending, |reverse| match reverse {
                 true => Order::Descending,
                 false => Order::Ascending,

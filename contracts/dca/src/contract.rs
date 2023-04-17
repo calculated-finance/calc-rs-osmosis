@@ -42,7 +42,7 @@ pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[entry_point]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
-    deps.api.addr_validate(&msg.admin.to_string())?;
+    deps.api.addr_validate(msg.admin.as_ref())?;
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
@@ -73,7 +73,7 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    deps.api.addr_validate(&msg.admin.to_string())?;
+    deps.api.addr_validate(msg.admin.as_ref())?;
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
@@ -130,9 +130,9 @@ pub fn execute(
             deps,
             env,
             &info,
-            owner.unwrap_or(info.sender.clone()),
+            owner.unwrap_or_else(|| info.sender.clone()),
             label,
-            destinations.unwrap_or(vec![]),
+            destinations.unwrap_or_default(),
             pair_address,
             position_type,
             slippage_tolerance,
