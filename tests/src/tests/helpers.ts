@@ -64,6 +64,8 @@ export const createVault = async (
     deposit,
   );
 
+  console.log(response['wasm']);
+
   return response['wasm']['vault_id'];
 };
 
