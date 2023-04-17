@@ -17,7 +17,6 @@ declare module 'mocha' {
     adminContractAddress: Addr;
     feeCollectorAddress: Addr;
     userWalletAddress: Addr;
-    stakingRouterContractAddress: Addr;
     pair: Pair;
     validatorAddress: string;
     swapAdjustment: number;

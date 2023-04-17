@@ -25,7 +25,6 @@ fn update_swap_fee_percent_with_valid_value_should_succeed() {
         None,
         None,
         None,
-        None,
     )
     .unwrap();
 
@@ -46,7 +45,6 @@ fn update_swap_fee_percent_more_than_100_percent_should_fail() {
         info,
         None,
         Some(Decimal::percent(150)),
-        None,
         None,
         None,
         None,
@@ -76,7 +74,6 @@ fn update_delegation_fee_percent_with_valid_value_should_succeed() {
         None,
         None,
         None,
-        None,
     )
     .unwrap();
 
@@ -101,7 +98,6 @@ fn update_delegation_fee_percent_more_than_100_percent_should_fail() {
         None,
         None,
         None,
-        None,
     )
     .unwrap_err();
 
@@ -120,18 +116,7 @@ fn update_fee_collectors_with_no_value_should_not_change_value() {
 
     let config_before_update = get_config(deps.as_ref().storage).unwrap();
 
-    update_config_handler(
-        deps.as_mut(),
-        info,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
-    .unwrap();
+    update_config_handler(deps.as_mut(), info, None, None, None, None, None, None).unwrap();
 
     let config_after_update = get_config(deps.as_ref().storage).unwrap();
 
@@ -163,7 +148,6 @@ fn update_fee_collectors_with_valid_value_should_succeed() {
         deps.as_mut(),
         info,
         fee_collectors.clone(),
-        None,
         None,
         None,
         None,
@@ -202,7 +186,6 @@ fn update_fee_collectors_with_total_allocations_more_than_100_percent_should_fai
         None,
         None,
         None,
-        None,
     )
     .unwrap_err();
 
@@ -227,7 +210,6 @@ fn update_dca_plus_escrow_level_with_valid_value_should_succeed() {
         None,
         None,
         None,
-        None,
         Some(Decimal::percent(19)),
     )
     .unwrap();
@@ -247,7 +229,6 @@ fn update_dca_plus_escrow_level_more_than_100_percent_should_fail() {
     let err = update_config_handler(
         deps.as_mut(),
         info,
-        None,
         None,
         None,
         None,

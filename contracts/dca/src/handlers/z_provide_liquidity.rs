@@ -1,8 +1,5 @@
 use crate::{
-    contract::{
-        AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
-        AFTER_SEND_LP_TOKENS_REPLY_ID,
-    },
+    contract::{AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_PROVIDE_LIQUIDITY_REPLY_ID},
     error::ContractError,
     helpers::{
         authz_helpers::create_authz_exec_message, validation_helpers::assert_exactly_one_asset,
@@ -11,15 +8,15 @@ use crate::{
     types::post_execution_action::LockableDuration,
 };
 use cosmwasm_std::{
-    Addr, BankMsg, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Reply, Response, SubMsg,
-    SubMsgResult, Uint128,
+    Addr, BankMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Reply, Response, SubMsg, SubMsgResult,
+    Uint128,
 };
 use osmosis_std::types::osmosis::{
     gamm::v1beta1::{MsgJoinSwapExternAmountIn, QueryCalcJoinPoolSharesRequest},
     lockup::MsgLockTokens,
 };
 
-pub fn provide_liquidity_handler(
+pub fn z_provide_liquidity_handler(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -36,7 +33,6 @@ pub fn provide_liquidity_handler(
             provider_address,
             pool_id,
             duration,
-            lp_token_balance: None,
         },
     )?;
 
@@ -56,18 +52,23 @@ pub fn provide_liquidity_handler(
         },
     ));
 
-    Ok(Response::new().add_submessage(SubMsg::reply_on_success(
-        MsgJoinSwapExternAmountIn {
-            sender: env.contract.address.to_string(),
-            pool_id,
-            token_in: Some(info.funds[0].clone().into()),
-            share_out_min_amount,
-        },
-        AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
-    )))
+    Ok(Response::new()
+        .add_attributes(vec![
+            ("lp_pool_id", pool_id.clone().to_string()),
+            ("lp_share_out_min_amount", share_out_min_amount.clone()),
+        ])
+        .add_submessage(SubMsg::reply_on_success(
+            MsgJoinSwapExternAmountIn {
+                sender: env.contract.address.to_string(),
+                pool_id,
+                token_in: Some(info.funds[0].clone().into()),
+                share_out_min_amount,
+            },
+            AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
+        )))
 }
 
-pub fn send_lp_tokens(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+pub fn bond_lp_tokens(deps: Deps, env: Env) -> Result<Response, ContractError> {
     let cache = PROVIDE_LIQUIDITY_CACHE.load(deps.storage)?;
 
     let lp_token_balance = deps.querier.query_balance(
@@ -75,38 +76,35 @@ pub fn send_lp_tokens(deps: DepsMut, env: Env) -> Result<Response, ContractError
         format!("gamm/pool/{}", cache.pool_id),
     )?;
 
-    PROVIDE_LIQUIDITY_CACHE.save(
-        deps.storage,
-        &ProvideLiquidityCache {
-            lp_token_balance: Some(lp_token_balance.clone()),
-            ..cache.clone()
-        },
-    )?;
-
-    Ok(Response::new().add_submessage(SubMsg::reply_on_success(
-        CosmosMsg::Bank(BankMsg::Send {
-            to_address: cache.provider_address.to_string(),
-            amount: vec![lp_token_balance],
-        }),
-        AFTER_SEND_LP_TOKENS_REPLY_ID,
-    )))
-}
-
-pub fn bond_lp_tokens(deps: Deps, env: Env) -> Result<Response, ContractError> {
-    let cache = PROVIDE_LIQUIDITY_CACHE.load(deps.storage)?;
-
-    Ok(Response::new().add_submessage(SubMsg::reply_always(
-        create_authz_exec_message(
-            env.contract.address,
-            "/osmosis.lockup.MsgLockTokens".to_string(),
-            MsgLockTokens {
-                owner: cache.provider_address.to_string(),
-                duration: Some(cache.duration.into()),
-                coins: vec![cache.lp_token_balance.unwrap().into()],
-            },
-        ),
-        AFTER_BOND_LP_TOKENS_REPLY_ID,
-    )))
+    Ok(Response::new()
+        .add_attributes(vec![
+            (
+                "bond_lp_tokens_amount",
+                lp_token_balance.clone().to_string(),
+            ),
+            (
+                "bond_lp_tokens_duration",
+                cache.duration.clone().to_string(),
+            ),
+        ])
+        .add_submessages(vec![
+            SubMsg::new(BankMsg::Send {
+                to_address: cache.provider_address.to_string(),
+                amount: vec![lp_token_balance.clone()],
+            }),
+            SubMsg::reply_always(
+                create_authz_exec_message(
+                    env.contract.address,
+                    "/osmosis.lockup.MsgLockTokens".to_string(),
+                    MsgLockTokens {
+                        owner: cache.provider_address.to_string(),
+                        duration: Some(cache.duration.into()),
+                        coins: vec![lp_token_balance.into()],
+                    },
+                ),
+                AFTER_BOND_LP_TOKENS_REPLY_ID,
+            ),
+        ]))
 }
 
 pub fn log_bond_lp_tokens_result(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {

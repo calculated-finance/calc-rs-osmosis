@@ -7,7 +7,7 @@ use crate::{
     },
     state::config::{get_config, update_config, Config, FeeCollector},
 };
-use cosmwasm_std::{Addr, Decimal, DepsMut, MessageInfo, Response};
+use cosmwasm_std::{Decimal, DepsMut, MessageInfo, Response};
 
 pub fn update_config_handler(
     deps: DepsMut,
@@ -15,7 +15,6 @@ pub fn update_config_handler(
     fee_collectors: Option<Vec<FeeCollector>>,
     swap_fee_percent: Option<Decimal>,
     delegation_fee_percent: Option<Decimal>,
-    staking_router_address: Option<Addr>,
     page_limit: Option<u16>,
     paused: Option<bool>,
     dca_plus_escrow_level: Option<Decimal>,
@@ -29,11 +28,6 @@ pub fn update_config_handler(
         swap_fee_percent: swap_fee_percent.unwrap_or(existing_config.swap_fee_percent),
         delegation_fee_percent: delegation_fee_percent
             .unwrap_or(existing_config.delegation_fee_percent),
-        staking_router_address: deps.api.addr_validate(
-            &staking_router_address
-                .unwrap_or(existing_config.staking_router_address)
-                .to_string(),
-        )?,
         page_limit: page_limit.unwrap_or(existing_config.page_limit),
         paused: paused.unwrap_or(existing_config.paused),
         dca_plus_escrow_level: dca_plus_escrow_level
@@ -53,10 +47,6 @@ pub fn update_config_handler(
         .add_attribute(
             "delegation_fee_percent",
             config.delegation_fee_percent.to_string(),
-        )
-        .add_attribute(
-            "staking_router_address",
-            config.staking_router_address.to_string(),
         )
         .add_attribute("paused", config.paused.to_string()))
 }

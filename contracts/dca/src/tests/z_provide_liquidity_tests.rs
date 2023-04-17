@@ -1,12 +1,9 @@
 use super::mocks::USER;
 use crate::{
     constants::ONE,
-    contract::{
-        AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
-        AFTER_SEND_LP_TOKENS_REPLY_ID,
-    },
+    contract::{AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_PROVIDE_LIQUIDITY_REPLY_ID},
     handlers::z_provide_liquidity::{
-        bond_lp_tokens, log_bond_lp_tokens_result, provide_liquidity_handler, send_lp_tokens,
+        bond_lp_tokens, log_bond_lp_tokens_result, z_provide_liquidity_handler,
     },
     helpers::authz_helpers::create_authz_exec_message,
     state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
@@ -15,7 +12,7 @@ use crate::{
 };
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_env, mock_info},
-    Addr, Attribute, BankMsg, Coin, CosmosMsg, Decimal, Reply, SubMsg, SubMsgResponse, Uint128,
+    Addr, Attribute, BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, Uint128,
 };
 use osmosis_std::types::osmosis::{
     gamm::v1beta1::MsgJoinSwapExternAmountIn, lockup::MsgLockTokens,
@@ -27,7 +24,7 @@ fn with_no_asset_fails() {
     let env = mock_env();
     let info = mock_info(&env.contract.address.to_string(), &[]);
 
-    let response = provide_liquidity_handler(
+    let response = z_provide_liquidity_handler(
         deps.as_mut(),
         env,
         info.clone(),
@@ -53,7 +50,7 @@ fn with_more_than_one_asset_fails() {
         &[Coin::new(100, DENOM_STAKE), Coin::new(100, DENOM_UOSMO)],
     );
 
-    let response = provide_liquidity_handler(
+    let response = z_provide_liquidity_handler(
         deps.as_mut(),
         env,
         info.clone(),
@@ -83,7 +80,7 @@ fn updates_the_cache_before_providing_liquidity() {
     let provider_address = Addr::unchecked(USER);
     let duration = LockableDuration::OneDay;
 
-    provide_liquidity_handler(
+    z_provide_liquidity_handler(
         deps.as_mut(),
         env.clone(),
         info.clone(),
@@ -102,7 +99,6 @@ fn updates_the_cache_before_providing_liquidity() {
             provider_address,
             pool_id,
             duration,
-            lp_token_balance: None
         }
     );
 }
@@ -118,7 +114,7 @@ fn sends_provide_liquidity_message() {
 
     let pool_id = 1;
 
-    let response = provide_liquidity_handler(
+    let response = z_provide_liquidity_handler(
         deps.as_mut(),
         env.clone(),
         info.clone(),
@@ -152,7 +148,7 @@ fn sends_provide_liquidity_message_with_slippage_included() {
     let pool_id = 1;
     let slippage_tolerance = Decimal::percent(10);
 
-    let response = provide_liquidity_handler(
+    let response = z_provide_liquidity_handler(
         deps.as_mut(),
         env.clone(),
         info.clone(),
@@ -175,42 +171,6 @@ fn sends_provide_liquidity_message_with_slippage_included() {
 }
 
 #[test]
-fn updates_the_cache_before_sending_lp_tokens() {
-    let mut deps = mock_dependencies();
-    let env = mock_env();
-
-    let pool_id = 1;
-
-    let cache_before = ProvideLiquidityCache {
-        provider_address: Addr::unchecked(USER),
-        pool_id,
-        duration: LockableDuration::OneDay,
-        lp_token_balance: None,
-    };
-
-    let lp_tokens_minted = Coin::new(100000, format!("gamm/pool/{}", pool_id));
-
-    deps.querier
-        .update_balance(env.contract.address.clone(), vec![lp_tokens_minted.clone()]);
-
-    PROVIDE_LIQUIDITY_CACHE
-        .save(deps.as_mut().storage, &cache_before)
-        .unwrap();
-
-    send_lp_tokens(deps.as_mut(), env.clone()).unwrap();
-
-    let cache_after = PROVIDE_LIQUIDITY_CACHE.load(deps.as_ref().storage).unwrap();
-
-    assert_eq!(
-        cache_after,
-        ProvideLiquidityCache {
-            lp_token_balance: Some(lp_tokens_minted),
-            ..cache_before
-        }
-    );
-}
-
-#[test]
 fn sends_the_lp_tokens_to_the_provider_address() {
     let mut deps = mock_dependencies();
     let env = mock_env();
@@ -218,31 +178,28 @@ fn sends_the_lp_tokens_to_the_provider_address() {
     let pool_id = 1;
     let provider_address = Addr::unchecked(USER);
 
-    let cache_before = ProvideLiquidityCache {
-        provider_address: provider_address.clone(),
-        pool_id,
-        duration: LockableDuration::OneDay,
-        lp_token_balance: None,
-    };
-
     let lp_tokens_minted = Coin::new(100000, format!("gamm/pool/{}", pool_id));
 
     deps.querier
         .update_balance(env.contract.address.clone(), vec![lp_tokens_minted.clone()]);
 
     PROVIDE_LIQUIDITY_CACHE
-        .save(deps.as_mut().storage, &cache_before)
+        .save(
+            deps.as_mut().storage,
+            &ProvideLiquidityCache {
+                provider_address: provider_address.clone(),
+                pool_id,
+                duration: LockableDuration::OneDay,
+            },
+        )
         .unwrap();
 
-    let response = send_lp_tokens(deps.as_mut(), env.clone()).unwrap();
+    let response = bond_lp_tokens(deps.as_ref(), env.clone()).unwrap();
 
-    assert!(response.messages.contains(&SubMsg::reply_on_success(
-        CosmosMsg::Bank(BankMsg::Send {
-            to_address: provider_address.to_string(),
-            amount: vec![lp_tokens_minted],
-        }),
-        AFTER_SEND_LP_TOKENS_REPLY_ID,
-    )));
+    assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+        to_address: provider_address.to_string(),
+        amount: vec![lp_tokens_minted],
+    })));
 }
 
 #[test]
@@ -252,18 +209,17 @@ fn bonds_the_lp_tokens_from_the_provider_address() {
 
     let pool_id = 1;
     let provider_address = Addr::unchecked(USER);
-    let duration = LockableDuration::OneDay;
-    let lp_token_balance = Coin::new(100000, format!("gamm/pool/{}", pool_id));
+
+    let lp_tokens_minted = Coin::new(100000, format!("gamm/pool/{}", pool_id));
+
+    deps.querier
+        .update_balance(env.contract.address.clone(), vec![lp_tokens_minted.clone()]);
 
     let cache = ProvideLiquidityCache {
         provider_address: provider_address.clone(),
         pool_id,
-        duration,
-        lp_token_balance: Some(lp_token_balance.clone()),
+        duration: LockableDuration::OneDay,
     };
-
-    deps.querier
-        .update_balance(provider_address.clone(), vec![lp_token_balance.clone()]);
 
     PROVIDE_LIQUIDITY_CACHE
         .save(deps.as_mut().storage, &cache)
@@ -278,7 +234,7 @@ fn bonds_the_lp_tokens_from_the_provider_address() {
             MsgLockTokens {
                 owner: provider_address.to_string(),
                 duration: Some(cache.duration.into()),
-                coins: vec![cache.lp_token_balance.unwrap().into()],
+                coins: vec![lp_tokens_minted.into()],
             },
         ),
         AFTER_BOND_LP_TOKENS_REPLY_ID,

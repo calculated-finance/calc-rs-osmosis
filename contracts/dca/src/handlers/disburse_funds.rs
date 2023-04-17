@@ -89,7 +89,6 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
             }
 
             sub_msgs.append(&mut get_disbursement_messages(
-                deps.as_ref(),
                 &env,
                 &vault,
                 total_after_total_fee,

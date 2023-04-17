@@ -13,7 +13,6 @@
       "fee_collectors",
       "page_limit",
       "paused",
-      "staking_router_address",
       "swap_fee_percent"
     ],
     "properties": {
@@ -39,9 +38,6 @@
       },
       "paused": {
         "type": "boolean"
-      },
-      "staking_router_address": {
-        "$ref": "#/definitions/Addr"
       },
       "swap_fee_percent": {
         "$ref": "#/definitions/Decimal"
@@ -357,16 +353,6 @@
                   "null"
                 ]
               },
-              "staking_router_address": {
-                "anyOf": [
-                  {
-                    "$ref": "#/definitions/Addr"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
               "swap_fee_percent": {
                 "anyOf": [
                   {
@@ -493,10 +479,35 @@
       {
         "type": "object",
         "required": [
-          "provide_liquidity"
+          "z_delegate"
         ],
         "properties": {
-          "provide_liquidity": {
+          "z_delegate": {
+            "type": "object",
+            "required": [
+              "delegator_address",
+              "validator_address"
+            ],
+            "properties": {
+              "delegator_address": {
+                "$ref": "#/definitions/Addr"
+              },
+              "validator_address": {
+                "$ref": "#/definitions/Addr"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "z_provide_liquidity"
+        ],
+        "properties": {
+          "z_provide_liquidity": {
             "type": "object",
             "required": [
               "duration",
@@ -514,6 +525,16 @@
               },
               "provider_address": {
                 "$ref": "#/definitions/Addr"
+              },
+              "slippage_tolerance": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false
@@ -972,7 +993,6 @@
             "fee_collectors",
             "page_limit",
             "paused",
-            "staking_router_address",
             "swap_fee_percent"
           ],
           "properties": {
@@ -998,9 +1018,6 @@
             },
             "paused": {
               "type": "boolean"
-            },
-            "staking_router_address": {
-              "$ref": "#/definitions/Addr"
             },
             "swap_fee_percent": {
               "$ref": "#/definitions/Decimal"

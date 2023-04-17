@@ -24,7 +24,6 @@ pub struct ProvideLiquidityCache {
     pub provider_address: Addr,
     pub pool_id: u64,
     pub duration: LockableDuration,
-    pub lp_token_balance: Option<Coin>,
 }
 
 pub const PROVIDE_LIQUIDITY_CACHE: Item<ProvideLiquidityCache> =
