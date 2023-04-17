@@ -14,13 +14,16 @@ use crate::{
     types::{
         dca_plus_config::DcaPlusConfig,
         destination::Destination,
+        event::{EventBuilder, EventData},
         pair::Pair,
         time_interval::TimeInterval,
         trigger::{Trigger, TriggerConfiguration},
         vault::{Vault, VaultStatus},
     },
 };
-use cosmwasm_std::{to_binary, Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Timestamp, Uint128};
+use cosmwasm_std::{
+    to_binary, Addr, BlockInfo, Coin, Decimal, DepsMut, Env, MessageInfo, Timestamp, Uint128,
+};
 use std::{cmp::max, str::FromStr};
 
 pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
@@ -142,6 +145,30 @@ impl Default for DcaPlusConfig {
             standard_dca_swapped_amount: Coin::new(0, DENOM_UOSMO),
             standard_dca_received_amount: Coin::new(0, DENOM_STAKE),
             escrowed_balance: Coin::new(0, DENOM_STAKE),
+        }
+    }
+}
+
+impl Default for EventBuilder {
+    fn default() -> Self {
+        EventBuilder::new(
+            Uint128::one(),
+            BlockInfo {
+                height: 23498723,
+                time: Timestamp::from_seconds(1681711929),
+                chain_id: "test".to_string(),
+            },
+            EventData::default(),
+        )
+    }
+}
+
+impl Default for EventData {
+    fn default() -> Self {
+        EventData::DcaVaultExecutionTriggered {
+            base_denom: DENOM_STAKE.to_string(),
+            quote_denom: DENOM_UOSMO.to_string(),
+            asset_price: Decimal::new(Uint128::one()),
         }
     }
 }

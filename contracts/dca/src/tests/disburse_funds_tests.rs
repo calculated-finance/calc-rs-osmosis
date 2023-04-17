@@ -571,7 +571,7 @@ fn with_succcesful_swap_publishes_dca_execution_completed_event() {
 
     let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 
@@ -662,7 +662,7 @@ fn with_succcesful_swap_with_dca_plus_publishes_execution_completed_event() {
 
     let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 
@@ -723,7 +723,7 @@ fn with_failed_swap_publishes_skipped_event_with_slippage_failure() {
 
     disburse_funds(deps.as_mut(), &env, reply).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 
@@ -1094,7 +1094,7 @@ fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_eve
     )
     .unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 

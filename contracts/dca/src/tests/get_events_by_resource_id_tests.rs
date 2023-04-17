@@ -20,7 +20,8 @@ fn assert_events_returned(
     start_after: Option<u64>,
     limit: Option<u16>,
 ) {
-    let events_response = get_events_by_resource_id(deps, resource_id, start_after, limit).unwrap();
+    let events_response =
+        get_events_by_resource_id(deps, resource_id, start_after, limit, None).unwrap();
     assert_eq!(expected_events, events_response.events);
 }
 

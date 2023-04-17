@@ -742,7 +742,7 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+        let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
             .unwrap()
             .events;
 
@@ -775,7 +775,7 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+        let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
             .unwrap()
             .events;
 
@@ -809,7 +809,7 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None)
+        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None, None)
             .unwrap()
             .events;
 
@@ -850,7 +850,7 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None)
+        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None, None)
             .unwrap()
             .events;
 
@@ -890,7 +890,7 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None)
+        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None, None)
             .unwrap()
             .events;
 

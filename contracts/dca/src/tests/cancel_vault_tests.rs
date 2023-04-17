@@ -43,7 +43,7 @@ fn should_publish_vault_cancelled_event() {
 
     cancel_vault(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 
