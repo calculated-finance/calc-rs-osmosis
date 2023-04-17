@@ -1,9 +1,9 @@
-use super::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
+use super::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER, VALIDATOR};
 use crate::{
     constants::{ONE, TEN},
     contract::instantiate,
     handlers::get_vault::get_vault,
-    msg::InstantiateMsg,
+    msg::{ExecuteMsg, InstantiateMsg},
     state::{
         cache::{VaultCache, VAULT_CACHE},
         config::{Config, FeeCollector},
@@ -15,13 +15,12 @@ use crate::{
         dca_plus_config::DcaPlusConfig,
         destination::Destination,
         pair::Pair,
-        post_execution_action::PostExecutionAction,
         time_interval::TimeInterval,
         trigger::{Trigger, TriggerConfiguration},
         vault::{Vault, VaultStatus},
     },
 };
-use cosmwasm_std::{Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Timestamp, Uint128};
+use cosmwasm_std::{to_binary, Addr, Coin, Decimal, DepsMut, Env, MessageInfo, Timestamp, Uint128};
 use std::{cmp::max, str::FromStr};
 
 pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
@@ -91,9 +90,9 @@ impl Default for Pair {
 impl Default for Destination {
     fn default() -> Self {
         Self {
-            address: Addr::unchecked(USER),
             allocation: Decimal::percent(100),
-            action: PostExecutionAction::Send,
+            address: Addr::unchecked(USER),
+            msg: None,
         }
     }
 }
@@ -106,9 +105,15 @@ impl Default for Vault {
             owner: Addr::unchecked(USER),
             label: Some("vault".to_string()),
             destinations: vec![Destination {
-                address: Addr::unchecked(USER),
                 allocation: Decimal::percent(100),
-                action: PostExecutionAction::ZDelegate,
+                address: Addr::unchecked("contractaddress"),
+                msg: Some(
+                    to_binary(&ExecuteMsg::ZDelegate {
+                        delegator_address: Addr::unchecked(USER),
+                        validator_address: Addr::unchecked(VALIDATOR),
+                    })
+                    .unwrap(),
+                ),
             }],
             status: VaultStatus::Active,
             balance: Coin::new(TEN.into(), DENOM_UOSMO),

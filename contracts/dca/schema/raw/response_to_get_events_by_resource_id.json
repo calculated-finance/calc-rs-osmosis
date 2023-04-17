@@ -234,44 +234,6 @@
         {
           "type": "object",
           "required": [
-            "dca_vault_z_delegation_succeeded"
-          ],
-          "properties": {
-            "dca_vault_z_delegation_succeeded": {
-              "type": "object",
-              "required": [
-                "delegation",
-                "validator_address"
-              ],
-              "properties": {
-                "delegation": {
-                  "$ref": "#/definitions/Coin"
-                },
-                "validator_address": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "dca_vault_delegation_failed"
-          ],
-          "properties": {
-            "dca_vault_delegation_failed": {
-              "type": "object",
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
             "dca_vault_escrow_disbursed"
           ],
           "properties": {

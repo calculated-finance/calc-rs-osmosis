@@ -1,11 +1,10 @@
 use crate::error::ContractError;
 use crate::helpers::validation_helpers::{
-    assert_address_is_valid, assert_contract_is_not_paused, assert_delegation_denom_is_stakeable,
-    assert_destination_allocations_add_up_to_one, assert_destination_send_addresses_are_valid,
-    assert_destination_validator_addresses_are_valid, assert_destinations_limit_is_not_breached,
-    assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
-    assert_send_denom_is_in_pair_denoms, assert_swap_amount_is_greater_than_50000,
-    assert_target_start_time_is_in_future,
+    assert_address_is_valid, assert_contract_is_not_paused,
+    assert_destination_allocations_add_up_to_one, assert_destination_callback_addresses_are_valid,
+    assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
+    assert_no_destination_allocations_are_zero, assert_send_denom_is_in_pair_denoms,
+    assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
 };
 use crate::helpers::vault_helpers::get_dca_plus_model_id;
 use crate::msg::ExecuteMsg;
@@ -19,7 +18,6 @@ use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::destination::Destination;
 use crate::types::event::{EventBuilder, EventData};
 use crate::types::position_type::PositionType;
-use crate::types::post_execution_action::PostExecutionAction;
 use crate::types::time_interval::TimeInterval;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::VaultStatus;
@@ -59,14 +57,13 @@ pub fn create_vault_handler(
 
     if destinations.is_empty() {
         destinations.push(Destination {
-            address: owner.clone(),
             allocation: Decimal::percent(100),
-            action: PostExecutionAction::Send,
+            address: owner.clone(),
+            msg: None,
         });
     }
 
-    assert_destination_send_addresses_are_valid(deps.as_ref(), &destinations)?;
-    assert_destination_validator_addresses_are_valid(deps.as_ref(), &destinations)?;
+    assert_destination_callback_addresses_are_valid(deps.as_ref(), &destinations)?;
     assert_no_destination_allocations_are_zero(&destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
@@ -81,8 +78,6 @@ pub fn create_vault_handler(
     } else {
         pair.quote_denom.clone()
     };
-
-    assert_delegation_denom_is_stakeable(&destinations, receive_denom.clone())?;
 
     let config = get_config(deps.storage)?;
 

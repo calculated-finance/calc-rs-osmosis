@@ -2,7 +2,7 @@ use std::cmp::min;
 
 use crate::{
     state::config::{get_config, get_custom_fee},
-    types::{post_execution_action::PostExecutionAction, vault::Vault},
+    types::vault::Vault,
 };
 use base::helpers::math_helpers::checked_mul;
 use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Decimal, Deps, StdResult, Storage, SubMsg, Uint128};
@@ -47,7 +47,7 @@ pub fn get_delegation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResul
         vault
             .destinations
             .iter()
-            .filter(|destination| destination.action == PostExecutionAction::ZDelegate)
+            .filter(|destination| destination.msg.is_some())
             .map(|destination| destination.allocation)
             .sum(),
     )?)

@@ -1,6 +1,6 @@
 use crate::contract::AFTER_DELEGATION_REPLY_ID;
 use crate::helpers::authz_helpers::create_authz_exec_message;
-use crate::helpers::validation_helpers::assert_address_is_valid;
+use crate::helpers::validation_helpers::{assert_address_is_valid, assert_validator_is_valid};
 use crate::{error::ContractError, helpers::validation_helpers::assert_exactly_one_asset};
 use cosmos_sdk_proto::cosmos::base::v1beta1::Coin as ProtoCoin;
 use cosmos_sdk_proto::cosmos::staking::v1beta1::MsgDelegate;
@@ -14,7 +14,7 @@ pub fn z_delegate_handler(
 ) -> Result<Response, ContractError> {
     assert_exactly_one_asset(info.funds.clone())?;
     assert_address_is_valid(deps, delegator_address.clone(), "delegator address")?;
-    assert_address_is_valid(deps, validator_address.clone(), "validator address")?;
+    assert_validator_is_valid(deps, validator_address.to_string())?;
 
     let amount_to_delegate = info.funds[0].clone();
 

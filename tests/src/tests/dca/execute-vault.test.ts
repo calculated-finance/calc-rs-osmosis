@@ -9,7 +9,6 @@ import { setTimeout } from 'timers/promises';
 import { EventData } from '../../types/dca/response/get_events';
 import { find, map } from 'ramda';
 import { PositionType } from '../../types/dca/execute';
-import Long from 'long';
 
 describe('when executing a vault', () => {
   describe('with a ready time trigger', () => {
@@ -293,14 +292,16 @@ describe('when executing a vault', () => {
       vaultId = await createVault(this, {
         destinations: [
           {
-            action: {
-              z_provide_liquidity: {
-                duration: 'one_week',
-                pool_id: this.pair.route[0],
-              },
-            },
-            address: this.adminContractAddress,
             allocation: '1.0',
+            address: this.dcaContractAddress,
+            msg: Buffer.from(
+              JSON.stringify({
+                z_delegate: {
+                  delegator_address: this.userWalletAddress,
+                  validator_address: this.validatorAddress,
+                },
+              }),
+            ).toString('base64'),
           },
         ],
       });

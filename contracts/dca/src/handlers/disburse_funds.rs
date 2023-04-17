@@ -89,7 +89,6 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
             }
 
             sub_msgs.append(&mut get_disbursement_messages(
-                &env,
                 &vault,
                 total_after_total_fee,
             )?);
@@ -107,7 +106,7 @@ pub fn disburse_funds(deps: DepsMut, env: &Env, reply: Reply) -> Result<Response
                 ),
             )?;
 
-            attributes.push(Attribute::new("status", "success"));
+            attributes.push(Attribute::new("execution_result", "success"));
         }
         SubMsgResult::Err(_) => {
             create_event(

@@ -65,7 +65,6 @@ pub fn disburse_escrow(
 
     Ok(Response::new()
         .add_submessages(get_disbursement_messages(
-            &env,
             &vault,
             amount_to_disburse.amount,
         )?)
