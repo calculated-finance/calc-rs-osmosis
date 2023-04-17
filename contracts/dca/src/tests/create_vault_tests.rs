@@ -447,7 +447,7 @@ fn should_publish_deposit_event() {
     )
     .unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), Uint128::one(), None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), Uint128::one(), None, None, None)
         .unwrap()
         .events;
 

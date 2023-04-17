@@ -127,11 +127,13 @@ pub enum QueryMsg {
         resource_id: Uint128,
         start_after: Option<u64>,
         limit: Option<u16>,
+        reverse: Option<bool>,
     },
     #[returns(EventsResponse)]
     GetEvents {
         start_after: Option<u64>,
         limit: Option<u16>,
+        reverse: Option<bool>,
     },
     #[returns(CustomFeesResponse)]
     GetCustomSwapFees {},

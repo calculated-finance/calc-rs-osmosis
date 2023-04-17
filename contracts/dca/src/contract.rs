@@ -238,15 +238,19 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             resource_id,
             start_after,
             limit,
+            reverse,
         } => to_binary(&get_events_by_resource_id(
             deps,
             resource_id,
             start_after,
             limit,
+            reverse,
         )?),
-        QueryMsg::GetEvents { start_after, limit } => {
-            to_binary(&get_events(deps, start_after, limit)?)
-        }
+        QueryMsg::GetEvents {
+            start_after,
+            limit,
+            reverse,
+        } => to_binary(&get_events(deps, start_after, limit, reverse)?),
         QueryMsg::GetCustomSwapFees {} => to_binary(&get_custom_swap_fees(deps)?),
         QueryMsg::GetConfig {} => to_binary(&ConfigResponse {
             config: get_config(deps.storage)?,

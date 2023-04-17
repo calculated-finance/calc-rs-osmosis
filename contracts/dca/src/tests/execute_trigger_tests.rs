@@ -210,7 +210,7 @@ fn publishes_execution_triggered_event() {
 
     execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 
@@ -426,7 +426,7 @@ fn with_dca_plus_and_exceeded_price_threshold_should_publish_execution_skipped_e
 
     execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 
@@ -472,7 +472,7 @@ fn with_dca_plus_and_exceeded_slippage_tolerance_should_publish_execution_skippe
 
     execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 
@@ -913,7 +913,7 @@ fn should_skip_execution_if_price_threshold_exceeded() {
 
     execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 

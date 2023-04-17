@@ -138,7 +138,7 @@ fn publishes_escrow_disbursed_event() {
 
     disburse_escrow(deps.as_mut(), &env, info, vault.id).unwrap();
 
-    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None)
+    let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
         .unwrap()
         .events;
 

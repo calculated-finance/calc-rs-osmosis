@@ -812,6 +812,12 @@
               "resource_id": {
                 "$ref": "#/definitions/Uint128"
               },
+              "reverse": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
               "start_after": {
                 "type": [
                   "integer",
@@ -842,6 +848,12 @@
                 ],
                 "format": "uint16",
                 "minimum": 0.0
+              },
+              "reverse": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "start_after": {
                 "type": [

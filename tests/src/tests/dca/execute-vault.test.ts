@@ -278,7 +278,7 @@ describe('when executing a vault', () => {
     });
   });
 
-  describe.only('with a provide liquidity post execution action', () => {
+  describe('with a provide liquidity post execution action', () => {
     let vaultId: number;
 
     before(async function (this: Context) {
