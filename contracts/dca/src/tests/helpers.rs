@@ -2,7 +2,7 @@ use super::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER, VALIDATOR};
 use crate::{
     constants::{ONE, TEN},
     contract::instantiate,
-    handlers::get_vault::get_vault,
+    handlers::get_vault::get_vault_handler,
     msg::{ExecuteMsg, InstantiateMsg},
     state::{
         cache::{VaultCache, VAULT_CACHE},
@@ -178,11 +178,11 @@ pub fn setup_new_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
         .save(deps.storage, vault.pair.address.clone(), &vault.pair)
         .unwrap();
 
-    let mut existing_vault = get_vault(deps.as_ref(), vault.id);
+    let mut existing_vault = get_vault_handler(deps.as_ref(), vault.id);
 
     while existing_vault.is_ok() {
         vault.id = existing_vault.unwrap().vault.id + Uint128::one();
-        existing_vault = get_vault(deps.as_ref(), vault.id);
+        existing_vault = get_vault_handler(deps.as_ref(), vault.id);
     }
 
     update_vault(deps.storage, &vault).unwrap();
@@ -207,5 +207,5 @@ pub fn setup_new_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
         .save(deps.storage, &VaultCache { vault_id: vault.id })
         .unwrap();
 
-    get_vault(deps.as_ref(), vault.id).unwrap().vault
+    get_vault_handler(deps.as_ref(), vault.id).unwrap().vault
 }

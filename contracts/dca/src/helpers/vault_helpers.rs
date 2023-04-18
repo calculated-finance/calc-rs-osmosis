@@ -710,7 +710,7 @@ mod simulate_standard_dca_execution_tests {
     use crate::types::event::{Event, EventData, ExecutionSkippedReason};
     use crate::{
         constants::{ONE, TEN},
-        handlers::get_events_by_resource_id::get_events_by_resource_id,
+        handlers::get_events_by_resource_id::get_events_by_resource_id_handler,
         helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate},
         tests::{
             helpers::instantiate_contract,
@@ -742,7 +742,7 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
+        let events = get_events_by_resource_id_handler(deps.as_ref(), vault.id, None, None, None)
             .unwrap()
             .events;
 
@@ -775,7 +775,7 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(deps.as_ref(), vault.id, None, None, None)
+        let events = get_events_by_resource_id_handler(deps.as_ref(), vault.id, None, None, None)
             .unwrap()
             .events;
 
@@ -809,9 +809,10 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None, None)
-            .unwrap()
-            .events;
+        let events =
+            get_events_by_resource_id_handler(storage_deps.as_ref(), vault.id, None, None, None)
+                .unwrap()
+                .events;
 
         assert!(events.contains(&Event {
             id: 1,
@@ -850,9 +851,10 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None, None)
-            .unwrap()
-            .events;
+        let events =
+            get_events_by_resource_id_handler(storage_deps.as_ref(), vault.id, None, None, None)
+                .unwrap()
+                .events;
 
         assert!(events.contains(&Event {
             id: 1,
@@ -890,9 +892,10 @@ mod simulate_standard_dca_execution_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(storage_deps.as_ref(), vault.id, None, None, None)
-            .unwrap()
-            .events;
+        let events =
+            get_events_by_resource_id_handler(storage_deps.as_ref(), vault.id, None, None, None)
+                .unwrap()
+                .events;
 
         let fee_rate = get_swap_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
             + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap();

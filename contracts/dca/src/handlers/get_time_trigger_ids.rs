@@ -4,7 +4,7 @@ use crate::{
 };
 use cosmwasm_std::{Deps, Env, StdResult};
 
-pub fn get_time_trigger_ids(
+pub fn get_time_trigger_ids_handler(
     deps: Deps,
     env: Env,
     limit: Option<u16>,

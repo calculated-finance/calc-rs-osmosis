@@ -4,7 +4,7 @@ use crate::{helpers::validation_helpers::assert_page_limit_is_valid, msg::Events
 use cosmwasm_std::{from_binary, Deps, Order, StdResult, Uint128};
 use cw_storage_plus::Bound;
 
-pub fn get_events_by_resource_id(
+pub fn get_events_by_resource_id_handler(
     deps: Deps,
     resource_id: Uint128,
     start_after: Option<u64>,
@@ -34,7 +34,7 @@ pub fn get_events_by_resource_id(
 }
 
 #[cfg(test)]
-mod get_events_tests {
+mod get_events_by_resource_id_tests {
     use super::*;
     use crate::{
         state::events::create_events,
@@ -48,9 +48,10 @@ mod get_events_tests {
         let mut deps = mock_dependencies();
         instantiate_contract(deps.as_mut(), mock_env(), mock_info(ADMIN, &[]));
 
-        let events = get_events_by_resource_id(deps.as_ref(), Uint128::one(), None, None, None)
-            .unwrap()
-            .events;
+        let events =
+            get_events_by_resource_id_handler(deps.as_ref(), Uint128::one(), None, None, None)
+                .unwrap()
+                .events;
 
         assert_eq!(events.len(), 0);
     }
@@ -72,9 +73,10 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(deps.as_ref(), Uint128::one(), None, None, None)
-            .unwrap()
-            .events;
+        let events =
+            get_events_by_resource_id_handler(deps.as_ref(), Uint128::one(), None, None, None)
+                .unwrap()
+                .events;
 
         assert_eq!(events.len(), 3);
     }
@@ -94,9 +96,10 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(deps.as_ref(), Uint128::one(), None, None, None)
-            .unwrap()
-            .events;
+        let events =
+            get_events_by_resource_id_handler(deps.as_ref(), Uint128::one(), None, None, None)
+                .unwrap()
+                .events;
 
         assert_eq!(events.first().unwrap().id, 1);
         assert_eq!(events.last().unwrap().id, 3);
@@ -117,9 +120,10 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(deps.as_ref(), Uint128::one(), None, Some(2), None)
-            .unwrap()
-            .events;
+        let events =
+            get_events_by_resource_id_handler(deps.as_ref(), Uint128::one(), None, Some(2), None)
+                .unwrap()
+                .events;
 
         assert_eq!(events.len(), 2);
     }
@@ -139,9 +143,10 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events_by_resource_id(deps.as_ref(), Uint128::one(), Some(2), None, None)
-            .unwrap()
-            .events;
+        let events =
+            get_events_by_resource_id_handler(deps.as_ref(), Uint128::one(), Some(2), None, None)
+                .unwrap()
+                .events;
 
         assert_eq!(events.len(), 1);
     }
@@ -161,10 +166,15 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events =
-            get_events_by_resource_id(deps.as_ref(), Uint128::one(), None, None, Some(true))
-                .unwrap()
-                .events;
+        let events = get_events_by_resource_id_handler(
+            deps.as_ref(),
+            Uint128::one(),
+            None,
+            None,
+            Some(true),
+        )
+        .unwrap()
+        .events;
 
         assert_eq!(events.first().unwrap().id, 3);
         assert_eq!(events.last().unwrap().id, 1);
@@ -185,10 +195,15 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events =
-            get_events_by_resource_id(deps.as_ref(), Uint128::one(), Some(1), Some(1), None)
-                .unwrap()
-                .events;
+        let events = get_events_by_resource_id_handler(
+            deps.as_ref(),
+            Uint128::one(),
+            Some(1),
+            Some(1),
+            None,
+        )
+        .unwrap()
+        .events;
 
         assert_eq!(events.len(), 1);
         assert_eq!(events.first().unwrap().id, 2);
@@ -209,10 +224,15 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events =
-            get_events_by_resource_id(deps.as_ref(), Uint128::one(), Some(3), None, Some(true))
-                .unwrap()
-                .events;
+        let events = get_events_by_resource_id_handler(
+            deps.as_ref(),
+            Uint128::one(),
+            Some(3),
+            None,
+            Some(true),
+        )
+        .unwrap()
+        .events;
 
         assert_eq!(events.first().unwrap().id, 2);
         assert_eq!(events.last().unwrap().id, 1);
@@ -234,10 +254,15 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events =
-            get_events_by_resource_id(deps.as_ref(), Uint128::one(), Some(4), Some(1), Some(true))
-                .unwrap()
-                .events;
+        let events = get_events_by_resource_id_handler(
+            deps.as_ref(),
+            Uint128::one(),
+            Some(4),
+            Some(1),
+            Some(true),
+        )
+        .unwrap()
+        .events;
 
         assert_eq!(events.len(), 1);
         assert_eq!(events.first().unwrap().id, 3);
