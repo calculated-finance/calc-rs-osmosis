@@ -146,15 +146,22 @@ export type PositionType = "enter" | "exit";
  */
 export type Uint64 = string;
 export type TimeInterval =
-  | "every_second"
-  | "every_minute"
-  | "half_hourly"
-  | "hourly"
-  | "half_daily"
-  | "daily"
-  | "weekly"
-  | "fortnightly"
-  | "monthly";
+  | (
+      | "every_second"
+      | "every_minute"
+      | "half_hourly"
+      | "hourly"
+      | "half_daily"
+      | "daily"
+      | "weekly"
+      | "fortnightly"
+      | "monthly"
+    )
+  | {
+      custom: {
+        seconds: number;
+      };
+    };
 export type LockableDuration = "one_day" | "one_week" | "two_weeks";
 
 export interface Destination {

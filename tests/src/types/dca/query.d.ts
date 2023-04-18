@@ -40,12 +40,14 @@ export type QueryMsg =
       get_events_by_resource_id: {
         limit?: number | null;
         resource_id: Uint128;
+        reverse?: boolean | null;
         start_after?: number | null;
       };
     }
   | {
       get_events: {
         limit?: number | null;
+        reverse?: boolean | null;
         start_after?: number | null;
       };
     }

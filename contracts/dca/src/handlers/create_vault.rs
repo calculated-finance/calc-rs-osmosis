@@ -5,6 +5,7 @@ use crate::helpers::validation_helpers::{
     assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
     assert_no_destination_allocations_are_zero, assert_send_denom_is_in_pair_denoms,
     assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
+    assert_time_interval_is_valid,
 };
 use crate::helpers::vault_helpers::get_dca_plus_model_id;
 use crate::msg::ExecuteMsg;
@@ -47,6 +48,7 @@ pub fn create_vault_handler(
     assert_exactly_one_asset(info.funds.clone())?;
     assert_swap_amount_is_greater_than_50000(swap_amount)?;
     assert_destinations_limit_is_not_breached(&destinations)?;
+    assert_time_interval_is_valid(&time_interval)?;
 
     if let Some(target_time) = target_start_time_utc_seconds {
         assert_target_start_time_is_in_future(

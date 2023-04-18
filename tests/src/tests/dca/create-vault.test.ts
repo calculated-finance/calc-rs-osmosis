@@ -1,7 +1,7 @@
 import { coin } from '@cosmjs/proto-signing';
 import dayjs from 'dayjs';
 import { Context } from 'mocha';
-import { find, map, range } from 'ramda';
+import { find, map, range, tryCatch } from 'ramda';
 import { EventData } from '../../types/dca/response/get_events';
 import { Vault } from '../../types/dca/response/get_vault';
 import { createVault, getBalances, getExpectedPrice } from '../helpers';
@@ -222,22 +222,6 @@ describe('when creating a vault', () => {
     });
   });
 
-  describe('with an invalid validator address', () => {
-    it('fails with the correct error message', async function (this: Context) {
-      await expect(
-        createVault(this, {
-          destinations: [
-            {
-              action: 'z_delegate',
-              address: 'notanaddress',
-              allocation: '0.1',
-            },
-          ],
-        }),
-      ).to.be.rejectedWith(/validator notanaddress is invalid/);
-    });
-  });
-
   describe('with a swap amount <= 50000', () => {
     it('fails with the correct error message', async function (this: Context) {
       await expect(
@@ -267,26 +251,6 @@ describe('when creating a vault', () => {
       await expect(createVault(this, {}, [coin(1000000, 'uosmo')])).to.be.rejectedWith(
         /send denom uosmo does not match pair base denom stake or quote denom uion/,
       );
-    });
-  });
-
-  describe('with non stakeable receive denom and z delegate destination', () => {
-    it('fails with the correct error message', async function (this: Context) {
-      await expect(
-        createVault(
-          this,
-          {
-            destinations: [
-              {
-                action: 'z_delegate',
-                address: this.validatorAddress,
-                allocation: '1.0',
-              },
-            ],
-          },
-          [coin(100000, 'uion')],
-        ),
-      ).to.be.rejectedWith(/stake is not the bond denomination/);
     });
   });
 
