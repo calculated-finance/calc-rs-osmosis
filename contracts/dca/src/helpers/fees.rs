@@ -4,8 +4,9 @@ use crate::{
     state::config::{get_config, get_custom_fee},
     types::vault::Vault,
 };
-use base::helpers::math_helpers::checked_mul;
 use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Decimal, Deps, StdResult, Storage, SubMsg, Uint128};
+
+use super::math::checked_mul;
 
 pub fn get_fee_messages(
     deps: Deps,
@@ -105,7 +106,7 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
 mod tests {
     use crate::{
         constants::TEN,
-        helpers::fee_helpers::get_dca_plus_performance_fee,
+        helpers::fees::get_dca_plus_performance_fee,
         types::{
             dca_plus_config::DcaPlusConfig,
             pair::Pair,

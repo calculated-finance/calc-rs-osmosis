@@ -1,5 +1,5 @@
 use crate::{
-    helpers::validation_helpers::assert_page_limit_is_valid, msg::TriggerIdsResponse,
+    helpers::validation::assert_page_limit_is_valid, msg::TriggerIdsResponse,
     state::triggers::get_time_triggers,
 };
 use cosmwasm_std::{Deps, Env, StdResult};

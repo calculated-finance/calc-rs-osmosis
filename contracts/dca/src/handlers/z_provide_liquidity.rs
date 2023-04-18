@@ -1,9 +1,7 @@
 use crate::{
     constants::{AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_PROVIDE_LIQUIDITY_REPLY_ID},
     error::ContractError,
-    helpers::{
-        authz_helpers::create_authz_exec_message, validation_helpers::assert_exactly_one_asset,
-    },
+    helpers::{authz::create_authz_exec_message, validation::assert_exactly_one_asset},
     state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
     types::post_execution_action::LockableDuration,
 };
@@ -124,7 +122,7 @@ mod z_provide_liquidity_tests {
     use crate::{
         constants::ONE,
         handlers::z_provide_liquidity::{bond_lp_tokens, log_bond_lp_tokens_result},
-        helpers::authz_helpers::create_authz_exec_message,
+        helpers::authz::create_authz_exec_message,
         state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
         tests::mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO, USER},
         types::post_execution_action::LockableDuration,

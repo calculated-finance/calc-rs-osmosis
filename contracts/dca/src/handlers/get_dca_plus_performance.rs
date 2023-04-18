@@ -1,7 +1,7 @@
 use crate::{
     helpers::{
-        fee_helpers::get_dca_plus_performance_fee, price_helpers::query_belief_price,
-        vault_helpers::get_dca_plus_performance_factor,
+        fees::get_dca_plus_performance_fee, price::query_belief_price,
+        vault::get_dca_plus_performance_factor,
     },
     msg::DcaPlusPerformanceResponse,
     state::vaults::get_vault,

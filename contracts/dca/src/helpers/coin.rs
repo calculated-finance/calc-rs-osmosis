@@ -1,12 +1,5 @@
 use cosmwasm_std::{Coin, Decimal, StdError, StdResult, Uint128};
 
-pub fn add_to_coin(coin: Coin, amount: Uint128) -> Coin {
-    Coin {
-        denom: coin.denom,
-        amount: coin.amount + amount,
-    }
-}
-
 pub fn add(this: Coin, other: Coin) -> StdResult<Coin> {
     if this.denom != other.denom {
         return Err(StdError::generic_err(format!(
@@ -43,6 +36,13 @@ pub fn multiply(this: Coin, factor: Decimal) -> StdResult<Coin> {
         denom: this.denom,
         amount: this.amount * factor,
     })
+}
+
+pub fn add_to(coin: Coin, amount: Uint128) -> Coin {
+    Coin {
+        denom: coin.denom,
+        amount: coin.amount + amount,
+    }
 }
 
 pub fn empty_of(this: Coin) -> Coin {

@@ -2,7 +2,7 @@ use super::{
     dca_plus_config::DcaPlusConfig, destination::Destination, pair::Pair,
     position_type::PositionType, time_interval::TimeInterval, trigger::TriggerConfiguration,
 };
-use crate::helpers::time_helpers::get_total_execution_duration;
+use crate::helpers::time::get_total_execution_duration;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
 use std::cmp::max;

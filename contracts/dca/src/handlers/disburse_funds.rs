@@ -1,7 +1,9 @@
 use crate::error::ContractError;
-use crate::helpers::disbursement_helpers::get_disbursement_messages;
-use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_fee_messages, get_swap_fee_rate};
-use crate::helpers::vault_helpers::get_swap_amount;
+use crate::helpers::coin::add_to;
+use crate::helpers::disbursement::get_disbursement_messages;
+use crate::helpers::fees::{get_delegation_fee_rate, get_fee_messages, get_swap_fee_rate};
+use crate::helpers::math::checked_mul;
+use crate::helpers::vault::get_swap_amount;
 use crate::msg::ExecuteMsg;
 use crate::state::cache::{SWAP_CACHE, VAULT_CACHE};
 use crate::state::events::create_event;
@@ -10,8 +12,6 @@ use crate::state::vaults::{get_vault, update_vault};
 use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use crate::types::vault::VaultStatus;
-use base::helpers::coin_helpers::add_to_coin;
-use base::helpers::math_helpers::checked_mul;
 use cosmwasm_std::{to_binary, CosmosMsg, Decimal, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
@@ -72,18 +72,15 @@ pub fn disburse_funds_handler(
             )?);
 
             vault.balance.amount -= get_swap_amount(&deps.as_ref(), env, &vault)?.amount;
-            vault.swapped_amount = add_to_coin(vault.swapped_amount, coin_sent.amount);
-            vault.received_amount = add_to_coin(vault.received_amount, total_after_total_fee);
+            vault.swapped_amount = add_to(vault.swapped_amount, coin_sent.amount);
+            vault.received_amount = add_to(vault.received_amount, total_after_total_fee);
 
             if let Some(dca_plus_config) = vault.dca_plus_config.clone() {
                 let amount_to_escrow = total_after_total_fee * dca_plus_config.escrow_level;
                 total_after_total_fee -= amount_to_escrow;
 
                 vault.dca_plus_config = Some(DcaPlusConfig {
-                    escrowed_balance: add_to_coin(
-                        dca_plus_config.escrowed_balance,
-                        amount_to_escrow,
-                    ),
+                    escrowed_balance: add_to(dca_plus_config.escrowed_balance, amount_to_escrow),
                     ..dca_plus_config
                 });
             }
@@ -153,7 +150,7 @@ mod disburse_funds_tests {
     use crate::{
         constants::{AFTER_SWAP_REPLY_ID, ONE, TEN, TWO_MICRONS},
         handlers::get_events_by_resource_id::get_events_by_resource_id_handler,
-        helpers::vault_helpers::get_swap_amount,
+        helpers::vault::get_swap_amount,
         state::{
             cache::{SwapCache, SWAP_CACHE},
             config::{create_custom_fee, get_config, FeeCollector},
@@ -175,7 +172,6 @@ mod disburse_funds_tests {
             vault::{Vault, VaultStatus},
         },
     };
-    use base::helpers::{coin_helpers::add_to_coin, math_helpers::checked_mul};
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
         BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, SubMsgResult, Uint128,
@@ -740,7 +736,7 @@ mod disburse_funds_tests {
             block_height: env.block.height,
             data: EventData::DcaVaultExecutionCompleted {
                 sent: updated_vault.swapped_amount,
-                received: add_to_coin(updated_vault.received_amount, fee),
+                received: add_to(updated_vault.received_amount, fee),
                 fee: Coin::new(fee.into(), vault.get_receive_denom())
             }
         }))

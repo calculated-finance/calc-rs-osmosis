@@ -1,5 +1,5 @@
-use crate::helpers::route_helpers::calculate_route;
-use crate::helpers::validation_helpers::assert_sender_is_admin;
+use crate::helpers::routes::calculate_route;
+use crate::helpers::validation::assert_sender_is_admin;
 use crate::state::pairs::PAIRS;
 use crate::{error::ContractError, types::pair::Pair};
 use cosmwasm_std::{Addr, DepsMut};

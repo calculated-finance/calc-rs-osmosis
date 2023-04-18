@@ -1,4 +1,4 @@
-use super::route_helpers::{calculate_route, get_pool, get_token_out_denom};
+use super::routes::{calculate_route, get_pool, get_token_out_denom};
 use crate::types::{pair::Pair, position_type::PositionType};
 use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, StdResult, Uint128};
 use osmosis_std::types::osmosis::{

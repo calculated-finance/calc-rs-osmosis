@@ -1,12 +1,10 @@
 use crate::constants::AFTER_SWAP_REPLY_ID;
 use crate::error::ContractError;
-use crate::helpers::price_helpers::query_belief_price;
-use crate::helpers::swap_helpers::create_osmosis_swap_message;
-use crate::helpers::time_helpers::get_next_target_time;
-use crate::helpers::validation_helpers::{
-    assert_contract_is_not_paused, assert_target_time_is_in_past,
-};
-use crate::helpers::vault_helpers::{
+use crate::helpers::price::query_belief_price;
+use crate::helpers::swaps::create_osmosis_swap_message;
+use crate::helpers::time::get_next_target_time;
+use crate::helpers::validation::{assert_contract_is_not_paused, assert_target_time_is_in_past};
+use crate::helpers::vault::{
     get_swap_amount, price_threshold_exceeded, simulate_standard_dca_execution,
 };
 use crate::msg::ExecuteMsg;
@@ -187,8 +185,8 @@ mod execute_trigger_tests {
     use super::*;
     use crate::constants::{ONE, ONE_MICRON, OSMOSIS_SWAP_FEE_RATE, TEN, TWO_MICRONS};
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
-    use crate::helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate};
-    use crate::helpers::vault_helpers::get_swap_amount;
+    use crate::helpers::fees::{get_delegation_fee_rate, get_swap_fee_rate};
+    use crate::helpers::vault::get_swap_amount;
     use crate::msg::ExecuteMsg;
     use crate::state::config::{update_config, Config};
     use crate::state::swap_adjustments::update_swap_adjustments;

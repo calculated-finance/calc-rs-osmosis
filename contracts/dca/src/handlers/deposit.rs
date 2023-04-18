@@ -1,9 +1,10 @@
 use crate::error::ContractError;
-use crate::helpers::validation_helpers::{
+use crate::helpers::coin::add_to;
+use crate::helpers::validation::{
     assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
     assert_exactly_one_asset, assert_vault_is_not_cancelled,
 };
-use crate::helpers::vault_helpers::get_dca_plus_model_id;
+use crate::helpers::vault::get_dca_plus_model_id;
 use crate::msg::ExecuteMsg;
 use crate::state::events::create_event;
 use crate::state::triggers::save_trigger;
@@ -12,7 +13,6 @@ use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::event::{EventBuilder, EventData};
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::VaultStatus;
-use base::helpers::coin_helpers::add_to_coin;
 use cosmwasm_std::{to_binary, Addr, CosmosMsg, Env, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
@@ -56,7 +56,7 @@ pub fn deposit_handler(
         .dca_plus_config
         .clone()
         .map(|dca_plus_config| DcaPlusConfig {
-            total_deposit: add_to_coin(dca_plus_config.total_deposit, info.funds[0].amount),
+            total_deposit: add_to(dca_plus_config.total_deposit, info.funds[0].amount),
             model_id: get_dca_plus_model_id(
                 &env.block.time,
                 &vault.balance,
@@ -111,6 +111,7 @@ mod dposit_tests {
     use crate::constants::{ONE, ONE_HUNDRED, TEN};
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
     use crate::handlers::get_vault::get_vault_handler;
+    use crate::helpers::coin::{add, subtract};
     use crate::msg::ExecuteMsg;
     use crate::state::config::{get_config, update_config, Config};
     use crate::tests::helpers::{instantiate_contract, setup_new_vault};
@@ -118,7 +119,6 @@ mod dposit_tests {
     use crate::types::dca_plus_config::DcaPlusConfig;
     use crate::types::event::{EventBuilder, EventData};
     use crate::types::vault::{Vault, VaultStatus};
-    use base::helpers::coin_helpers::{add, subtract};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, SubMsg, WasmMsg};
 

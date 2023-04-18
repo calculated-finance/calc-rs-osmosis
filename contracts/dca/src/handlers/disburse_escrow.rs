@@ -1,10 +1,11 @@
 use crate::{
     error::ContractError,
     helpers::{
-        disbursement_helpers::get_disbursement_messages,
-        fee_helpers::{get_dca_plus_performance_fee, get_fee_messages},
-        price_helpers::query_belief_price,
-        validation_helpers::assert_sender_is_contract_or_admin,
+        coin::{empty_of, subtract},
+        disbursement::get_disbursement_messages,
+        fees::{get_dca_plus_performance_fee, get_fee_messages},
+        price::query_belief_price,
+        validation::assert_sender_is_contract_or_admin,
     },
     state::{
         disburse_escrow_tasks::delete_disburse_escrow_task,
@@ -16,7 +17,6 @@ use crate::{
         event::{EventBuilder, EventData},
     },
 };
-use base::helpers::coin_helpers::{empty_of, subtract};
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
 
 pub fn disburse_escrow_handler(
@@ -99,7 +99,6 @@ mod disburse_escrow_tests {
             vault::{Vault, VaultStatus},
         },
     };
-    use base::helpers::coin_helpers::subtract;
     use cosmwasm_std::{
         testing::{mock_env, mock_info},
         to_binary, BankMsg, Coin, CosmosMsg, Decimal, StdError, SubMsg, Uint128,
