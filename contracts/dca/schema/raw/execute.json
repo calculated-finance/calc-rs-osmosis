@@ -541,17 +541,44 @@
       ]
     },
     "TimeInterval": {
-      "type": "string",
-      "enum": [
-        "every_second",
-        "every_minute",
-        "half_hourly",
-        "hourly",
-        "half_daily",
-        "daily",
-        "weekly",
-        "fortnightly",
-        "monthly"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "every_second",
+            "every_minute",
+            "half_hourly",
+            "hourly",
+            "half_daily",
+            "daily",
+            "weekly",
+            "fortnightly",
+            "monthly"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "custom"
+          ],
+          "properties": {
+            "custom": {
+              "type": "object",
+              "required": [
+                "seconds"
+              ],
+              "properties": {
+                "seconds": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
       ]
     },
     "Uint128": {

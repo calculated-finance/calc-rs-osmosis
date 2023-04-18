@@ -11,4 +11,5 @@ pub enum TimeInterval {
     Weekly,
     Fortnightly,
     Monthly,
+    Custom { seconds: u64 },
 }

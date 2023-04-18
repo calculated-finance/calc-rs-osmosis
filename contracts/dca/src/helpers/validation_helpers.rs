@@ -2,6 +2,7 @@ use crate::error::ContractError;
 use crate::state::config::{get_config, FeeCollector};
 use crate::types::destination::Destination;
 use crate::types::pair::Pair;
+use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, Storage, Timestamp, Uint128};
 
@@ -134,6 +135,17 @@ pub fn assert_target_time_is_in_past(
         return Err(ContractError::CustomError {
             val: String::from("trigger execution time has not yet elapsed"),
         });
+    }
+    Ok(())
+}
+
+pub fn assert_time_interval_is_valid(interval: &TimeInterval) -> Result<(), ContractError> {
+    if let TimeInterval::Custom { seconds } = interval {
+        if *seconds < 60 {
+            return Err(ContractError::CustomError {
+                val: String::from("custom time interval must be at least 60 seconds"),
+            });
+        }
     }
     Ok(())
 }

@@ -15,6 +15,7 @@ pub fn get_next_target_time(
     let current_time = Utc
         .timestamp_opt(current_timestamp.seconds().try_into().unwrap(), 0)
         .unwrap();
+
     let last_execution_time = Utc
         .timestamp_opt(last_execution_timestamp.seconds().try_into().unwrap(), 0)
         .unwrap();
@@ -73,6 +74,7 @@ fn get_duration(previous: DateTime<Utc>, interval: &TimeInterval) -> Duration {
         TimeInterval::Weekly => Duration::days(7),
         TimeInterval::Fortnightly => Duration::days(14),
         TimeInterval::Monthly => shift_months(previous, 1) - previous,
+        TimeInterval::Custom { seconds } => Duration::seconds(*seconds as i64),
     }
 }
 
@@ -450,7 +452,7 @@ mod tests {
     }
 
     #[test]
-    fn assert_every_ten_seconds_next_execution_times() {
+    fn assert_every_second_next_execution_times() {
         let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
         let scenarios = vec![
             (
@@ -481,6 +483,42 @@ mod tests {
 
         assert_expected_next_execution_times(
             &TimeInterval::EverySecond,
+            last_execution_time,
+            scenarios,
+        );
+    }
+
+    #[test]
+    fn assert_custom_next_execution_times() {
+        let last_execution_time = Utc.with_ymd_and_hms(2022, 1, 1, 1, 0, 0).unwrap();
+        let scenarios = vec![
+            (last_execution_time, last_execution_time + Duration::days(3)),
+            (
+                last_execution_time + Duration::seconds(1),
+                last_execution_time + Duration::days(3),
+            ),
+            (
+                last_execution_time + Duration::days(3) - Duration::seconds(1),
+                last_execution_time + Duration::days(3),
+            ),
+            (
+                last_execution_time + Duration::days(3),
+                last_execution_time + Duration::days(6),
+            ),
+            (
+                last_execution_time + Duration::days(3) + Duration::seconds(1),
+                last_execution_time + Duration::days(6),
+            ),
+            (
+                last_execution_time + Duration::days(33),
+                last_execution_time + Duration::days(36),
+            ),
+        ];
+
+        assert_expected_next_execution_times(
+            &TimeInterval::Custom {
+                seconds: 60 * 60 * 24 * 3,
+            },
             last_execution_time,
             scenarios,
         );

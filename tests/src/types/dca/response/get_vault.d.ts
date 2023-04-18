@@ -67,15 +67,22 @@ export type Addr = string;
 export type Binary = string;
 export type VaultStatus = "scheduled" | "active" | "inactive" | "cancelled";
 export type TimeInterval =
-  | "every_second"
-  | "every_minute"
-  | "half_hourly"
-  | "hourly"
-  | "half_daily"
-  | "daily"
-  | "weekly"
-  | "fortnightly"
-  | "monthly";
+  | (
+      | "every_second"
+      | "every_minute"
+      | "half_hourly"
+      | "hourly"
+      | "half_daily"
+      | "daily"
+      | "weekly"
+      | "fortnightly"
+      | "monthly"
+    )
+  | {
+      custom: {
+        seconds: number;
+      };
+    };
 export type TriggerConfiguration = {
   time: {
     target_time: Timestamp;
