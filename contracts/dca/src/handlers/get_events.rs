@@ -74,7 +74,7 @@ mod get_events_tests {
     }
 
     #[test]
-    fn events_are_not_reversed() {
+    fn events_are_not_reversed_when_reverse_is_none() {
         let mut deps = mock_dependencies();
         instantiate_contract(deps.as_mut(), mock_env(), mock_info(ADMIN, &[]));
 
@@ -89,6 +89,29 @@ mod get_events_tests {
         .unwrap();
 
         let events = get_events_handler(deps.as_ref(), None, None, None)
+            .unwrap()
+            .events;
+
+        assert_eq!(events.first().unwrap().id, 1);
+        assert_eq!(events.last().unwrap().id, 3);
+    }
+
+    #[test]
+    fn events_are_not_reversed_when_reverse_is_false() {
+        let mut deps = mock_dependencies();
+        instantiate_contract(deps.as_mut(), mock_env(), mock_info(ADMIN, &[]));
+
+        create_events(
+            deps.as_mut().storage,
+            vec![
+                EventBuilder::default(),
+                EventBuilder::default(),
+                EventBuilder::default(),
+            ],
+        )
+        .unwrap();
+
+        let events = get_events_handler(deps.as_ref(), None, None, Some(false))
             .unwrap()
             .events;
 

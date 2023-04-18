@@ -67,7 +67,7 @@ mod z_delegate_tests {
     use cosmos_sdk_proto::cosmos::staking::v1beta1::MsgDelegate;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_info},
-        Addr, BankMsg, Coin, SubMsg,
+        Addr, Attribute, BankMsg, Coin, SubMsg, SubMsgResponse,
     };
 
     #[test]
@@ -161,5 +161,34 @@ mod z_delegate_tests {
             ),
             AFTER_DELEGATION_REPLY_ID
         )));
+    }
+
+    #[test]
+    fn logs_the_delegate_result_on_success() {
+        let response = log_delegation_result(Reply {
+            id: AFTER_DELEGATION_REPLY_ID,
+            result: cosmwasm_std::SubMsgResult::Ok(SubMsgResponse {
+                events: vec![],
+                data: None,
+            }),
+        })
+        .unwrap();
+
+        assert!(response
+            .attributes
+            .contains(&Attribute::new("delegate_result", "success")));
+    }
+
+    #[test]
+    fn logs_the_bond_lp_tokens_result_on_failure() {
+        let response = log_delegation_result(Reply {
+            id: AFTER_DELEGATION_REPLY_ID,
+            result: cosmwasm_std::SubMsgResult::Err("error code 4".to_string()),
+        })
+        .unwrap();
+
+        assert!(response
+            .attributes
+            .contains(&Attribute::new("delegate_result", "failure")));
     }
 }

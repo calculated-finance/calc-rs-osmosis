@@ -1,4 +1,4 @@
-use cosmwasm_std::{Coin, Decimal, StdError, StdResult, Uint128};
+use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
 
 pub fn add(this: Coin, other: Coin) -> StdResult<Coin> {
     if this.denom != other.denom {
@@ -28,13 +28,6 @@ pub fn subtract(this: &Coin, other: &Coin) -> StdResult<Coin> {
             .amount
             .checked_sub(other.amount)
             .unwrap_or(Uint128::zero()),
-    })
-}
-
-pub fn multiply(this: Coin, factor: Decimal) -> StdResult<Coin> {
-    Ok(Coin {
-        denom: this.denom,
-        amount: this.amount * factor,
     })
 }
 

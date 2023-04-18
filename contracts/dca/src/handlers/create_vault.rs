@@ -146,7 +146,6 @@ pub fn create_vault_handler(
     )?;
 
     let mut response = Response::new()
-        .add_attribute("method", "create_vault")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id);
 

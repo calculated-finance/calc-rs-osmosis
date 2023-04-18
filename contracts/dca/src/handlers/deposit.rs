@@ -34,7 +34,7 @@ pub fn deposit_handler(
     if address != vault.owner {
         return Err(ContractError::CustomError {
             val: format!(
-                "provided an incorrect owner address for vault id={:?}",
+                "provided an incorrect owner address for vault id {}",
                 vault_id
             ),
         });
@@ -360,6 +360,39 @@ mod dposit_tests {
             deposit_handler(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap_err();
 
         assert_eq!(err.to_string(), "Error: vault is already cancelled");
+    }
+
+    #[test]
+    fn with_incorrect_owner_address_should_fail() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
+        let info = mock_info(ADMIN, &[deposit_amount.clone()]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let vault = setup_new_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                status: VaultStatus::Cancelled,
+                ..Vault::default()
+            },
+        );
+
+        let err = deposit_handler(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            Addr::unchecked("not-the-owner"),
+            vault.id,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: provided an incorrect owner address for vault id 0"
+        );
     }
 
     #[test]
