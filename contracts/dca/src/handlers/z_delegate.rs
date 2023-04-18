@@ -180,7 +180,7 @@ mod z_delegate_tests {
     }
 
     #[test]
-    fn logs_the_bond_lp_tokens_result_on_failure() {
+    fn logs_the_delegate_result_on_failure() {
         let response = log_delegation_result(Reply {
             id: AFTER_DELEGATION_REPLY_ID,
             result: cosmwasm_std::SubMsgResult::Err("error code 4".to_string()),

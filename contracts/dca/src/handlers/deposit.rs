@@ -13,7 +13,7 @@ use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::event::{EventBuilder, EventData};
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::VaultStatus;
-use cosmwasm_std::{to_binary, Addr, CosmosMsg, Env, WasmMsg};
+use cosmwasm_std::{to_binary, Addr, Env, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
 
@@ -92,7 +92,7 @@ pub fn deposit_handler(
             },
         )?;
 
-        response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+        response = response.add_submessage(SubMsg::new(WasmMsg::Execute {
             contract_addr: env.contract.address.to_string(),
             msg: to_binary(&ExecuteMsg::ExecuteTrigger {
                 trigger_id: vault.id,
@@ -120,7 +120,7 @@ mod dposit_tests {
     use crate::types::event::{EventBuilder, EventData};
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{to_binary, Addr, Coin, CosmosMsg, SubMsg, WasmMsg};
+    use cosmwasm_std::{to_binary, Addr, Coin, SubMsg, WasmMsg};
 
     #[test]
     fn updates_the_vault_balance() {
@@ -273,16 +273,14 @@ mod dposit_tests {
         let response =
             deposit_handler(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
-        assert!(response
-            .messages
-            .contains(&SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: env.contract.address.to_string(),
-                msg: to_binary(&ExecuteMsg::ExecuteTrigger {
-                    trigger_id: vault.id,
-                })
-                .unwrap(),
-                funds: vec![],
-            }))))
+        assert!(response.messages.contains(&SubMsg::new(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::ExecuteTrigger {
+                trigger_id: vault.id,
+            })
+            .unwrap(),
+            funds: vec![],
+        })))
     }
 
     #[test]

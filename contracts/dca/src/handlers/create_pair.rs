@@ -45,6 +45,7 @@ pub fn create_pair_handler(
     PAIRS.save(deps.storage, address.clone(), &pair)?;
 
     Ok(Response::new()
+        .add_attribute("method", "create_pair")
         .add_attribute("address", address.to_string())
         .add_attribute("base_denom", base_denom)
         .add_attribute("quote_denom", quote_denom)

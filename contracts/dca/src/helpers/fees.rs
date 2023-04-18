@@ -4,7 +4,7 @@ use crate::{
     state::config::{get_config, get_custom_fee},
     types::vault::Vault,
 };
-use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Decimal, Deps, StdResult, Storage, SubMsg, Uint128};
+use cosmwasm_std::{BankMsg, Coin, Decimal, Deps, StdResult, Storage, SubMsg, Uint128};
 
 use super::math::checked_mul;
 
@@ -27,14 +27,14 @@ pub fn get_fee_messages(
                     denom.clone(),
                 );
 
-                if fee_allocation.amount.gt(&Uint128::zero()) {
-                    Some(SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-                        to_address: fee_collector.address.to_string(),
-                        amount: vec![fee_allocation],
-                    })))
-                } else {
-                    None
+                if fee_allocation.amount.is_zero() {
+                    return None;
                 }
+
+                Some(SubMsg::new(BankMsg::Send {
+                    to_address: fee_collector.address.to_string(),
+                    amount: vec![fee_allocation],
+                }))
             })
         })
         .collect::<Vec<SubMsg>>())
