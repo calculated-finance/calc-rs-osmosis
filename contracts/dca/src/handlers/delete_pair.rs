@@ -5,7 +5,7 @@ use cosmwasm_std::{Addr, DepsMut};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{MessageInfo, Response};
 
-pub fn delete_pair(
+pub fn delete_pair_handler(
     deps: DepsMut,
     info: MessageInfo,
     address: Addr,

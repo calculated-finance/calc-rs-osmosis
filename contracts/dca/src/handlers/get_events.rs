@@ -4,7 +4,7 @@ use crate::{helpers::validation_helpers::assert_page_limit_is_valid, msg::Events
 use cosmwasm_std::{from_binary, Deps, Order, StdResult};
 use cw_storage_plus::Bound;
 
-pub fn get_events(
+pub fn get_events_handler(
     deps: Deps,
     start_after: Option<u64>,
     limit: Option<u16>,
@@ -44,7 +44,9 @@ mod get_events_tests {
         let mut deps = mock_dependencies();
         instantiate_contract(deps.as_mut(), mock_env(), mock_info(ADMIN, &[]));
 
-        let events = get_events(deps.as_ref(), None, None, None).unwrap().events;
+        let events = get_events_handler(deps.as_ref(), None, None, None)
+            .unwrap()
+            .events;
 
         assert_eq!(events.len(), 0);
     }
@@ -64,7 +66,9 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events(deps.as_ref(), None, None, None).unwrap().events;
+        let events = get_events_handler(deps.as_ref(), None, None, None)
+            .unwrap()
+            .events;
 
         assert_eq!(events.len(), 3);
     }
@@ -84,7 +88,9 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events(deps.as_ref(), None, None, None).unwrap().events;
+        let events = get_events_handler(deps.as_ref(), None, None, None)
+            .unwrap()
+            .events;
 
         assert_eq!(events.first().unwrap().id, 1);
         assert_eq!(events.last().unwrap().id, 3);
@@ -105,7 +111,7 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events(deps.as_ref(), None, Some(2), None)
+        let events = get_events_handler(deps.as_ref(), None, Some(2), None)
             .unwrap()
             .events;
 
@@ -127,7 +133,7 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events(deps.as_ref(), Some(2), None, None)
+        let events = get_events_handler(deps.as_ref(), Some(2), None, None)
             .unwrap()
             .events;
 
@@ -149,7 +155,7 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events(deps.as_ref(), None, None, Some(true))
+        let events = get_events_handler(deps.as_ref(), None, None, Some(true))
             .unwrap()
             .events;
 
@@ -172,7 +178,7 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events(deps.as_ref(), Some(1), Some(1), None)
+        let events = get_events_handler(deps.as_ref(), Some(1), Some(1), None)
             .unwrap()
             .events;
 
@@ -195,7 +201,7 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events(deps.as_ref(), Some(3), None, Some(true))
+        let events = get_events_handler(deps.as_ref(), Some(3), None, Some(true))
             .unwrap()
             .events;
 
@@ -219,7 +225,7 @@ mod get_events_tests {
         )
         .unwrap();
 
-        let events = get_events(deps.as_ref(), Some(4), Some(1), Some(true))
+        let events = get_events_handler(deps.as_ref(), Some(4), Some(1), Some(true))
             .unwrap()
             .events;
 
