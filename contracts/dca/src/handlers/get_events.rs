@@ -1,6 +1,6 @@
 use crate::state::events::event_store;
 use crate::types::event::Event;
-use crate::{helpers::validation_helpers::assert_page_limit_is_valid, msg::EventsResponse};
+use crate::{helpers::validation::assert_page_limit_is_valid, msg::EventsResponse};
 use cosmwasm_std::{from_binary, Deps, Order, StdResult};
 use cw_storage_plus::Bound;
 

@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::helpers::validation_helpers::{
+use crate::helpers::validation::{
     assert_sender_is_admin_or_vault_owner, assert_vault_is_not_cancelled,
 };
 use crate::state::disburse_escrow_tasks::save_disburse_escrow_task;

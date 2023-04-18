@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::helpers::validation_helpers::{
+use crate::helpers::validation::{
     assert_address_is_valid, assert_contract_is_not_paused,
     assert_destination_allocations_add_up_to_one, assert_destination_callback_addresses_are_valid,
     assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
@@ -7,7 +7,7 @@ use crate::helpers::validation_helpers::{
     assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
     assert_time_interval_is_valid,
 };
-use crate::helpers::vault_helpers::get_dca_plus_model_id;
+use crate::helpers::vault::get_dca_plus_model_id;
 use crate::msg::ExecuteMsg;
 use crate::state::cache::{VaultCache, VAULT_CACHE};
 use crate::state::config::get_config;

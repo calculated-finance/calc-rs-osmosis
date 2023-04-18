@@ -1,6 +1,7 @@
 use crate::types::vault::Vault;
-use base::helpers::math_helpers::checked_mul;
 use cosmwasm_std::{BankMsg, Coin, StdResult, SubMsg, Uint128, WasmMsg};
+
+use super::math::checked_mul;
 
 pub fn get_disbursement_messages(
     vault: &Vault,

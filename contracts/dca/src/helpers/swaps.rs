@@ -1,4 +1,4 @@
-use super::{price_helpers::query_belief_price, route_helpers::calculate_route};
+use super::{price::query_belief_price, routes::calculate_route};
 use crate::types::pair::Pair;
 use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, ReplyOn, StdResult, SubMsg, Uint128};
 use osmosis_std::types::osmosis::poolmanager::v1beta1::MsgSwapExactAmountIn;

@@ -1,7 +1,8 @@
 use super::{
-    fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate},
-    price_helpers::{calculate_slippage, query_price},
-    time_helpers::get_total_execution_duration,
+    coin::add_to,
+    fees::{get_delegation_fee_rate, get_swap_fee_rate},
+    price::{calculate_slippage, query_price},
+    time::get_total_execution_duration,
 };
 use crate::{
     state::{events::create_event, swap_adjustments::get_swap_adjustment, vaults::update_vault},
@@ -12,7 +13,6 @@ use crate::{
         vault::Vault,
     },
 };
-use base::helpers::coin_helpers::add_to_coin;
 use cosmwasm_std::{
     Coin, Decimal, Deps, Env, QuerierWrapper, StdResult, Storage, Timestamp, Uint128,
 };
@@ -184,11 +184,11 @@ pub fn simulate_standard_dca_execution(
 
             let vault = Vault {
                 dca_plus_config: Some(DcaPlusConfig {
-                    standard_dca_swapped_amount: add_to_coin(
+                    standard_dca_swapped_amount: add_to(
                         dca_plus_config.standard_dca_swapped_amount,
                         swap_amount,
                     ),
-                    standard_dca_received_amount: add_to_coin(
+                    standard_dca_received_amount: add_to(
                         dca_plus_config.standard_dca_received_amount,
                         received_amount_after_fee,
                     ),
@@ -465,7 +465,7 @@ mod price_threshold_exceeded_tests {
 mod get_dca_plus_model_id_tests {
     use crate::{
         constants::{ONE, TEN},
-        helpers::vault_helpers::get_dca_plus_model_id,
+        helpers::vault::get_dca_plus_model_id,
         types::time_interval::TimeInterval,
     };
     use cosmwasm_std::{testing::mock_env, Coin, Uint128};
@@ -528,7 +528,7 @@ mod get_dca_plus_model_id_tests {
 #[cfg(test)]
 mod get_dca_plus_performance_factor_tests {
     use crate::{
-        helpers::vault_helpers::get_dca_plus_performance_factor,
+        helpers::vault::get_dca_plus_performance_factor,
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
     use cosmwasm_std::{Coin, Decimal, Uint128};
@@ -711,7 +711,7 @@ mod simulate_standard_dca_execution_tests {
     use crate::{
         constants::{ONE, TEN},
         handlers::get_events_by_resource_id::get_events_by_resource_id_handler,
-        helpers::fee_helpers::{get_delegation_fee_rate, get_swap_fee_rate},
+        helpers::fees::{get_delegation_fee_rate, get_swap_fee_rate},
         tests::{
             helpers::instantiate_contract,
             mocks::{calc_mock_dependencies, ADMIN, DENOM_UOSMO},

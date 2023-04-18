@@ -1,7 +1,7 @@
 use crate::constants::AFTER_DELEGATION_REPLY_ID;
-use crate::helpers::authz_helpers::create_authz_exec_message;
-use crate::helpers::validation_helpers::{assert_address_is_valid, assert_validator_is_valid};
-use crate::{error::ContractError, helpers::validation_helpers::assert_exactly_one_asset};
+use crate::helpers::authz::create_authz_exec_message;
+use crate::helpers::validation::{assert_address_is_valid, assert_validator_is_valid};
+use crate::{error::ContractError, helpers::validation::assert_exactly_one_asset};
 use cosmos_sdk_proto::cosmos::base::v1beta1::Coin as ProtoCoin;
 use cosmos_sdk_proto::cosmos::staking::v1beta1::MsgDelegate;
 use cosmwasm_std::{Addr, BankMsg, Deps, MessageInfo, Reply, Response, SubMsg, SubMsgResult};
@@ -60,7 +60,7 @@ pub fn log_delegation_result(reply: Reply) -> Result<Response, ContractError> {
 mod z_delegate_tests {
     use super::*;
     use crate::{
-        helpers::authz_helpers::create_authz_exec_message,
+        helpers::authz::create_authz_exec_message,
         tests::mocks::{DENOM_STAKE, DENOM_UOSMO, USER, VALIDATOR},
     };
     use cosmos_sdk_proto::cosmos::base::v1beta1::Coin as ProtoCoin;

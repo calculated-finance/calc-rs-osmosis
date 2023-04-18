@@ -1,6 +1,6 @@
 use crate::{
     error::ContractError,
-    helpers::validation_helpers::{
+    helpers::validation::{
         assert_dca_plus_escrow_level_is_less_than_100_percent,
         assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
         assert_sender_is_admin,

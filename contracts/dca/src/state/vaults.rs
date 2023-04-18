@@ -1,10 +1,13 @@
-use super::{pairs::PAIRS, state_helpers::fetch_and_increment_counter, triggers::get_trigger};
-use crate::types::{
-    dca_plus_config::DcaPlusConfig,
-    destination::Destination,
-    time_interval::TimeInterval,
-    vault::{Vault, VaultStatus},
-    vault_builder::VaultBuilder,
+use super::{pairs::PAIRS, triggers::get_trigger};
+use crate::{
+    helpers::state::fetch_and_increment_counter,
+    types::{
+        dca_plus_config::DcaPlusConfig,
+        destination::Destination,
+        time_interval::TimeInterval,
+        vault::{Vault, VaultStatus},
+        vault_builder::VaultBuilder,
+    },
 };
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, StdResult, Storage, Timestamp, Uint128};

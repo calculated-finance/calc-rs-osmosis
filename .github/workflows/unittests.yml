@@ -8,29 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  packages_base:
-    name: Packages (base)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/base
-    steps:
-      - name: Setup | Checkout
-        uses: actions/checkout@v3
-      - name: Setup | Rust
-        uses: ATiltedTree/setup-rust@v1
-        with:
-          rust-version: stable
-          components: clippy
-      - name: Build | Lint
-        run: cargo clippy -- -D warnings
-      - name: Dependencies | Compile
-        run: cargo update
-      - name: Build | Compile
-        run: cargo check
-      - name: Unit Test | Test
-        run: cargo unit-test
-
   contracts_dca:
     name: Contracts (dca)
     runs-on: ubuntu-latest
