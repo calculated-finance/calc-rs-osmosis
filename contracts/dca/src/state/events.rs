@@ -5,7 +5,7 @@ use crate::{
 use cosmwasm_std::{from_binary, to_binary, Binary, StdResult, Storage};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, UniqueIndex};
 
-const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v5");
+const EVENT_COUNTER: Item<u64> = Item::new("event_counter_v6");
 
 pub struct EventIndexes<'a> {
     pub resource_id: UniqueIndex<'a, (u128, u64), Binary, u64>,
@@ -26,10 +26,10 @@ pub fn event_store<'a>() -> IndexedMap<'a, u64, Binary, EventIndexes<'a>> {
                     .map(|event: Event| (event.resource_id.into(), event.id))
                     .expect("deserialised event")
             },
-            "serialised_events_v5__resource_id",
+            "serialised_events_v6__resource_id",
         ),
     };
-    IndexedMap::new("serialised_events_v5", indexes)
+    IndexedMap::new("serialised_events_v6", indexes)
 }
 
 pub fn create_event(store: &mut dyn Storage, event_builder: EventBuilder) -> StdResult<u64> {

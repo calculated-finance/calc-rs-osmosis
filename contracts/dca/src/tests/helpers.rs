@@ -82,7 +82,6 @@ impl Default for Config {
 impl Default for Pair {
     fn default() -> Self {
         Self {
-            address: Addr::unchecked("pair"),
             base_denom: DENOM_UOSMO.to_string(),
             quote_denom: DENOM_STAKE.to_string(),
             route: vec![3],

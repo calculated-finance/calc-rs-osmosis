@@ -2,7 +2,7 @@ use crate::types::pair::Pair;
 use cosmwasm_std::{Order, StdResult, Storage};
 use cw_storage_plus::Map;
 
-const PAIRS: Map<String, Pair> = Map::new("pairs_v5");
+const PAIRS: Map<String, Pair> = Map::new("pairs_v6");
 
 pub fn save_pair(storage: &mut dyn Storage, pair: &Pair) -> StdResult<()> {
     PAIRS.save(storage, pair.key(), pair)
@@ -56,5 +56,14 @@ mod pairs_state_tests {
 
         let saved_pair = find_pair(&deps.storage, &denoms).unwrap();
         assert_eq!(pair, saved_pair);
+    }
+
+    #[test]
+    fn find_pair_that_does_not_exist_fails() {
+        let deps = mock_dependencies();
+
+        let result = find_pair(&deps.storage, &Pair::default().denoms()).unwrap_err();
+
+        assert_eq!(result.to_string(), "dca::types::pair::Pair not found");
     }
 }

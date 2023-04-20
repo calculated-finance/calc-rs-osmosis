@@ -101,13 +101,13 @@ export interface Vault {
   label?: string | null;
   minimum_receive_amount?: Uint128 | null;
   owner: Addr;
-  pair: Pair;
   received_amount: Coin;
   slippage_tolerance?: Decimal | null;
   started_at?: Timestamp | null;
   status: VaultStatus;
   swap_amount: Uint128;
   swapped_amount: Coin;
+  target_denom: string;
   time_interval: TimeInterval;
   trigger?: TriggerConfiguration | null;
 }
@@ -129,10 +129,4 @@ export interface Destination {
   address: Addr;
   allocation: Decimal;
   msg?: Binary | null;
-}
-export interface Pair {
-  address: Addr;
-  base_denom: string;
-  quote_denom: string;
-  route: number[];
 }

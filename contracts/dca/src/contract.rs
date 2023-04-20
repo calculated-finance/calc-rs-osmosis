@@ -64,11 +64,10 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreatePair {
-            address,
             base_denom,
             quote_denom,
             route,
-        } => create_pair_handler(deps, info, address, base_denom, quote_denom, route),
+        } => create_pair_handler(deps, info, base_denom, quote_denom, route),
         ExecuteMsg::CreateVault {
             owner,
             label,
@@ -136,7 +135,13 @@ pub fn execute(
         ExecuteMsg::ZDelegate {
             delegator_address,
             validator_address,
-        } => z_delegate_handler(deps.as_ref(), info, delegator_address, validator_address),
+        } => z_delegate_handler(
+            deps.as_ref(),
+            env,
+            info,
+            delegator_address,
+            validator_address,
+        ),
         ExecuteMsg::ZProvideLiquidity {
             provider_address,
             pool_id,

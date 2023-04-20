@@ -34,7 +34,6 @@ pub struct MigrateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     CreatePair {
-        address: Addr,
         base_denom: String,
         quote_denom: String,
         route: Vec<u64>,

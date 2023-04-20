@@ -177,7 +177,7 @@ describe('when executing a vault', () => {
 
   describe('until the vault balance is empty', () => {
     let vault: Vault;
-    const deposit = coin(1000000, 'uion');
+    const deposit = coin(1000000, 'stake');
     const swap_amount = '300000';
 
     before(async function (this: Context) {
@@ -487,16 +487,11 @@ describe('when executing a vault', () => {
     before(async function (this: Context) {
       targetTime = dayjs().add(10, 'seconds');
 
-      const vaultId = await createVault(
-        this,
-        {
-          target_start_time_utc_seconds: `${targetTime.unix()}`,
-          swap_amount: '10000000',
-          slippage_tolerance: '0.0001',
-          pair_address: 'osmo1fcl04ma3dhc080jscyzkgf65u2ctv9v67ec03an3cff0gnfqkllqqkufhx',
-        },
-        [coin('10000000', 'uion')],
-      );
+      const vaultId = await createVault(this, {
+        target_start_time_utc_seconds: `${targetTime.unix()}`,
+        swap_amount: '10000000',
+        slippage_tolerance: '0.0001',
+      });
 
       vaultBeforeExecution = (
         await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
@@ -598,8 +593,8 @@ describe('when executing a vault', () => {
             asset_price:
               'dca_vault_execution_triggered' in executionTriggeredEvent &&
               executionTriggeredEvent.dca_vault_execution_triggered?.asset_price,
-            quote_denom: vaultAfterExecution.balance.denom,
-            base_denom: vaultAfterExecution.received_amount.denom,
+            base_denom: vaultAfterExecution.balance.denom,
+            quote_denom: vaultAfterExecution.received_amount.denom,
           },
         },
       ]);

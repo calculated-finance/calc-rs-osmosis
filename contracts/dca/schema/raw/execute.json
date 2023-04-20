@@ -11,15 +11,11 @@
         "create_pair": {
           "type": "object",
           "required": [
-            "address",
             "base_denom",
             "quote_denom",
             "route"
           ],
           "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
             "base_denom": {
               "type": "string"
             },

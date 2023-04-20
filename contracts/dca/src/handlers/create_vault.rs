@@ -3,7 +3,7 @@ use crate::helpers::validation::{
     assert_address_is_valid, assert_contract_is_not_paused,
     assert_destination_allocations_add_up_to_one, assert_destination_callback_addresses_are_valid,
     assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
-    assert_no_destination_allocations_are_zero, assert_send_denom_is_in_pair_denoms,
+    assert_no_destination_allocations_are_zero, assert_pair_exists_for_denoms,
     assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
     assert_time_interval_is_valid,
 };
@@ -48,6 +48,11 @@ pub fn create_vault_handler(
     assert_swap_amount_is_greater_than_50000(swap_amount)?;
     assert_destinations_limit_is_not_breached(&destinations)?;
     assert_time_interval_is_valid(&time_interval)?;
+    assert_pair_exists_for_denoms(
+        deps.as_ref(),
+        info.funds[0].denom.clone(),
+        target_denom.clone(),
+    )?;
 
     if let Some(target_time) = target_start_time_utc_seconds {
         assert_target_start_time_is_in_future(
@@ -71,8 +76,6 @@ pub fn create_vault_handler(
     let send_denom = info.funds[0].denom.clone();
 
     let pair = find_pair(deps.storage, &[send_denom.clone(), target_denom.clone()])?;
-
-    assert_send_denom_is_in_pair_denoms(pair.clone(), send_denom.clone())?;
 
     let receive_denom = if send_denom == pair.quote_denom {
         pair.base_denom.clone()
@@ -269,7 +272,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_non_existent_pool_id_should_fail() {
+    fn with_non_existent_pair_should_fail() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
@@ -294,22 +297,38 @@ mod create_vault_tests {
         )
         .unwrap_err();
 
-        assert_eq!(err.to_string(), "dca::types::pair::Pair not found");
+        assert_eq!(
+            err.to_string(),
+            "Error: swapping stake to uosmo not supported"
+        );
     }
 
     #[test]
     fn with_destination_allocations_less_than_100_percent_should_fail() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
-        let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+        let admin_info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), admin_info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            admin_info.clone(),
+            pair.base_denom.clone(),
+            pair.quote_denom.clone(),
+            pair.route.clone(),
+        )
+        .unwrap();
+
+        let user_info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
         let err = create_vault_handler(
             deps.as_mut(),
             env,
-            &info,
-            info.sender.clone(),
+            &user_info,
+            user_info.sender.clone(),
             None,
             vec![Destination {
                 allocation: Decimal::percent(50),
@@ -337,15 +356,28 @@ mod create_vault_tests {
     fn with_destination_allocation_equal_to_zero_should_fail() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
-        let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+        let admin_info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), admin_info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            admin_info.clone(),
+            pair.base_denom.clone(),
+            pair.quote_denom.clone(),
+            pair.route.clone(),
+        )
+        .unwrap();
+
+        let user_info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
         let err = create_vault_handler(
             deps.as_mut(),
             env,
-            &info,
-            info.sender.clone(),
+            &user_info,
+            user_info.sender.clone(),
             None,
             vec![
                 Destination {
@@ -491,15 +523,28 @@ mod create_vault_tests {
     fn with_time_trigger_with_target_time_in_the_past_should_fail() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
-        let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+        let admin_info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), admin_info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            admin_info.clone(),
+            pair.base_denom.clone(),
+            pair.quote_denom.clone(),
+            pair.route.clone(),
+        )
+        .unwrap();
+
+        let user_info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
 
         let err = create_vault_handler(
             deps.as_mut(),
             env.clone(),
-            &info,
-            info.sender.clone(),
+            &user_info,
+            user_info.sender.clone(),
             None,
             vec![],
             DENOM_UOSMO.to_string(),
@@ -564,7 +609,6 @@ mod create_vault_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address.clone(),
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
             pair.route.clone(),
@@ -635,7 +679,6 @@ mod create_vault_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address,
             pair.base_denom,
             pair.quote_denom,
             pair.route,
@@ -692,7 +735,6 @@ mod create_vault_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address,
             pair.base_denom,
             pair.quote_denom,
             pair.route,
@@ -740,7 +782,6 @@ mod create_vault_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address,
             pair.base_denom,
             pair.quote_denom,
             pair.route,
@@ -812,7 +853,6 @@ mod create_vault_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address,
             pair.base_denom,
             pair.quote_denom,
             pair.route,
@@ -859,7 +899,6 @@ mod create_vault_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address,
             pair.base_denom,
             pair.quote_denom,
             pair.route,
@@ -917,7 +956,6 @@ mod create_vault_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address,
             pair.base_denom,
             pair.quote_denom,
             pair.route,
@@ -964,7 +1002,6 @@ mod create_vault_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address,
             pair.base_denom,
             pair.quote_denom,
             pair.route,

@@ -85,7 +85,6 @@ describe('when depositing into a vault', () => {
         this,
         {
           swap_amount: `${swapAmount}`,
-          pair_address: 'osmo1mw0ac6rwlp5r8wapwk3zs6g29h8fcscxqakdzw9emkne6c8wjp9q0t3v8t',
         },
         [initialDeposit],
       );

@@ -65,7 +65,7 @@ export const execute = async (
   cosmWasmClient: SigningCosmWasmClient,
   senderAddress: string,
   contractAddress: string,
-  message: Record<string, unknown>,
+  message: ExecuteMsg,
   funds: Coin[] = [],
 ): Promise<Record<string, unknown>> => {
   const response = await cosmWasmClient.execute(senderAddress, contractAddress, message, FEE, 'memo', funds);
