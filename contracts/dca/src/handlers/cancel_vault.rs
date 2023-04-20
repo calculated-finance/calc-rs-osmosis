@@ -10,7 +10,7 @@ use crate::types::event::{EventBuilder, EventData};
 use crate::types::vault::VaultStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
-use cosmwasm_std::{Coin, CosmosMsg, Env, MessageInfo};
+use cosmwasm_std::{Coin, Env, MessageInfo, SubMsg};
 
 pub fn cancel_vault_handler(
     deps: DepsMut,
@@ -36,10 +36,10 @@ pub fn cancel_vault_handler(
         )?;
     };
 
-    let mut messages: Vec<CosmosMsg> = Vec::new();
+    let mut submessages: Vec<SubMsg> = Vec::new();
 
     if vault.balance.amount > Uint128::zero() {
-        messages.push(CosmosMsg::Bank(BankMsg::Send {
+        submessages.push(SubMsg::new(BankMsg::Send {
             to_address: vault.owner.to_string(),
             amount: vec![vault.balance.clone()],
         }));
@@ -56,7 +56,7 @@ pub fn cancel_vault_handler(
         .add_attribute("method", "cancel_vault")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id)
-        .add_messages(messages))
+        .add_submessages(submessages))
 }
 
 #[cfg(test)]
@@ -71,7 +71,7 @@ mod cancel_vault_tests {
     use crate::types::event::{EventBuilder, EventData};
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{BankMsg, CosmosMsg, SubMsg, Uint128};
+    use cosmwasm_std::{BankMsg, SubMsg, Uint128};
 
     #[test]
     fn should_return_balance_to_owner() {
@@ -85,12 +85,10 @@ mod cancel_vault_tests {
 
         let response = cancel_vault_handler(deps.as_mut(), env, info, vault.id).unwrap();
 
-        assert!(response
-            .messages
-            .contains(&SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-                to_address: vault.owner.to_string(),
-                amount: vec![vault.balance.clone()],
-            }))));
+        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+            to_address: vault.owner.to_string(),
+            amount: vec![vault.balance.clone()],
+        })));
     }
 
     #[test]

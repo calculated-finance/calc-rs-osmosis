@@ -12,7 +12,7 @@ use crate::state::vaults::{get_vault, update_vault};
 use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use crate::types::vault::VaultStatus;
-use cosmwasm_std::{to_binary, CosmosMsg, Decimal, SubMsg, SubMsgResult, WasmMsg};
+use cosmwasm_std::{to_binary, Decimal, SubMsg, SubMsgResult, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
 
@@ -128,11 +128,11 @@ pub fn disburse_funds_handler(
     update_vault(deps.storage, &vault)?;
 
     if vault.is_finished_dca_plus_vault() {
-        sub_msgs.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+        sub_msgs.push(SubMsg::new(WasmMsg::Execute {
             contract_addr: env.contract.address.to_string(),
             msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
             funds: vec![],
-        })));
+        }));
 
         delete_trigger(deps.storage, vault.id)?;
     }
@@ -1302,5 +1302,167 @@ mod disburse_funds_tests {
 
         let vault = get_vault(&deps.storage, vault.id).unwrap();
         assert_eq!(vault.status, VaultStatus::Inactive);
+    }
+
+    #[test]
+    fn for_finished_standard_and_plus_disburses_escrow() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+        let vault = setup_new_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                balance: Coin::new(0, DENOM_UOSMO),
+                status: VaultStatus::Inactive,
+                dca_plus_config: Some(DcaPlusConfig {
+                    total_deposit: Coin::new(ONE.into(), DENOM_UOSMO),
+                    standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
+                    ..DcaPlusConfig::default()
+                }),
+                ..Vault::default()
+            },
+        );
+
+        SWAP_CACHE
+            .save(
+                deps.as_mut().storage,
+                &SwapCache {
+                    swap_denom_balance: vault.balance.clone(),
+                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                },
+            )
+            .unwrap();
+
+        deps.querier.update_balance(
+            "cosmos2contract",
+            vec![Coin::new(1000000, vault.get_receive_denom())],
+        );
+
+        let response = disburse_funds_handler(
+            deps.as_mut(),
+            &env,
+            Reply {
+                id: AFTER_SWAP_REPLY_ID,
+                result: SubMsgResult::Ok(SubMsgResponse {
+                    events: vec![],
+                    data: None,
+                }),
+            },
+        )
+        .unwrap();
+
+        assert!(response.messages.contains(&SubMsg::new(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id }).unwrap(),
+            funds: vec![],
+        })));
+    }
+
+    #[test]
+    fn for_finished_standard_and_plus_deletes_trigger() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+        let vault = setup_new_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                balance: Coin::new(0, DENOM_UOSMO),
+                status: VaultStatus::Inactive,
+                dca_plus_config: Some(DcaPlusConfig {
+                    total_deposit: Coin::new(ONE.into(), DENOM_UOSMO),
+                    standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
+                    ..DcaPlusConfig::default()
+                }),
+                ..Vault::default()
+            },
+        );
+
+        SWAP_CACHE
+            .save(
+                deps.as_mut().storage,
+                &SwapCache {
+                    swap_denom_balance: vault.balance.clone(),
+                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                },
+            )
+            .unwrap();
+
+        deps.querier.update_balance(
+            "cosmos2contract",
+            vec![Coin::new(1000000, vault.get_receive_denom())],
+        );
+
+        disburse_funds_handler(
+            deps.as_mut(),
+            &env,
+            Reply {
+                id: AFTER_SWAP_REPLY_ID,
+                result: SubMsgResult::Ok(SubMsgResponse {
+                    events: vec![],
+                    data: None,
+                }),
+            },
+        )
+        .unwrap();
+
+        let vault = get_vault(&deps.storage, vault.id).unwrap();
+        assert!(vault.trigger.is_none());
+    }
+
+    #[test]
+    fn for_unfinished_standard_and_finished_plus_keeps_trigger() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+
+        let vault = setup_new_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                balance: Coin::new(0, DENOM_UOSMO),
+                status: VaultStatus::Inactive,
+                dca_plus_config: Some(DcaPlusConfig {
+                    total_deposit: Coin::new(ONE.into(), DENOM_UOSMO),
+                    standard_dca_swapped_amount: Coin::new((ONE / TWO_MICRONS).into(), DENOM_UOSMO),
+                    ..DcaPlusConfig::default()
+                }),
+                ..Vault::default()
+            },
+        );
+
+        SWAP_CACHE
+            .save(
+                deps.as_mut().storage,
+                &SwapCache {
+                    swap_denom_balance: vault.balance.clone(),
+                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                },
+            )
+            .unwrap();
+
+        deps.querier.update_balance(
+            "cosmos2contract",
+            vec![Coin::new(1000000, vault.get_receive_denom())],
+        );
+
+        disburse_funds_handler(
+            deps.as_mut(),
+            &env,
+            Reply {
+                id: AFTER_SWAP_REPLY_ID,
+                result: SubMsgResult::Ok(SubMsgResponse {
+                    events: vec![],
+                    data: None,
+                }),
+            },
+        )
+        .unwrap();
+
+        let vault = get_vault(&deps.storage, vault.id).unwrap();
+        assert!(vault.trigger.is_some());
     }
 }

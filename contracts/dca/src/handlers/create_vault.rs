@@ -23,7 +23,7 @@ use crate::types::time_interval::TimeInterval;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::VaultStatus;
 use crate::types::vault_builder::VaultBuilder;
-use cosmwasm_std::{coin, to_binary, Addr, CosmosMsg, Decimal, WasmMsg};
+use cosmwasm_std::{coin, to_binary, Addr, Decimal, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 
@@ -146,7 +146,6 @@ pub fn create_vault_handler(
     )?;
 
     let mut response = Response::new()
-        .add_attribute("method", "create_vault")
         .add_attribute("owner", vault.owner.to_string())
         .add_attribute("vault_id", vault.id);
 
@@ -168,7 +167,7 @@ pub fn create_vault_handler(
     )?;
 
     if target_start_time_utc_seconds.is_none() {
-        response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+        response = response.add_submessage(SubMsg::new(WasmMsg::Execute {
             contract_addr: env.contract.address.to_string(),
             msg: to_binary(&ExecuteMsg::ExecuteTrigger {
                 trigger_id: vault.id,
@@ -201,9 +200,7 @@ mod create_vault_tests {
     use crate::types::trigger::TriggerConfiguration;
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_env, mock_info};
-    use cosmwasm_std::{
-        to_binary, Addr, Coin, CosmosMsg, Decimal, SubMsg, Timestamp, Uint128, WasmMsg,
-    };
+    use cosmwasm_std::{to_binary, Addr, Coin, Decimal, SubMsg, Timestamp, Uint128, WasmMsg};
 
     #[test]
     fn with_no_assets_should_fail() {
@@ -995,15 +992,13 @@ mod create_vault_tests {
         )
         .unwrap();
 
-        assert!(response
-            .messages
-            .contains(&SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: env.contract.address.to_string(),
-                funds: vec![],
-                msg: to_binary(&ExecuteMsg::ExecuteTrigger {
-                    trigger_id: Uint128::one()
-                })
-                .unwrap()
-            }))));
+        assert!(response.messages.contains(&SubMsg::new(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            funds: vec![],
+            msg: to_binary(&ExecuteMsg::ExecuteTrigger {
+                trigger_id: Uint128::one()
+            })
+            .unwrap()
+        })));
     }
 }

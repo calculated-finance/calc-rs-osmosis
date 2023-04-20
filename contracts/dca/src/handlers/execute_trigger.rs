@@ -15,7 +15,7 @@ use crate::state::vaults::{get_vault, update_vault};
 use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::VaultStatus;
-use cosmwasm_std::{to_binary, CosmosMsg, ReplyOn, WasmMsg};
+use cosmwasm_std::{to_binary, ReplyOn, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 
@@ -118,7 +118,7 @@ pub fn execute_trigger_handler(
         )?;
     } else {
         if vault.is_finished_dca_plus_vault() {
-            response = response.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+            response = response.add_submessage(SubMsg::new(WasmMsg::Execute {
                 contract_addr: env.contract.address.to_string(),
                 msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
                 funds: vec![],
@@ -200,9 +200,7 @@ mod execute_trigger_tests {
     use crate::types::trigger::TriggerConfiguration;
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_env, mock_info};
-    use cosmwasm_std::{
-        to_binary, Coin, CosmosMsg, Decimal, ReplyOn, StdError, SubMsg, Uint128, WasmMsg,
-    };
+    use cosmwasm_std::{to_binary, Coin, Decimal, ReplyOn, StdError, SubMsg, Uint128, WasmMsg};
     use osmosis_std::types::osmosis::poolmanager::v1beta1::{
         EstimateSwapExactAmountInResponse, MsgSwapExactAmountIn, SwapAmountInRoute,
     };
@@ -748,13 +746,11 @@ mod execute_trigger_tests {
 
         let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
-        assert!(response
-            .messages
-            .contains(&SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: env.contract.address.to_string(),
-                msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id }).unwrap(),
-                funds: vec![],
-            }))));
+        assert!(response.messages.contains(&SubMsg::new(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id }).unwrap(),
+            funds: vec![],
+        })));
     }
 
     #[test]

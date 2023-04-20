@@ -101,7 +101,7 @@ mod disburse_escrow_tests {
     };
     use cosmwasm_std::{
         testing::{mock_env, mock_info},
-        to_binary, BankMsg, Coin, CosmosMsg, Decimal, StdError, SubMsg, Uint128,
+        to_binary, BankMsg, Coin, Decimal, StdError, SubMsg, Uint128,
     };
     use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 
@@ -132,12 +132,10 @@ mod disburse_escrow_tests {
 
         let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
-        assert!(response
-            .messages
-            .contains(&SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-                to_address: vault.destinations[0].address.to_string(),
-                amount: vec![vault.dca_plus_config.clone().unwrap().escrowed_balance]
-            }))));
+        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+            to_address: vault.destinations[0].address.to_string(),
+            amount: vec![vault.dca_plus_config.clone().unwrap().escrowed_balance]
+        })));
     }
 
     #[test]
@@ -177,12 +175,10 @@ mod disburse_escrow_tests {
 
         let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
-        assert!(response
-            .messages
-            .contains(&SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-                to_address: config.fee_collectors[0].address.to_string(),
-                amount: vec![vault.dca_plus_config.clone().unwrap().escrowed_balance]
-            }))));
+        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
+            to_address: config.fee_collectors[0].address.to_string(),
+            amount: vec![vault.dca_plus_config.clone().unwrap().escrowed_balance]
+        })));
     }
 
     #[test]
