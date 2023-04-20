@@ -1,15 +1,14 @@
 use crate::helpers::routes::calculate_route;
 use crate::helpers::validation::assert_sender_is_admin;
-use crate::state::pairs::PAIRS;
+use crate::state::pairs::save_pair;
 use crate::{error::ContractError, types::pair::Pair};
-use cosmwasm_std::{Addr, DepsMut};
+use cosmwasm_std::DepsMut;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{MessageInfo, Response};
 
 pub fn create_pair_handler(
     deps: DepsMut,
     info: MessageInfo,
-    address: Addr,
     base_denom: String,
     quote_denom: String,
     route: Vec<u64>,
@@ -23,7 +22,6 @@ pub fn create_pair_handler(
     }
 
     let pair = Pair {
-        address: address.clone(),
         base_denom: base_denom.clone(),
         quote_denom: quote_denom.clone(),
         route: route.clone(),
@@ -42,11 +40,10 @@ pub fn create_pair_handler(
         }
     }
 
-    PAIRS.save(deps.storage, address.clone(), &pair)?;
+    save_pair(deps.storage, &pair)?;
 
     Ok(Response::new()
         .add_attribute("method", "create_pair")
-        .add_attribute("address", address.to_string())
         .add_attribute("base_denom", base_denom)
         .add_attribute("quote_denom", quote_denom)
         .add_attribute("route", format!("{:#?}", route)))
@@ -58,16 +55,13 @@ mod create_pair_tests {
         contract::execute,
         handlers::get_pairs::get_pairs_handler,
         msg::ExecuteMsg,
-        state::pairs::PAIRS,
+        state::pairs::find_pair,
         tests::{
             helpers::instantiate_contract,
             mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO},
         },
     };
-    use cosmwasm_std::{
-        testing::{mock_env, mock_info},
-        Addr,
-    };
+    use cosmwasm_std::testing::{mock_env, mock_info};
 
     #[test]
     fn create_pair_with_valid_id_should_succeed() {
@@ -78,7 +72,6 @@ mod create_pair_tests {
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
         let create_pair_execute_message = ExecuteMsg::CreatePair {
-            address: Addr::unchecked("pair"),
             base_denom: DENOM_UOSMO.to_string(),
             quote_denom: DENOM_STAKE.to_string(),
             route: vec![3],
@@ -88,7 +81,6 @@ mod create_pair_tests {
 
         let pair = &get_pairs_handler(deps.as_ref()).unwrap().pairs[0];
 
-        assert_eq!(pair.address, Addr::unchecked("pair"));
         assert_eq!(pair.base_denom, DENOM_UOSMO.to_string());
         assert_eq!(pair.quote_denom, DENOM_STAKE.to_string());
         assert_eq!(pair.route, vec![3]);
@@ -102,17 +94,13 @@ mod create_pair_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let address = Addr::unchecked("pair");
-
         let original_message = ExecuteMsg::CreatePair {
-            address: address.clone(),
             base_denom: DENOM_UOSMO.to_string(),
             quote_denom: DENOM_STAKE.to_string(),
             route: vec![4, 1],
         };
 
         let message = ExecuteMsg::CreatePair {
-            address: address.clone(),
             base_denom: DENOM_UOSMO.to_string(),
             quote_denom: DENOM_STAKE.to_string(),
             route: vec![3],
@@ -128,11 +116,19 @@ mod create_pair_tests {
 
         execute(deps.as_mut(), env.clone(), info.clone(), original_message).unwrap();
 
-        let original_pair = PAIRS.load(deps.as_ref().storage, address.clone()).unwrap();
+        let original_pair = find_pair(
+            deps.as_ref().storage,
+            &[DENOM_UOSMO.to_string(), DENOM_STAKE.to_string()],
+        )
+        .unwrap();
 
         execute(deps.as_mut(), env, info, message).unwrap();
 
-        let pair = PAIRS.load(deps.as_ref().storage, address).unwrap();
+        let pair = find_pair(
+            deps.as_ref().storage,
+            &[DENOM_UOSMO.to_string(), DENOM_STAKE.to_string()],
+        )
+        .unwrap();
 
         assert_eq!(original_pair.route, vec![4, 1]);
         assert_eq!(pair.route, vec![3]);
@@ -149,7 +145,6 @@ mod create_pair_tests {
         let info_with_unauthorised_sender = mock_info("not-admin", &vec![]);
 
         let create_pair_execute_message = ExecuteMsg::CreatePair {
-            address: Addr::unchecked("pair"),
             base_denom: String::from("base"),
             quote_denom: String::from("quote"),
             route: vec![0],
@@ -179,7 +174,6 @@ mod create_pair_tests {
             env,
             info,
             ExecuteMsg::CreatePair {
-                address: Addr::unchecked("pair"),
                 base_denom: DENOM_UOSMO.to_string(),
                 quote_denom: DENOM_STAKE.to_string(),
                 route: vec![],
@@ -203,7 +197,6 @@ mod create_pair_tests {
             env,
             info,
             ExecuteMsg::CreatePair {
-                address: Addr::unchecked("pair"),
                 base_denom: DENOM_UOSMO.to_string(),
                 quote_denom: DENOM_STAKE.to_string(),
                 route: vec![2],

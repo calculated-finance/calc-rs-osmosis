@@ -59,7 +59,7 @@ pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Deci
     Ok(
         match (
             get_custom_fee(storage, vault.get_swap_denom()),
-            get_custom_fee(storage, vault.get_receive_denom()),
+            get_custom_fee(storage, vault.target_denom.clone()),
         ) {
             (Some(swap_denom_fee_percent), Some(receive_denom_fee_percent)) => {
                 min(swap_denom_fee_percent, receive_denom_fee_percent)
@@ -86,7 +86,7 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
 
     if standard_dca_total_value > dca_plus_total_value {
         return Ok(Coin {
-            denom: vault.get_receive_denom(),
+            denom: vault.target_denom.clone(),
             amount: Uint128::zero(),
         });
     }
@@ -97,7 +97,7 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
     let fee = value_difference_in_terms_of_receive_denom * Decimal::percent(20);
 
     Ok(Coin {
-        denom: vault.get_receive_denom(),
+        denom: vault.target_denom.clone(),
         amount: min(fee, dca_plus_config.escrowed_balance.amount),
     })
 }
@@ -107,14 +107,9 @@ mod tests {
     use crate::{
         constants::TEN,
         helpers::fees::get_dca_plus_performance_fee,
-        types::{
-            dca_plus_config::DcaPlusConfig,
-            pair::Pair,
-            time_interval::TimeInterval,
-            vault::{Vault, VaultStatus},
-        },
+        types::{dca_plus_config::DcaPlusConfig, vault::Vault},
     };
-    use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
+    use cosmwasm_std::{Coin, Decimal, Uint128};
     use std::str::FromStr;
 
     fn get_vault(
@@ -156,19 +151,7 @@ mod tests {
                 model_id: 30,
                 escrow_level,
             }),
-            id: Uint128::one(),
-            created_at: Timestamp::from_seconds(10000000),
-            owner: Addr::unchecked("owner"),
-            label: None,
-            destinations: vec![],
-            status: VaultStatus::Active,
-            pair: Pair::default(),
-            swap_amount: swapped_amount / Uint128::new(2),
-            slippage_tolerance: None,
-            minimum_receive_amount: None,
-            time_interval: TimeInterval::Daily,
-            started_at: None,
-            trigger: None,
+            ..Vault::default()
         }
     }
 
@@ -198,7 +181,7 @@ mod tests {
         let vault = get_vault(TEN, TEN, TEN, TEN + TEN, TEN);
 
         let fee = get_dca_plus_performance_fee(&vault, Decimal::one()).unwrap();
-        assert_eq!(fee.denom, vault.get_receive_denom());
+        assert_eq!(fee.denom, vault.target_denom);
     }
 
     #[test]
@@ -206,7 +189,7 @@ mod tests {
         let vault = get_vault(TEN, TEN, TEN, TEN, TEN);
 
         let fee = get_dca_plus_performance_fee(&vault, Decimal::one()).unwrap();
-        assert_eq!(fee.denom, vault.get_receive_denom());
+        assert_eq!(fee.denom, vault.target_denom);
     }
 
     #[test]

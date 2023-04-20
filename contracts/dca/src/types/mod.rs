@@ -8,4 +8,3 @@ pub mod price_type;
 pub mod time_interval;
 pub mod trigger;
 pub mod vault;
-pub mod vault_builder;

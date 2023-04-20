@@ -4,7 +4,7 @@ use crate::{
         vault::get_dca_plus_performance_factor,
     },
     msg::DcaPlusPerformanceResponse,
-    state::vaults::get_vault,
+    state::{pairs::find_pair, vaults::get_vault},
 };
 use cosmwasm_std::{Deps, StdError, StdResult, Uint128};
 
@@ -14,7 +14,9 @@ pub fn get_dca_plus_performance_handler(
 ) -> StdResult<DcaPlusPerformanceResponse> {
     let vault = get_vault(deps.storage, vault_id)?;
 
-    let current_price = query_belief_price(&deps.querier, &vault.pair, vault.get_swap_denom())?;
+    let pair = find_pair(deps.storage, &vault.denoms())?;
+
+    let current_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
 
     vault.dca_plus_config.clone().map_or(
         Err(StdError::GenericErr {
@@ -35,7 +37,7 @@ mod get_dca_plus_performance_tests {
     use crate::{
         constants::{ONE, TEN},
         tests::{
-            helpers::setup_new_vault,
+            helpers::setup_vault,
             mocks::{calc_mock_dependencies, DENOM_STAKE},
         },
         types::{dca_plus_config::DcaPlusConfig, vault::Vault},
@@ -47,7 +49,7 @@ mod get_dca_plus_performance_tests {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
 
-        let vault = setup_new_vault(deps.as_mut(), env, Vault::default());
+        let vault = setup_vault(deps.as_mut(), env, Vault::default());
 
         let err = get_dca_plus_performance_handler(deps.as_ref(), vault.id).unwrap_err();
 
@@ -71,7 +73,7 @@ mod get_dca_plus_performance_tests {
             ..DcaPlusConfig::default()
         };
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env,
             Vault {

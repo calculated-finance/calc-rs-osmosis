@@ -98,35 +98,6 @@
       },
       "additionalProperties": false
     },
-    "Pair": {
-      "type": "object",
-      "required": [
-        "address",
-        "base_denom",
-        "quote_denom",
-        "route"
-      ],
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/Addr"
-        },
-        "base_denom": {
-          "type": "string"
-        },
-        "quote_denom": {
-          "type": "string"
-        },
-        "route": {
-          "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "uint64",
-            "minimum": 0.0
-          }
-        }
-      },
-      "additionalProperties": false
-    },
     "TimeInterval": {
       "oneOf": [
         {
@@ -217,11 +188,11 @@
         "destinations",
         "id",
         "owner",
-        "pair",
         "received_amount",
         "status",
         "swap_amount",
         "swapped_amount",
+        "target_denom",
         "time_interval"
       ],
       "properties": {
@@ -269,9 +240,6 @@
         "owner": {
           "$ref": "#/definitions/Addr"
         },
-        "pair": {
-          "$ref": "#/definitions/Pair"
-        },
         "received_amount": {
           "$ref": "#/definitions/Coin"
         },
@@ -303,6 +271,9 @@
         },
         "swapped_amount": {
           "$ref": "#/definitions/Coin"
+        },
+        "target_denom": {
+          "type": "string"
         },
         "time_interval": {
           "$ref": "#/definitions/TimeInterval"

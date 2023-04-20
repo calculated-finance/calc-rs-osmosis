@@ -22,7 +22,7 @@ pub fn get_vaults_by_address_handler(
 mod get_vaults_by_address_tests {
     use crate::contract::query;
     use crate::msg::{QueryMsg, VaultsResponse};
-    use crate::tests::helpers::{instantiate_contract, setup_new_vault};
+    use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::ADMIN;
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
@@ -63,8 +63,8 @@ mod get_vaults_by_address_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let vaults = from_binary::<VaultsResponse>(
             &query(
@@ -93,8 +93,8 @@ mod get_vaults_by_address_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let vaults = from_binary::<VaultsResponse>(
             &query(
@@ -124,8 +124,8 @@ mod get_vaults_by_address_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let vaults = from_binary::<VaultsResponse>(
             &query(
@@ -155,9 +155,9 @@ mod get_vaults_by_address_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
-        setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let vaults = from_binary::<VaultsResponse>(
             &query(
@@ -213,7 +213,7 @@ mod get_vaults_by_address_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -222,7 +222,7 @@ mod get_vaults_by_address_tests {
             },
         );
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -231,7 +231,7 @@ mod get_vaults_by_address_tests {
             },
         );
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {

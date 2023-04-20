@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::state::config::{get_config, FeeCollector};
+use crate::state::pairs::find_pair;
 use crate::types::destination::Destination;
-use crate::types::pair::Pair;
 use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, Storage, Timestamp, Uint128};
@@ -80,21 +80,6 @@ pub fn assert_swap_amount_is_greater_than_50000(swap_amount: Uint128) -> Result<
     if swap_amount <= Uint128::from(50000u128) {
         return Err(ContractError::CustomError {
             val: String::from("swap amount must be greater than 50000"),
-        });
-    }
-    Ok(())
-}
-
-pub fn assert_send_denom_is_in_pair_denoms(
-    pair: Pair,
-    send_denom: String,
-) -> Result<(), ContractError> {
-    if send_denom != pair.base_denom && send_denom != pair.quote_denom {
-        return Err(ContractError::CustomError {
-            val: format!(
-                "send denom {} does not match pair base denom {} or quote denom {}",
-                send_denom, pair.base_denom, pair.quote_denom
-            ),
         });
     }
     Ok(())
@@ -190,12 +175,24 @@ pub fn assert_address_is_valid(
     address: Addr,
     label: &str,
 ) -> Result<(), ContractError> {
-    match deps.api.addr_validate(address.as_ref()) {
-        Ok(_) => Ok(()),
-        Err(_) => Err(ContractError::CustomError {
+    deps.api
+        .addr_validate(address.as_ref())
+        .map(|_| ())
+        .map_err(|_| ContractError::CustomError {
             val: format!("{} address {} is invalid", label, address),
-        }),
-    }
+        })
+}
+
+pub fn assert_pair_exists_for_denoms(
+    deps: Deps,
+    swap_denom: String,
+    target_denom: String,
+) -> Result<(), ContractError> {
+    find_pair(deps.storage, &[swap_denom.clone(), target_denom.clone()])
+        .map(|_| ())
+        .map_err(|_| ContractError::CustomError {
+            val: format!("swapping {} to {} not supported", swap_denom, target_denom),
+        })
 }
 
 pub fn assert_destination_allocations_add_up_to_one(

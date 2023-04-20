@@ -10,6 +10,7 @@ use crate::helpers::vault::{
 use crate::msg::ExecuteMsg;
 use crate::state::cache::{SwapCache, VaultCache, SWAP_CACHE, VAULT_CACHE};
 use crate::state::events::create_event;
+use crate::state::pairs::find_pair;
 use crate::state::triggers::{delete_trigger, save_trigger};
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
@@ -66,7 +67,9 @@ pub fn execute_trigger_handler(
 
     update_vault(deps.storage, &vault)?;
 
-    let belief_price = query_belief_price(&deps.querier, &vault.pair, vault.get_swap_denom())?;
+    let pair = find_pair(deps.storage, &vault.denoms())?;
+
+    let belief_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -74,8 +77,8 @@ pub fn execute_trigger_handler(
             vault.id,
             env.block.to_owned(),
             EventData::DcaVaultExecutionTriggered {
-                base_denom: vault.pair.base_denom.clone(),
-                quote_denom: vault.pair.quote_denom.clone(),
+                base_denom: pair.base_denom.clone(),
+                quote_denom: pair.quote_denom.clone(),
                 asset_price: belief_price,
             },
         ),
@@ -165,14 +168,14 @@ pub fn execute_trigger_handler(
                 .query_balance(&env.contract.address, vault.get_swap_denom())?,
             receive_denom_balance: deps
                 .querier
-                .query_balance(&env.contract.address, vault.get_receive_denom())?,
+                .query_balance(&env.contract.address, vault.target_denom)?,
         },
     )?;
 
     Ok(response.add_submessage(create_osmosis_swap_message(
         &deps.querier,
         &env,
-        &vault.pair,
+        &pair,
         swap_amount,
         vault.slippage_tolerance,
         Some(AFTER_SWAP_REPLY_ID),
@@ -192,8 +195,8 @@ mod execute_trigger_tests {
     use crate::state::swap_adjustments::update_swap_adjustments;
     use crate::state::triggers::delete_trigger;
     use crate::state::vaults::get_vault;
-    use crate::tests::helpers::{instantiate_contract, setup_new_vault};
-    use crate::tests::mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO};
+    use crate::tests::helpers::{instantiate_contract, setup_vault};
+    use crate::tests::mocks::{calc_mock_dependencies, ADMIN, DENOM_UOSMO};
     use crate::types::dca_plus_config::DcaPlusConfig;
     use crate::types::event::{Event, EventData, ExecutionSkippedReason};
     use crate::types::position_type::PositionType;
@@ -214,7 +217,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         update_config(
             deps.as_mut().storage,
@@ -238,7 +241,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -263,7 +266,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -288,7 +291,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -315,7 +318,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         env.block.time = env.block.time.minus_seconds(10);
 
@@ -335,7 +338,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -360,7 +363,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -385,7 +388,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
@@ -393,14 +396,16 @@ mod execute_trigger_tests {
             .unwrap()
             .events;
 
+        let pair = find_pair(deps.as_ref().storage, &vault.denoms()).unwrap();
+
         assert!(events.contains(&Event {
             id: 1,
             resource_id: vault.id,
             timestamp: env.block.time,
             block_height: env.block.height,
             data: EventData::DcaVaultExecutionTriggered {
-                base_denom: DENOM_UOSMO.to_string(),
-                quote_denom: DENOM_STAKE.to_string(),
+                base_denom: pair.base_denom,
+                quote_denom: pair.quote_denom,
                 asset_price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
             }
         }));
@@ -414,7 +419,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -443,7 +448,7 @@ mod execute_trigger_tests {
                 ),
                 standard_dca_received_amount: Coin::new(
                     received_amount_after_fee.into(),
-                    vault.get_receive_denom()
+                    vault.target_denom
                 ),
                 ..vault.dca_plus_config.unwrap()
             }
@@ -458,7 +463,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -491,7 +496,7 @@ mod execute_trigger_tests {
 
         let model_id = 30;
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -534,7 +539,7 @@ mod execute_trigger_tests {
                 token_out_min_amount: Uint128::one().to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
-                    token_out_denom: vault.get_receive_denom(),
+                    token_out_denom: vault.target_denom,
                 }],
             }
             .into(),
@@ -551,7 +556,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -578,7 +583,7 @@ mod execute_trigger_tests {
             updated_vault.dca_plus_config.unwrap(),
             DcaPlusConfig {
                 standard_dca_swapped_amount: Coin::new(0, vault.get_swap_denom()),
-                standard_dca_received_amount: Coin::new(0, vault.get_receive_denom()),
+                standard_dca_received_amount: Coin::new(0, vault.target_denom),
                 ..vault.dca_plus_config.unwrap()
             }
         );
@@ -592,7 +597,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -630,7 +635,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -674,7 +679,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -704,7 +709,7 @@ mod execute_trigger_tests {
                 ),
                 standard_dca_received_amount: Coin::new(
                     received_amount_after_fee.into(),
-                    vault.get_receive_denom()
+                    vault.target_denom
                 ),
                 ..vault.dca_plus_config.unwrap()
             }
@@ -719,7 +724,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -761,7 +766,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -790,7 +795,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
@@ -819,7 +824,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -855,7 +860,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -880,7 +885,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -930,7 +935,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -960,7 +965,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
@@ -976,7 +981,7 @@ mod execute_trigger_tests {
                 token_out_min_amount: Uint128::one().to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
-                    token_out_denom: vault.get_receive_denom(),
+                    token_out_denom: vault.target_denom,
                 }],
             }
             .into(),
@@ -993,7 +998,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1013,7 +1018,7 @@ mod execute_trigger_tests {
                 token_out_min_amount: Uint128::one().to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
-                    token_out_denom: vault.get_receive_denom(),
+                    token_out_denom: vault.target_denom,
                 }],
             }
             .into(),
@@ -1030,7 +1035,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1061,7 +1066,7 @@ mod execute_trigger_tests {
                 token_out_min_amount: token_out_min_amount.to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
-                    token_out_denom: vault.get_receive_denom(),
+                    token_out_denom: vault.target_denom,
                 }],
             }
             .into(),
@@ -1078,7 +1083,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1115,7 +1120,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1152,7 +1157,7 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1176,7 +1181,7 @@ mod execute_trigger_tests {
                 token_out_min_amount: Uint128::one().to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
-                    token_out_denom: vault.get_receive_denom(),
+                    token_out_denom: vault.target_denom,
                 }],
             }
             .into(),

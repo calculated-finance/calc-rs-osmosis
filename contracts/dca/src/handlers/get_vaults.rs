@@ -17,7 +17,7 @@ pub fn get_vaults_handler(
 #[cfg(test)]
 mod get_vaults_tests {
     use super::*;
-    use crate::tests::helpers::{instantiate_contract, setup_new_vault};
+    use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::ADMIN;
     use crate::types::vault::Vault;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
@@ -57,7 +57,7 @@ mod get_vaults_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -66,7 +66,7 @@ mod get_vaults_tests {
             },
         );
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -89,7 +89,7 @@ mod get_vaults_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let vaults = get_vaults_handler(deps.as_ref(), None, None)
             .unwrap()
@@ -105,7 +105,7 @@ mod get_vaults_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -114,7 +114,7 @@ mod get_vaults_tests {
             },
         );
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -138,7 +138,7 @@ mod get_vaults_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -147,7 +147,7 @@ mod get_vaults_tests {
             },
         );
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -171,7 +171,7 @@ mod get_vaults_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -180,7 +180,7 @@ mod get_vaults_tests {
             },
         );
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -189,7 +189,7 @@ mod get_vaults_tests {
             },
         );
 
-        setup_new_vault(
+        setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {

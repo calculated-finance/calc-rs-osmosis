@@ -8,15 +8,9 @@
 export type ExecuteMsg =
   | {
       create_pair: {
-        address: Addr;
         base_denom: string;
         quote_denom: string;
         route: number[];
-      };
-    }
-  | {
-      delete_pair: {
-        address: Addr;
       };
     }
   | {
@@ -25,10 +19,10 @@ export type ExecuteMsg =
         label?: string | null;
         minimum_receive_amount?: Uint128 | null;
         owner?: Addr | null;
-        pair_address: Addr;
         position_type?: PositionType | null;
         slippage_tolerance?: Decimal | null;
         swap_amount: Uint128;
+        target_denom: string;
         target_start_time_utc_seconds?: Uint64 | null;
         time_interval: TimeInterval;
         use_dca_plus?: boolean | null;

@@ -56,7 +56,7 @@ export const createVault = async (
       create_vault: {
         label: 'test',
         swap_amount: '100000',
-        pair_address: context.pair.address,
+        target_denom: 'uion',
         time_interval: 'hourly',
         ...overrides,
       },

@@ -114,7 +114,7 @@ mod dposit_tests {
     use crate::helpers::coin::{add, subtract};
     use crate::msg::ExecuteMsg;
     use crate::state::config::{get_config, update_config, Config};
-    use crate::tests::helpers::{instantiate_contract, setup_new_vault};
+    use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
     use crate::types::dca_plus_config::DcaPlusConfig;
     use crate::types::event::{EventBuilder, EventData};
@@ -131,7 +131,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -160,7 +160,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         deposit_handler(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
@@ -189,7 +189,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -215,7 +215,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -241,7 +241,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         deposit_handler(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
@@ -260,7 +260,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -292,7 +292,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let response = deposit_handler(
             deps.as_mut(),
@@ -315,7 +315,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -345,7 +345,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -369,7 +369,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -402,7 +402,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let err = deposit_handler(
             deps.as_mut(),
@@ -431,7 +431,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let err =
             deposit_handler(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap_err();
@@ -465,7 +465,7 @@ mod dposit_tests {
         )
         .unwrap();
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let err =
             deposit_handler(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap_err();
@@ -482,7 +482,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -508,7 +508,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {

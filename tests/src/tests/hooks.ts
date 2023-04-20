@@ -145,7 +145,6 @@ const instantiateDCAContract = async (
 
     await execute(cosmWasmClient, adminContractAddress, dcaContractAddress, {
       create_pair: {
-        address: pool.address,
         base_denom: pool.poolAssets[0].token.denom,
         quote_denom: pool.poolAssets[1].token.denom,
         route: [pool.id.low],

@@ -51,8 +51,8 @@ describe('when fetching dca plus performance', () => {
       });
     });
 
-    it('has no performance fee', async function (this: Context) {
-      expect(performance.fee).to.deep.equal(coin(0, 'uion'));
+    it('has a performance fee', async function (this: Context) {
+      expect(performance.fee).to.deep.equal(coin(10, 'uion'));
     });
 
     it('has slightly positive performance factor', async function (this: Context) {

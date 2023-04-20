@@ -246,10 +246,10 @@ describe('when creating a vault', () => {
     });
   });
 
-  describe('with a funds denom not in the pair denoms', () => {
+  describe('with a denoms that are not in a supported pair', () => {
     it('fails with the correct error message', async function (this: Context) {
-      await expect(createVault(this, {}, [coin(1000000, 'uosmo')])).to.be.rejectedWith(
-        /send denom uosmo does not match pair base denom stake or quote denom uion/,
+      await expect(createVault(this, {}, [coin(1000000, 'not-a-denom')])).to.be.rejectedWith(
+        /swapping not-a-denom to stake not supported/,
       );
     });
   });

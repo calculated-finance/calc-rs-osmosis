@@ -1,13 +1,10 @@
-use crate::{msg::PairsResponse, state::pairs::PAIRS, types::pair::Pair};
-use cosmwasm_std::{Deps, Order, StdResult};
+use crate::{msg::PairsResponse, state::pairs::get_pairs};
+use cosmwasm_std::{Deps, StdResult};
 
 pub fn get_pairs_handler(deps: Deps) -> StdResult<PairsResponse> {
-    let pairs = PAIRS
-        .range(deps.storage, None, None, Order::Ascending)
-        .flat_map(|result| result.map(|(_, pair)| pair))
-        .collect::<Vec<Pair>>();
-
-    Ok(PairsResponse { pairs })
+    Ok(PairsResponse {
+        pairs: get_pairs(deps.storage),
+    })
 }
 
 #[cfg(test)]
@@ -40,7 +37,6 @@ mod get_pairs_tests {
         create_pair_handler(
             deps.as_mut(),
             info.clone(),
-            pair.address.clone(),
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
             pair.route.clone(),
