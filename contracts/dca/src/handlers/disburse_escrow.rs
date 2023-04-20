@@ -10,6 +10,7 @@ use crate::{
     state::{
         disburse_escrow_tasks::delete_disburse_escrow_task,
         events::create_event,
+        pairs::find_pair,
         vaults::{get_vault, update_vault},
     },
     types::{
@@ -37,7 +38,9 @@ pub fn disburse_escrow_handler(
 
     let dca_plus_config = vault.dca_plus_config.clone().unwrap();
 
-    let current_price = query_belief_price(&deps.querier, &vault.pair, vault.get_swap_denom())?;
+    let pair = find_pair(deps.storage, &vault.denoms())?;
+
+    let current_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
 
     let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
     let amount_to_disburse = subtract(&dca_plus_config.escrowed_balance, &performance_fee)?;
@@ -71,7 +74,7 @@ pub fn disburse_escrow_handler(
         .add_submessages(get_fee_messages(
             deps.as_ref(),
             vec![performance_fee.amount],
-            vault.get_receive_denom(),
+            vault.target_denom,
         )?)
         .add_attribute("performance_fee", format!("{:?}", performance_fee))
         .add_attribute("escrow_disbursed", format!("{:?}", amount_to_disburse)))
@@ -89,7 +92,7 @@ mod disburse_escrow_tests {
             vaults::get_vault,
         },
         tests::{
-            helpers::{instantiate_contract, setup_new_vault},
+            helpers::{instantiate_contract, setup_vault},
             mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO},
         },
         types::{
@@ -113,7 +116,7 @@ mod disburse_escrow_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -146,7 +149,7 @@ mod disburse_escrow_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -189,7 +192,7 @@ mod disburse_escrow_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -218,7 +221,7 @@ mod disburse_escrow_tests {
 
         let performance_fee = Coin::new(
             (ONE * Decimal::percent(20) - Uint128::one()).into(),
-            vault.get_receive_denom(),
+            vault.target_denom,
         );
 
         assert!(events.contains(&Event {
@@ -250,7 +253,7 @@ mod disburse_escrow_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -280,7 +283,7 @@ mod disburse_escrow_tests {
 
         assert_eq!(
             dca_plus_config.escrowed_balance,
-            Coin::new(0, vault.get_receive_denom())
+            Coin::new(0, vault.target_denom)
         );
     }
 
@@ -292,7 +295,7 @@ mod disburse_escrow_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -340,7 +343,7 @@ mod disburse_escrow_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {

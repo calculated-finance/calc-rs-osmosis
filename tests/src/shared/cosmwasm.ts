@@ -9,12 +9,15 @@ import fs from 'fs';
 import { getOfflineSignerProto as getOfflineSigner } from 'cosmjs-utils';
 import { ExecuteMsg } from '../types/dca/execute';
 import {
+  FEES,
   cosmosProtoRegistry,
   cosmwasmProtoRegistry,
   getSigningCosmosClient,
   ibcProtoRegistry,
+  osmosis,
   osmosisProtoRegistry,
 } from 'osmojs';
+import { FEE } from '../tests/constants';
 dayjs.extend(RelativeTime);
 
 export const getWallet = async (mnemonic: string, prefix: string): Promise<DirectSecp256k1HdWallet> => {
@@ -62,10 +65,10 @@ export const execute = async (
   cosmWasmClient: SigningCosmWasmClient,
   senderAddress: string,
   contractAddress: string,
-  message: ExecuteMsg,
+  message: Record<string, unknown>,
   funds: Coin[] = [],
 ): Promise<Record<string, unknown>> => {
-  const response = await cosmWasmClient.execute(senderAddress, contractAddress, message, 'auto', 'memo', funds);
+  const response = await cosmWasmClient.execute(senderAddress, contractAddress, message, FEE, 'memo', funds);
   return parseEventAttributes(response.logs[0].events);
 };
 
@@ -89,8 +92,8 @@ export const uploadAndInstantiate = async (
   label: string,
   funds: Coin[] = [],
 ): Promise<string> => {
-  const { codeId } = await cosmWasmClient.upload(adminAddress, fs.readFileSync(binaryFilePath), 'auto');
-  const { contractAddress } = await cosmWasmClient.instantiate(adminAddress, codeId, initMsg, label, 'auto', {
+  const { codeId } = await cosmWasmClient.upload(adminAddress, fs.readFileSync(binaryFilePath), FEE);
+  const { contractAddress } = await cosmWasmClient.instantiate(adminAddress, codeId, initMsg, label, FEE, {
     funds,
     admin: adminAddress,
   });
@@ -104,6 +107,6 @@ export const uploadAndMigrate = async (
   contractAddress: string,
   migrateMsg: Record<string, unknown>,
 ): Promise<void> => {
-  const { codeId } = await cosmWasmClient.upload(adminAddress, fs.readFileSync(binaryFilePath), 'auto');
-  await cosmWasmClient.migrate(adminAddress, contractAddress, codeId, migrateMsg, 'auto');
+  const { codeId } = await cosmWasmClient.upload(adminAddress, fs.readFileSync(binaryFilePath), FEE);
+  await cosmWasmClient.migrate(adminAddress, contractAddress, codeId, migrateMsg, FEE);
 };

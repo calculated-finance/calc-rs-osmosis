@@ -15,7 +15,7 @@ pub fn get_disbursement_messages(
                 checked_mul(amount_to_disburse, destination.allocation)
                     .expect("amount to be distributed should be valid")
                     .into(),
-                vault.get_receive_denom(),
+                vault.target_denom.clone(),
             );
 
             if allocation_amount.amount.gt(&Uint128::zero()) {

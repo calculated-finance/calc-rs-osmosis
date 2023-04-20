@@ -5,10 +5,14 @@ use super::{
     time::get_total_execution_duration,
 };
 use crate::{
-    state::{events::create_event, swap_adjustments::get_swap_adjustment, vaults::update_vault},
+    state::{
+        events::create_event, pairs::find_pair, swap_adjustments::get_swap_adjustment,
+        vaults::update_vault,
+    },
     types::{
         dca_plus_config::DcaPlusConfig,
         event::{EventBuilder, EventData, ExecutionSkippedReason},
+        position_type::PositionType,
         time_interval::TimeInterval,
         vault::Vault,
     },
@@ -18,6 +22,11 @@ use cosmwasm_std::{
 };
 use std::cmp::min;
 
+pub fn get_position_type(deps: &Deps, vault: &Vault) -> StdResult<PositionType> {
+    let pair = find_pair(deps.storage, &vault.denoms())?;
+    Ok(pair.position_type(vault.get_swap_denom()))
+}
+
 pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin> {
     let adjusted_amount =
         vault
@@ -26,7 +35,7 @@ pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin>
             .map_or(vault.swap_amount, |dca_plus_config| {
                 let swap_adjustment = get_swap_adjustment(
                     deps.storage,
-                    vault.get_position_type(),
+                    get_position_type(deps, vault).expect("vault position type"),
                     dca_plus_config.model_id,
                     env.block.time,
                 )
@@ -132,10 +141,12 @@ pub fn simulate_standard_dca_execution(
                 return Ok(vault);
             }
 
+            let pair = find_pair(storage, &vault.denoms())?;
+
             let actual_price = query_price(
                 querier,
                 env,
-                &vault.pair,
+                &pair,
                 &Coin::new(swap_amount.into(), vault.get_swap_denom()),
             )?;
 
@@ -208,9 +219,9 @@ pub fn simulate_standard_dca_execution(
                         sent: Coin::new(swap_amount.into(), vault.get_swap_denom()),
                         received: Coin::new(
                             received_amount_before_fee.into(),
-                            vault.get_receive_denom(),
+                            vault.target_denom.clone(),
                         ),
-                        fee: Coin::new(fee_amount.into(), vault.get_receive_denom()),
+                        fee: Coin::new(fee_amount.into(), vault.target_denom.clone()),
                     },
                 ),
             )?;
@@ -225,7 +236,7 @@ mod get_swap_amount_tests {
     use crate::{
         constants::{ONE, TWO_MICRONS},
         state::swap_adjustments::update_swap_adjustments,
-        tests::mocks::DENOM_UOSMO,
+        tests::{helpers::setup_vault, mocks::DENOM_UOSMO},
         types::{dca_plus_config::DcaPlusConfig, position_type::PositionType},
     };
     use cosmwasm_std::{
@@ -270,16 +281,20 @@ mod get_swap_amount_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = Vault {
-            dca_plus_config: Some(DcaPlusConfig::default()),
-            ..Vault::default()
-        };
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                dca_plus_config: Some(DcaPlusConfig::default()),
+                ..Vault::default()
+            },
+        );
 
         let swap_adjustment = Decimal::percent(90);
 
         update_swap_adjustments(
             deps.as_mut().storage,
-            PositionType::Exit,
+            PositionType::Enter,
             vec![(30, swap_adjustment)],
             env.block.time,
         )
@@ -299,18 +314,22 @@ mod get_swap_amount_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = Vault {
-            balance: coin((ONE / TWO_MICRONS).into(), DENOM_UOSMO),
-            swap_amount: ONE,
-            dca_plus_config: Some(DcaPlusConfig::default()),
-            ..Vault::default()
-        };
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                balance: coin((ONE / TWO_MICRONS).into(), DENOM_UOSMO),
+                swap_amount: ONE,
+                dca_plus_config: Some(DcaPlusConfig::default()),
+                ..Vault::default()
+            },
+        );
 
         let swap_adjustment = Decimal::percent(17);
 
         update_swap_adjustments(
             deps.as_mut().storage,
-            PositionType::Exit,
+            PositionType::Enter,
             vec![(30, swap_adjustment)],
             env.block.time,
         )
@@ -329,12 +348,16 @@ mod get_swap_amount_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = Vault {
-            balance: coin((ONE / TWO_MICRONS).into(), DENOM_UOSMO),
-            swap_amount: ONE,
-            dca_plus_config: Some(DcaPlusConfig::default()),
-            ..Vault::default()
-        };
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                balance: coin((ONE / TWO_MICRONS).into(), DENOM_UOSMO),
+                swap_amount: ONE,
+                dca_plus_config: Some(DcaPlusConfig::default()),
+                ..Vault::default()
+            },
+        );
 
         let swap_adjustment = Decimal::percent(120);
 
@@ -359,18 +382,22 @@ mod get_swap_amount_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = Vault {
-            balance: coin((ONE * Decimal::percent(150)).into(), DENOM_UOSMO),
-            swap_amount: ONE,
-            dca_plus_config: Some(DcaPlusConfig::default()),
-            ..Vault::default()
-        };
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                balance: coin((ONE * Decimal::percent(150)).into(), DENOM_UOSMO),
+                swap_amount: ONE,
+                dca_plus_config: Some(DcaPlusConfig::default()),
+                ..Vault::default()
+            },
+        );
 
         let swap_adjustment = Decimal::percent(200);
 
         update_swap_adjustments(
             deps.as_mut().storage,
-            PositionType::Exit,
+            PositionType::Enter,
             vec![(30, swap_adjustment)],
             env.block.time,
         )
@@ -707,6 +734,7 @@ mod get_dca_plus_performance_factor_tests {
 #[cfg(test)]
 mod simulate_standard_dca_execution_tests {
     use super::simulate_standard_dca_execution;
+    use crate::tests::helpers::setup_vault;
     use crate::types::event::{Event, EventData, ExecutionSkippedReason};
     use crate::{
         constants::{ONE, TEN},
@@ -791,12 +819,16 @@ mod simulate_standard_dca_execution_tests {
 
         instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        let vault = Vault {
-            swap_amount: ONE,
-            minimum_receive_amount: Some(ONE + ONE),
-            dca_plus_config: Some(DcaPlusConfig::default()),
-            ..Vault::default()
-        };
+        let vault = setup_vault(
+            storage_deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_amount: ONE,
+                minimum_receive_amount: Some(ONE + ONE),
+                dca_plus_config: Some(DcaPlusConfig::default()),
+                ..Vault::default()
+            },
+        );
 
         let belief_price = Decimal::one();
 
@@ -835,12 +867,16 @@ mod simulate_standard_dca_execution_tests {
 
         instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        let vault = Vault {
-            swap_amount: TEN,
-            slippage_tolerance: Some(Decimal::percent(2)),
-            dca_plus_config: Some(DcaPlusConfig::default()),
-            ..Vault::default()
-        };
+        let vault = setup_vault(
+            storage_deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_amount: TEN,
+                slippage_tolerance: Some(Decimal::percent(2)),
+                dca_plus_config: Some(DcaPlusConfig::default()),
+                ..Vault::default()
+            },
+        );
 
         simulate_standard_dca_execution(
             &deps.as_ref().querier,
@@ -875,11 +911,15 @@ mod simulate_standard_dca_execution_tests {
 
         instantiate_contract(storage_deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        let vault = Vault {
-            swap_amount: ONE,
-            dca_plus_config: Some(DcaPlusConfig::default()),
-            ..Vault::default()
-        };
+        let vault = setup_vault(
+            storage_deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_amount: ONE,
+                dca_plus_config: Some(DcaPlusConfig::default()),
+                ..Vault::default()
+            },
+        );
 
         let belief_price = Decimal::one();
 
@@ -910,8 +950,8 @@ mod simulate_standard_dca_execution_tests {
             block_height: env.block.height,
             data: EventData::SimulatedDcaVaultExecutionCompleted {
                 sent: Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
-                received: Coin::new(received_amount.into(), vault.get_receive_denom()),
-                fee: Coin::new(fee_amount.into(), vault.get_receive_denom())
+                received: Coin::new(received_amount.into(), vault.target_denom.clone()),
+                fee: Coin::new(fee_amount.into(), vault.target_denom.clone())
             }
         }));
     }
@@ -926,15 +966,21 @@ mod simulate_standard_dca_execution_tests {
 
         let belief_price = Decimal::one();
 
-        let vault = simulate_standard_dca_execution(
-            &deps.as_ref().querier,
-            storage_deps.as_mut().storage,
-            &env,
+        let vault = setup_vault(
+            storage_deps.as_mut(),
+            env.clone(),
             Vault {
                 swap_amount: ONE,
                 dca_plus_config: Some(DcaPlusConfig::default()),
                 ..Vault::default()
             },
+        );
+
+        let vault = simulate_standard_dca_execution(
+            &deps.as_ref().querier,
+            storage_deps.as_mut().storage,
+            &env,
+            vault,
             belief_price,
         )
         .unwrap();
@@ -955,7 +1001,7 @@ mod simulate_standard_dca_execution_tests {
                 ),
                 standard_dca_received_amount: Coin::new(
                     received_amount_after_fee.into(),
-                    vault.get_receive_denom()
+                    vault.target_denom
                 ),
                 ..DcaPlusConfig::default()
             }

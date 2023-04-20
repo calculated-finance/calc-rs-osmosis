@@ -116,35 +116,14 @@
       {
         "type": "object",
         "required": [
-          "delete_pair"
-        ],
-        "properties": {
-          "delete_pair": {
-            "type": "object",
-            "required": [
-              "address"
-            ],
-            "properties": {
-              "address": {
-                "$ref": "#/definitions/Addr"
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": [
           "create_vault"
         ],
         "properties": {
           "create_vault": {
             "type": "object",
             "required": [
-              "pair_address",
               "swap_amount",
+              "target_denom",
               "time_interval"
             ],
             "properties": {
@@ -183,9 +162,6 @@
                   }
                 ]
               },
-              "pair_address": {
-                "$ref": "#/definitions/Addr"
-              },
               "position_type": {
                 "anyOf": [
                   {
@@ -208,6 +184,9 @@
               },
               "swap_amount": {
                 "$ref": "#/definitions/Uint128"
+              },
+              "target_denom": {
+                "type": "string"
               },
               "target_start_time_utc_seconds": {
                 "anyOf": [
@@ -2014,35 +1993,6 @@
           },
           "additionalProperties": false
         },
-        "Pair": {
-          "type": "object",
-          "required": [
-            "address",
-            "base_denom",
-            "quote_denom",
-            "route"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
-            "base_denom": {
-              "type": "string"
-            },
-            "quote_denom": {
-              "type": "string"
-            },
-            "route": {
-              "type": "array",
-              "items": {
-                "type": "integer",
-                "format": "uint64",
-                "minimum": 0.0
-              }
-            }
-          },
-          "additionalProperties": false
-        },
         "TimeInterval": {
           "oneOf": [
             {
@@ -2133,11 +2083,11 @@
             "destinations",
             "id",
             "owner",
-            "pair",
             "received_amount",
             "status",
             "swap_amount",
             "swapped_amount",
+            "target_denom",
             "time_interval"
           ],
           "properties": {
@@ -2185,9 +2135,6 @@
             "owner": {
               "$ref": "#/definitions/Addr"
             },
-            "pair": {
-              "$ref": "#/definitions/Pair"
-            },
             "received_amount": {
               "$ref": "#/definitions/Coin"
             },
@@ -2219,6 +2166,9 @@
             },
             "swapped_amount": {
               "$ref": "#/definitions/Coin"
+            },
+            "target_denom": {
+              "type": "string"
             },
             "time_interval": {
               "$ref": "#/definitions/TimeInterval"
@@ -2350,35 +2300,6 @@
           },
           "additionalProperties": false
         },
-        "Pair": {
-          "type": "object",
-          "required": [
-            "address",
-            "base_denom",
-            "quote_denom",
-            "route"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
-            "base_denom": {
-              "type": "string"
-            },
-            "quote_denom": {
-              "type": "string"
-            },
-            "route": {
-              "type": "array",
-              "items": {
-                "type": "integer",
-                "format": "uint64",
-                "minimum": 0.0
-              }
-            }
-          },
-          "additionalProperties": false
-        },
         "TimeInterval": {
           "oneOf": [
             {
@@ -2469,11 +2390,11 @@
             "destinations",
             "id",
             "owner",
-            "pair",
             "received_amount",
             "status",
             "swap_amount",
             "swapped_amount",
+            "target_denom",
             "time_interval"
           ],
           "properties": {
@@ -2521,9 +2442,6 @@
             "owner": {
               "$ref": "#/definitions/Addr"
             },
-            "pair": {
-              "$ref": "#/definitions/Pair"
-            },
             "received_amount": {
               "$ref": "#/definitions/Coin"
             },
@@ -2555,6 +2473,9 @@
             },
             "swapped_amount": {
               "$ref": "#/definitions/Coin"
+            },
+            "target_denom": {
+              "type": "string"
             },
             "time_interval": {
               "$ref": "#/definitions/TimeInterval"
@@ -2686,35 +2607,6 @@
           },
           "additionalProperties": false
         },
-        "Pair": {
-          "type": "object",
-          "required": [
-            "address",
-            "base_denom",
-            "quote_denom",
-            "route"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            },
-            "base_denom": {
-              "type": "string"
-            },
-            "quote_denom": {
-              "type": "string"
-            },
-            "route": {
-              "type": "array",
-              "items": {
-                "type": "integer",
-                "format": "uint64",
-                "minimum": 0.0
-              }
-            }
-          },
-          "additionalProperties": false
-        },
         "TimeInterval": {
           "oneOf": [
             {
@@ -2805,11 +2697,11 @@
             "destinations",
             "id",
             "owner",
-            "pair",
             "received_amount",
             "status",
             "swap_amount",
             "swapped_amount",
+            "target_denom",
             "time_interval"
           ],
           "properties": {
@@ -2857,9 +2749,6 @@
             "owner": {
               "$ref": "#/definitions/Addr"
             },
-            "pair": {
-              "$ref": "#/definitions/Pair"
-            },
             "received_amount": {
               "$ref": "#/definitions/Coin"
             },
@@ -2891,6 +2780,9 @@
             },
             "swapped_amount": {
               "$ref": "#/definitions/Coin"
+            },
+            "target_denom": {
+              "type": "string"
             },
             "time_interval": {
               "$ref": "#/definitions/TimeInterval"

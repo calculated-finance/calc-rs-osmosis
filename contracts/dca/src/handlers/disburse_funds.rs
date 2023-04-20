@@ -37,7 +37,7 @@ pub fn disburse_funds_handler(
 
             let receive_denom_balance = &deps
                 .querier
-                .query_balance(&env.contract.address, vault.get_receive_denom())?;
+                .query_balance(&env.contract.address, vault.target_denom.clone())?;
 
             let coin_sent = Coin::new(
                 (swap_cache.swap_denom_balance.amount - swap_denom_balance.amount).into(),
@@ -160,7 +160,7 @@ mod disburse_funds_tests {
         tests::{
             helpers::{
                 instantiate_contract, instantiate_contract_with_multiple_fee_collectors,
-                setup_new_vault,
+                setup_vault,
             },
             mocks::{ADMIN, DENOM_UOSMO},
         },
@@ -184,7 +184,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -200,14 +200,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         let response = disburse_funds_handler(
@@ -228,7 +228,7 @@ mod disburse_funds_tests {
         let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
 
         let automation_fees = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
-            Coin::new(0, vault.get_receive_denom()),
+            Coin::new(0, vault.target_denom.clone()),
             |mut accum, destination| {
                 let allocation_amount =
                     checked_mul(receive_amount - fee, destination.allocation).unwrap();
@@ -243,7 +243,7 @@ mod disburse_funds_tests {
             to_address: vault.destinations.first().unwrap().address.to_string(),
             amount: vec![Coin::new(
                 (receive_amount - fee - automation_fees.amount).into(),
-                vault.get_receive_denom(),
+                vault.target_denom,
             )],
         },)));
     }
@@ -254,7 +254,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
 
         SWAP_CACHE
@@ -262,14 +262,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         let response = disburse_funds_handler(
@@ -302,12 +302,12 @@ mod disburse_funds_tests {
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(swap_fee.into(), vault.get_receive_denom())]
+            amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
         })));
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
+            amount: vec![Coin::new(automation_fee.into(), vault.target_denom.clone())]
         })));
     }
 
@@ -332,7 +332,7 @@ mod disburse_funds_tests {
             ],
         );
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
 
         SWAP_CACHE
@@ -340,14 +340,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         let response = disburse_funds_handler(
@@ -385,7 +385,7 @@ mod disburse_funds_tests {
                     checked_mul(swap_fee, fee_collector.allocation)
                         .unwrap()
                         .into(),
-                    vault.get_receive_denom()
+                    vault.target_denom.clone()
                 )]
             })));
 
@@ -395,7 +395,7 @@ mod disburse_funds_tests {
                     checked_mul(automation_fee, fee_collector.allocation)
                         .unwrap()
                         .into(),
-                    vault.get_receive_denom()
+                    vault.target_denom.clone()
                 )]
             })));
         }
@@ -407,7 +407,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
 
         SWAP_CACHE
@@ -415,14 +415,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         disburse_funds_handler(
@@ -455,7 +455,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
 
         SWAP_CACHE
@@ -463,7 +463,7 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
@@ -479,7 +479,7 @@ mod disburse_funds_tests {
                         .into(),
                     vault.get_swap_denom(),
                 ),
-                Coin::new(receive_amount.into(), vault.get_receive_denom()),
+                Coin::new(receive_amount.into(), vault.target_denom.clone()),
             ],
         );
 
@@ -512,7 +512,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
 
         SWAP_CACHE
@@ -520,14 +520,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         disburse_funds_handler(
@@ -569,7 +569,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -586,14 +586,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         update_swap_adjustments(
@@ -651,7 +651,7 @@ mod disburse_funds_tests {
                 .to_string(),
             amount: vec![Coin::new(
                 (receive_amount - escrow_amount).into(),
-                updated_vault.get_receive_denom(),
+                updated_vault.target_denom,
             )],
         },)));
         assert_ne!(escrow_level, Decimal::zero());
@@ -664,7 +664,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let receive_amount = Uint128::new(10000);
 
@@ -673,14 +673,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         update_swap_adjustments(
@@ -737,7 +737,7 @@ mod disburse_funds_tests {
             data: EventData::DcaVaultExecutionCompleted {
                 sent: updated_vault.swapped_amount,
                 received: add_to(updated_vault.received_amount, fee),
-                fee: Coin::new(fee.into(), vault.get_receive_denom())
+                fee: Coin::new(fee.into(), vault.target_denom.clone())
             }
         }))
     }
@@ -748,7 +748,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -764,14 +764,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         update_swap_adjustments(
@@ -820,7 +820,7 @@ mod disburse_funds_tests {
             data: EventData::DcaVaultExecutionCompleted {
                 sent: updated_vault.swapped_amount,
                 received: updated_vault.received_amount,
-                fee: Coin::new(0, vault.get_receive_denom())
+                fee: Coin::new(0, vault.target_denom.clone())
             }
         }))
     }
@@ -832,7 +832,7 @@ mod disburse_funds_tests {
 
         let balance = Coin::new(TWO_MICRONS.into(), DENOM_UOSMO);
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -860,7 +860,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let reply = Reply {
             id: AFTER_SWAP_REPLY_ID,
@@ -890,7 +890,7 @@ mod disburse_funds_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let reply = Reply {
             id: AFTER_SWAP_REPLY_ID,
@@ -909,7 +909,7 @@ mod disburse_funds_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let reply = Reply {
             id: AFTER_SWAP_REPLY_ID,
@@ -929,7 +929,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let custom_fee_percent = Decimal::percent(20);
 
@@ -947,14 +947,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         let response = disburse_funds_handler(
@@ -987,12 +987,12 @@ mod disburse_funds_tests {
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(swap_fee.into(), vault.get_receive_denom())]
+            amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
         })));
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
+            amount: vec![Coin::new(automation_fee.into(), vault.target_denom.clone())]
         })));
     }
 
@@ -1002,13 +1002,13 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let custom_fee_percent = Decimal::percent(20);
 
         create_custom_fee(
             &mut deps.storage,
-            vault.get_receive_denom(),
+            vault.target_denom.clone(),
             custom_fee_percent,
         )
         .unwrap();
@@ -1020,14 +1020,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         let response = disburse_funds_handler(
@@ -1060,12 +1060,12 @@ mod disburse_funds_tests {
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(swap_fee.into(), vault.get_receive_denom())]
+            amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
         })));
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
+            amount: vec![Coin::new(automation_fee.into(), vault.target_denom.clone())]
         })));
     }
 
@@ -1075,7 +1075,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let swap_denom_fee_percent = Decimal::percent(20);
         let receive_denom_fee_percent = Decimal::percent(40);
@@ -1089,7 +1089,7 @@ mod disburse_funds_tests {
 
         create_custom_fee(
             &mut deps.storage,
-            vault.get_receive_denom(),
+            vault.target_denom.clone(),
             receive_denom_fee_percent,
         )
         .unwrap();
@@ -1101,14 +1101,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.get_receive_denom())],
+            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
         let response = disburse_funds_handler(
@@ -1141,12 +1141,12 @@ mod disburse_funds_tests {
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(swap_fee.into(), vault.get_receive_denom())]
+            amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
         })));
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(automation_fee.into(), vault.get_receive_denom())]
+            amount: vec![Coin::new(automation_fee.into(), vault.target_denom.clone())]
         })));
     }
 
@@ -1156,7 +1156,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1171,14 +1171,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(1000000, vault.get_receive_denom())],
+            vec![Coin::new(1000000, vault.target_denom.clone())],
         );
 
         disburse_funds_handler(
@@ -1204,7 +1204,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1220,14 +1220,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(1000000, vault.get_receive_denom())],
+            vec![Coin::new(1000000, vault.target_denom.clone())],
         );
 
         disburse_funds_handler(
@@ -1261,7 +1261,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1277,14 +1277,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(1000000, vault.get_receive_denom())],
+            vec![Coin::new(1000000, vault.target_denom.clone())],
         );
 
         disburse_funds_handler(
@@ -1310,7 +1310,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1330,14 +1330,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(1000000, vault.get_receive_denom())],
+            vec![Coin::new(1000000, vault.target_denom.clone())],
         );
 
         let response = disburse_funds_handler(
@@ -1366,7 +1366,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1386,14 +1386,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(1000000, vault.get_receive_denom())],
+            vec![Coin::new(1000000, vault.target_denom.clone())],
         );
 
         disburse_funds_handler(
@@ -1419,7 +1419,7 @@ mod disburse_funds_tests {
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -1439,14 +1439,14 @@ mod disburse_funds_tests {
                 deps.as_mut().storage,
                 &SwapCache {
                     swap_denom_balance: vault.balance.clone(),
-                    receive_denom_balance: Coin::new(0, vault.get_receive_denom()),
+                    receive_denom_balance: Coin::new(0, vault.target_denom.clone()),
                 },
             )
             .unwrap();
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(1000000, vault.get_receive_denom())],
+            vec![Coin::new(1000000, vault.target_denom.clone())],
         );
 
         disburse_funds_handler(

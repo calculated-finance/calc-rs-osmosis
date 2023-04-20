@@ -39,14 +39,11 @@ pub enum ExecuteMsg {
         quote_denom: String,
         route: Vec<u64>,
     },
-    DeletePair {
-        address: Addr,
-    },
     CreateVault {
         owner: Option<Addr>,
         label: Option<String>,
         destinations: Option<Vec<Destination>>,
-        pair_address: Addr,
+        target_denom: String,
         position_type: Option<PositionType>,
         slippage_tolerance: Option<Decimal>,
         minimum_receive_amount: Option<Uint128>,

@@ -1,6 +1,6 @@
 use crate::helpers::routes::calculate_route;
 use crate::helpers::validation::assert_sender_is_admin;
-use crate::state::pairs::PAIRS;
+use crate::state::pairs::save_pair;
 use crate::{error::ContractError, types::pair::Pair};
 use cosmwasm_std::{Addr, DepsMut};
 #[cfg(not(feature = "library"))]
@@ -42,7 +42,7 @@ pub fn create_pair_handler(
         }
     }
 
-    PAIRS.save(deps.storage, address.clone(), &pair)?;
+    save_pair(deps.storage, &pair)?;
 
     Ok(Response::new()
         .add_attribute("method", "create_pair")
@@ -58,7 +58,7 @@ mod create_pair_tests {
         contract::execute,
         handlers::get_pairs::get_pairs_handler,
         msg::ExecuteMsg,
-        state::pairs::PAIRS,
+        state::pairs::find_pair,
         tests::{
             helpers::instantiate_contract,
             mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO},
@@ -128,11 +128,19 @@ mod create_pair_tests {
 
         execute(deps.as_mut(), env.clone(), info.clone(), original_message).unwrap();
 
-        let original_pair = PAIRS.load(deps.as_ref().storage, address.clone()).unwrap();
+        let original_pair = find_pair(
+            deps.as_ref().storage,
+            &[DENOM_UOSMO.to_string(), DENOM_STAKE.to_string()],
+        )
+        .unwrap();
 
         execute(deps.as_mut(), env, info, message).unwrap();
 
-        let pair = PAIRS.load(deps.as_ref().storage, address).unwrap();
+        let pair = find_pair(
+            deps.as_ref().storage,
+            &[DENOM_UOSMO.to_string(), DENOM_STAKE.to_string()],
+        )
+        .unwrap();
 
         assert_eq!(original_pair.route, vec![4, 1]);
         assert_eq!(pair.route, vec![3]);

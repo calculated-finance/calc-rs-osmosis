@@ -7,7 +7,7 @@ use crate::{
     state::{
         cache::{VaultCache, VAULT_CACHE},
         config::{Config, FeeCollector},
-        pairs::PAIRS,
+        pairs::save_pair,
         triggers::save_trigger,
         vaults::update_vault,
     },
@@ -120,7 +120,8 @@ impl Default for Vault {
             }],
             status: VaultStatus::Active,
             balance: Coin::new(TEN.into(), DENOM_UOSMO),
-            pair: Pair::default(),
+            // pair: Pair::default(),
+            target_denom: DENOM_STAKE.to_string(),
             swap_amount: ONE,
             slippage_tolerance: None,
             minimum_receive_amount: None,
@@ -173,10 +174,16 @@ impl Default for EventData {
     }
 }
 
-pub fn setup_new_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
-    PAIRS
-        .save(deps.storage, vault.pair.address.clone(), &vault.pair)
-        .unwrap();
+pub fn setup_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
+    save_pair(
+        deps.storage,
+        &Pair {
+            quote_denom: vault.balance.denom.clone(),
+            base_denom: vault.target_denom.clone(),
+            ..Pair::default()
+        },
+    )
+    .unwrap();
 
     let mut existing_vault = get_vault_handler(deps.as_ref(), vault.id);
 

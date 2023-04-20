@@ -12,7 +12,7 @@ use crate::msg::ExecuteMsg;
 use crate::state::cache::{VaultCache, VAULT_CACHE};
 use crate::state::config::get_config;
 use crate::state::events::create_event;
-use crate::state::pairs::PAIRS;
+use crate::state::pairs::find_pair;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
 use crate::types::dca_plus_config::DcaPlusConfig;
@@ -21,8 +21,7 @@ use crate::types::event::{EventBuilder, EventData};
 use crate::types::position_type::PositionType;
 use crate::types::time_interval::TimeInterval;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
-use crate::types::vault::VaultStatus;
-use crate::types::vault_builder::VaultBuilder;
+use crate::types::vault::{VaultBuilder, VaultStatus};
 use cosmwasm_std::{coin, to_binary, Addr, Decimal, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
@@ -34,7 +33,7 @@ pub fn create_vault_handler(
     owner: Addr,
     label: Option<String>,
     mut destinations: Vec<Destination>,
-    pair_address: Addr,
+    target_denom: String,
     position_type: Option<PositionType>,
     slippage_tolerance: Option<Decimal>,
     minimum_receive_amount: Option<Uint128>,
@@ -69,9 +68,9 @@ pub fn create_vault_handler(
     assert_no_destination_allocations_are_zero(&destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
-    let pair = PAIRS.load(deps.storage, pair_address)?;
-
     let send_denom = info.funds[0].denom.clone();
+
+    let pair = find_pair(deps.storage, &[send_denom.clone(), target_denom.clone()])?;
 
     assert_send_denom_is_in_pair_denoms(pair.clone(), send_denom.clone())?;
 
@@ -111,7 +110,7 @@ pub fn create_vault_handler(
         } else {
             VaultStatus::Scheduled
         },
-        pair: pair.clone(),
+        target_denom,
         swap_amount,
         position_type,
         slippage_tolerance,
@@ -217,7 +216,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -252,7 +251,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -284,7 +283,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -317,7 +316,7 @@ mod create_vault_tests {
                 address: Addr::unchecked(USER),
                 msg: None,
             }],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -360,7 +359,7 @@ mod create_vault_tests {
                     msg: None,
                 },
             ],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -399,7 +398,7 @@ mod create_vault_tests {
                     msg: None,
                 })
                 .collect(),
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -431,7 +430,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -474,7 +473,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -503,7 +502,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -535,7 +534,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -582,7 +581,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -611,7 +610,7 @@ mod create_vault_tests {
                 balance: info.funds[0].clone(),
                 slippage_tolerance: None,
                 swap_amount,
-                pair,
+                target_denom: DENOM_UOSMO.to_string(),
                 started_at: None,
                 swapped_amount: Coin::new(0, DENOM_STAKE.to_string()),
                 received_amount: Coin::new(0, DENOM_UOSMO.to_string()),
@@ -652,7 +651,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -710,7 +709,7 @@ mod create_vault_tests {
             owner,
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -782,7 +781,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             destinations.clone(),
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -829,7 +828,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -876,7 +875,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -934,7 +933,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,
@@ -981,7 +980,7 @@ mod create_vault_tests {
             info.sender.clone(),
             None,
             vec![],
-            Addr::unchecked("pair"),
+            DENOM_UOSMO.to_string(),
             None,
             None,
             None,

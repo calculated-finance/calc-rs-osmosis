@@ -11,6 +11,10 @@ pub struct Pair {
 }
 
 impl Pair {
+    pub fn key(&self) -> String {
+        format!("{}-{}", self.base_denom, self.quote_denom)
+    }
+
     pub fn position_type(&self, swap_denom: String) -> PositionType {
         if self.quote_denom == swap_denom {
             PositionType::Enter
@@ -19,8 +23,8 @@ impl Pair {
         }
     }
 
-    pub fn denoms(&self) -> Vec<String> {
-        vec![self.base_denom.clone(), self.quote_denom.clone()]
+    pub fn denoms(&self) -> [String; 2] {
+        [self.base_denom.clone(), self.quote_denom.clone()]
     }
 
     pub fn other_denom(&self, swap_denom: String) -> String {

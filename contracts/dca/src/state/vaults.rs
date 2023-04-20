@@ -1,12 +1,11 @@
-use super::{pairs::PAIRS, triggers::get_trigger};
+use super::triggers::get_trigger;
 use crate::{
     helpers::state::fetch_and_increment_counter,
     types::{
         dca_plus_config::DcaPlusConfig,
         destination::Destination,
         time_interval::TimeInterval,
-        vault::{Vault, VaultStatus},
-        vault_builder::VaultBuilder,
+        vault::{Vault, VaultBuilder, VaultStatus},
     },
 };
 use cosmwasm_schema::cw_serde;
@@ -114,7 +113,7 @@ struct VaultData {
     pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
-    pub pair_address: Addr,
+    pub target_denom: String,
     pub swap_amount: Uint128,
     pub slippage_tolerance: Option<Decimal>,
     pub minimum_receive_amount: Option<Uint128>,
@@ -134,6 +133,7 @@ impl From<Vault> for VaultData {
             label: vault.label,
             status: vault.status,
             balance: vault.balance,
+            target_denom: vault.target_denom,
             swap_amount: vault.swap_amount,
             slippage_tolerance: vault.slippage_tolerance,
             minimum_receive_amount: vault.minimum_receive_amount,
@@ -143,16 +143,11 @@ impl From<Vault> for VaultData {
             received_amount: vault.received_amount,
             dca_plus_config: vault.dca_plus_config,
             destinations: vault.destinations,
-            pair_address: vault.pair.address,
         }
     }
 }
 
 fn vault_from(store: &dyn Storage, data: &VaultData) -> Vault {
-    let pair = PAIRS
-        .load(store, data.pair_address.clone())
-        .unwrap_or_else(|_| panic!("pair for pair address {:?}", data.pair_address));
-
     let trigger = get_trigger(store, data.id)
         .unwrap_or_else(|_| panic!("trigger for vault id {}", data.id))
         .map(|t| t.configuration);
@@ -173,7 +168,7 @@ fn vault_from(store: &dyn Storage, data: &VaultData) -> Vault {
         received_amount: data.received_amount.clone(),
         dca_plus_config: data.dca_plus_config.clone(),
         destinations: data.destinations.clone(),
-        pair,
+        target_denom: data.target_denom.clone(),
         trigger,
     }
 }

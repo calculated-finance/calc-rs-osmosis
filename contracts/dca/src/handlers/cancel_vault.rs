@@ -65,7 +65,7 @@ mod cancel_vault_tests {
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
     use crate::handlers::get_vault::get_vault_handler;
     use crate::state::disburse_escrow_tasks::get_disburse_escrow_tasks;
-    use crate::tests::helpers::{instantiate_contract, setup_new_vault};
+    use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::ADMIN;
     use crate::types::dca_plus_config::DcaPlusConfig;
     use crate::types::event::{EventBuilder, EventData};
@@ -81,7 +81,7 @@ mod cancel_vault_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let response = cancel_vault_handler(deps.as_mut(), env, info, vault.id).unwrap();
 
@@ -99,7 +99,7 @@ mod cancel_vault_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         cancel_vault_handler(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
@@ -120,7 +120,7 @@ mod cancel_vault_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         cancel_vault_handler(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
@@ -138,7 +138,7 @@ mod cancel_vault_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         cancel_vault_handler(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
@@ -156,7 +156,7 @@ mod cancel_vault_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {
@@ -178,7 +178,7 @@ mod cancel_vault_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         let err = cancel_vault_handler(
             deps.as_mut(),
@@ -199,7 +199,7 @@ mod cancel_vault_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         cancel_vault_handler(deps.as_mut(), env.clone(), info, vault.id).unwrap();
 
@@ -217,7 +217,7 @@ mod cancel_vault_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_new_vault(
+        let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
             Vault {

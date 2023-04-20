@@ -1,6 +1,6 @@
 use super::{
-    dca_plus_config::DcaPlusConfig, destination::Destination, pair::Pair,
-    position_type::PositionType, time_interval::TimeInterval, trigger::TriggerConfiguration,
+    dca_plus_config::DcaPlusConfig, destination::Destination, position_type::PositionType,
+    time_interval::TimeInterval, trigger::TriggerConfiguration,
 };
 use crate::helpers::time::get_total_execution_duration;
 use cosmwasm_schema::cw_serde;
@@ -24,7 +24,7 @@ pub struct Vault {
     pub destinations: Vec<Destination>,
     pub status: VaultStatus,
     pub balance: Coin,
-    pub pair: Pair,
+    pub target_denom: String,
     pub swap_amount: Uint128,
     pub slippage_tolerance: Option<Decimal>,
     pub minimum_receive_amount: Option<Uint128>,
@@ -37,22 +37,12 @@ pub struct Vault {
 }
 
 impl Vault {
-    pub fn get_position_type(&self) -> PositionType {
-        match self.balance.denom == self.pair.quote_denom {
-            true => PositionType::Enter,
-            false => PositionType::Exit,
-        }
+    pub fn denoms(&self) -> [String; 2] {
+        [self.get_swap_denom(), self.target_denom.clone()]
     }
 
     pub fn get_swap_denom(&self) -> String {
         self.balance.denom.clone()
-    }
-
-    pub fn get_receive_denom(&self) -> String {
-        if self.balance.denom == self.pair.quote_denom {
-            return self.pair.base_denom.clone();
-        }
-        self.pair.quote_denom.clone()
     }
 
     pub fn get_expected_execution_completed_date(&self, current_time: Timestamp) -> Timestamp {
@@ -116,6 +106,87 @@ impl Vault {
 
     pub fn is_cancelled(&self) -> bool {
         self.status == VaultStatus::Cancelled
+    }
+}
+
+pub struct VaultBuilder {
+    pub created_at: Timestamp,
+    pub owner: Addr,
+    pub label: Option<String>,
+    pub destinations: Vec<Destination>,
+    pub status: VaultStatus,
+    pub balance: Coin,
+    pub target_denom: String,
+    pub swap_amount: Uint128,
+    pub position_type: Option<PositionType>,
+    pub slippage_tolerance: Option<Decimal>,
+    pub minimum_receive_amount: Option<Uint128>,
+    pub time_interval: TimeInterval,
+    pub started_at: Option<Timestamp>,
+    pub swapped_amount: Coin,
+    pub received_amount: Coin,
+    pub dca_plus_config: Option<DcaPlusConfig>,
+}
+
+impl VaultBuilder {
+    pub fn new(
+        created_at: Timestamp,
+        owner: Addr,
+        label: Option<String>,
+        destinations: Vec<Destination>,
+        status: VaultStatus,
+        balance: Coin,
+        target_denom: String,
+        swap_amount: Uint128,
+        position_type: Option<PositionType>,
+        slippage_tolerance: Option<Decimal>,
+        minimum_receive_amount: Option<Uint128>,
+        time_interval: TimeInterval,
+        started_at: Option<Timestamp>,
+        swapped_amount: Coin,
+        received_amount: Coin,
+        dca_plus_config: Option<DcaPlusConfig>,
+    ) -> VaultBuilder {
+        VaultBuilder {
+            created_at,
+            owner,
+            label,
+            destinations,
+            status,
+            balance,
+            target_denom,
+            swap_amount,
+            position_type,
+            slippage_tolerance,
+            minimum_receive_amount,
+            time_interval,
+            started_at,
+            swapped_amount,
+            received_amount,
+            dca_plus_config,
+        }
+    }
+
+    pub fn build(self, id: Uint128) -> Vault {
+        Vault {
+            id,
+            created_at: self.created_at,
+            owner: self.owner,
+            label: self.label,
+            destinations: self.destinations,
+            status: self.status,
+            balance: self.balance.clone(),
+            target_denom: self.target_denom,
+            swap_amount: self.swap_amount,
+            slippage_tolerance: self.slippage_tolerance,
+            minimum_receive_amount: self.minimum_receive_amount,
+            time_interval: self.time_interval,
+            started_at: self.started_at,
+            swapped_amount: self.swapped_amount,
+            received_amount: self.received_amount,
+            trigger: None,
+            dca_plus_config: self.dca_plus_config,
+        }
     }
 }
 

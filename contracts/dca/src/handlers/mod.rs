@@ -2,7 +2,6 @@ pub mod cancel_vault;
 pub mod create_custom_swap_fee;
 pub mod create_pair;
 pub mod create_vault;
-pub mod delete_pair;
 pub mod deposit;
 pub mod disburse_escrow;
 pub mod disburse_funds;

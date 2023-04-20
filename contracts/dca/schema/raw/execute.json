@@ -43,35 +43,14 @@
     {
       "type": "object",
       "required": [
-        "delete_pair"
-      ],
-      "properties": {
-        "delete_pair": {
-          "type": "object",
-          "required": [
-            "address"
-          ],
-          "properties": {
-            "address": {
-              "$ref": "#/definitions/Addr"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
         "create_vault"
       ],
       "properties": {
         "create_vault": {
           "type": "object",
           "required": [
-            "pair_address",
             "swap_amount",
+            "target_denom",
             "time_interval"
           ],
           "properties": {
@@ -110,9 +89,6 @@
                 }
               ]
             },
-            "pair_address": {
-              "$ref": "#/definitions/Addr"
-            },
             "position_type": {
               "anyOf": [
                 {
@@ -135,6 +111,9 @@
             },
             "swap_amount": {
               "$ref": "#/definitions/Uint128"
+            },
+            "target_denom": {
+              "type": "string"
             },
             "target_start_time_utc_seconds": {
               "anyOf": [
