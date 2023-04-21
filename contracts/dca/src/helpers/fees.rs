@@ -72,17 +72,23 @@ pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Deci
 }
 
 pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> StdResult<Coin> {
-    let dca_plus_config = vault
-        .dca_plus_config
+    let swap_adjustment_strategy = vault
+        .swap_adjustment_strategy
         .clone()
         .expect("DCA plus config for the vault");
 
-    let dca_plus_total_value = dca_plus_config.total_deposit.amount - vault.swapped_amount.amount
+    let dca_plus_total_value = swap_adjustment_strategy.dca_plus_total_deposit().amount
+        - vault.swapped_amount.amount
         + vault.received_amount.amount * current_price;
 
-    let standard_dca_total_value = dca_plus_config.total_deposit.amount
-        - dca_plus_config.standard_dca_swapped_amount.amount
-        + dca_plus_config.standard_dca_received_amount.amount * current_price;
+    let standard_dca_total_value = swap_adjustment_strategy.dca_plus_total_deposit().amount
+        - swap_adjustment_strategy
+            .dca_plus_standard_dca_swapped_amount()
+            .amount
+        + swap_adjustment_strategy
+            .dca_plus_standard_dca_received_amount()
+            .amount
+            * current_price;
 
     if standard_dca_total_value > dca_plus_total_value {
         return Ok(Coin {
@@ -98,7 +104,10 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
 
     Ok(Coin {
         denom: vault.target_denom.clone(),
-        amount: min(fee, dca_plus_config.escrowed_balance.amount),
+        amount: min(
+            fee,
+            swap_adjustment_strategy.dca_plus_escrowed_balance().amount,
+        ),
     })
 }
 
@@ -107,7 +116,7 @@ mod tests {
     use crate::{
         constants::TEN,
         helpers::fees::get_dca_plus_performance_fee,
-        types::{dca_plus_config::DcaPlusConfig, vault::Vault},
+        types::{swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault},
     };
     use cosmwasm_std::{Coin, Decimal, Uint128};
     use std::str::FromStr;
@@ -134,7 +143,7 @@ mod tests {
                 denom: "receive_denom".to_string(),
                 amount: received_amount,
             },
-            dca_plus_config: Some(DcaPlusConfig {
+            swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
                 total_deposit: Coin::new(total_deposit.into(), "swap_denom".to_string()),
                 standard_dca_swapped_amount: Coin::new(
                     standard_dca_swapped_amount.into(),

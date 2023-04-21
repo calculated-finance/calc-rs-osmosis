@@ -12,10 +12,10 @@ use crate::{
         vaults::update_vault,
     },
     types::{
-        dca_plus_config::DcaPlusConfig,
         destination::Destination,
         event::{EventBuilder, EventData},
         pair::Pair,
+        swap_adjustment_strategy::SwapAdjustmentStrategy,
         time_interval::TimeInterval,
         trigger::{Trigger, TriggerConfiguration},
         vault::{Vault, VaultStatus},
@@ -119,7 +119,6 @@ impl Default for Vault {
             }],
             status: VaultStatus::Active,
             balance: Coin::new(TEN.into(), DENOM_UOSMO),
-            // pair: Pair::default(),
             target_denom: DENOM_STAKE.to_string(),
             swap_amount: ONE,
             slippage_tolerance: None,
@@ -131,14 +130,14 @@ impl Default for Vault {
             trigger: Some(TriggerConfiguration::Time {
                 target_time: Timestamp::from_seconds(0),
             }),
-            dca_plus_config: None,
+            swap_adjustment_strategy: None,
         }
     }
 }
 
-impl Default for DcaPlusConfig {
+impl Default for SwapAdjustmentStrategy {
     fn default() -> Self {
-        Self {
+        Self::DcaPlus {
             escrow_level: Decimal::percent(10),
             model_id: 30,
             total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),

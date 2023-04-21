@@ -1,6 +1,7 @@
 use super::{
-    dca_plus_config::DcaPlusConfig, destination::Destination, position_type::PositionType,
-    time_interval::TimeInterval, trigger::TriggerConfiguration,
+    destination::Destination, position_type::PositionType,
+    swap_adjustment_strategy::SwapAdjustmentStrategy, time_interval::TimeInterval,
+    trigger::TriggerConfiguration,
 };
 use crate::helpers::time::get_total_execution_duration;
 use cosmwasm_schema::cw_serde;
@@ -33,7 +34,7 @@ pub struct Vault {
     pub swapped_amount: Coin,
     pub received_amount: Coin,
     pub trigger: Option<TriggerConfiguration>,
-    pub dca_plus_config: Option<DcaPlusConfig>,
+    pub swap_adjustment_strategy: Option<SwapAdjustmentStrategy>,
 }
 
 impl Vault {
@@ -46,15 +47,17 @@ impl Vault {
     }
 
     pub fn get_expected_execution_completed_date(&self, current_time: Timestamp) -> Timestamp {
-        let remaining_balance =
-            self.dca_plus_config
-                .clone()
-                .map_or(self.balance.amount, |dca_plus_config| {
-                    max(
-                        dca_plus_config.standard_dca_balance().amount,
-                        self.balance.amount,
-                    )
-                });
+        let remaining_balance = match self.swap_adjustment_strategy.clone() {
+            Some(SwapAdjustmentStrategy::DcaPlus {
+                total_deposit,
+                standard_dca_swapped_amount,
+                ..
+            }) => max(
+                total_deposit.amount - standard_dca_swapped_amount.amount,
+                self.balance.amount,
+            ),
+            _ => self.balance.amount,
+        };
 
         let execution_duration = get_total_execution_duration(
             current_time,
@@ -78,7 +81,7 @@ impl Vault {
     }
 
     pub fn is_dca_plus(&self) -> bool {
-        self.dca_plus_config.is_some()
+        self.swap_adjustment_strategy.is_some()
     }
 
     pub fn is_active(&self) -> bool {
@@ -97,10 +100,10 @@ impl Vault {
         self.is_inactive()
             && self.is_dca_plus()
             && self
-                .dca_plus_config
+                .swap_adjustment_strategy
                 .clone()
-                .map_or(false, |dca_plus_config| {
-                    !dca_plus_config.has_sufficient_funds()
+                .map_or(false, |swap_adjustment_strategy| {
+                    !swap_adjustment_strategy.can_continue()
                 })
     }
 
@@ -125,7 +128,7 @@ pub struct VaultBuilder {
     pub started_at: Option<Timestamp>,
     pub swapped_amount: Coin,
     pub received_amount: Coin,
-    pub dca_plus_config: Option<DcaPlusConfig>,
+    pub swap_adjustment_strategy: Option<SwapAdjustmentStrategy>,
 }
 
 impl VaultBuilder {
@@ -145,7 +148,7 @@ impl VaultBuilder {
         started_at: Option<Timestamp>,
         swapped_amount: Coin,
         received_amount: Coin,
-        dca_plus_config: Option<DcaPlusConfig>,
+        swap_adjustment_strategy: Option<SwapAdjustmentStrategy>,
     ) -> VaultBuilder {
         VaultBuilder {
             created_at,
@@ -163,7 +166,7 @@ impl VaultBuilder {
             started_at,
             swapped_amount,
             received_amount,
-            dca_plus_config,
+            swap_adjustment_strategy,
         }
     }
 
@@ -185,7 +188,7 @@ impl VaultBuilder {
             swapped_amount: self.swapped_amount,
             received_amount: self.received_amount,
             trigger: None,
-            dca_plus_config: self.dca_plus_config,
+            swap_adjustment_strategy: self.swap_adjustment_strategy,
         }
     }
 }
@@ -196,7 +199,7 @@ mod get_expected_execution_completed_date_tests {
     use crate::{
         constants::{ONE, TEN},
         tests::mocks::DENOM_UOSMO,
-        types::{dca_plus_config::DcaPlusConfig, vault::VaultStatus},
+        types::{swap_adjustment_strategy::SwapAdjustmentStrategy, vault::VaultStatus},
     };
     use cosmwasm_std::{testing::mock_env, Coin, Decimal};
 
@@ -232,12 +235,13 @@ mod get_expected_execution_completed_date_tests {
             status: VaultStatus::Inactive,
             balance: Coin::new(ONE.into(), DENOM_UOSMO),
             swap_amount: ONE,
-            dca_plus_config: Some(DcaPlusConfig {
+            swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
                 total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
                 standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
                 standard_dca_received_amount: Coin::new(ONE.into(), DENOM_UOSMO),
                 escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UOSMO),
-                ..DcaPlusConfig::default()
+                model_id: 30,
+                escrow_level: Decimal::percent(5),
             }),
             ..Vault::default()
         };
@@ -254,12 +258,13 @@ mod get_expected_execution_completed_date_tests {
         let vault = Vault {
             balance: Coin::new((TEN - ONE).into(), DENOM_UOSMO),
             swap_amount: ONE,
-            dca_plus_config: Some(DcaPlusConfig {
+            swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
                 total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
                 standard_dca_swapped_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UOSMO),
                 standard_dca_received_amount: Coin::new((ONE + ONE + ONE).into(), DENOM_UOSMO),
                 escrowed_balance: Coin::new((ONE * Decimal::percent(5)).into(), DENOM_UOSMO),
-                ..DcaPlusConfig::default()
+                model_id: 30,
+                escrow_level: Decimal::percent(5),
             }),
             ..Vault::default()
         };

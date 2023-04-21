@@ -314,7 +314,7 @@ describe('when cancelling a vault', () => {
       });
 
       it('empties the escrow balance', () =>
-        expect(vaultAfterExecution.dca_plus_config.escrowed_balance.amount).to.equal('0'));
+        expect(vaultAfterExecution.swap_adjustment_strategy.escrowed_balance.amount).to.equal('0'));
 
       it('pays out the escrow', function (this: Context) {
         expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(

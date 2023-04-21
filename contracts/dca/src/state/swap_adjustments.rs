@@ -2,10 +2,10 @@ use crate::types::position_type::PositionType;
 use cosmwasm_std::{Decimal, StdResult, Storage, Timestamp};
 use cw_storage_plus::{Item, Map};
 
-const BUY_ADJUSTMENTS: Map<u8, Decimal> = Map::new("buy_adjustments_v6");
-const SELL_ADJUSTMENTS: Map<u8, Decimal> = Map::new("sell_adjustments_v6");
-const BUY_ADJUSTMENTS_UPDATED_AT: Item<Timestamp> = Item::new("buy_adjustments_updated_at_v6");
-const SELL_ADJUSTMENTS_UPDATED_AT: Item<Timestamp> = Item::new("buy_adjustments_updated_at_v6");
+const BUY_ADJUSTMENTS: Map<u8, Decimal> = Map::new("buy_adjustments_v5");
+const SELL_ADJUSTMENTS: Map<u8, Decimal> = Map::new("sell_adjustments_v5");
+const BUY_ADJUSTMENTS_UPDATED_AT: Item<Timestamp> = Item::new("buy_adjustments_updated_at_v5");
+const SELL_ADJUSTMENTS_UPDATED_AT: Item<Timestamp> = Item::new("buy_adjustments_updated_at_v5");
 
 fn adjustments_updated_store(position_type: PositionType) -> &'static Item<'static, Timestamp> {
     match position_type {
