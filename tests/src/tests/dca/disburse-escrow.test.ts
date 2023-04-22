@@ -18,7 +18,9 @@ describe('when disbursing escrow', () => {
     let performanceFee: number;
 
     before(async function (this: Context) {
-      const vault_id = await createVault(this, { swap_amount: deposit.amount, use_dca_plus: true }, [deposit]);
+      const vault_id = await createVault(this, { swap_amount: deposit.amount, swap_adjustment_strategy: 'dca_plus' }, [
+        deposit,
+      ]);
 
       balancesBeforeExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
 
@@ -59,13 +61,19 @@ describe('when disbursing escrow', () => {
     });
 
     it('empties the escrowed balance', async function (this: Context) {
-      expect(vaultAfterExecution.swap_adjustment_strategy.escrowed_balance.amount).to.equal('0');
+      expect(
+        'dca_plus' in vaultAfterExecution.swap_adjustment_strategy &&
+          vaultAfterExecution.swap_adjustment_strategy.dca_plus.escrowed_balance.amount,
+      ).to.equal('0');
     });
 
     it('sends the funds back to the user', async function (this: Context) {
       expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
         balancesBeforeExecution[this.userWalletAddress]['uion'] +
-          Number(vaultBeforeExecution.swap_adjustment_strategy.escrowed_balance.amount) -
+          Number(
+            'dca_plus' in vaultBeforeExecution.swap_adjustment_strategy &&
+              vaultBeforeExecution.swap_adjustment_strategy.dca_plus.escrowed_balance.amount,
+          ) -
           performanceFee,
       );
     });

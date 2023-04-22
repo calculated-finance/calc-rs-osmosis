@@ -13,6 +13,11 @@ pub enum SwapAdjustmentStrategy {
     },
 }
 
+#[cw_serde]
+pub enum SwapAdjustmentStrategyParams {
+    DcaPlus,
+}
+
 impl SwapAdjustmentStrategy {
     pub fn dca_plus_model_id(&self) -> u8 {
         match self {
