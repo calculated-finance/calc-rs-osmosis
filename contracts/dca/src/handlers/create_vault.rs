@@ -15,14 +15,16 @@ use crate::state::events::create_event;
 use crate::state::pairs::find_pair;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
-use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::destination::Destination;
 use crate::types::event::{EventBuilder, EventData};
 use crate::types::position_type::PositionType;
+use crate::types::swap_adjustment_strategy::{
+    SwapAdjustmentStrategy, SwapAdjustmentStrategyParams,
+};
 use crate::types::time_interval::TimeInterval;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::{VaultBuilder, VaultStatus};
-use cosmwasm_std::{coin, to_binary, Addr, Decimal, SubMsg, WasmMsg};
+use cosmwasm_std::{coin, to_binary, Addr, Coin, Decimal, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 
@@ -40,7 +42,7 @@ pub fn create_vault_handler(
     swap_amount: Uint128,
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
-    use_dca_plus: Option<bool>,
+    swap_adjustment_strategy_params: Option<SwapAdjustmentStrategyParams>,
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
     assert_address_is_valid(deps.as_ref(), owner.clone(), "owner")?;
@@ -85,23 +87,22 @@ pub fn create_vault_handler(
 
     let config = get_config(deps.storage)?;
 
-    let dca_plus_config = use_dca_plus.and_then(|use_dca_plus| {
-        if !use_dca_plus {
-            return None;
-        }
-
-        Some(DcaPlusConfig::new(
-            config.dca_plus_escrow_level,
-            get_dca_plus_model_id(
+    let swap_adjustment_strategy = match swap_adjustment_strategy_params {
+        Some(SwapAdjustmentStrategyParams::DcaPlus) => Some(SwapAdjustmentStrategy::DcaPlus {
+            escrow_level: config.dca_plus_escrow_level,
+            model_id: get_dca_plus_model_id(
                 &env.block.time,
                 &info.funds[0],
                 &swap_amount,
                 &time_interval,
             ),
-            info.funds[0].clone(),
-            receive_denom,
-        ))
-    });
+            total_deposit: info.funds[0].clone(),
+            standard_dca_swapped_amount: Coin::new(0, info.funds[0].clone().denom),
+            standard_dca_received_amount: Coin::new(0, receive_denom.clone()),
+            escrowed_balance: Coin::new(0, receive_denom),
+        }),
+        None => None,
+    };
 
     let vault_builder = VaultBuilder {
         owner,
@@ -129,7 +130,7 @@ pub fn create_vault_handler(
                 false => pair.quote_denom,
             },
         ),
-        dca_plus_config,
+        swap_adjustment_strategy,
     };
 
     let vault = save_vault(deps.storage, vault_builder)?;
@@ -194,10 +195,10 @@ mod create_vault_tests {
     use crate::tests::mocks::{
         calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO, USER, VALIDATOR,
     };
-    use crate::types::dca_plus_config::DcaPlusConfig;
     use crate::types::destination::Destination;
     use crate::types::event::{EventBuilder, EventData};
     use crate::types::pair::Pair;
+    use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
     use crate::types::time_interval::TimeInterval;
     use crate::types::trigger::TriggerConfiguration;
     use crate::types::vault::{Vault, VaultStatus};
@@ -226,7 +227,7 @@ mod create_vault_tests {
             Uint128::new(10000),
             TimeInterval::Daily,
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -261,7 +262,7 @@ mod create_vault_tests {
             Uint128::new(10000),
             TimeInterval::Daily,
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -293,7 +294,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -342,7 +343,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -398,7 +399,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -437,7 +438,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -469,7 +470,7 @@ mod create_vault_tests {
             Uint128::new(10000),
             TimeInterval::Daily,
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -512,7 +513,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -554,7 +555,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.minus_seconds(10).seconds().into()),
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -586,7 +587,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Custom { seconds: 23 },
             None,
-            Some(false),
+            None,
         )
         .unwrap_err();
 
@@ -632,7 +633,7 @@ mod create_vault_tests {
             swap_amount,
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
-            Some(false),
+            None,
         )
         .unwrap();
 
@@ -661,7 +662,7 @@ mod create_vault_tests {
                 trigger: Some(TriggerConfiguration::Time {
                     target_time: Timestamp::from_seconds(env.block.time.plus_seconds(10).seconds()),
                 }),
-                dca_plus_config: None,
+                swap_adjustment_strategy: None,
             }
         );
     }
@@ -701,7 +702,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
-            Some(false),
+            None,
         )
         .unwrap();
 
@@ -758,7 +759,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
-            Some(false),
+            None,
         )
         .unwrap();
 
@@ -829,7 +830,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
-            Some(false),
+            None,
         )
         .unwrap();
 
@@ -875,7 +876,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
-            Some(false),
+            None,
         )
         .unwrap();
 
@@ -887,7 +888,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_use_dca_plus_true_should_create_dca_plus_config() {
+    fn with_dca_plus_should_create_swap_adjustment_strategy() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let mut info = mock_info(ADMIN, &[]);
@@ -921,7 +922,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
-            Some(true),
+            Some(SwapAdjustmentStrategyParams::DcaPlus),
         )
         .unwrap();
 
@@ -931,8 +932,8 @@ mod create_vault_tests {
             .vault;
 
         assert_eq!(
-            vault.dca_plus_config,
-            Some(DcaPlusConfig {
+            vault.swap_adjustment_strategy,
+            Some(SwapAdjustmentStrategy::DcaPlus {
                 escrow_level: config.dca_plus_escrow_level,
                 model_id: 30,
                 total_deposit: info.funds[0].clone(),
@@ -978,7 +979,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
-            Some(true),
+            Some(SwapAdjustmentStrategyParams::DcaPlus),
         )
         .unwrap();
 
@@ -986,7 +987,12 @@ mod create_vault_tests {
             .unwrap()
             .vault;
 
-        assert_eq!(vault.dca_plus_config.unwrap().model_id, 90);
+        assert_eq!(
+            vault.swap_adjustment_strategy.map(|s| match s {
+                SwapAdjustmentStrategy::DcaPlus { model_id, .. } => model_id,
+            }),
+            Some(90)
+        );
     }
 
     #[test]
@@ -1024,7 +1030,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             None,
-            Some(true),
+            Some(SwapAdjustmentStrategyParams::DcaPlus),
         )
         .unwrap();
 

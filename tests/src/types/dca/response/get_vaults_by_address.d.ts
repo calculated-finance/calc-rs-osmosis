@@ -44,12 +44,6 @@ export type Timestamp = Uint64;
  */
 export type Uint64 = string;
 /**
- * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
- *
- * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
- */
-export type Decimal = string;
-/**
  * A human readable address.
  *
  * In Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.
@@ -60,12 +54,28 @@ export type Decimal = string;
  */
 export type Addr = string;
 /**
+ * A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0
+ *
+ * The greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)
+ */
+export type Decimal = string;
+/**
  * Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.
  *
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.
  */
 export type Binary = string;
 export type VaultStatus = "scheduled" | "active" | "inactive" | "cancelled";
+export type SwapAdjustmentStrategy = {
+  dca_plus: {
+    escrow_level: Decimal;
+    escrowed_balance: Coin;
+    model_id: number;
+    standard_dca_received_amount: Coin;
+    standard_dca_swapped_amount: Coin;
+    total_deposit: Coin;
+  };
+};
 export type TimeInterval =
   | (
       | "every_second"
@@ -95,7 +105,6 @@ export interface VaultsResponse {
 export interface Vault {
   balance: Coin;
   created_at: Timestamp;
-  dca_plus_config?: DcaPlusConfig | null;
   destinations: Destination[];
   id: Uint128;
   label?: string | null;
@@ -105,6 +114,7 @@ export interface Vault {
   slippage_tolerance?: Decimal | null;
   started_at?: Timestamp | null;
   status: VaultStatus;
+  swap_adjustment_strategy?: SwapAdjustmentStrategy | null;
   swap_amount: Uint128;
   swapped_amount: Coin;
   target_denom: string;
@@ -114,15 +124,6 @@ export interface Vault {
 export interface Coin {
   amount: Uint128;
   denom: string;
-  [k: string]: unknown;
-}
-export interface DcaPlusConfig {
-  escrow_level: Decimal;
-  escrowed_balance: Coin;
-  model_id: number;
-  standard_dca_received_amount: Coin;
-  standard_dca_swapped_amount: Coin;
-  total_deposit: Coin;
   [k: string]: unknown;
 }
 export interface Destination {

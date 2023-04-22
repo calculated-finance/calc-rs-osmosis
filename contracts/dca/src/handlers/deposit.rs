@@ -9,8 +9,8 @@ use crate::msg::ExecuteMsg;
 use crate::state::events::create_event;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{get_vault, update_vault};
-use crate::types::dca_plus_config::DcaPlusConfig;
 use crate::types::event::{EventBuilder, EventData};
+use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::VaultStatus;
 use cosmwasm_std::{to_binary, Addr, Env, SubMsg, WasmMsg};
@@ -52,19 +52,32 @@ pub fn deposit_handler(
         vault.status = VaultStatus::Active
     }
 
-    vault.dca_plus_config = vault
-        .dca_plus_config
-        .clone()
-        .map(|dca_plus_config| DcaPlusConfig {
-            total_deposit: add_to(dca_plus_config.total_deposit, info.funds[0].amount),
-            model_id: get_dca_plus_model_id(
-                &env.block.time,
-                &vault.balance,
-                &vault.swap_amount,
-                &vault.time_interval,
-            ),
-            ..dca_plus_config
-        });
+    vault.swap_adjustment_strategy =
+        vault
+            .swap_adjustment_strategy
+            .clone()
+            .map(|swap_adjustment_strategy| match swap_adjustment_strategy {
+                SwapAdjustmentStrategy::DcaPlus {
+                    total_deposit,
+                    escrow_level,
+                    escrowed_balance,
+                    standard_dca_received_amount,
+                    standard_dca_swapped_amount,
+                    ..
+                } => SwapAdjustmentStrategy::DcaPlus {
+                    total_deposit: add_to(total_deposit, info.funds[0].amount),
+                    model_id: get_dca_plus_model_id(
+                        &env.block.time,
+                        &vault.balance,
+                        &vault.swap_amount,
+                        &vault.time_interval,
+                    ),
+                    escrow_level,
+                    escrowed_balance,
+                    standard_dca_received_amount,
+                    standard_dca_swapped_amount,
+                },
+            });
 
     update_vault(deps.storage, &vault)?;
 
@@ -116,8 +129,8 @@ mod dposit_tests {
     use crate::state::config::{get_config, update_config, Config};
     use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
-    use crate::types::dca_plus_config::DcaPlusConfig;
     use crate::types::event::{EventBuilder, EventData};
+    use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{to_binary, Addr, Coin, SubMsg, WasmMsg};
@@ -486,7 +499,7 @@ mod dposit_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                dca_plus_config: Some(DcaPlusConfig::default()),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -495,8 +508,17 @@ mod dposit_tests {
 
         let updated_vault = get_vault_handler(deps.as_ref(), vault.id).unwrap().vault;
 
-        assert_eq!(vault.dca_plus_config.unwrap().model_id, 30);
-        assert_eq!(updated_vault.dca_plus_config.unwrap().model_id, 80);
+        assert_eq!(
+            vault.swap_adjustment_strategy.unwrap().dca_plus_model_id(),
+            30
+        );
+        assert_eq!(
+            updated_vault
+                .swap_adjustment_strategy
+                .unwrap()
+                .dca_plus_model_id(),
+            80
+        );
     }
 
     #[test]
@@ -512,7 +534,7 @@ mod dposit_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                dca_plus_config: Some(DcaPlusConfig::default()),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -521,9 +543,18 @@ mod dposit_tests {
 
         let updated_vault = get_vault_handler(deps.as_ref(), vault.id).unwrap().vault;
 
-        assert_eq!(vault.dca_plus_config.unwrap().total_deposit, vault.balance);
         assert_eq!(
-            updated_vault.dca_plus_config.unwrap().total_deposit,
+            vault
+                .swap_adjustment_strategy
+                .unwrap()
+                .dca_plus_total_deposit(),
+            vault.balance
+        );
+        assert_eq!(
+            updated_vault
+                .swap_adjustment_strategy
+                .unwrap()
+                .dca_plus_total_deposit(),
             add(vault.balance, deposit_amount).unwrap()
         );
     }

@@ -28,7 +28,7 @@ pub fn cancel_vault_handler(
         EventBuilder::new(vault.id, env.block.clone(), EventData::DcaVaultCancelled {}),
     )?;
 
-    if vault.dca_plus_config.is_some() {
+    if vault.swap_adjustment_strategy.is_some() {
         save_disburse_escrow_task(
             deps.storage,
             vault.id,
@@ -67,8 +67,8 @@ mod cancel_vault_tests {
     use crate::state::disburse_escrow_tasks::get_disburse_escrow_tasks;
     use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::ADMIN;
-    use crate::types::dca_plus_config::DcaPlusConfig;
     use crate::types::event::{EventBuilder, EventData};
+    use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{BankMsg, SubMsg, Uint128};
@@ -221,7 +221,7 @@ mod cancel_vault_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                dca_plus_config: Some(DcaPlusConfig::default()),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );

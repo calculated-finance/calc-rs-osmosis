@@ -13,6 +13,7 @@ pub mod get_disburse_escrow_tasks;
 pub mod get_events;
 pub mod get_events_by_resource_id;
 pub mod get_pairs;
+pub mod get_swap_adjustment;
 pub mod get_time_trigger_ids;
 pub mod get_vault;
 pub mod get_vaults;

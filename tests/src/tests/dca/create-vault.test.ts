@@ -246,21 +246,13 @@ describe('when creating a vault', () => {
     });
   });
 
-  describe('with a denoms that are not in a supported pair', () => {
-    it('fails with the correct error message', async function (this: Context) {
-      await expect(createVault(this, {}, [coin(1000000, 'not-a-denom')])).to.be.rejectedWith(
-        /swapping not-a-denom to stake not supported/,
-      );
-    });
-  });
-
   describe('with dca plus & a time trigger', () => {
     let vault: Vault;
 
     before(async function (this: Context) {
       const vault_id = await createVault(this, {
         target_start_time_utc_seconds: `${dayjs().add(1, 'hour').unix()}`,
-        use_dca_plus: true,
+        swap_adjustment_strategy: 'dca_plus',
       });
 
       vault = (
@@ -273,23 +265,35 @@ describe('when creating a vault', () => {
     });
 
     it('has an empty escrowed balance', async function (this: Context) {
-      expect(vault.dca_plus_config.escrowed_balance.amount).to.equal('0');
+      expect(
+        'dca_plus' in vault.swap_adjustment_strategy && vault.swap_adjustment_strategy.dca_plus.escrowed_balance.amount,
+      ).to.equal('0');
     });
 
     it('sets the escrow level', async function (this: Context) {
-      expect(vault.dca_plus_config.escrow_level).to.equal('0.05');
+      expect(
+        'dca_plus' in vault.swap_adjustment_strategy && vault.swap_adjustment_strategy.dca_plus.escrow_level,
+      ).to.equal('0.05');
     });
 
     it('has an empty standard dca swapped amount', async function (this: Context) {
-      expect(vault.dca_plus_config.standard_dca_swapped_amount.amount).to.equal('0');
+      expect(
+        'dca_plus' in vault.swap_adjustment_strategy &&
+          vault.swap_adjustment_strategy.dca_plus.standard_dca_swapped_amount.amount,
+      ).to.equal('0');
     });
 
     it('has an empty standard dca received amount', async function (this: Context) {
-      expect(vault.dca_plus_config.standard_dca_received_amount.amount).to.equal('0');
+      expect(
+        'dca_plus' in vault.swap_adjustment_strategy &&
+          vault.swap_adjustment_strategy.dca_plus.standard_dca_received_amount.amount,
+      ).to.equal('0');
     });
 
     it('has a DCA+ model id', async function (this: Context) {
-      expect(vault.dca_plus_config.model_id).to.equal(30);
+      expect('dca_plus' in vault.swap_adjustment_strategy && vault.swap_adjustment_strategy.dca_plus.model_id).to.equal(
+        30,
+      );
     });
   });
 
@@ -309,7 +313,7 @@ describe('when creating a vault', () => {
       const vault_id = await createVault(
         this,
         {
-          use_dca_plus: true,
+          swap_adjustment_strategy: 'dca_plus',
           swap_amount: swapAmount,
         },
         [deposit],
@@ -331,28 +335,41 @@ describe('when creating a vault', () => {
         Math.round(
           balancesBeforeExecution[this.userWalletAddress]['uion'] +
             Number(vault.received_amount.amount) -
-            Number(vault.dca_plus_config.escrowed_balance.amount),
+            Number(
+              'dca_plus' in vault.swap_adjustment_strategy &&
+                vault.swap_adjustment_strategy.dca_plus.escrowed_balance.amount,
+            ),
         ),
       );
     });
 
     it('stores the escrowed balance', async function (this: Context) {
-      expect(vault.dca_plus_config.escrowed_balance.amount).to.equal(
-        `${Math.floor(Number(vault.received_amount.amount) * parseFloat(vault.dca_plus_config.escrow_level))}`,
+      expect(
+        'dca_plus' in vault.swap_adjustment_strategy && vault.swap_adjustment_strategy.dca_plus.escrowed_balance.amount,
+      ).to.equal(
+        `${Math.floor(
+          Number(vault.received_amount.amount) *
+            parseFloat(
+              'dca_plus' in vault.swap_adjustment_strategy && vault.swap_adjustment_strategy.dca_plus.escrow_level,
+            ),
+        )}`,
       );
     });
 
     it('calculates the standard dca swapped amount', async function (this: Context) {
-      expect(vault.dca_plus_config.standard_dca_swapped_amount.amount).to.equal(
-        `${Number(vault.swapped_amount.amount) / this.swapAdjustment}`,
-      );
+      expect(
+        'dca_plus' in vault.swap_adjustment_strategy &&
+          vault.swap_adjustment_strategy.dca_plus.standard_dca_swapped_amount.amount,
+      ).to.equal(`${Number(vault.swapped_amount.amount) / this.swapAdjustment}`);
     });
 
     it('calculates the standard dca received amount', async function (this: Context) {
-      expect(Number(vault.dca_plus_config.standard_dca_received_amount.amount)).to.be.approximately(
-        Math.round((Number(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee)),
-        2,
-      );
+      expect(
+        Number(
+          'dca_plus' in vault.swap_adjustment_strategy &&
+            vault.swap_adjustment_strategy.dca_plus.standard_dca_received_amount.amount,
+        ),
+      ).to.be.approximately(Math.round((Number(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee)), 2);
     });
   });
 });

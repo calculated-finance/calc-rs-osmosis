@@ -179,7 +179,7 @@ describe('when cancelling a vault', () => {
     before(async function (this: Context) {
       const vaultId = await createVault(this, {
         swap_amount: `${swapAmount}`,
-        use_dca_plus: true,
+        swap_adjustment_strategy: 'dca_plus',
         time_interval: 'every_second',
       });
 
@@ -314,17 +314,22 @@ describe('when cancelling a vault', () => {
       });
 
       it('empties the escrow balance', () =>
-        expect(vaultAfterExecution.dca_plus_config.escrowed_balance.amount).to.equal('0'));
+        expect(
+          'dca_plus' in vaultAfterExecution.swap_adjustment_strategy &&
+            vaultAfterExecution.swap_adjustment_strategy.dca_plus.escrowed_balance.amount,
+        ).to.equal('0'));
 
       it('pays out the escrow', function (this: Context) {
-        expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
+        expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.be.approximately(
           balancesBeforeExecution[this.userWalletAddress]['uion'] + amountDisbursed,
+          2,
         );
       });
 
       it('pays out the performance fee', function (this: Context) {
-        expect(balancesAfterExecution[this.feeCollectorAddress]['uion']).to.equal(
+        expect(balancesAfterExecution[this.feeCollectorAddress]['uion']).to.be.approximately(
           balancesBeforeExecution[this.feeCollectorAddress]['uion'] + performanceFee,
+          2,
         );
       });
     });

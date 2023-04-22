@@ -105,6 +105,16 @@
                 }
               ]
             },
+            "swap_adjustment_strategy": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SwapAdjustmentStrategyParams"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "swap_amount": {
               "$ref": "#/definitions/Uint128"
             },
@@ -123,12 +133,6 @@
             },
             "time_interval": {
               "$ref": "#/definitions/TimeInterval"
-            },
-            "use_dca_plus": {
-              "type": [
-                "boolean",
-                "null"
-              ]
             }
           },
           "additionalProperties": false
@@ -513,6 +517,12 @@
       "enum": [
         "enter",
         "exit"
+      ]
+    },
+    "SwapAdjustmentStrategyParams": {
+      "type": "string",
+      "enum": [
+        "dca_plus"
       ]
     },
     "TimeInterval": {

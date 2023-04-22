@@ -2,8 +2,8 @@ use super::triggers::get_trigger;
 use crate::{
     helpers::state::fetch_and_increment_counter,
     types::{
-        dca_plus_config::DcaPlusConfig,
         destination::Destination,
+        swap_adjustment_strategy::SwapAdjustmentStrategy,
         time_interval::TimeInterval,
         vault::{Vault, VaultBuilder, VaultStatus},
     },
@@ -121,7 +121,7 @@ struct VaultData {
     pub started_at: Option<Timestamp>,
     pub swapped_amount: Coin,
     pub received_amount: Coin,
-    pub dca_plus_config: Option<DcaPlusConfig>,
+    pub swap_adjustment_strategy: Option<SwapAdjustmentStrategy>,
 }
 
 impl From<Vault> for VaultData {
@@ -141,7 +141,7 @@ impl From<Vault> for VaultData {
             started_at: vault.started_at,
             swapped_amount: vault.swapped_amount,
             received_amount: vault.received_amount,
-            dca_plus_config: vault.dca_plus_config,
+            swap_adjustment_strategy: vault.swap_adjustment_strategy,
             destinations: vault.destinations,
         }
     }
@@ -166,7 +166,7 @@ fn vault_from(store: &dyn Storage, data: &VaultData) -> Vault {
         started_at: data.started_at,
         swapped_amount: data.swapped_amount.clone(),
         received_amount: data.received_amount.clone(),
-        dca_plus_config: data.dca_plus_config.clone(),
+        swap_adjustment_strategy: data.swap_adjustment_strategy.clone(),
         destinations: data.destinations.clone(),
         target_denom: data.target_denom.clone(),
         trigger,

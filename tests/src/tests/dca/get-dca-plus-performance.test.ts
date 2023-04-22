@@ -14,7 +14,7 @@ describe('when fetching dca plus performance', () => {
         this,
         {
           target_start_time_utc_seconds: `${dayjs().add(1, 'hour').unix()}`,
-          use_dca_plus: true,
+          swap_adjustment_strategy: 'dca_plus',
         },
         [deposit],
       );
@@ -41,7 +41,7 @@ describe('when fetching dca plus performance', () => {
       const vault_id = await createVault(
         this,
         {
-          use_dca_plus: true,
+          swap_adjustment_strategy: 'dca_plus',
         },
         [deposit],
       );

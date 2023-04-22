@@ -18,7 +18,7 @@ pub fn get_dca_plus_performance_handler(
 
     let current_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
 
-    vault.dca_plus_config.clone().map_or(
+    vault.swap_adjustment_strategy.clone().map_or(
         Err(StdError::GenericErr {
             msg: format!("Vault {} is not a DCA Plus vault", vault_id),
         }),
@@ -38,9 +38,9 @@ mod get_dca_plus_performance_tests {
         constants::{ONE, TEN},
         tests::{
             helpers::setup_vault,
-            mocks::{calc_mock_dependencies, DENOM_STAKE},
+            mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO},
         },
-        types::{dca_plus_config::DcaPlusConfig, vault::Vault},
+        types::{swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault},
     };
     use cosmwasm_std::{testing::mock_env, Coin, Decimal};
 
@@ -66,11 +66,13 @@ mod get_dca_plus_performance_tests {
 
         let standard_received_amount = TEN - ONE;
 
-        let dca_plus_config = DcaPlusConfig {
-            standard_dca_swapped_amount: Coin::new(TEN.into(), DENOM_STAKE),
+        let swap_adjustment_strategy = SwapAdjustmentStrategy::DcaPlus {
+            total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
+            standard_dca_swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
             standard_dca_received_amount: Coin::new(standard_received_amount.into(), DENOM_STAKE),
             escrowed_balance: Coin::new(TEN.into(), DENOM_STAKE),
-            ..DcaPlusConfig::default()
+            model_id: 30,
+            escrow_level: Decimal::percent(5),
         };
 
         let vault = setup_vault(
@@ -79,7 +81,7 @@ mod get_dca_plus_performance_tests {
             Vault {
                 swapped_amount: Coin::new(TEN.into(), DENOM_STAKE),
                 received_amount: Coin::new(TEN.into(), DENOM_STAKE),
-                dca_plus_config: Some(dca_plus_config.clone()),
+                swap_adjustment_strategy: Some(swap_adjustment_strategy.clone()),
                 ..Vault::default()
             },
         );

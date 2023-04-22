@@ -79,7 +79,7 @@ pub fn execute(
             swap_amount,
             time_interval,
             target_start_time_utc_seconds,
-            use_dca_plus,
+            swap_adjustment_strategy,
         } => create_vault_handler(
             deps,
             env,
@@ -94,7 +94,7 @@ pub fn execute(
             swap_amount,
             time_interval,
             target_start_time_utc_seconds,
-            use_dca_plus,
+            swap_adjustment_strategy,
         ),
         ExecuteMsg::CancelVault { vault_id } => cancel_vault_handler(deps, env, info, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),

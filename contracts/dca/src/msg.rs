@@ -4,6 +4,7 @@ use crate::types::event::Event;
 use crate::types::pair::Pair;
 use crate::types::position_type::PositionType;
 use crate::types::post_execution_action::LockableDuration;
+use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategyParams;
 use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
@@ -49,7 +50,7 @@ pub enum ExecuteMsg {
         swap_amount: Uint128,
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
-        use_dca_plus: Option<bool>,
+        swap_adjustment_strategy: Option<SwapAdjustmentStrategyParams>,
     },
     Deposit {
         address: Addr,
