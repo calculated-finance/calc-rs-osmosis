@@ -78,14 +78,6 @@ impl Vault {
         )
     }
 
-    pub fn has_low_funds(&self) -> bool {
-        self.balance.amount < self.swap_amount
-    }
-
-    pub fn is_dca_plus(&self) -> bool {
-        self.swap_adjustment_strategy.is_some()
-    }
-
     pub fn is_active(&self) -> bool {
         self.status == VaultStatus::Active
     }
@@ -98,15 +90,15 @@ impl Vault {
         self.status == VaultStatus::Inactive
     }
 
-    pub fn is_finished_and_simulation_is_finished(&self) -> bool {
+    pub fn should_not_continue(&self) -> bool {
         self.is_inactive()
-            && self.is_dca_plus()
             && self.performance_assessment_strategy.clone().map_or(
-                false,
-                |performance_assessment_strategy| match performance_assessment_strategy {
-                    PerformanceAssessmentStrategy::CompareToStandardDca {
-                        swapped_amount, ..
-                    } => (self.deposited_amount.amount - swapped_amount.amount) == Uint128::zero(),
+                true,
+                |performance_assessment_strategy| {
+                    performance_assessment_strategy
+                        .standard_dca_balance(self.deposited_amount.clone())
+                        .amount
+                        == Uint128::zero()
                 },
             )
     }
@@ -210,6 +202,80 @@ impl VaultBuilder {
             swap_adjustment_strategy: self.swap_adjustment_strategy,
             trigger: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod should_not_continue_tests {
+    use crate::{
+        constants::{ONE, TEN},
+        tests::mocks::DENOM_UOSMO,
+        types::{
+            performance_assessment_strategy::PerformanceAssessmentStrategy,
+            vault::{Vault, VaultStatus},
+        },
+    };
+    use cosmwasm_std::Coin;
+
+    #[test]
+    fn when_regular_vault_is_active_is_false() {
+        let vault = Vault::default();
+
+        assert!(!vault.should_not_continue());
+    }
+
+    #[test]
+    fn when_regular_vault_is_inactive_is_true() {
+        let vault = Vault {
+            status: VaultStatus::Inactive,
+            ..Default::default()
+        };
+
+        assert!(vault.should_not_continue());
+    }
+
+    #[test]
+    fn when_dca_vault_is_active_is_false() {
+        let vault = Vault {
+            performance_assessment_strategy: Some(Default::default()),
+            ..Default::default()
+        };
+
+        assert!(!vault.should_not_continue());
+    }
+
+    #[test]
+    fn when_dca_vault_is_inactive_and_standard_dca_is_active_is_false() {
+        let vault = Vault {
+            status: VaultStatus::Inactive,
+            deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+            performance_assessment_strategy: Some(
+                PerformanceAssessmentStrategy::CompareToStandardDca {
+                    swapped_amount: Coin::new((TEN - ONE).into(), DENOM_UOSMO),
+                    received_amount: Coin::new((TEN - ONE).into(), DENOM_UOSMO),
+                },
+            ),
+            ..Default::default()
+        };
+
+        assert!(!vault.should_not_continue());
+    }
+
+    #[test]
+    fn when_dca_vault_is_inactive_and_standard_dca_is_inactive_is_true() {
+        let vault = Vault {
+            status: VaultStatus::Inactive,
+            deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+            performance_assessment_strategy: Some(
+                PerformanceAssessmentStrategy::CompareToStandardDca {
+                    swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                    received_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                },
+            ),
+            ..Default::default()
+        };
+
+        assert!(vault.should_not_continue());
     }
 }
 

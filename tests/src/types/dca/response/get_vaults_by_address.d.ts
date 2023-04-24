@@ -73,10 +73,14 @@ export type PerformanceAssessmentStrategy = {
 };
 export type VaultStatus = "scheduled" | "active" | "inactive" | "cancelled";
 export type SwapAdjustmentStrategy = {
-  dca_plus: {
+  risk_weighted_average: {
+    base_denom: BaseDenom;
     model_id: number;
+    position_type: PositionType;
   };
 };
+export type BaseDenom = "bitcoin";
+export type PositionType = "enter" | "exit";
 export type TimeInterval =
   | (
       | "every_second"

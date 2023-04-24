@@ -9,12 +9,10 @@ import fs from 'fs';
 import { getOfflineSignerProto as getOfflineSigner } from 'cosmjs-utils';
 import { ExecuteMsg } from '../types/dca/execute';
 import {
-  FEES,
   cosmosProtoRegistry,
   cosmwasmProtoRegistry,
   getSigningCosmosClient,
   ibcProtoRegistry,
-  osmosis,
   osmosisProtoRegistry,
 } from 'osmojs';
 import { FEE } from '../tests/constants';

@@ -14,7 +14,11 @@ describe('when fetching dca plus performance', () => {
         this,
         {
           target_start_time_utc_seconds: `${dayjs().add(1, 'hour').unix()}`,
-          swap_adjustment_strategy: 'dca_plus',
+          swap_adjustment_strategy: {
+            risk_weighted_average: {
+              base_denom: 'bitcoin',
+            },
+          },
           performance_assessment_strategy: 'compare_to_standard_dca',
         },
         [deposit],
@@ -42,7 +46,11 @@ describe('when fetching dca plus performance', () => {
       const vault_id = await createVault(
         this,
         {
-          swap_adjustment_strategy: 'dca_plus',
+          swap_adjustment_strategy: {
+            risk_weighted_average: {
+              base_denom: 'bitcoin',
+            },
+          },
           performance_assessment_strategy: 'compare_to_standard_dca',
         },
         [deposit],

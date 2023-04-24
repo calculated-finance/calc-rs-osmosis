@@ -85,7 +85,8 @@ pub fn execute_trigger_handler(
         ),
     )?;
 
-    if let Some(SwapAdjustmentStrategy::DcaPlus { .. }) = vault.swap_adjustment_strategy {
+    if let Some(SwapAdjustmentStrategy::RiskWeightedAverage { .. }) = vault.swap_adjustment_strategy
+    {
         vault = simulate_standard_dca_execution(
             &deps.querier,
             deps.storage,
@@ -124,7 +125,7 @@ pub fn execute_trigger_handler(
             },
         )?;
     } else {
-        if vault.is_finished_and_simulation_is_finished() {
+        if vault.should_not_continue() && vault.escrowed_amount.amount > Uint128::zero() {
             response = response.add_submessage(SubMsg::new(WasmMsg::Execute {
                 contract_addr: env.contract.address.to_string(),
                 msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
@@ -196,7 +197,7 @@ mod execute_trigger_tests {
     use crate::helpers::vault::get_swap_amount;
     use crate::msg::ExecuteMsg;
     use crate::state::config::{update_config, Config};
-    use crate::state::swap_adjustments::update_swap_adjustments;
+    use crate::state::swap_adjustments::update_swap_adjustment;
     use crate::state::triggers::delete_trigger;
     use crate::state::vaults::get_vault;
     use crate::tests::helpers::{instantiate_contract, setup_vault};
@@ -204,7 +205,7 @@ mod execute_trigger_tests {
     use crate::types::event::{Event, EventData, ExecutionSkippedReason};
     use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategy;
     use crate::types::position_type::PositionType;
-    use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
+    use crate::types::swap_adjustment_strategy::{BaseDenom, SwapAdjustmentStrategy};
     use crate::types::trigger::TriggerConfiguration;
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_env, mock_info};
@@ -478,7 +479,7 @@ mod execute_trigger_tests {
                         received_amount: Coin::new(TEN.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -501,8 +502,6 @@ mod execute_trigger_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let model_id = 30;
-
         let vault = setup_vault(
             deps.as_mut(),
             env.clone(),
@@ -510,7 +509,7 @@ mod execute_trigger_tests {
                 deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
                 escrowed_amount: Coin::new(0, DENOM_STAKE),
                 performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -518,12 +517,16 @@ mod execute_trigger_tests {
         let swap_adjustment = Decimal::percent(150);
 
         [PositionType::Enter, PositionType::Exit]
-            .iter()
+            .into_iter()
             .for_each(|position_type| {
-                update_swap_adjustments(
+                update_swap_adjustment(
                     deps.as_mut().storage,
-                    position_type.clone(),
-                    vec![(model_id, swap_adjustment)],
+                    SwapAdjustmentStrategy::RiskWeightedAverage {
+                        model_id: 30,
+                        base_denom: BaseDenom::Bitcoin,
+                        position_type,
+                    },
+                    swap_adjustment,
                     env.block.time,
                 )
                 .unwrap();
@@ -744,7 +747,7 @@ mod execute_trigger_tests {
                         received_amount: Coin::new(TEN.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -790,7 +793,7 @@ mod execute_trigger_tests {
                         received_amount: Coin::new(ONE.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -912,7 +915,7 @@ mod execute_trigger_tests {
                         received_amount: Coin::new(ONE.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -967,7 +970,7 @@ mod execute_trigger_tests {
                         received_amount: Coin::new(TEN.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );

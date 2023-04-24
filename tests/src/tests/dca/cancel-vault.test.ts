@@ -180,7 +180,11 @@ describe('when cancelling a vault', () => {
       const vaultId = await createVault(this, {
         swap_amount: `${swapAmount}`,
         performance_assessment_strategy: 'compare_to_standard_dca',
-        swap_adjustment_strategy: 'dca_plus',
+        swap_adjustment_strategy: {
+          risk_weighted_average: {
+            base_denom: 'bitcoin',
+          },
+        },
         time_interval: 'every_second',
       });
 

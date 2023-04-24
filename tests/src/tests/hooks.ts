@@ -154,20 +154,15 @@ const instantiateDCAContract = async (
 
   for (const position_type of ['enter', 'exit']) {
     await execute(cosmWasmClient, adminContractAddress, dcaContractAddress, {
-      update_swap_adjustments: {
-        position_type: position_type as PositionType,
-        adjustments: [
-          [30, `${swapAdjustment}`],
-          [35, `${swapAdjustment}`],
-          [40, `${swapAdjustment}`],
-          [45, `${swapAdjustment}`],
-          [50, `${swapAdjustment}`],
-          [55, `${swapAdjustment}`],
-          [60, `${swapAdjustment}`],
-          [70, `${swapAdjustment}`],
-          [80, `${swapAdjustment}`],
-          [90, `${swapAdjustment}`],
-        ],
+      update_swap_adjustment: {
+        strategy: {
+          risk_weighted_average: {
+            model_id: 30,
+            base_denom: 'bitcoin',
+            position_type: position_type as PositionType,
+          },
+        },
+        value: `${swapAdjustment}`,
       },
     });
   }

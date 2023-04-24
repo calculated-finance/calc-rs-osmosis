@@ -26,7 +26,7 @@ use crate::handlers::instantiate::instantiate_handler;
 use crate::handlers::migrate::migrate_handler;
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee_handler;
 use crate::handlers::update_config::update_config_handler;
-use crate::handlers::update_swap_adjustments_handler::update_swap_adjustments_handler;
+use crate::handlers::update_swap_adjustments_handler::update_swap_adjustment_handler;
 use crate::handlers::z_delegate::{log_delegation_result, z_delegate_handler};
 use crate::handlers::z_provide_liquidity::{
     bond_lp_tokens, log_bond_lp_tokens_result, z_provide_liquidity_handler,
@@ -127,10 +127,9 @@ pub fn execute(
         ExecuteMsg::RemoveCustomSwapFee { denom } => {
             remove_custom_swap_fee_handler(deps, info, denom)
         }
-        ExecuteMsg::UpdateSwapAdjustments {
-            position_type,
-            adjustments,
-        } => update_swap_adjustments_handler(deps, env, position_type, adjustments),
+        ExecuteMsg::UpdateSwapAdjustment { strategy, value } => {
+            update_swap_adjustment_handler(deps, env, strategy, value)
+        }
         ExecuteMsg::DisburseEscrow { vault_id } => {
             disburse_escrow_handler(deps, &env, info, vault_id)
         }

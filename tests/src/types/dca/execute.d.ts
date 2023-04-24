@@ -67,9 +67,9 @@ export type ExecuteMsg =
       };
     }
   | {
-      update_swap_adjustments: {
-        adjustments: [number, Decimal][];
-        position_type: PositionType;
+      update_swap_adjustment: {
+        strategy: SwapAdjustmentStrategy;
+        value: Decimal;
       };
     }
   | {
@@ -129,7 +129,12 @@ export type Binary = string;
 export type Uint128 = string;
 export type PerformanceAssessmentStrategyParams = "compare_to_standard_dca";
 export type PositionType = "enter" | "exit";
-export type SwapAdjustmentStrategyParams = "dca_plus";
+export type SwapAdjustmentStrategyParams = {
+  risk_weighted_average: {
+    base_denom: BaseDenom;
+  };
+};
+export type BaseDenom = "bitcoin";
 /**
  * A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.
  *
@@ -159,6 +164,13 @@ export type TimeInterval =
         seconds: number;
       };
     };
+export type SwapAdjustmentStrategy = {
+  risk_weighted_average: {
+    base_denom: BaseDenom;
+    model_id: number;
+    position_type: PositionType;
+  };
+};
 export type LockableDuration = "one_day" | "one_week" | "two_weeks";
 
 export interface Destination {

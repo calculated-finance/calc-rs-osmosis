@@ -4,7 +4,6 @@ import { execute } from '../../shared/cosmwasm';
 import { Vault } from '../../types/dca/response/get_vault';
 import { createVault } from '../helpers';
 import { coin } from '@cosmjs/proto-signing';
-import { setTimeout } from 'timers/promises';
 import { expect } from '../shared.test';
 import { EventData } from '../../types/dca/response/get_events';
 import { map } from 'ramda';
@@ -77,7 +76,7 @@ describe('when depositing into a vault', () => {
   describe('with a status of inactive', async () => {
     const swapAmount = 1000000;
     const initialDeposit = coin(100, 'stake');
-    const deposit = coin(1000000, 'stake');
+    const deposit = coin(10000000, 'stake');
     let vaultBeforeDeposit: Vault;
     let vaultAfterDeposit: Vault;
 
@@ -98,8 +97,6 @@ describe('when depositing into a vault', () => {
           },
         })
       ).vault;
-
-      await setTimeout(5000);
 
       await execute(
         this.cosmWasmClient,
@@ -123,9 +120,11 @@ describe('when depositing into a vault', () => {
       ).vault;
     });
 
-    it('should change the vault status', () => expect(vaultAfterDeposit.status).to.equal('active'));
+    it('should change the vault status', () => {
+      expect(vaultAfterDeposit.status).to.equal('active');
+    });
 
-    it.only('should execute the vault', () => {
+    it('should execute the vault', () => {
       expect(Number(vaultBeforeDeposit.swapped_amount.amount)).to.equal(Number(initialDeposit.amount));
       expect(Number(vaultAfterDeposit.swapped_amount.amount)).to.equal(swapAmount + Number(initialDeposit.amount));
     });

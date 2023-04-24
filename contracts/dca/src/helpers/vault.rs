@@ -5,8 +5,10 @@ use super::{
     time::get_total_execution_duration,
 };
 use crate::{
-    handlers::get_swap_adjustment::get_swap_adjustment_handler,
-    state::{events::create_event, pairs::find_pair, vaults::update_vault},
+    state::{
+        events::create_event, pairs::find_pair, swap_adjustments::get_swap_adjustment,
+        vaults::update_vault,
+    },
     types::{
         event::{EventBuilder, EventData, ExecutionSkippedReason},
         performance_assessment_strategy::PerformanceAssessmentStrategy,
@@ -26,14 +28,27 @@ pub fn get_position_type(deps: &Deps, vault: &Vault) -> StdResult<PositionType> 
 }
 
 pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin> {
-    let swap_adjustment = get_swap_adjustment_handler(deps, env, vault).unwrap_or(Decimal::one());
+    let swap_adjustment =
+        vault
+            .swap_adjustment_strategy
+            .clone()
+            .map_or(Decimal::one(), |strategy| {
+                get_swap_adjustment(deps.storage, strategy.clone(), env.block.time).unwrap_or_else(
+                    |_| {
+                        panic!(
+                            "failed to get swap adjustment value for strategy {:#?}",
+                            strategy
+                        )
+                    },
+                )
+            });
 
     let adjusted_amount = vault.swap_amount * swap_adjustment;
 
-    Ok(Coin {
-        denom: vault.get_swap_denom(),
-        amount: min(adjusted_amount, vault.balance.amount),
-    })
+    Ok(Coin::new(
+        min(adjusted_amount, vault.balance.amount).into(),
+        vault.get_swap_denom(),
+    ))
 }
 
 pub fn get_dca_plus_model_id(
@@ -190,9 +205,11 @@ pub fn simulate_standard_dca_execution(
                     |PerformanceAssessmentStrategy::CompareToStandardDca {
                          swapped_amount,
                          received_amount,
-                     }| PerformanceAssessmentStrategy::CompareToStandardDca {
-                        swapped_amount: add_to(swapped_amount, swap_amount),
-                        received_amount: add_to(received_amount, received_amount_after_fee),
+                     }| {
+                        PerformanceAssessmentStrategy::CompareToStandardDca {
+                            swapped_amount: add_to(swapped_amount, swap_amount),
+                            received_amount: add_to(received_amount, received_amount_after_fee),
+                        }
                     },
                 ),
                 ..vault
@@ -226,9 +243,9 @@ mod get_swap_amount_tests {
     use super::*;
     use crate::{
         constants::{ONE, TWO_MICRONS},
-        state::swap_adjustments::update_swap_adjustments,
+        state::swap_adjustments::update_swap_adjustment,
         tests::{helpers::setup_vault, mocks::DENOM_UOSMO},
-        types::{position_type::PositionType, swap_adjustment_strategy::SwapAdjustmentStrategy},
+        types::swap_adjustment_strategy::SwapAdjustmentStrategy,
     };
     use cosmwasm_std::{
         coin,
@@ -283,10 +300,10 @@ mod get_swap_amount_tests {
 
         let swap_adjustment = Decimal::percent(90);
 
-        update_swap_adjustments(
+        update_swap_adjustment(
             deps.as_mut().storage,
-            PositionType::Enter,
-            vec![(30, swap_adjustment)],
+            vault.swap_adjustment_strategy.clone().unwrap(),
+            swap_adjustment,
             env.block.time,
         )
         .unwrap();
@@ -318,10 +335,10 @@ mod get_swap_amount_tests {
 
         let swap_adjustment = Decimal::percent(17);
 
-        update_swap_adjustments(
+        update_swap_adjustment(
             deps.as_mut().storage,
-            PositionType::Enter,
-            vec![(30, swap_adjustment)],
+            vault.swap_adjustment_strategy.clone().unwrap(),
+            swap_adjustment,
             env.block.time,
         )
         .unwrap();
@@ -352,10 +369,10 @@ mod get_swap_amount_tests {
 
         let swap_adjustment = Decimal::percent(120);
 
-        update_swap_adjustments(
+        update_swap_adjustment(
             deps.as_mut().storage,
-            PositionType::Exit,
-            vec![(30, swap_adjustment)],
+            vault.swap_adjustment_strategy.clone().unwrap(),
+            swap_adjustment,
             env.block.time,
         )
         .unwrap();
@@ -386,10 +403,10 @@ mod get_swap_amount_tests {
 
         let swap_adjustment = Decimal::percent(200);
 
-        update_swap_adjustments(
+        update_swap_adjustment(
             deps.as_mut().storage,
-            PositionType::Enter,
-            vec![(30, swap_adjustment)],
+            vault.swap_adjustment_strategy.clone().unwrap(),
+            swap_adjustment,
             env.block.time,
         )
         .unwrap();

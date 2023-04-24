@@ -221,16 +221,18 @@ describe('when executing a vault', () => {
           })
         ).vault;
 
-        triggerTime = 'time' in vault.trigger && dayjs(Number(vault.trigger.time.target_time) / 1000000);
+        if (vault.trigger) {
+          triggerTime = 'time' in vault.trigger && dayjs(Number(vault.trigger.time.target_time) / 1000000);
 
-        while (blockTime.isBefore(triggerTime)) {
-          await setTimeout(3000);
-          blockTime = dayjs((await this.cosmWasmClient.getBlock()).header.time);
+          while (blockTime.isBefore(triggerTime)) {
+            await setTimeout(3000);
+            blockTime = dayjs((await this.cosmWasmClient.getBlock()).header.time);
+          }
         }
       }
     });
 
-    it('still has a trigger', () => expect(vault.trigger).to.not.eql(null));
+    it('has no trigger', () => expect(vault.trigger).to.be.null);
 
     it('is inactive', () => expect(vault.status).to.eql('inactive'));
 
@@ -238,24 +240,6 @@ describe('when executing a vault', () => {
 
     it('has a swapped amount equal to the total deposited', () =>
       expect(vault.swapped_amount.amount).to.eql(deposit.amount));
-
-    it('deletes the final trigger on next execution', async function (this: Context) {
-      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-        execute_trigger: {
-          trigger_id: vault.id,
-        },
-      });
-
-      vault = (
-        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-          get_vault: {
-            vault_id: vault.id,
-          },
-        })
-      ).vault;
-
-      expect(vault.trigger).to.eql(null);
-    });
   });
 
   describe('with a time trigger still in the future', () => {
@@ -632,7 +616,11 @@ describe('when executing a vault', () => {
         {
           target_start_time_utc_seconds: `${targetTime.unix()}`,
           time_interval: 'every_second',
-          swap_adjustment_strategy: 'dca_plus',
+          swap_adjustment_strategy: {
+            risk_weighted_average: {
+              base_denom: 'bitcoin',
+            },
+          },
           performance_assessment_strategy: 'compare_to_standard_dca',
         },
         [deposit],
@@ -707,20 +695,15 @@ describe('when executing a vault', () => {
 
       for (const position_type of ['enter', 'exit']) {
         await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-          update_swap_adjustments: {
-            position_type: position_type as PositionType,
-            adjustments: [
-              [30, `${swapAdjustment}`],
-              [35, `${swapAdjustment}`],
-              [40, `${swapAdjustment}`],
-              [45, `${swapAdjustment}`],
-              [50, `${swapAdjustment}`],
-              [55, `${swapAdjustment}`],
-              [60, `${swapAdjustment}`],
-              [70, `${swapAdjustment}`],
-              [80, `${swapAdjustment}`],
-              [90, `${swapAdjustment}`],
-            ],
+          update_swap_adjustment: {
+            strategy: {
+              risk_weighted_average: {
+                model_id: 30,
+                base_denom: 'bitcoin',
+                position_type: position_type as PositionType,
+              },
+            },
+            value: `${swapAdjustment}`,
           },
         });
       }
@@ -733,7 +716,11 @@ describe('when executing a vault', () => {
           target_start_time_utc_seconds: `${targetTime.unix()}`,
           swap_amount: `${Math.round(Number(deposit.amount) * (2 / 3))}`,
           time_interval: 'every_second',
-          swap_adjustment_strategy: 'dca_plus',
+          swap_adjustment_strategy: {
+            risk_weighted_average: {
+              base_denom: 'bitcoin',
+            },
+          },
           performance_assessment_strategy: 'compare_to_standard_dca',
         },
         [deposit],
@@ -878,20 +865,15 @@ describe('when executing a vault', () => {
 
       for (const position_type of ['enter', 'exit']) {
         await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
-          update_swap_adjustments: {
-            position_type: position_type as PositionType,
-            adjustments: [
-              [30, `${swapAdjustment}`],
-              [35, `${swapAdjustment}`],
-              [40, `${swapAdjustment}`],
-              [45, `${swapAdjustment}`],
-              [50, `${swapAdjustment}`],
-              [55, `${swapAdjustment}`],
-              [60, `${swapAdjustment}`],
-              [70, `${swapAdjustment}`],
-              [80, `${swapAdjustment}`],
-              [90, `${swapAdjustment}`],
-            ],
+          update_swap_adjustment: {
+            strategy: {
+              risk_weighted_average: {
+                model_id: 30,
+                base_denom: 'bitcoin',
+                position_type: position_type as PositionType,
+              },
+            },
+            value: `${swapAdjustment}`,
           },
         });
       }
@@ -904,7 +886,11 @@ describe('when executing a vault', () => {
           target_start_time_utc_seconds: `${targetTime.unix()}`,
           swap_amount: deposit.amount,
           time_interval: 'every_second',
-          swap_adjustment_strategy: 'dca_plus',
+          swap_adjustment_strategy: {
+            risk_weighted_average: {
+              base_denom: 'bitcoin',
+            },
+          },
           performance_assessment_strategy: 'compare_to_standard_dca',
         },
         [deposit],

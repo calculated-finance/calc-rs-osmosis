@@ -253,7 +253,11 @@ describe('when creating a vault', () => {
       const vault_id = await createVault(this, {
         target_start_time_utc_seconds: `${dayjs().add(1, 'hour').unix()}`,
         performance_assessment_strategy: 'compare_to_standard_dca',
-        swap_adjustment_strategy: 'dca_plus',
+        swap_adjustment_strategy: {
+          risk_weighted_average: {
+            base_denom: 'bitcoin',
+          },
+        },
       });
 
       vault = (
@@ -282,9 +286,7 @@ describe('when creating a vault', () => {
     });
 
     it('has a DCA+ model id', async function (this: Context) {
-      expect('dca_plus' in vault.swap_adjustment_strategy && vault.swap_adjustment_strategy.dca_plus.model_id).to.equal(
-        30,
-      );
+      expect(vault.swap_adjustment_strategy.risk_weighted_average.model_id).to.equal(30);
     });
   });
 
@@ -305,7 +307,11 @@ describe('when creating a vault', () => {
         this,
         {
           performance_assessment_strategy: 'compare_to_standard_dca',
-          swap_adjustment_strategy: 'dca_plus',
+          swap_adjustment_strategy: {
+            risk_weighted_average: {
+              base_denom: 'bitcoin',
+            },
+          },
           swap_amount: swapAmount,
         },
         [deposit],

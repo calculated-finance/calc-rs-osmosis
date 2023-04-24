@@ -5,7 +5,9 @@ use crate::types::pair::Pair;
 use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategyParams;
 use crate::types::position_type::PositionType;
 use crate::types::post_execution_action::LockableDuration;
-use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategyParams;
+use crate::types::swap_adjustment_strategy::{
+    SwapAdjustmentStrategy, SwapAdjustmentStrategyParams,
+};
 use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_schema::{cw_serde, QueryResponses};
@@ -79,9 +81,9 @@ pub enum ExecuteMsg {
     RemoveCustomSwapFee {
         denom: String,
     },
-    UpdateSwapAdjustments {
-        position_type: PositionType,
-        adjustments: Vec<(u8, Decimal)>,
+    UpdateSwapAdjustment {
+        strategy: SwapAdjustmentStrategy,
+        value: Decimal,
     },
     DisburseEscrow {
         vault_id: Uint128,
