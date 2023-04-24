@@ -16,7 +16,10 @@ use crate::{
         event::{EventBuilder, EventData},
         pair::Pair,
         performance_assessment_strategy::PerformanceAssessmentStrategy,
-        swap_adjustment_strategy::SwapAdjustmentStrategy,
+        position_type::PositionType,
+        swap_adjustment_strategy::{
+            BaseDenom, SwapAdjustmentStrategy, SwapAdjustmentStrategyParams,
+        },
         time_interval::TimeInterval,
         trigger::{Trigger, TriggerConfiguration},
         vault::{Vault, VaultStatus},
@@ -142,7 +145,19 @@ impl Default for Vault {
 
 impl Default for SwapAdjustmentStrategy {
     fn default() -> Self {
-        Self::DcaPlus { model_id: 30 }
+        Self::RiskWeightedAverage {
+            model_id: 30,
+            base_denom: BaseDenom::Bitcoin,
+            position_type: PositionType::Enter,
+        }
+    }
+}
+
+impl Default for SwapAdjustmentStrategyParams {
+    fn default() -> Self {
+        Self::RiskWeightedAverage {
+            base_denom: BaseDenom::Bitcoin,
+        }
     }
 }
 

@@ -1,19 +1,36 @@
+use super::position_type::PositionType;
+use crate::util::calculate_hash;
 use cosmwasm_schema::cw_serde;
 
 #[cw_serde]
+#[derive(Hash)]
 pub enum SwapAdjustmentStrategy {
-    DcaPlus { model_id: u8 },
+    RiskWeightedAverage {
+        model_id: u8,
+        base_denom: BaseDenom,
+        position_type: PositionType,
+    },
 }
 
 #[cw_serde]
 pub enum SwapAdjustmentStrategyParams {
-    DcaPlus,
+    RiskWeightedAverage { base_denom: BaseDenom },
+}
+
+#[cw_serde]
+#[derive(Hash)]
+pub enum BaseDenom {
+    Bitcoin,
 }
 
 impl SwapAdjustmentStrategy {
-    pub fn dca_plus_model_id(&self) -> u8 {
+    pub fn hash(&self) -> u64 {
+        calculate_hash(self)
+    }
+
+    pub fn risk_weighted_average_model_id(&self) -> u8 {
         match self {
-            SwapAdjustmentStrategy::DcaPlus { model_id, .. } => *model_id,
+            SwapAdjustmentStrategy::RiskWeightedAverage { model_id, .. } => *model_id,
         }
     }
 }

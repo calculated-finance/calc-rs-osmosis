@@ -154,7 +154,7 @@ mod tests {
                     ),
                 },
             ),
-            swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+            swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
             ..Vault::default()
         }
     }

@@ -14,17 +14,17 @@ pub fn add(this: Coin, other: Coin) -> StdResult<Coin> {
     })
 }
 
-pub fn subtract(this: &Coin, other: &Coin) -> StdResult<Coin> {
-    if this.denom != other.denom {
+pub fn subtract(from: &Coin, other: &Coin) -> StdResult<Coin> {
+    if from.denom != other.denom {
         return Err(StdError::generic_err(format!(
             "Cannot subtract coins of different denominations: {} and {}",
-            this.denom, other.denom
+            from.denom, other.denom
         )));
     }
 
     Ok(Coin {
-        denom: this.denom.clone(),
-        amount: this
+        denom: from.denom.clone(),
+        amount: from
             .amount
             .checked_sub(other.amount)
             .unwrap_or(Uint128::zero()),

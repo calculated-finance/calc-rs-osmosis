@@ -81,7 +81,7 @@ mod get_dca_plus_performance_tests {
                 swapped_amount: Coin::new(TEN.into(), DENOM_STAKE),
                 received_amount: Coin::new(TEN.into(), DENOM_STAKE),
                 escrowed_amount: Coin::new(TEN.into(), DENOM_STAKE),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 performance_assessment_strategy: Some(performance_assessment_strategy.clone()),
                 escrow_level: Decimal::percent(5),
                 ..Vault::default()

@@ -57,13 +57,19 @@ pub fn deposit_handler(
             .swap_adjustment_strategy
             .clone()
             .map(|swap_adjustment_strategy| match swap_adjustment_strategy {
-                SwapAdjustmentStrategy::DcaPlus { .. } => SwapAdjustmentStrategy::DcaPlus {
+                SwapAdjustmentStrategy::RiskWeightedAverage {
+                    base_denom,
+                    position_type,
+                    ..
+                } => SwapAdjustmentStrategy::RiskWeightedAverage {
                     model_id: get_dca_plus_model_id(
                         &env.block.time,
                         &vault.balance,
                         &vault.swap_amount,
                         &vault.time_interval,
                     ),
+                    base_denom,
+                    position_type,
                 },
             });
 
@@ -497,14 +503,17 @@ mod dposit_tests {
         let updated_vault = get_vault_handler(deps.as_ref(), vault.id).unwrap().vault;
 
         assert_eq!(
-            vault.swap_adjustment_strategy.unwrap().dca_plus_model_id(),
+            vault
+                .swap_adjustment_strategy
+                .unwrap()
+                .risk_weighted_average_model_id(),
             30
         );
         assert_eq!(
             updated_vault
                 .swap_adjustment_strategy
                 .unwrap()
-                .dca_plus_model_id(),
+                .risk_weighted_average_model_id(),
             80
         );
     }

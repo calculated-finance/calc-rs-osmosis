@@ -1,9 +1,8 @@
 use crate::error::ContractError;
-use crate::helpers::coin::add_to;
+use crate::helpers::coin::{add_to, subtract};
 use crate::helpers::disbursement::get_disbursement_messages;
 use crate::helpers::fees::{get_delegation_fee_rate, get_fee_messages, get_swap_fee_rate};
 use crate::helpers::math::checked_mul;
-use crate::helpers::vault::get_swap_amount;
 use crate::msg::ExecuteMsg;
 use crate::state::cache::{SWAP_CACHE, VAULT_CACHE};
 use crate::state::events::create_event;
@@ -11,7 +10,7 @@ use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use crate::types::vault::VaultStatus;
-use cosmwasm_std::{to_binary, Decimal, SubMsg, SubMsgResult, WasmMsg};
+use cosmwasm_std::{to_binary, Decimal, SubMsg, SubMsgResult, Uint128, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
 
@@ -38,15 +37,8 @@ pub fn disburse_funds_handler(
                 .querier
                 .query_balance(&env.contract.address, vault.target_denom.clone())?;
 
-            let coin_sent = Coin::new(
-                (swap_cache.swap_denom_balance.amount - swap_denom_balance.amount).into(),
-                swap_denom_balance.denom.clone(),
-            );
-
-            let coin_received = Coin::new(
-                (receive_denom_balance.amount - swap_cache.receive_denom_balance.amount).into(),
-                receive_denom_balance.denom.clone(),
-            );
+            let coin_sent = subtract(&swap_cache.swap_denom_balance, swap_denom_balance)?;
+            let coin_received = subtract(receive_denom_balance, &swap_cache.receive_denom_balance)?;
 
             let swap_fee_rate = match vault.swap_adjustment_strategy {
                 Some(_) => Decimal::zero(),
@@ -70,7 +62,7 @@ pub fn disburse_funds_handler(
                 coin_received.denom.clone(),
             )?);
 
-            vault.balance.amount -= get_swap_amount(&deps.as_ref(), env, &vault)?.amount;
+            vault.balance.amount -= coin_sent.amount;
             vault.swapped_amount = add_to(vault.swapped_amount, coin_sent.amount);
             vault.received_amount = add_to(vault.received_amount, total_after_total_fee);
 
@@ -121,12 +113,14 @@ pub fn disburse_funds_handler(
 
     update_vault(deps.storage, &vault)?;
 
-    if vault.is_finished_and_simulation_is_finished() {
-        sub_msgs.push(SubMsg::new(WasmMsg::Execute {
-            contract_addr: env.contract.address.to_string(),
-            msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
-            funds: vec![],
-        }));
+    if vault.should_not_continue() {
+        if vault.escrowed_amount.amount > Uint128::zero() {
+            sub_msgs.push(SubMsg::new(WasmMsg::Execute {
+                contract_addr: env.contract.address.to_string(),
+                msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
+                funds: vec![],
+            }));
+        }
 
         delete_trigger(deps.storage, vault.id)?;
     }
@@ -148,7 +142,7 @@ mod disburse_funds_tests {
         state::{
             cache::{SwapCache, SWAP_CACHE},
             config::{create_custom_fee, get_config, FeeCollector},
-            swap_adjustments::update_swap_adjustments,
+            swap_adjustments::update_swap_adjustment,
             vaults::get_vault,
         },
         tests::{
@@ -163,7 +157,7 @@ mod disburse_funds_tests {
             event::{Event, EventBuilder, EventData, ExecutionSkippedReason},
             performance_assessment_strategy::PerformanceAssessmentStrategy,
             position_type::PositionType,
-            swap_adjustment_strategy::SwapAdjustmentStrategy,
+            swap_adjustment_strategy::{BaseDenom, SwapAdjustmentStrategy},
             vault::{Vault, VaultStatus},
         },
     };
@@ -416,7 +410,13 @@ mod disburse_funds_tests {
 
         deps.querier.update_balance(
             "cosmos2contract",
-            vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
+            vec![
+                Coin::new(
+                    (vault.balance.amount - vault.swap_amount).into(),
+                    vault.get_swap_denom(),
+                ),
+                Coin::new(receive_amount.into(), vault.target_denom.clone()),
+            ],
         );
 
         disburse_funds_handler(
@@ -436,10 +436,7 @@ mod disburse_funds_tests {
 
         assert_eq!(
             updated_vault.balance.amount,
-            vault.balance.amount
-                - get_swap_amount(&deps.as_ref(), &env, &vault)
-                    .unwrap()
-                    .amount
+            vault.balance.amount - vault.swap_amount
         );
     }
 
@@ -591,24 +588,36 @@ mod disburse_funds_tests {
             vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
-        update_swap_adjustments(
-            deps.as_mut().storage,
-            PositionType::Exit,
-            vec![
-                (30, Decimal::from_str("1.0").unwrap()),
-                (35, Decimal::from_str("1.0").unwrap()),
-                (40, Decimal::from_str("1.0").unwrap()),
-                (45, Decimal::from_str("1.0").unwrap()),
-                (50, Decimal::from_str("1.0").unwrap()),
-                (55, Decimal::from_str("1.0").unwrap()),
-                (60, Decimal::from_str("1.0").unwrap()),
-                (70, Decimal::from_str("1.0").unwrap()),
-                (80, Decimal::from_str("1.0").unwrap()),
-                (90, Decimal::from_str("1.0").unwrap()),
-            ],
-            env.block.time,
-        )
-        .unwrap();
+        [
+            (30, Decimal::from_str("1.0").unwrap()),
+            (35, Decimal::from_str("1.0").unwrap()),
+            (40, Decimal::from_str("1.0").unwrap()),
+            (45, Decimal::from_str("1.0").unwrap()),
+            (50, Decimal::from_str("1.0").unwrap()),
+            (55, Decimal::from_str("1.0").unwrap()),
+            (60, Decimal::from_str("1.0").unwrap()),
+            (70, Decimal::from_str("1.0").unwrap()),
+            (80, Decimal::from_str("1.0").unwrap()),
+            (90, Decimal::from_str("1.0").unwrap()),
+        ]
+        .into_iter()
+        .for_each(|(model_id, adjustment)| {
+            [PositionType::Enter, PositionType::Exit]
+                .into_iter()
+                .for_each(|position_type| {
+                    update_swap_adjustment(
+                        deps.as_mut().storage,
+                        SwapAdjustmentStrategy::RiskWeightedAverage {
+                            model_id,
+                            base_denom: BaseDenom::Bitcoin,
+                            position_type,
+                        },
+                        adjustment,
+                        env.block.time,
+                    )
+                    .unwrap();
+                })
+        });
 
         let response = disburse_funds_handler(
             deps.as_mut(),
@@ -670,24 +679,36 @@ mod disburse_funds_tests {
             vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
-        update_swap_adjustments(
-            deps.as_mut().storage,
-            PositionType::Exit,
-            vec![
-                (30, Decimal::from_str("1.0").unwrap()),
-                (35, Decimal::from_str("1.0").unwrap()),
-                (40, Decimal::from_str("1.0").unwrap()),
-                (45, Decimal::from_str("1.0").unwrap()),
-                (50, Decimal::from_str("1.0").unwrap()),
-                (55, Decimal::from_str("1.0").unwrap()),
-                (60, Decimal::from_str("1.0").unwrap()),
-                (70, Decimal::from_str("1.0").unwrap()),
-                (80, Decimal::from_str("1.0").unwrap()),
-                (90, Decimal::from_str("1.0").unwrap()),
-            ],
-            env.block.time,
-        )
-        .unwrap();
+        [
+            (30, Decimal::from_str("1.0").unwrap()),
+            (35, Decimal::from_str("1.0").unwrap()),
+            (40, Decimal::from_str("1.0").unwrap()),
+            (45, Decimal::from_str("1.0").unwrap()),
+            (50, Decimal::from_str("1.0").unwrap()),
+            (55, Decimal::from_str("1.0").unwrap()),
+            (60, Decimal::from_str("1.0").unwrap()),
+            (70, Decimal::from_str("1.0").unwrap()),
+            (80, Decimal::from_str("1.0").unwrap()),
+            (90, Decimal::from_str("1.0").unwrap()),
+        ]
+        .into_iter()
+        .for_each(|(model_id, adjustment)| {
+            [PositionType::Enter, PositionType::Exit]
+                .into_iter()
+                .for_each(|position_type| {
+                    update_swap_adjustment(
+                        deps.as_mut().storage,
+                        SwapAdjustmentStrategy::RiskWeightedAverage {
+                            model_id,
+                            base_denom: BaseDenom::Bitcoin,
+                            position_type,
+                        },
+                        adjustment,
+                        env.block.time,
+                    )
+                    .unwrap();
+                })
+        });
 
         disburse_funds_handler(
             deps.as_mut(),
@@ -761,24 +782,36 @@ mod disburse_funds_tests {
             vec![Coin::new(receive_amount.into(), vault.target_denom.clone())],
         );
 
-        update_swap_adjustments(
-            deps.as_mut().storage,
-            PositionType::Exit,
-            vec![
-                (30, Decimal::from_str("1.0").unwrap()),
-                (35, Decimal::from_str("1.0").unwrap()),
-                (40, Decimal::from_str("1.0").unwrap()),
-                (45, Decimal::from_str("1.0").unwrap()),
-                (50, Decimal::from_str("1.0").unwrap()),
-                (55, Decimal::from_str("1.0").unwrap()),
-                (60, Decimal::from_str("1.0").unwrap()),
-                (70, Decimal::from_str("1.0").unwrap()),
-                (80, Decimal::from_str("1.0").unwrap()),
-                (90, Decimal::from_str("1.0").unwrap()),
-            ],
-            env.block.time,
-        )
-        .unwrap();
+        [
+            (30, Decimal::from_str("1.0").unwrap()),
+            (35, Decimal::from_str("1.0").unwrap()),
+            (40, Decimal::from_str("1.0").unwrap()),
+            (45, Decimal::from_str("1.0").unwrap()),
+            (50, Decimal::from_str("1.0").unwrap()),
+            (55, Decimal::from_str("1.0").unwrap()),
+            (60, Decimal::from_str("1.0").unwrap()),
+            (70, Decimal::from_str("1.0").unwrap()),
+            (80, Decimal::from_str("1.0").unwrap()),
+            (90, Decimal::from_str("1.0").unwrap()),
+        ]
+        .into_iter()
+        .for_each(|(model_id, adjustment)| {
+            [PositionType::Enter, PositionType::Exit]
+                .into_iter()
+                .for_each(|position_type| {
+                    update_swap_adjustment(
+                        deps.as_mut().storage,
+                        SwapAdjustmentStrategy::RiskWeightedAverage {
+                            model_id,
+                            base_denom: BaseDenom::Bitcoin,
+                            position_type,
+                        },
+                        adjustment,
+                        env.block.time,
+                    )
+                    .unwrap();
+                })
+        });
 
         disburse_funds_handler(
             deps.as_mut(),
@@ -1311,7 +1344,7 @@ mod disburse_funds_tests {
                         received_amount: Coin::new(ONE.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -1371,7 +1404,7 @@ mod disburse_funds_tests {
                         received_amount: Coin::new(ONE.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -1431,7 +1464,7 @@ mod disburse_funds_tests {
                         received_amount: Coin::new((ONE / TWO_MICRONS).into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );

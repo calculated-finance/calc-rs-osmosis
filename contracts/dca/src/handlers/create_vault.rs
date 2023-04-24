@@ -13,6 +13,7 @@ use crate::msg::ExecuteMsg;
 use crate::state::cache::{VaultCache, VAULT_CACHE};
 use crate::state::config::get_config;
 use crate::state::events::create_event;
+use crate::state::pairs::find_pair;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
 use crate::types::destination::Destination;
@@ -85,21 +86,31 @@ pub fn create_vault_handler(
 
     let config = get_config(deps.storage)?;
 
+    let swap_denom = info.funds[0].denom.clone();
+
+    let pair = find_pair(deps.storage, &[swap_denom.clone(), target_denom.clone()])?;
+
     let swap_adjustment_strategy =
         swap_adjustment_strategy_params
             .clone()
-            .map(|_| SwapAdjustmentStrategy::DcaPlus {
-                model_id: get_dca_plus_model_id(
-                    &env.block.time,
-                    &info.funds[0],
-                    &swap_amount,
-                    &time_interval,
-                ),
+            .map(|params| match params {
+                SwapAdjustmentStrategyParams::RiskWeightedAverage { base_denom } => {
+                    SwapAdjustmentStrategy::RiskWeightedAverage {
+                        model_id: get_dca_plus_model_id(
+                            &env.block.time,
+                            &info.funds[0],
+                            &swap_amount,
+                            &time_interval,
+                        ),
+                        base_denom,
+                        position_type: pair.position_type(swap_denom.clone()),
+                    }
+                }
             });
 
     let performance_assessment_strategy = swap_adjustment_strategy_params.map(|_| {
         PerformanceAssessmentStrategy::CompareToStandardDca {
-            swapped_amount: Coin::new(0, info.funds[0].clone().denom),
+            swapped_amount: Coin::new(0, swap_denom),
             received_amount: Coin::new(0, target_denom.clone()),
         }
     });
@@ -689,7 +700,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
             None,
-            Some(SwapAdjustmentStrategyParams::DcaPlus),
+            Some(SwapAdjustmentStrategyParams::default()),
         )
         .unwrap_err();
 
@@ -987,7 +998,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
             Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
-            Some(SwapAdjustmentStrategyParams::DcaPlus),
+            Some(SwapAdjustmentStrategyParams::default()),
         )
         .unwrap();
 
@@ -997,7 +1008,7 @@ mod create_vault_tests {
 
         assert_eq!(
             vault.swap_adjustment_strategy,
-            Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 })
+            Some(SwapAdjustmentStrategy::default())
         );
     }
 
@@ -1037,7 +1048,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
             Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
-            Some(SwapAdjustmentStrategyParams::DcaPlus),
+            Some(SwapAdjustmentStrategyParams::default()),
         )
         .unwrap();
 
@@ -1090,7 +1101,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
             Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
-            Some(SwapAdjustmentStrategyParams::DcaPlus),
+            Some(SwapAdjustmentStrategyParams::default()),
         )
         .unwrap();
 
@@ -1100,7 +1111,7 @@ mod create_vault_tests {
 
         assert_eq!(
             vault.swap_adjustment_strategy.map(|s| match s {
-                SwapAdjustmentStrategy::DcaPlus { model_id, .. } => model_id,
+                SwapAdjustmentStrategy::RiskWeightedAverage { model_id, .. } => model_id,
             }),
             Some(90)
         );
@@ -1142,7 +1153,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             None,
             Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
-            Some(SwapAdjustmentStrategyParams::DcaPlus),
+            Some(SwapAdjustmentStrategyParams::default()),
         )
         .unwrap();
 

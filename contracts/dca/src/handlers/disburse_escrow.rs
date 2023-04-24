@@ -129,7 +129,7 @@ mod disburse_escrow_tests {
                         received_amount: Coin::new(ONE.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -165,7 +165,7 @@ mod disburse_escrow_tests {
                         received_amount: Coin::new(ONE.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -210,7 +210,7 @@ mod disburse_escrow_tests {
                         received_amount: Coin::new(TEN.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -266,7 +266,7 @@ mod disburse_escrow_tests {
                         received_amount: Coin::new(TEN.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -301,7 +301,7 @@ mod disburse_escrow_tests {
                         received_amount: Coin::new(TEN.into(), DENOM_STAKE),
                     },
                 ),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
         );

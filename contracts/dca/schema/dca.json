@@ -407,36 +407,21 @@
       {
         "type": "object",
         "required": [
-          "update_swap_adjustments"
+          "update_swap_adjustment"
         ],
         "properties": {
-          "update_swap_adjustments": {
+          "update_swap_adjustment": {
             "type": "object",
             "required": [
-              "adjustments",
-              "position_type"
+              "strategy",
+              "value"
             ],
             "properties": {
-              "adjustments": {
-                "type": "array",
-                "items": {
-                  "type": "array",
-                  "items": [
-                    {
-                      "type": "integer",
-                      "format": "uint8",
-                      "minimum": 0.0
-                    },
-                    {
-                      "$ref": "#/definitions/Decimal"
-                    }
-                  ],
-                  "maxItems": 2,
-                  "minItems": 2
-                }
+              "strategy": {
+                "$ref": "#/definitions/SwapAdjustmentStrategy"
               },
-              "position_type": {
-                "$ref": "#/definitions/PositionType"
+              "value": {
+                "$ref": "#/definitions/Decimal"
               }
             },
             "additionalProperties": false
@@ -537,6 +522,12 @@
         "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
         "type": "string"
       },
+      "BaseDenom": {
+        "type": "string",
+        "enum": [
+          "bitcoin"
+        ]
+      },
       "Binary": {
         "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
         "type": "string"
@@ -608,10 +599,64 @@
           "exit"
         ]
       },
+      "SwapAdjustmentStrategy": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "risk_weighted_average"
+            ],
+            "properties": {
+              "risk_weighted_average": {
+                "type": "object",
+                "required": [
+                  "base_denom",
+                  "model_id",
+                  "position_type"
+                ],
+                "properties": {
+                  "base_denom": {
+                    "$ref": "#/definitions/BaseDenom"
+                  },
+                  "model_id": {
+                    "type": "integer",
+                    "format": "uint8",
+                    "minimum": 0.0
+                  },
+                  "position_type": {
+                    "$ref": "#/definitions/PositionType"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
       "SwapAdjustmentStrategyParams": {
-        "type": "string",
-        "enum": [
-          "dca_plus"
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "risk_weighted_average"
+            ],
+            "properties": {
+              "risk_weighted_average": {
+                "type": "object",
+                "required": [
+                  "base_denom"
+                ],
+                "properties": {
+                  "base_denom": {
+                    "$ref": "#/definitions/BaseDenom"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
         ]
       },
       "TimeInterval": {
@@ -1925,6 +1970,12 @@
           "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
           "type": "string"
         },
+        "BaseDenom": {
+          "type": "string",
+          "enum": [
+            "bitcoin"
+          ]
+        },
         "Binary": {
           "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
           "type": "string"
@@ -2003,24 +2054,39 @@
             }
           ]
         },
+        "PositionType": {
+          "type": "string",
+          "enum": [
+            "enter",
+            "exit"
+          ]
+        },
         "SwapAdjustmentStrategy": {
           "oneOf": [
             {
               "type": "object",
               "required": [
-                "dca_plus"
+                "risk_weighted_average"
               ],
               "properties": {
-                "dca_plus": {
+                "risk_weighted_average": {
                   "type": "object",
                   "required": [
-                    "model_id"
+                    "base_denom",
+                    "model_id",
+                    "position_type"
                   ],
                   "properties": {
+                    "base_denom": {
+                      "$ref": "#/definitions/BaseDenom"
+                    },
                     "model_id": {
                       "type": "integer",
                       "format": "uint8",
                       "minimum": 0.0
+                    },
+                    "position_type": {
+                      "$ref": "#/definitions/PositionType"
                     }
                   },
                   "additionalProperties": false
@@ -2277,6 +2343,12 @@
           "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
           "type": "string"
         },
+        "BaseDenom": {
+          "type": "string",
+          "enum": [
+            "bitcoin"
+          ]
+        },
         "Binary": {
           "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
           "type": "string"
@@ -2355,24 +2427,39 @@
             }
           ]
         },
+        "PositionType": {
+          "type": "string",
+          "enum": [
+            "enter",
+            "exit"
+          ]
+        },
         "SwapAdjustmentStrategy": {
           "oneOf": [
             {
               "type": "object",
               "required": [
-                "dca_plus"
+                "risk_weighted_average"
               ],
               "properties": {
-                "dca_plus": {
+                "risk_weighted_average": {
                   "type": "object",
                   "required": [
-                    "model_id"
+                    "base_denom",
+                    "model_id",
+                    "position_type"
                   ],
                   "properties": {
+                    "base_denom": {
+                      "$ref": "#/definitions/BaseDenom"
+                    },
                     "model_id": {
                       "type": "integer",
                       "format": "uint8",
                       "minimum": 0.0
+                    },
+                    "position_type": {
+                      "$ref": "#/definitions/PositionType"
                     }
                   },
                   "additionalProperties": false
@@ -2629,6 +2716,12 @@
           "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
           "type": "string"
         },
+        "BaseDenom": {
+          "type": "string",
+          "enum": [
+            "bitcoin"
+          ]
+        },
         "Binary": {
           "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
           "type": "string"
@@ -2707,24 +2800,39 @@
             }
           ]
         },
+        "PositionType": {
+          "type": "string",
+          "enum": [
+            "enter",
+            "exit"
+          ]
+        },
         "SwapAdjustmentStrategy": {
           "oneOf": [
             {
               "type": "object",
               "required": [
-                "dca_plus"
+                "risk_weighted_average"
               ],
               "properties": {
-                "dca_plus": {
+                "risk_weighted_average": {
                   "type": "object",
                   "required": [
-                    "model_id"
+                    "base_denom",
+                    "model_id",
+                    "position_type"
                   ],
                   "properties": {
+                    "base_denom": {
+                      "$ref": "#/definitions/BaseDenom"
+                    },
                     "model_id": {
                       "type": "integer",
                       "format": "uint8",
                       "minimum": 0.0
+                    },
+                    "position_type": {
+                      "$ref": "#/definitions/PositionType"
                     }
                   },
                   "additionalProperties": false
