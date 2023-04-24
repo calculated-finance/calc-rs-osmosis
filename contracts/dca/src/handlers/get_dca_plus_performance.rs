@@ -40,7 +40,10 @@ mod get_dca_plus_performance_tests {
             helpers::setup_vault,
             mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO},
         },
-        types::{swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault},
+        types::{
+            performance_assessment_strategy::PerformanceAssessmentStrategy,
+            swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault,
+        },
     };
     use cosmwasm_std::{testing::mock_env, Coin, Decimal};
 
@@ -66,13 +69,9 @@ mod get_dca_plus_performance_tests {
 
         let standard_received_amount = TEN - ONE;
 
-        let swap_adjustment_strategy = SwapAdjustmentStrategy::DcaPlus {
-            total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-            standard_dca_swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
-            standard_dca_received_amount: Coin::new(standard_received_amount.into(), DENOM_STAKE),
-            escrowed_balance: Coin::new(TEN.into(), DENOM_STAKE),
-            model_id: 30,
-            escrow_level: Decimal::percent(5),
+        let performance_assessment_strategy = PerformanceAssessmentStrategy::CompareToStandardDca {
+            swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+            received_amount: Coin::new(standard_received_amount.into(), DENOM_STAKE),
         };
 
         let vault = setup_vault(
@@ -81,7 +80,10 @@ mod get_dca_plus_performance_tests {
             Vault {
                 swapped_amount: Coin::new(TEN.into(), DENOM_STAKE),
                 received_amount: Coin::new(TEN.into(), DENOM_STAKE),
-                swap_adjustment_strategy: Some(swap_adjustment_strategy.clone()),
+                escrowed_amount: Coin::new(TEN.into(), DENOM_STAKE),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
+                performance_assessment_strategy: Some(performance_assessment_strategy.clone()),
+                escrow_level: Decimal::percent(5),
                 ..Vault::default()
             },
         );

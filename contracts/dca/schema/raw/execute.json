@@ -85,6 +85,16 @@
                 }
               ]
             },
+            "performance_assessment_strategy": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PerformanceAssessmentStrategyParams"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "position_type": {
               "anyOf": [
                 {
@@ -510,6 +520,12 @@
         "one_day",
         "one_week",
         "two_weeks"
+      ]
+    },
+    "PerformanceAssessmentStrategyParams": {
+      "type": "string",
+      "enum": [
+        "compare_to_standard_dca"
       ]
     },
     "PositionType": {

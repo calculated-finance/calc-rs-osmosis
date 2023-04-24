@@ -2,6 +2,7 @@ use crate::state::config::{Config, FeeCollector};
 use crate::types::destination::Destination;
 use crate::types::event::Event;
 use crate::types::pair::Pair;
+use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategyParams;
 use crate::types::position_type::PositionType;
 use crate::types::post_execution_action::LockableDuration;
 use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategyParams;
@@ -50,6 +51,7 @@ pub enum ExecuteMsg {
         swap_amount: Uint128,
         time_interval: TimeInterval,
         target_start_time_utc_seconds: Option<Uint64>,
+        performance_assessment_strategy: Option<PerformanceAssessmentStrategyParams>,
         swap_adjustment_strategy: Option<SwapAdjustmentStrategyParams>,
     },
     Deposit {

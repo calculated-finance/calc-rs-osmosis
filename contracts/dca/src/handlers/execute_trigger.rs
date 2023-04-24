@@ -96,12 +96,15 @@ pub fn execute_trigger_handler(
     }
 
     let should_execute_again = vault.is_active()
-        || vault
-            .swap_adjustment_strategy
-            .clone()
-            .map_or(false, |swap_adjustment_strategy| {
-                swap_adjustment_strategy.can_continue()
-            });
+        || vault.performance_assessment_strategy.clone().map_or(
+            false,
+            |performance_assessment_strategy| {
+                performance_assessment_strategy
+                    .standard_dca_balance(vault.deposited_amount.clone())
+                    .amount
+                    > Uint128::zero()
+            },
+        );
 
     if should_execute_again {
         save_trigger(
@@ -121,7 +124,7 @@ pub fn execute_trigger_handler(
             },
         )?;
     } else {
-        if vault.is_finished_dca_plus_vault() {
+        if vault.is_finished_and_simulation_is_finished() {
             response = response.add_submessage(SubMsg::new(WasmMsg::Execute {
                 contract_addr: env.contract.address.to_string(),
                 msg: to_binary(&ExecuteMsg::DisburseEscrow { vault_id: vault.id })?,
@@ -199,6 +202,7 @@ mod execute_trigger_tests {
     use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO};
     use crate::types::event::{Event, EventData, ExecutionSkippedReason};
+    use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategy;
     use crate::types::position_type::PositionType;
     use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
     use crate::types::trigger::TriggerConfiguration;
@@ -425,6 +429,7 @@ mod execute_trigger_tests {
             env.clone(),
             Vault {
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -440,14 +445,15 @@ mod execute_trigger_tests {
         let fee_amount = received_amount_before_fee * fee_rate;
         let received_amount_after_fee = received_amount_before_fee - fee_amount;
 
-        let swap_adjustment_strategy = updated_vault.swap_adjustment_strategy.unwrap();
+        let performance_assessment_strategy =
+            updated_vault.performance_assessment_strategy.unwrap();
 
         assert_eq!(
-            swap_adjustment_strategy.dca_plus_standard_dca_swapped_amount(),
+            performance_assessment_strategy.standard_dca_swapped_amount(),
             Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
         );
         assert_eq!(
-            swap_adjustment_strategy.dca_plus_standard_dca_received_amount(),
+            performance_assessment_strategy.standard_dca_received_amount(),
             Coin::new(received_amount_after_fee.into(), vault.target_denom)
         );
     }
@@ -464,14 +470,15 @@ mod execute_trigger_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
-                    total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_received_amount: Coin::new(TEN.into(), DENOM_STAKE),
-                    escrowed_balance: Coin::new((TEN * Decimal::percent(5)).into(), DENOM_STAKE),
-                    model_id: 30,
-                    escrow_level: Decimal::percent(5),
-                }),
+                deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                escrowed_amount: Coin::new((TEN * Decimal::percent(5)).into(), DENOM_STAKE),
+                performance_assessment_strategy: Some(
+                    PerformanceAssessmentStrategy::CompareToStandardDca {
+                        swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                        received_amount: Coin::new(TEN.into(), DENOM_STAKE),
+                    },
+                ),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
                 ..Vault::default()
             },
         );
@@ -500,14 +507,10 @@ mod execute_trigger_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
-                    total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_swapped_amount: Coin::new(0, DENOM_UOSMO),
-                    standard_dca_received_amount: Coin::new(0, DENOM_STAKE),
-                    escrowed_balance: Coin::new(0, DENOM_STAKE),
-                    model_id: 30,
-                    escrow_level: Decimal::percent(5),
-                }),
+                deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                escrowed_amount: Coin::new(0, DENOM_STAKE),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
                 ..Vault::default()
             },
         );
@@ -604,6 +607,7 @@ mod execute_trigger_tests {
                 swap_amount: ONE,
                 minimum_receive_amount: Some(ONE + ONE),
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -641,6 +645,7 @@ mod execute_trigger_tests {
             Vault {
                 slippage_tolerance: Some(Decimal::percent(1)),
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -685,6 +690,9 @@ mod execute_trigger_tests {
             Vault {
                 status: VaultStatus::Inactive,
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                balance: Coin::new(TEN.into(), DENOM_UOSMO),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
+                escrow_level: Decimal::percent(5),
                 ..Vault::default()
             },
         );
@@ -700,14 +708,15 @@ mod execute_trigger_tests {
         let fee_amount = received_amount_before_fee * fee_rate;
         let received_amount_after_fee = received_amount_before_fee - fee_amount;
 
-        let swap_adjustment_strategy = updated_vault.swap_adjustment_strategy.unwrap();
+        let performance_assessment_strategy =
+            updated_vault.performance_assessment_strategy.unwrap();
 
         assert_eq!(
-            swap_adjustment_strategy.dca_plus_standard_dca_swapped_amount(),
+            performance_assessment_strategy.standard_dca_swapped_amount(),
             Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
         );
         assert_eq!(
-            swap_adjustment_strategy.dca_plus_standard_dca_received_amount(),
+            performance_assessment_strategy.standard_dca_received_amount(),
             Coin::new(received_amount_after_fee.into(), vault.target_denom)
         );
     }
@@ -726,14 +735,16 @@ mod execute_trigger_tests {
             Vault {
                 status: VaultStatus::Inactive,
                 balance: Coin::new(0, DENOM_UOSMO),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
-                    total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_received_amount: Coin::new(TEN.into(), DENOM_STAKE),
-                    escrowed_balance: Coin::new(ONE.into(), DENOM_STAKE),
-                    model_id: 30,
-                    escrow_level: Decimal::percent(5),
-                }),
+                escrow_level: Decimal::percent(5),
+                deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                escrowed_amount: Coin::new(ONE.into(), DENOM_STAKE),
+                performance_assessment_strategy: Some(
+                    PerformanceAssessmentStrategy::CompareToStandardDca {
+                        swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                        received_amount: Coin::new(TEN.into(), DENOM_STAKE),
+                    },
+                ),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
                 ..Vault::default()
             },
         );
@@ -770,14 +781,16 @@ mod execute_trigger_tests {
             Vault {
                 status: VaultStatus::Inactive,
                 balance: Coin::new(0, DENOM_UOSMO),
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
-                    total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
-                    standard_dca_received_amount: Coin::new(ONE.into(), DENOM_STAKE),
-                    escrowed_balance: Coin::new(ONE_MICRON.into(), DENOM_STAKE),
-                    model_id: 30,
-                    escrow_level: Decimal::percent(5),
-                }),
+                escrow_level: Decimal::percent(5),
+                deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                escrowed_amount: Coin::new(ONE_MICRON.into(), DENOM_STAKE),
+                performance_assessment_strategy: Some(
+                    PerformanceAssessmentStrategy::CompareToStandardDca {
+                        swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
+                        received_amount: Coin::new(ONE.into(), DENOM_STAKE),
+                    },
+                ),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
                 ..Vault::default()
             },
         );
@@ -890,14 +903,16 @@ mod execute_trigger_tests {
             env.clone(),
             Vault {
                 status: VaultStatus::Inactive,
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
-                    total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
-                    standard_dca_received_amount: Coin::new(ONE.into(), DENOM_STAKE),
-                    escrowed_balance: Coin::new(ONE_MICRON.into(), DENOM_STAKE),
-                    model_id: 30,
-                    escrow_level: Decimal::percent(5),
-                }),
+                escrow_level: Decimal::percent(5),
+                deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                escrowed_amount: Coin::new(ONE_MICRON.into(), DENOM_STAKE),
+                performance_assessment_strategy: Some(
+                    PerformanceAssessmentStrategy::CompareToStandardDca {
+                        swapped_amount: Coin::new(ONE.into(), DENOM_UOSMO),
+                        received_amount: Coin::new(ONE.into(), DENOM_STAKE),
+                    },
+                ),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
                 ..Vault::default()
             },
         );
@@ -943,14 +958,16 @@ mod execute_trigger_tests {
             env.clone(),
             Vault {
                 status: VaultStatus::Inactive,
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
-                    total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
-                    standard_dca_received_amount: Coin::new(TEN.into(), DENOM_STAKE),
-                    escrowed_balance: Coin::new((TEN * Decimal::percent(5)).into(), DENOM_STAKE),
-                    model_id: 30,
-                    escrow_level: Decimal::percent(5),
-                }),
+                escrow_level: Decimal::percent(5),
+                deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                escrowed_amount: Coin::new((TEN * Decimal::percent(5)).into(), DENOM_STAKE),
+                performance_assessment_strategy: Some(
+                    PerformanceAssessmentStrategy::CompareToStandardDca {
+                        swapped_amount: Coin::new(TEN.into(), DENOM_UOSMO),
+                        received_amount: Coin::new(TEN.into(), DENOM_STAKE),
+                    },
+                ),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
                 ..Vault::default()
             },
         );

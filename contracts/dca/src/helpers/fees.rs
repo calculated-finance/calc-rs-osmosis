@@ -72,21 +72,20 @@ pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Deci
 }
 
 pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> StdResult<Coin> {
-    let swap_adjustment_strategy = vault
-        .swap_adjustment_strategy
+    let performance_assessment_strategy = vault
+        .performance_assessment_strategy
         .clone()
         .expect("DCA plus config for the vault");
 
-    let dca_plus_total_value = swap_adjustment_strategy.dca_plus_total_deposit().amount
-        - vault.swapped_amount.amount
+    let dca_plus_total_value = vault.deposited_amount.amount - vault.swapped_amount.amount
         + vault.received_amount.amount * current_price;
 
-    let standard_dca_total_value = swap_adjustment_strategy.dca_plus_total_deposit().amount
-        - swap_adjustment_strategy
-            .dca_plus_standard_dca_swapped_amount()
+    let standard_dca_total_value = vault.deposited_amount.amount
+        - performance_assessment_strategy
+            .standard_dca_swapped_amount()
             .amount
-        + swap_adjustment_strategy
-            .dca_plus_standard_dca_received_amount()
+        + performance_assessment_strategy
+            .standard_dca_received_amount()
             .amount
             * current_price;
 
@@ -104,10 +103,7 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
 
     Ok(Coin {
         denom: vault.target_denom.clone(),
-        amount: min(
-            fee,
-            swap_adjustment_strategy.dca_plus_escrowed_balance().amount,
-        ),
+        amount: min(fee, vault.escrowed_amount.amount),
     })
 }
 
@@ -116,7 +112,10 @@ mod tests {
     use crate::{
         constants::TEN,
         helpers::fees::get_dca_plus_performance_fee,
-        types::{swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault},
+        types::{
+            performance_assessment_strategy::PerformanceAssessmentStrategy,
+            swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault,
+        },
     };
     use cosmwasm_std::{Coin, Decimal, Uint128};
     use std::str::FromStr;
@@ -131,35 +130,31 @@ mod tests {
         let escrow_level = Decimal::percent(5);
 
         Vault {
-            balance: Coin {
-                denom: "swap_denom".to_string(),
-                amount: total_deposit - swapped_amount,
-            },
-            swapped_amount: Coin {
-                denom: "swap_denom".to_string(),
-                amount: swapped_amount,
-            },
-            received_amount: Coin {
-                denom: "receive_denom".to_string(),
-                amount: received_amount,
-            },
-            swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus {
-                total_deposit: Coin::new(total_deposit.into(), "swap_denom".to_string()),
-                standard_dca_swapped_amount: Coin::new(
-                    standard_dca_swapped_amount.into(),
-                    "swap_denom".to_string(),
-                ),
-                standard_dca_received_amount: Coin::new(
-                    standard_dca_received_amount.into(),
-                    "receive_denom".to_string(),
-                ),
-                escrowed_balance: Coin::new(
-                    (received_amount * escrow_level).into(),
-                    "denom".to_string(),
-                ),
-                model_id: 30,
-                escrow_level,
-            }),
+            balance: Coin::new(
+                (total_deposit - swapped_amount).into(),
+                "swap_denom".to_string(),
+            ),
+            deposited_amount: Coin::new(total_deposit.into(), "swap_denom".to_string()),
+            escrow_level,
+            swapped_amount: Coin::new(swapped_amount.into(), "swap_denom".to_string()),
+            received_amount: Coin::new(received_amount.into(), "receive_denom".to_string()),
+            escrowed_amount: Coin::new(
+                (received_amount * escrow_level).into(),
+                "denom".to_string(),
+            ),
+            performance_assessment_strategy: Some(
+                PerformanceAssessmentStrategy::CompareToStandardDca {
+                    swapped_amount: Coin::new(
+                        standard_dca_swapped_amount.into(),
+                        "swap_denom".to_string(),
+                    ),
+                    received_amount: Coin::new(
+                        standard_dca_received_amount.into(),
+                        "receive_denom".to_string(),
+                    ),
+                },
+            ),
+            swap_adjustment_strategy: Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 }),
             ..Vault::default()
         }
     }

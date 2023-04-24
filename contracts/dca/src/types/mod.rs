@@ -1,6 +1,7 @@
 pub mod destination;
 pub mod event;
 pub mod pair;
+pub mod performance_assessment_strategy;
 pub mod position_type;
 pub mod post_execution_action;
 pub mod price_type;

@@ -15,6 +15,7 @@ use crate::{
         destination::Destination,
         event::{EventBuilder, EventData},
         pair::Pair,
+        performance_assessment_strategy::PerformanceAssessmentStrategy,
         swap_adjustment_strategy::SwapAdjustmentStrategy,
         time_interval::TimeInterval,
         trigger::{Trigger, TriggerConfiguration},
@@ -37,7 +38,7 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         page_limit: 1000,
         paused: false,
-        dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
+        dca_plus_escrow_level: Decimal::percent(5),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -125,25 +126,31 @@ impl Default for Vault {
             minimum_receive_amount: None,
             time_interval: TimeInterval::Daily,
             started_at: None,
+            escrow_level: Decimal::percent(0),
+            deposited_amount: Coin::new(TEN.into(), DENOM_UOSMO),
             swapped_amount: Coin::new(0, DENOM_UOSMO),
             received_amount: Coin::new(0, DENOM_STAKE),
+            escrowed_amount: Coin::new(0, DENOM_STAKE),
             trigger: Some(TriggerConfiguration::Time {
                 target_time: Timestamp::from_seconds(0),
             }),
             swap_adjustment_strategy: None,
+            performance_assessment_strategy: None,
         }
     }
 }
 
 impl Default for SwapAdjustmentStrategy {
     fn default() -> Self {
-        Self::DcaPlus {
-            escrow_level: Decimal::percent(10),
-            model_id: 30,
-            total_deposit: Coin::new(TEN.into(), DENOM_UOSMO),
-            standard_dca_swapped_amount: Coin::new(0, DENOM_UOSMO),
-            standard_dca_received_amount: Coin::new(0, DENOM_STAKE),
-            escrowed_balance: Coin::new(0, DENOM_STAKE),
+        Self::DcaPlus { model_id: 30 }
+    }
+}
+
+impl Default for PerformanceAssessmentStrategy {
+    fn default() -> Self {
+        Self::CompareToStandardDca {
+            swapped_amount: Coin::new(0, DENOM_UOSMO),
+            received_amount: Coin::new(0, DENOM_STAKE),
         }
     }
 }

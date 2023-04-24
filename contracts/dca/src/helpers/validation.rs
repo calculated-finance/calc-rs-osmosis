@@ -2,6 +2,8 @@ use crate::error::ContractError;
 use crate::state::config::{get_config, FeeCollector};
 use crate::state::pairs::find_pair;
 use crate::types::destination::Destination;
+use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategyParams;
+use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategyParams;
 use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, Storage, Timestamp, Uint128};
@@ -193,6 +195,29 @@ pub fn assert_pair_exists_for_denoms(
         .map_err(|_| ContractError::CustomError {
             val: format!("swapping {} to {} not supported", swap_denom, target_denom),
         })
+}
+
+pub fn assert_swap_adjusment_and_performance_assessment_strategies_are_compatible(
+    swap_adjustment_strategy_params: &Option<SwapAdjustmentStrategyParams>,
+    performance_assessment_strategy_params: &Option<PerformanceAssessmentStrategyParams>,
+) -> Result<(), ContractError> {
+    match swap_adjustment_strategy_params {
+        Some(SwapAdjustmentStrategyParams::DcaPlus) => match performance_assessment_strategy_params
+        {
+            Some(PerformanceAssessmentStrategyParams::CompareToStandardDca) => Ok(()),
+            None => Err(ContractError::CustomError {
+                val: "incompatible swap adjustment and performance assessment strategies"
+                    .to_string(),
+            }),
+        },
+        None => match performance_assessment_strategy_params {
+            Some(_) => Err(ContractError::CustomError {
+                val: "incompatible swap adjustment and performance assessment strategies"
+                    .to_string(),
+            }),
+            None => Ok(()),
+        },
+    }
 }
 
 pub fn assert_destination_allocations_add_up_to_one(
