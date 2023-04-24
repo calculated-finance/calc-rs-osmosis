@@ -4,6 +4,7 @@ use crate::helpers::validation::{
     assert_destination_allocations_add_up_to_one, assert_destination_callback_addresses_are_valid,
     assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
     assert_no_destination_allocations_are_zero, assert_pair_exists_for_denoms,
+    assert_swap_adjusment_and_performance_assessment_strategies_are_compatible,
     assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
     assert_time_interval_is_valid,
 };
@@ -12,11 +13,13 @@ use crate::msg::ExecuteMsg;
 use crate::state::cache::{VaultCache, VAULT_CACHE};
 use crate::state::config::get_config;
 use crate::state::events::create_event;
-use crate::state::pairs::find_pair;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::save_vault;
 use crate::types::destination::Destination;
 use crate::types::event::{EventBuilder, EventData};
+use crate::types::performance_assessment_strategy::{
+    PerformanceAssessmentStrategy, PerformanceAssessmentStrategyParams,
+};
 use crate::types::position_type::PositionType;
 use crate::types::swap_adjustment_strategy::{
     SwapAdjustmentStrategy, SwapAdjustmentStrategyParams,
@@ -24,7 +27,7 @@ use crate::types::swap_adjustment_strategy::{
 use crate::types::time_interval::TimeInterval;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::{VaultBuilder, VaultStatus};
-use cosmwasm_std::{coin, to_binary, Addr, Coin, Decimal, SubMsg, WasmMsg};
+use cosmwasm_std::{to_binary, Addr, Coin, Decimal, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Timestamp, Uint128, Uint64};
 
@@ -42,6 +45,7 @@ pub fn create_vault_handler(
     swap_amount: Uint128,
     time_interval: TimeInterval,
     target_start_time_utc_seconds: Option<Uint64>,
+    performance_assessment_strategy_params: Option<PerformanceAssessmentStrategyParams>,
     swap_adjustment_strategy_params: Option<SwapAdjustmentStrategyParams>,
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
@@ -54,6 +58,10 @@ pub fn create_vault_handler(
         deps.as_ref(),
         info.funds[0].denom.clone(),
         target_denom.clone(),
+    )?;
+    assert_swap_adjusment_and_performance_assessment_strategies_are_compatible(
+        &swap_adjustment_strategy_params,
+        &performance_assessment_strategy_params,
     )?;
 
     if let Some(target_time) = target_start_time_utc_seconds {
@@ -75,46 +83,38 @@ pub fn create_vault_handler(
     assert_no_destination_allocations_are_zero(&destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
-    let send_denom = info.funds[0].denom.clone();
-
-    let pair = find_pair(deps.storage, &[send_denom.clone(), target_denom.clone()])?;
-
-    let receive_denom = if send_denom == pair.quote_denom {
-        pair.base_denom.clone()
-    } else {
-        pair.quote_denom.clone()
-    };
-
     let config = get_config(deps.storage)?;
 
-    let swap_adjustment_strategy = match swap_adjustment_strategy_params {
-        Some(SwapAdjustmentStrategyParams::DcaPlus) => Some(SwapAdjustmentStrategy::DcaPlus {
-            escrow_level: config.dca_plus_escrow_level,
-            model_id: get_dca_plus_model_id(
-                &env.block.time,
-                &info.funds[0],
-                &swap_amount,
-                &time_interval,
-            ),
-            total_deposit: info.funds[0].clone(),
-            standard_dca_swapped_amount: Coin::new(0, info.funds[0].clone().denom),
-            standard_dca_received_amount: Coin::new(0, receive_denom.clone()),
-            escrowed_balance: Coin::new(0, receive_denom),
-        }),
-        None => None,
-    };
+    let swap_adjustment_strategy =
+        swap_adjustment_strategy_params
+            .clone()
+            .map(|_| SwapAdjustmentStrategy::DcaPlus {
+                model_id: get_dca_plus_model_id(
+                    &env.block.time,
+                    &info.funds[0],
+                    &swap_amount,
+                    &time_interval,
+                ),
+            });
+
+    let performance_assessment_strategy = swap_adjustment_strategy_params.map(|_| {
+        PerformanceAssessmentStrategy::CompareToStandardDca {
+            swapped_amount: Coin::new(0, info.funds[0].clone().denom),
+            received_amount: Coin::new(0, target_denom.clone()),
+        }
+    });
+
+    let escrow_level = performance_assessment_strategy
+        .clone()
+        .map_or(Decimal::zero(), |_| config.dca_plus_escrow_level);
 
     let vault_builder = VaultBuilder {
         owner,
         label,
         destinations,
         created_at: env.block.time,
-        status: if info.funds[0].amount <= Uint128::from(50000u128) {
-            VaultStatus::Inactive
-        } else {
-            VaultStatus::Scheduled
-        },
-        target_denom,
+        status: VaultStatus::Scheduled,
+        target_denom: target_denom.clone(),
         swap_amount,
         position_type,
         slippage_tolerance,
@@ -122,15 +122,13 @@ pub fn create_vault_handler(
         balance: info.funds[0].clone(),
         time_interval,
         started_at: None,
-        swapped_amount: coin(0, info.funds[0].clone().denom),
-        received_amount: coin(
-            0,
-            match info.funds[0].clone().denom == pair.quote_denom {
-                true => pair.base_denom,
-                false => pair.quote_denom,
-            },
-        ),
+        escrow_level,
+        deposited_amount: info.funds[0].clone(),
+        swapped_amount: Coin::new(0, info.funds[0].denom.clone()),
+        received_amount: Coin::new(0, target_denom.clone()),
+        escrowed_amount: Coin::new(0, target_denom),
         swap_adjustment_strategy,
+        performance_assessment_strategy,
     };
 
     let vault = save_vault(deps.storage, vault_builder)?;
@@ -228,6 +226,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -263,6 +262,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -293,6 +293,7 @@ mod create_vault_tests {
             None,
             Uint128::new(100000),
             TimeInterval::Daily,
+            None,
             None,
             None,
         )
@@ -342,6 +343,7 @@ mod create_vault_tests {
             None,
             Uint128::new(100000),
             TimeInterval::Daily,
+            None,
             None,
             None,
         )
@@ -400,6 +402,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -439,6 +442,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -469,6 +473,7 @@ mod create_vault_tests {
             None,
             Uint128::new(10000),
             TimeInterval::Daily,
+            None,
             None,
             None,
         )
@@ -514,6 +519,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -556,6 +562,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             Some(env.block.time.minus_seconds(10).seconds().into()),
             None,
+            None,
         )
         .unwrap_err();
 
@@ -588,12 +595,107 @@ mod create_vault_tests {
             TimeInterval::Custom { seconds: 23 },
             None,
             None,
+            None,
         )
         .unwrap_err();
 
         assert_eq!(
             err.to_string(),
             "Error: custom time interval must be at least 60 seconds"
+        );
+    }
+
+    #[test]
+    fn with_no_swap_adjustment_stratgey_and_performance_assessment_strategy_fails() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom.clone(),
+            pair.quote_denom.clone(),
+            pair.route.clone(),
+        )
+        .unwrap();
+
+        let swap_amount = Uint128::new(100000);
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        let err = create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            swap_amount,
+            TimeInterval::Daily,
+            Some(env.block.time.plus_seconds(10).seconds().into()),
+            Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: incompatible swap adjustment and performance assessment strategies"
+        );
+    }
+
+    #[test]
+    fn with_swap_adjustment_stratgey_and_no_performance_assessment_strategy_fails() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom.clone(),
+            pair.quote_denom.clone(),
+            pair.route.clone(),
+        )
+        .unwrap();
+
+        let swap_amount = Uint128::new(100000);
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        let err = create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            swap_amount,
+            TimeInterval::Daily,
+            Some(env.block.time.plus_seconds(10).seconds().into()),
+            None,
+            Some(SwapAdjustmentStrategyParams::DcaPlus),
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: incompatible swap adjustment and performance assessment strategies"
         );
     }
 
@@ -634,6 +736,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
             None,
+            None,
         )
         .unwrap();
 
@@ -657,12 +760,16 @@ mod create_vault_tests {
                 swap_amount,
                 target_denom: DENOM_UOSMO.to_string(),
                 started_at: None,
+                deposited_amount: info.funds[0].clone(),
+                escrow_level: Decimal::zero(),
                 swapped_amount: Coin::new(0, DENOM_STAKE.to_string()),
                 received_amount: Coin::new(0, DENOM_UOSMO.to_string()),
+                escrowed_amount: Coin::new(0, DENOM_UOSMO.to_string()),
+                swap_adjustment_strategy: None,
+                performance_assessment_strategy: None,
                 trigger: Some(TriggerConfiguration::Time {
                     target_time: Timestamp::from_seconds(env.block.time.plus_seconds(10).seconds()),
                 }),
-                swap_adjustment_strategy: None,
             }
         );
     }
@@ -702,6 +809,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
+            None,
             None,
         )
         .unwrap();
@@ -759,6 +867,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
+            None,
             None,
         )
         .unwrap();
@@ -831,6 +940,7 @@ mod create_vault_tests {
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
             None,
+            None,
         )
         .unwrap();
 
@@ -839,52 +949,6 @@ mod create_vault_tests {
             .vault;
 
         assert_eq!(vault.destinations, destinations);
-    }
-
-    #[test]
-    fn with_insufficient_funds_should_create_inactive_vault() {
-        let mut deps = calc_mock_dependencies();
-        let env = mock_env();
-        let mut info = mock_info(ADMIN, &[]);
-
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
-
-        let pair = Pair::default();
-
-        create_pair_handler(
-            deps.as_mut(),
-            info.clone(),
-            pair.base_denom,
-            pair.quote_denom,
-            pair.route,
-        )
-        .unwrap();
-
-        info = mock_info(USER, &[Coin::new(1, DENOM_STAKE)]);
-
-        create_vault_handler(
-            deps.as_mut(),
-            env.clone(),
-            &info,
-            info.sender.clone(),
-            None,
-            vec![],
-            DENOM_UOSMO.to_string(),
-            None,
-            None,
-            None,
-            Uint128::new(100000),
-            TimeInterval::Daily,
-            Some(env.block.time.plus_seconds(10).seconds().into()),
-            None,
-        )
-        .unwrap();
-
-        let vault = get_vault_handler(deps.as_ref(), Uint128::one())
-            .unwrap()
-            .vault;
-
-        assert_eq!(vault.status, VaultStatus::Inactive);
     }
 
     #[test]
@@ -922,24 +986,70 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
+            Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
             Some(SwapAdjustmentStrategyParams::DcaPlus),
         )
         .unwrap();
 
-        let config = get_config(deps.as_ref().storage).unwrap();
         let vault = get_vault_handler(deps.as_ref(), Uint128::one())
             .unwrap()
             .vault;
 
         assert_eq!(
             vault.swap_adjustment_strategy,
-            Some(SwapAdjustmentStrategy::DcaPlus {
-                escrow_level: config.dca_plus_escrow_level,
-                model_id: 30,
-                total_deposit: info.funds[0].clone(),
-                standard_dca_swapped_amount: Coin::new(0, vault.balance.denom),
-                standard_dca_received_amount: Coin::new(0, DENOM_UOSMO),
-                escrowed_balance: Coin::new(0, DENOM_UOSMO)
+            Some(SwapAdjustmentStrategy::DcaPlus { model_id: 30 })
+        );
+    }
+
+    #[test]
+    fn with_dca_plus_should_create_performance_assessment_strategy() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom,
+            pair.quote_denom,
+            pair.route,
+        )
+        .unwrap();
+
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            Uint128::new(100000),
+            TimeInterval::Daily,
+            Some(env.block.time.plus_seconds(10).seconds().into()),
+            Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
+            Some(SwapAdjustmentStrategyParams::DcaPlus),
+        )
+        .unwrap();
+
+        let vault = get_vault_handler(deps.as_ref(), Uint128::one())
+            .unwrap()
+            .vault;
+
+        assert_eq!(
+            vault.performance_assessment_strategy,
+            Some(PerformanceAssessmentStrategy::CompareToStandardDca {
+                swapped_amount: Coin::new(0, vault.balance.denom),
+                received_amount: Coin::new(0, DENOM_UOSMO),
             })
         );
     }
@@ -979,6 +1089,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             Some(env.block.time.plus_seconds(10).seconds().into()),
+            Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
             Some(SwapAdjustmentStrategyParams::DcaPlus),
         )
         .unwrap();
@@ -1030,6 +1141,7 @@ mod create_vault_tests {
             Uint128::new(100000),
             TimeInterval::Daily,
             None,
+            Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
             Some(SwapAdjustmentStrategyParams::DcaPlus),
         )
         .unwrap();

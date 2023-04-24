@@ -19,6 +19,7 @@ export type ExecuteMsg =
         label?: string | null;
         minimum_receive_amount?: Uint128 | null;
         owner?: Addr | null;
+        performance_assessment_strategy?: PerformanceAssessmentStrategyParams | null;
         position_type?: PositionType | null;
         slippage_tolerance?: Decimal | null;
         swap_adjustment_strategy?: SwapAdjustmentStrategyParams | null;
@@ -126,6 +127,7 @@ export type Binary = string;
  * let c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```
  */
 export type Uint128 = string;
+export type PerformanceAssessmentStrategyParams = "compare_to_standard_dca";
 export type PositionType = "enter" | "exit";
 export type SwapAdjustmentStrategyParams = "dca_plus";
 /**

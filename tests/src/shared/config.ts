@@ -32,7 +32,7 @@ export const fetchConfig = async (): Promise<Config> => {
     bech32AddressPrefix: process.env.BECH32_ADDRESS_PREFIX,
     netUrl: process.env.NET_URL,
     feeDenom: process.env.FEE_DENOM,
-    gasPrice: parseFloat(process.env.GAS_PRICE),
+    gasPrice: Number(process.env.GAS_PRICE),
     adminContractMnemonic: process.env.ADMIN_CONTRACT_MNEMONIC,
   };
 };

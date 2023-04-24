@@ -79,6 +79,7 @@ pub fn execute(
             swap_amount,
             time_interval,
             target_start_time_utc_seconds,
+            performance_assessment_strategy,
             swap_adjustment_strategy,
         } => create_vault_handler(
             deps,
@@ -94,6 +95,7 @@ pub fn execute(
             swap_amount,
             time_interval,
             target_start_time_utc_seconds,
+            performance_assessment_strategy,
             swap_adjustment_strategy,
         ),
         ExecuteMsg::CancelVault { vault_id } => cancel_vault_handler(deps, env, info, vault_id),

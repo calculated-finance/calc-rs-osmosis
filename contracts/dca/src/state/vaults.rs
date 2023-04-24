@@ -3,6 +3,7 @@ use crate::{
     helpers::state::fetch_and_increment_counter,
     types::{
         destination::Destination,
+        performance_assessment_strategy::PerformanceAssessmentStrategy,
         swap_adjustment_strategy::SwapAdjustmentStrategy,
         time_interval::TimeInterval,
         vault::{Vault, VaultBuilder, VaultStatus},
@@ -12,7 +13,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, Item, UniqueIndex};
 
-const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v6");
+const VAULT_COUNTER: Item<u64> = Item::new("vault_counter_v7");
 
 struct VaultIndexes<'a> {
     pub owner: UniqueIndex<'a, (Addr, u128), VaultData, u128>,
@@ -28,13 +29,13 @@ impl<'a> IndexList<VaultData> for VaultIndexes<'a> {
 
 fn vault_store<'a>() -> IndexedMap<'a, u128, VaultData, VaultIndexes<'a>> {
     let indexes = VaultIndexes {
-        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v6__owner"),
+        owner: UniqueIndex::new(|v| (v.owner.clone(), v.id.into()), "vaults_v7__owner"),
         owner_status: UniqueIndex::new(
             |v| (v.owner.clone(), v.status.clone() as u8, v.id.into()),
-            "vaults_v6__owner_status",
+            "vaults_v7__owner_status",
         ),
     };
-    IndexedMap::new("vaults_v6", indexes)
+    IndexedMap::new("vaults_v7", indexes)
 }
 
 pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdResult<Vault> {
@@ -106,22 +107,26 @@ pub fn update_vault(store: &mut dyn Storage, vault: &Vault) -> StdResult<()> {
 
 #[cw_serde]
 struct VaultData {
-    pub id: Uint128,
-    pub created_at: Timestamp,
-    pub owner: Addr,
-    pub label: Option<String>,
-    pub destinations: Vec<Destination>,
-    pub status: VaultStatus,
-    pub balance: Coin,
-    pub target_denom: String,
-    pub swap_amount: Uint128,
-    pub slippage_tolerance: Option<Decimal>,
-    pub minimum_receive_amount: Option<Uint128>,
-    pub time_interval: TimeInterval,
-    pub started_at: Option<Timestamp>,
-    pub swapped_amount: Coin,
-    pub received_amount: Coin,
-    pub swap_adjustment_strategy: Option<SwapAdjustmentStrategy>,
+    id: Uint128,
+    created_at: Timestamp,
+    owner: Addr,
+    label: Option<String>,
+    destinations: Vec<Destination>,
+    status: VaultStatus,
+    balance: Coin,
+    target_denom: String,
+    swap_amount: Uint128,
+    slippage_tolerance: Option<Decimal>,
+    minimum_receive_amount: Option<Uint128>,
+    time_interval: TimeInterval,
+    started_at: Option<Timestamp>,
+    escrow_level: Decimal,
+    deposited_amount: Coin,
+    swapped_amount: Coin,
+    received_amount: Coin,
+    escrowed_amount: Coin,
+    performance_assessment_strategy: Option<PerformanceAssessmentStrategy>,
+    swap_adjustment_strategy: Option<SwapAdjustmentStrategy>,
 }
 
 impl From<Vault> for VaultData {
@@ -134,15 +139,19 @@ impl From<Vault> for VaultData {
             status: vault.status,
             balance: vault.balance,
             target_denom: vault.target_denom,
+            destinations: vault.destinations,
             swap_amount: vault.swap_amount,
             slippage_tolerance: vault.slippage_tolerance,
             minimum_receive_amount: vault.minimum_receive_amount,
             time_interval: vault.time_interval,
             started_at: vault.started_at,
+            escrow_level: vault.escrow_level,
+            deposited_amount: vault.deposited_amount,
             swapped_amount: vault.swapped_amount,
             received_amount: vault.received_amount,
+            escrowed_amount: vault.escrowed_amount,
+            performance_assessment_strategy: vault.performance_assessment_strategy,
             swap_adjustment_strategy: vault.swap_adjustment_strategy,
-            destinations: vault.destinations,
         }
     }
 }
@@ -160,15 +169,19 @@ fn vault_from(store: &dyn Storage, data: &VaultData) -> Vault {
         status: data.status.clone(),
         balance: data.balance.clone(),
         swap_amount: data.swap_amount,
+        target_denom: data.target_denom.clone(),
+        destinations: data.destinations.clone(),
         slippage_tolerance: data.slippage_tolerance,
         minimum_receive_amount: data.minimum_receive_amount,
         time_interval: data.time_interval.clone(),
         started_at: data.started_at,
+        escrow_level: data.escrow_level,
+        deposited_amount: data.deposited_amount.clone(),
         swapped_amount: data.swapped_amount.clone(),
         received_amount: data.received_amount.clone(),
+        escrowed_amount: data.escrowed_amount.clone(),
+        performance_assessment_strategy: data.performance_assessment_strategy.clone(),
         swap_adjustment_strategy: data.swap_adjustment_strategy.clone(),
-        destinations: data.destinations.clone(),
-        target_denom: data.target_denom.clone(),
         trigger,
     }
 }

@@ -15,6 +15,7 @@ describe('when fetching dca plus performance', () => {
         {
           target_start_time_utc_seconds: `${dayjs().add(1, 'hour').unix()}`,
           swap_adjustment_strategy: 'dca_plus',
+          performance_assessment_strategy: 'compare_to_standard_dca',
         },
         [deposit],
       );
@@ -42,6 +43,7 @@ describe('when fetching dca plus performance', () => {
         this,
         {
           swap_adjustment_strategy: 'dca_plus',
+          performance_assessment_strategy: 'compare_to_standard_dca',
         },
         [deposit],
       );
@@ -56,7 +58,7 @@ describe('when fetching dca plus performance', () => {
     });
 
     it('has slightly positive performance factor', async function (this: Context) {
-      expect(parseFloat(performance.factor)).to.be.approximately(1.000042002184113573, 0.0001);
+      expect(Number(performance.factor)).to.be.approximately(1.000042002184113573, 0.0001);
     });
   });
 });

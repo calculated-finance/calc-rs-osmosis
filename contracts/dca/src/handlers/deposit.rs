@@ -1,5 +1,4 @@
 use crate::error::ContractError;
-use crate::helpers::coin::add_to;
 use crate::helpers::validation::{
     assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
     assert_exactly_one_asset, assert_vault_is_not_cancelled,
@@ -47,6 +46,7 @@ pub fn deposit_handler(
     )?;
 
     vault.balance.amount += info.funds[0].amount;
+    vault.deposited_amount.amount += info.funds[0].amount;
 
     if !vault.is_scheduled() {
         vault.status = VaultStatus::Active
@@ -57,25 +57,13 @@ pub fn deposit_handler(
             .swap_adjustment_strategy
             .clone()
             .map(|swap_adjustment_strategy| match swap_adjustment_strategy {
-                SwapAdjustmentStrategy::DcaPlus {
-                    total_deposit,
-                    escrow_level,
-                    escrowed_balance,
-                    standard_dca_received_amount,
-                    standard_dca_swapped_amount,
-                    ..
-                } => SwapAdjustmentStrategy::DcaPlus {
-                    total_deposit: add_to(total_deposit, info.funds[0].amount),
+                SwapAdjustmentStrategy::DcaPlus { .. } => SwapAdjustmentStrategy::DcaPlus {
                     model_id: get_dca_plus_model_id(
                         &env.block.time,
                         &vault.balance,
                         &vault.swap_amount,
                         &vault.time_interval,
                     ),
-                    escrow_level,
-                    escrowed_balance,
-                    standard_dca_received_amount,
-                    standard_dca_swapped_amount,
                 },
             });
 
@@ -543,18 +531,9 @@ mod dposit_tests {
 
         let updated_vault = get_vault_handler(deps.as_ref(), vault.id).unwrap().vault;
 
+        assert_eq!(vault.deposited_amount, vault.balance);
         assert_eq!(
-            vault
-                .swap_adjustment_strategy
-                .unwrap()
-                .dca_plus_total_deposit(),
-            vault.balance
-        );
-        assert_eq!(
-            updated_vault
-                .swap_adjustment_strategy
-                .unwrap()
-                .dca_plus_total_deposit(),
+            updated_vault.deposited_amount,
             add(vault.balance, deposit_amount).unwrap()
         );
     }

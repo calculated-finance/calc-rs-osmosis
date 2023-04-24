@@ -20,11 +20,11 @@ fn trigger_store<'a>() -> IndexedMap<'a, u128, Trigger, TriggerIndexes<'a>> {
             |_, trigger| match trigger.configuration {
                 TriggerConfiguration::Time { target_time } => target_time.seconds(),
             },
-            "triggers_v6",
-            "triggers_v6__due_date",
+            "triggers_v7",
+            "triggers_v7__due_date",
         ),
     };
-    IndexedMap::new("triggers_v6", indexes)
+    IndexedMap::new("triggers_v7", indexes)
 }
 
 pub fn save_trigger(store: &mut dyn Storage, trigger: Trigger) -> StdResult<()> {

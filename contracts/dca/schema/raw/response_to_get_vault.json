@@ -65,6 +65,35 @@
       },
       "additionalProperties": false
     },
+    "PerformanceAssessmentStrategy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "compare_to_standard_dca"
+          ],
+          "properties": {
+            "compare_to_standard_dca": {
+              "type": "object",
+              "required": [
+                "received_amount",
+                "swapped_amount"
+              ],
+              "properties": {
+                "received_amount": {
+                  "$ref": "#/definitions/Coin"
+                },
+                "swapped_amount": {
+                  "$ref": "#/definitions/Coin"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "SwapAdjustmentStrategy": {
       "oneOf": [
         {
@@ -76,33 +105,13 @@
             "dca_plus": {
               "type": "object",
               "required": [
-                "escrow_level",
-                "escrowed_balance",
-                "model_id",
-                "standard_dca_received_amount",
-                "standard_dca_swapped_amount",
-                "total_deposit"
+                "model_id"
               ],
               "properties": {
-                "escrow_level": {
-                  "$ref": "#/definitions/Decimal"
-                },
-                "escrowed_balance": {
-                  "$ref": "#/definitions/Coin"
-                },
                 "model_id": {
                   "type": "integer",
                   "format": "uint8",
                   "minimum": 0.0
-                },
-                "standard_dca_received_amount": {
-                  "$ref": "#/definitions/Coin"
-                },
-                "standard_dca_swapped_amount": {
-                  "$ref": "#/definitions/Coin"
-                },
-                "total_deposit": {
-                  "$ref": "#/definitions/Coin"
                 }
               },
               "additionalProperties": false
@@ -199,7 +208,10 @@
       "required": [
         "balance",
         "created_at",
+        "deposited_amount",
         "destinations",
+        "escrow_level",
+        "escrowed_amount",
         "id",
         "owner",
         "received_amount",
@@ -216,11 +228,20 @@
         "created_at": {
           "$ref": "#/definitions/Timestamp"
         },
+        "deposited_amount": {
+          "$ref": "#/definitions/Coin"
+        },
         "destinations": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/Destination"
           }
+        },
+        "escrow_level": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "escrowed_amount": {
+          "$ref": "#/definitions/Coin"
         },
         "id": {
           "$ref": "#/definitions/Uint128"
@@ -243,6 +264,16 @@
         },
         "owner": {
           "$ref": "#/definitions/Addr"
+        },
+        "performance_assessment_strategy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PerformanceAssessmentStrategy"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "received_amount": {
           "$ref": "#/definitions/Coin"

@@ -65,15 +65,16 @@ export type Decimal = string;
  * This is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.
  */
 export type Binary = string;
+export type PerformanceAssessmentStrategy = {
+  compare_to_standard_dca: {
+    received_amount: Coin;
+    swapped_amount: Coin;
+  };
+};
 export type VaultStatus = "scheduled" | "active" | "inactive" | "cancelled";
 export type SwapAdjustmentStrategy = {
   dca_plus: {
-    escrow_level: Decimal;
-    escrowed_balance: Coin;
     model_id: number;
-    standard_dca_received_amount: Coin;
-    standard_dca_swapped_amount: Coin;
-    total_deposit: Coin;
   };
 };
 export type TimeInterval =
@@ -105,11 +106,15 @@ export interface VaultResponse {
 export interface Vault {
   balance: Coin;
   created_at: Timestamp;
+  deposited_amount: Coin;
   destinations: Destination[];
+  escrow_level: Decimal;
+  escrowed_amount: Coin;
   id: Uint128;
   label?: string | null;
   minimum_receive_amount?: Uint128 | null;
   owner: Addr;
+  performance_assessment_strategy?: PerformanceAssessmentStrategy | null;
   received_amount: Coin;
   slippage_tolerance?: Decimal | null;
   started_at?: Timestamp | null;
