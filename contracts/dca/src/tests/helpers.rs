@@ -41,7 +41,7 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         page_limit: 1000,
         paused: false,
-        dca_plus_escrow_level: Decimal::percent(5),
+        risk_weighted_average_escrow_level: Decimal::percent(5),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -60,7 +60,7 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
         page_limit: 1000,
         paused: false,
-        dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
+        risk_weighted_average_escrow_level: Decimal::from_str("0.0075").unwrap(),
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -78,7 +78,7 @@ impl Default for Config {
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             page_limit: 1000,
             paused: false,
-            dca_plus_escrow_level: Decimal::from_str("0.0075").unwrap(),
+            risk_weighted_average_escrow_level: Decimal::from_str("0.0075").unwrap(),
         }
     }
 }

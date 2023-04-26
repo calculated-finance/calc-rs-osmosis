@@ -21,7 +21,7 @@ pub struct InstantiateMsg {
     pub delegation_fee_percent: Decimal,
     pub page_limit: u16,
     pub paused: bool,
-    pub dca_plus_escrow_level: Decimal,
+    pub risk_weighted_average_escrow_level: Decimal,
 }
 
 #[cw_serde]
@@ -32,7 +32,7 @@ pub struct MigrateMsg {
     pub delegation_fee_percent: Decimal,
     pub page_limit: u16,
     pub paused: bool,
-    pub dca_plus_escrow_level: Decimal,
+    pub risk_weighted_average_escrow_level: Decimal,
 }
 
 #[cw_serde]

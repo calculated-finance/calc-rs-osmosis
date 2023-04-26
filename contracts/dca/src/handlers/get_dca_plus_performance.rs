@@ -1,6 +1,6 @@
 use crate::{
     helpers::{
-        fees::get_dca_plus_performance_fee, price::query_belief_price,
+        fees::get_performance_fee, price::query_belief_price,
         vault::get_dca_plus_performance_factor,
     },
     msg::DcaPlusPerformanceResponse,
@@ -24,7 +24,7 @@ pub fn get_dca_plus_performance_handler(
         }),
         |_| {
             Ok(DcaPlusPerformanceResponse {
-                fee: get_dca_plus_performance_fee(&vault, current_price)?,
+                fee: get_performance_fee(&vault, current_price)?,
                 factor: get_dca_plus_performance_factor(&vault, current_price)?,
             })
         },

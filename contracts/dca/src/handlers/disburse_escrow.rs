@@ -3,7 +3,7 @@ use crate::{
     helpers::{
         coin::{empty_of, subtract},
         disbursement::get_disbursement_messages,
-        fees::{get_dca_plus_performance_fee, get_fee_messages},
+        fees::{get_fee_messages, get_performance_fee},
         price::query_belief_price,
         validation::assert_sender_is_contract_or_admin,
     },
@@ -30,17 +30,13 @@ pub fn disburse_escrow_handler(
 
     let vault = get_vault(deps.storage, vault_id)?;
 
-    if vault.swap_adjustment_strategy.is_none() {
-        return Err(ContractError::CustomError {
-            val: "Vault is not a DCA+ vault".to_string(),
-        });
+    if vault.escrowed_amount.amount.is_zero() {
+        return Ok(Response::new());
     }
 
     let pair = find_pair(deps.storage, &vault.denoms())?;
-
     let current_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
-
-    let performance_fee = get_dca_plus_performance_fee(&vault, current_price)?;
+    let performance_fee = get_performance_fee(&vault, current_price)?;
     let amount_to_disburse = subtract(&vault.escrowed_amount, &performance_fee)?;
 
     let vault = Vault {
@@ -323,27 +319,5 @@ mod disburse_escrow_tests {
 
         assert_eq!(disburse_escrow_tasks_before.len(), 1);
         assert_eq!(disburse_escrow_tasks_after.len(), 0);
-    }
-
-    #[test]
-    fn when_not_a_dca_vault_returns_an_error() {
-        let mut deps = calc_mock_dependencies();
-        let env = mock_env();
-        let info = mock_info(ADMIN, &[]);
-
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
-
-        let vault = setup_vault(
-            deps.as_mut(),
-            env.clone(),
-            Vault {
-                status: VaultStatus::Inactive,
-                ..Vault::default()
-            },
-        );
-
-        let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap_err();
-
-        assert_eq!(response.to_string(), "Error: Vault is not a DCA+ vault");
     }
 }
