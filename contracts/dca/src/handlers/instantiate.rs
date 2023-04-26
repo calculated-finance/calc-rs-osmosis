@@ -16,7 +16,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
-    assert_dca_plus_escrow_level_is_less_than_100_percent(msg.dca_plus_escrow_level)?;
+    assert_dca_plus_escrow_level_is_less_than_100_percent(msg.risk_weighted_average_escrow_level)?;
 
     update_config(
         deps.storage,
@@ -27,7 +27,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
             delegation_fee_percent: msg.delegation_fee_percent,
             page_limit: msg.page_limit,
             paused: msg.paused,
-            dca_plus_escrow_level: msg.dca_plus_escrow_level,
+            risk_weighted_average_escrow_level: msg.risk_weighted_average_escrow_level,
         },
     )?;
 
@@ -66,7 +66,7 @@ mod instantiate_tests {
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             page_limit: 1000,
             paused: false,
-            dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
+            risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap();
@@ -96,7 +96,7 @@ mod instantiate_tests {
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             page_limit: 1000,
             paused: false,
-            dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
+            risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -123,7 +123,7 @@ mod instantiate_tests {
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             page_limit: 1000,
             paused: false,
-            dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
+            risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -147,7 +147,7 @@ mod instantiate_tests {
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             page_limit: 1000,
             paused: false,
-            dca_plus_escrow_level: Decimal::from_str("0.05").unwrap(),
+            risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();

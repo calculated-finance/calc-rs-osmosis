@@ -16,7 +16,7 @@ use crate::state::vaults::{get_vault, update_vault};
 use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
-use crate::types::vault::VaultStatus;
+use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::{to_binary, ReplyOn, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
@@ -62,8 +62,11 @@ pub fn execute_trigger_handler(
     }
 
     if vault.is_scheduled() {
-        vault.status = VaultStatus::Active;
-        vault.started_at = Some(env.block.time);
+        vault = Vault {
+            status: VaultStatus::Active,
+            started_at: Some(env.block.time),
+            ..vault
+        };
     }
 
     update_vault(deps.storage, &vault)?;

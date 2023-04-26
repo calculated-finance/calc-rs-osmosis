@@ -9,18 +9,18 @@ Because cosmos chains implement the actor pattern, we can be certain that anythi
 Vaults store information relating to the overall DCA strategy the user has requested including (but not only):
 
 - `owner`: only the owner can cancel the vault
-- `destinations`: the addresses to distribute funds to after vault executions
+- `destinations`: the addresses to distribute funds to after vault executions, including customisable callbacks to send funds to other contracts
 - `status`: `Active`, `Inactive` or `Cancelled`
 - `balance`: the current balance of the vault
-- `pair`: the FIN pair address and denomination ordering for execution swaps and limit orders
+- `target_denom`: the resulting denom to be received when the vault is executed
 - `swap_amount`: the amount to be swapped
 - `time_interval`: the time interval at which the executions should take place once the vault executions have started
-- `model_id`: the DCA+ model id to use for swap adjustments (auto selected based on expected execution duration)
+- `performance_assessment_strategy`: the strategy to use for assessing the performance of the vault
+- `swap_adjustment_strategy`: the strategy to use for adjusting the swap amount (i.e. risk weighted average)
 
-Triggers store the information required decide whether to execute a vault or not. Currently, there are 2 trigger types:.
+Triggers store the information required decide whether to execute a vault or not. Currently, there is only 1 trigger type:
 
-1. Price triggers - set using fin limit orders, and executed once the full limit order has been filled.
-2. Time triggers - set using the vault time interval and scheduled start date, executed once the trigger `target_time` has passed.
+1. Time triggers - set using the vault time interval and scheduled start date, executed once the trigger `target_time` has passed.
 
 ### Create Vault
 
@@ -32,88 +32,63 @@ Vaults are created by users via the CALC frontend application.
 - only a single asset can be provided in the message funds
 - the vault `swap_amount` must be less than or equal to the vault balance
 - the number of destinations provided must not exceed the limit set in config
-- destinations of type `PostExecutionAction::Send` must have valid bech32 addresses
-- destinations of type `PostExecutionAction::ZDelegate` must have valid validator addresses
 - the sum of all destination allocations must == 1.0
 - all destination allocations must be > 0.0
-- the submitted `pair_address` must be a valid bech32 address
-- the submitted `pair_address` must match an existing pair stored in the contract
-- the submitted `pair_address.quote_denom` must match the denom of the funds included in the message
-- at least one of `target_start_time_utc_seconds` and `target_receive_amount` must be `None`
+- the vault balance denom and the `target_denom` must be found in a pair on the contract
 - if `target_start_time_utc_seconds` is `Some`, it must be set to some timestamp in the future
-- if `target_receive_amount` is `Some`, it must be greater than or equal to `minimum_receive_amount`
+- if `performance_assessment_strategy` is `Some`, `swap_adjustment_strategy` must also be `Some`, and vice versa
 
 #### Domain Logic
 
 - save a vault using the submitted vault details
 - save a vault created event
 - save a vault funds deposited event
-- if the submitted `target_price` was `None`:
-  - save a time trigger with the submitted `target_start_time_utc_seconds` or the block time if `target_start_time_utc_seconds` was `None`
-- else:
-  - create a fin limit order for the submitted `swap_amount` and `target_price`
-  - save a fin limit order trigger with the generated `order_idx` from fin
+- save a time trigger with the submitted `target_start_time_utc_seconds` or the block time if `target_start_time_utc_seconds` was `None`
+- execute the vault if `target_start_time_utc_seconds` was `None`
 
 #### Assertions
 
-- all vaults should be created with a price trigger or a time trigger
+- all vaults should be created with a time trigger
 - all vaults should be created in the scheduled status
 - all vaults should be created with a balance > 0
 
 ### Execute Trigger
 
-Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal to the vault `id`. An off chain scheduler obtains `trigger_id`s for triggers that are ready to be executed via a combination of Fin order queries and the `GetTriggerIdByFinLimitOrderIdx` query for price triggers, and via the `GetTimeTriggerIds` query for time triggers.
+Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal to the vault `id`. An off chain scheduler obtains `trigger_id`s for triggers that are ready to be executed via the `GetTimeTriggerIds` query for time triggers.
 
 #### Validation
 
 - the vault must not be cancelled
 - the vault must have a trigger
-- if the trigger is a time trigger:
-  - the `target_time` must be in the past
-  - if the vault `position_type` is `PositionType::Enter`:
-    - the current price of the swap asset must be lower than the price threshold (if there is one)
-  - if the vault `position_type` is `PositionType::Exit`:
-    - the current price of the swap asset must be higher than the price threshold (if there is one)
-- if the trigger is a fin limit order trigger:
-  - the fin limit `order_idx` must be stored against the trigger
-  - the fin limit order must be completely filled
+- the `target_time` must be in the past
+- the current expected price must yeild at least the `minimum_receive_amount`
 
 #### Domain Logic
 
 - delete the current trigger
-- if the trigger was a fin limit order trigger:
-  - withdraw the limit order from fin
 - if the vault was scheduled
   - make the vault active
   - set the vault started time to the current block time
-- if the vault does not have sufficient funds (> 50000)
-  - make the vault inactive
-- if the vault is a DCA+ vault
-  - update the standard DCA execution stats
-- if the vault is active OR the vault is a DCA+ vault and it standard DCA would still be running
+- if the vault has a performance assessment strategy
+  - update any performance assessment data
+- if the vault is active OR the vault performance assessment is still active
   - create a new time trigger
-- if the vault is not active
-  - finish execution
 - create a execution triggered event
 - if the vault has a price threshold & it is exceeded
   - create an execution skipped event
   - finish execution
-- if the vault is a DCA+ vault AND it is inactive AND standard DCA would have finished
+- if the vault is inactive AND has a performance assessment strategy that is finished && has escrowed funds
   - disburse the escrowed funds
   - finish execution
-- execute a fin swap
+- execute a swap on the underlying DEX
 - if the swap is successful:
   - create an execution completed event
-  - if the vault is a DCA+ vault
-    - store the escrowed amount
-  - reduce the vault balance by the swap amount
+  - escrow any received amount according to the vault escrow level
+  - reduce the vault balance by the swapped amount
   - distribute the swap and automation fees to the fee collectors
-  - distribute remaining swapped funds to all vault `destinations` based on destination allocations
-  - use `authz` permissions to delegate funds from destination addresses to validators for destinations with action type `PostExecutionAction:Delegate`
+  - distribute remaining swapped funds to all vault `destinations` based on destination allocations & callbacks
 - else
-  - create an execution skipped event with reason:
-    - `SlippageToleranceExceeded` when the vault has enough funds to make the swap
-    - `UnknownFailure` when the vault may not have had enough funds to make the swap
+  - create an execution skipped event with reason `SlippageToleranceExceeded`
 
 #### Assertions
 
@@ -131,10 +106,8 @@ Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal 
 
 #### Domain Logic
 
-- update the vault to have `status == VaultStatus::Cancelled`
+- update the vault to have `status` of `Cancelled`
 - update the vault balance to 0
-- if the vault has a price trigger:
-  - retract & withdraw and the associated fin limit order trigger
 - delete the vault trigger
 - return the remaining vault balance to the vault owner
 
@@ -157,11 +130,31 @@ Execute trigger accepts a trigger_id. For DCA vaults, the `trigger_id` is equal 
 #### Domain Logic
 
 - update the vault balance to include the deposited funds
+- update the vault deposited_amount to include the deposited funds
 - if the vault status is inactive:
   - update the vault status to active
 - save a vault funds deposited event
+- if the vault was inactive and had no trigger, create a new trigger and execute the vault
 
 #### Assertions
 
 - no vault should ever have balance < 0
 - every vault that gets topped up should be active afterwards
+
+### Disburse Escrow
+
+#### Validation
+
+- the sender must be the admin address or the contract address
+
+#### Domain Logic
+
+- if the vault has no escrowed funds, return early
+- evaluate the fee according to the performance assessment strategy & escrowed balance
+- return the fee to the fee collector
+- return the remaining escrowed funds to the vault destinations
+
+#### Assertions
+
+- the vault escrowed balance should be disbursed entirely
+- the vault escrowed balance should be set to 0

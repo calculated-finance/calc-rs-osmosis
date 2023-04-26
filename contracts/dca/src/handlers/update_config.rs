@@ -30,13 +30,15 @@ pub fn update_config_handler(
             .unwrap_or(existing_config.delegation_fee_percent),
         page_limit: page_limit.unwrap_or(existing_config.page_limit),
         paused: paused.unwrap_or(existing_config.paused),
-        dca_plus_escrow_level: dca_plus_escrow_level
-            .unwrap_or(existing_config.dca_plus_escrow_level),
+        risk_weighted_average_escrow_level: dca_plus_escrow_level
+            .unwrap_or(existing_config.risk_weighted_average_escrow_level),
     };
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &config.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&config.fee_collectors)?;
-    assert_dca_plus_escrow_level_is_less_than_100_percent(config.dca_plus_escrow_level)?;
+    assert_dca_plus_escrow_level_is_less_than_100_percent(
+        config.risk_weighted_average_escrow_level,
+    )?;
 
     let config = update_config(deps.storage, config)?;
 
@@ -271,7 +273,10 @@ mod update_config_tests {
 
         let config = get_config(deps.as_ref().storage).unwrap();
 
-        assert_eq!(config.dca_plus_escrow_level, Decimal::percent(19));
+        assert_eq!(
+            config.risk_weighted_average_escrow_level,
+            Decimal::percent(19)
+        );
     }
 
     #[test]

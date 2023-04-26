@@ -2,7 +2,7 @@ use std::cmp::min;
 
 use crate::{
     state::config::{get_config, get_custom_fee},
-    types::vault::Vault,
+    types::{performance_assessment_strategy::PerformanceAssessmentStrategy, vault::Vault},
 };
 use cosmwasm_std::{BankMsg, Coin, Decimal, Deps, StdResult, Storage, SubMsg, Uint128};
 
@@ -71,35 +71,30 @@ pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Deci
     )
 }
 
-pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> StdResult<Coin> {
-    let performance_assessment_strategy = vault
-        .performance_assessment_strategy
-        .clone()
-        .expect("DCA plus config for the vault");
+pub fn get_performance_fee(vault: &Vault, current_price: Decimal) -> StdResult<Coin> {
+    let fee = match vault.performance_assessment_strategy.clone() {
+        Some(PerformanceAssessmentStrategy::CompareToStandardDca {
+            swapped_amount,
+            received_amount,
+        }) => {
+            let vault_total_value = vault.deposited_amount.amount - vault.swapped_amount.amount
+                + vault.received_amount.amount * current_price;
 
-    let dca_plus_total_value = vault.deposited_amount.amount - vault.swapped_amount.amount
-        + vault.received_amount.amount * current_price;
+            let standard_dca_total_value = vault.deposited_amount.amount - swapped_amount.amount
+                + received_amount.amount * current_price;
 
-    let standard_dca_total_value = vault.deposited_amount.amount
-        - performance_assessment_strategy
-            .standard_dca_swapped_amount()
-            .amount
-        + performance_assessment_strategy
-            .standard_dca_received_amount()
-            .amount
-            * current_price;
+            if standard_dca_total_value > vault_total_value {
+                Uint128::zero()
+            } else {
+                let value_difference_in_terms_of_receive_denom = (vault_total_value
+                    - standard_dca_total_value)
+                    * (Decimal::one() / current_price);
 
-    if standard_dca_total_value > dca_plus_total_value {
-        return Ok(Coin {
-            denom: vault.target_denom.clone(),
-            amount: Uint128::zero(),
-        });
-    }
-
-    let value_difference_in_terms_of_receive_denom =
-        (dca_plus_total_value - standard_dca_total_value) * (Decimal::one() / current_price);
-
-    let fee = value_difference_in_terms_of_receive_denom * Decimal::percent(20);
+                value_difference_in_terms_of_receive_denom * Decimal::percent(20)
+            }
+        }
+        None => Uint128::zero(),
+    };
 
     Ok(Coin {
         denom: vault.target_denom.clone(),
@@ -111,7 +106,7 @@ pub fn get_dca_plus_performance_fee(vault: &Vault, current_price: Decimal) -> St
 mod tests {
     use crate::{
         constants::TEN,
-        helpers::fees::get_dca_plus_performance_fee,
+        helpers::fees::get_performance_fee,
         types::{
             performance_assessment_strategy::PerformanceAssessmentStrategy,
             swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault,
@@ -176,7 +171,7 @@ mod tests {
             standard_dca_received_amount,
         );
 
-        let fee = get_dca_plus_performance_fee(&vault, current_price).unwrap();
+        let fee = get_performance_fee(&vault, current_price).unwrap();
         assert_eq!(fee.amount, expected_fee);
     }
 
@@ -184,7 +179,7 @@ mod tests {
     fn non_zero_fee_is_in_vault_receive_denom() {
         let vault = get_vault(TEN, TEN, TEN, TEN + TEN, TEN);
 
-        let fee = get_dca_plus_performance_fee(&vault, Decimal::one()).unwrap();
+        let fee = get_performance_fee(&vault, Decimal::one()).unwrap();
         assert_eq!(fee.denom, vault.target_denom);
     }
 
@@ -192,7 +187,7 @@ mod tests {
     fn zero_fee_is_in_vault_receive_denom() {
         let vault = get_vault(TEN, TEN, TEN, TEN, TEN);
 
-        let fee = get_dca_plus_performance_fee(&vault, Decimal::one()).unwrap();
+        let fee = get_performance_fee(&vault, Decimal::one()).unwrap();
         assert_eq!(fee.denom, vault.target_denom);
     }
 

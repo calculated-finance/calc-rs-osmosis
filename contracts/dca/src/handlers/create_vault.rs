@@ -117,7 +117,9 @@ pub fn create_vault_handler(
 
     let escrow_level = performance_assessment_strategy
         .clone()
-        .map_or(Decimal::zero(), |_| config.dca_plus_escrow_level);
+        .map_or(Decimal::zero(), |_| {
+            config.risk_weighted_average_escrow_level
+        });
 
     let vault_builder = VaultBuilder {
         owner,

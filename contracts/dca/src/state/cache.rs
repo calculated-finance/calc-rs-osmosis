@@ -9,7 +9,7 @@ pub struct VaultCache {
     pub vault_id: Uint128,
 }
 
-pub const VAULT_CACHE: Item<VaultCache> = Item::new("vault_cache_v7");
+pub const VAULT_CACHE: Item<VaultCache> = Item::new("vault_cache_v8");
 
 #[cw_serde]
 pub struct SwapCache {
@@ -17,7 +17,7 @@ pub struct SwapCache {
     pub receive_denom_balance: Coin,
 }
 
-pub const SWAP_CACHE: Item<SwapCache> = Item::new("swap_cache_v7");
+pub const SWAP_CACHE: Item<SwapCache> = Item::new("swap_cache_v8");
 
 #[cw_serde]
 pub struct ProvideLiquidityCache {
@@ -27,4 +27,4 @@ pub struct ProvideLiquidityCache {
 }
 
 pub const PROVIDE_LIQUIDITY_CACHE: Item<ProvideLiquidityCache> =
-    Item::new("provide_liquidity_cache_v7");
+    Item::new("provide_liquidity_cache_v8");
