@@ -25,15 +25,7 @@ pub struct InstantiateMsg {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {
-    pub admin: Addr,
-    pub fee_collectors: Vec<FeeCollector>,
-    pub swap_fee_percent: Decimal,
-    pub delegation_fee_percent: Decimal,
-    pub page_limit: u16,
-    pub paused: bool,
-    pub risk_weighted_average_escrow_level: Decimal,
-}
+pub struct MigrateMsg {}
 
 #[cw_serde]
 pub enum ExecuteMsg {

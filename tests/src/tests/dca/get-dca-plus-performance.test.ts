@@ -25,7 +25,7 @@ describe('when fetching dca plus performance', () => {
       );
 
       performance = await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-        get_get_vault_performance_performance: { vault_id },
+        get_vault_performance: { vault_id },
       });
     });
 
@@ -57,7 +57,7 @@ describe('when fetching dca plus performance', () => {
       );
 
       performance = await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-        get_get_vault_performance_performance: { vault_id },
+        get_vault_performance: { vault_id },
       });
     });
 

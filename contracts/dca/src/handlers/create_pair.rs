@@ -1,5 +1,6 @@
-use crate::helpers::routes::calculate_route;
-use crate::helpers::validation::assert_sender_is_admin;
+use crate::helpers::validation::{
+    assert_route_matches_denoms, assert_route_not_empty, assert_sender_is_admin,
+};
 use crate::state::pairs::save_pair;
 use crate::{error::ContractError, types::pair::Pair};
 use cosmwasm_std::DepsMut;
@@ -14,12 +15,7 @@ pub fn create_pair_handler(
     route: Vec<u64>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
-
-    if route.is_empty() {
-        return Err(ContractError::CustomError {
-            val: "Swap route must not be empty".to_string(),
-        });
-    }
+    assert_route_not_empty(route.clone())?;
 
     let pair = Pair {
         base_denom: base_denom.clone(),
@@ -27,18 +23,7 @@ pub fn create_pair_handler(
         route: route.clone(),
     };
 
-    for denom in pair.denoms() {
-        let route = calculate_route(&deps.querier, &pair, denom.clone())?;
-
-        if route.last().unwrap().token_out_denom != pair.other_denom(denom.clone()) {
-            return Err(ContractError::CustomError {
-                val: format!(
-                    "Swap route is invalid. Last token out denom must be {}",
-                    pair.other_denom(denom)
-                ),
-            });
-        }
-    }
+    assert_route_matches_denoms(&deps.querier, &pair)?;
 
     save_pair(deps.storage, &pair)?;
 

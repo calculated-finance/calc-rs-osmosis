@@ -30,7 +30,7 @@ mod update_swap_adjustments_tests {
     };
 
     #[test]
-    fn updates_swap_adjustments() {
+    fn updates_swap_adjustment() {
         let mut deps = mock_dependencies();
 
         let strategy = SwapAdjustmentStrategy::RiskWeightedAverage {
