@@ -76,7 +76,7 @@ pub enum ExecuteMsg {
         delegation_fee_percent: Option<Decimal>,
         page_limit: Option<u16>,
         paused: Option<bool>,
-        dca_plus_escrow_level: Option<Decimal>,
+        risk_weighted_average_escrow_level: Option<Decimal>,
     },
     CreateCustomSwapFee {
         denom: String,

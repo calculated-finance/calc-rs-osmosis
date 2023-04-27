@@ -110,7 +110,7 @@ pub fn create_vault_handler(
 
     let performance_assessment_strategy = swap_adjustment_strategy_params.map(|_| {
         PerformanceAssessmentStrategy::CompareToStandardDca {
-            swapped_amount: Coin::new(0, swap_denom),
+            swapped_amount: Coin::new(0, swap_denom.clone()),
             received_amount: Coin::new(0, target_denom.clone()),
         }
     });
@@ -137,7 +137,7 @@ pub fn create_vault_handler(
         started_at: None,
         escrow_level,
         deposited_amount: info.funds[0].clone(),
-        swapped_amount: Coin::new(0, info.funds[0].denom.clone()),
+        swapped_amount: Coin::new(0, swap_denom),
         received_amount: Coin::new(0, target_denom.clone()),
         escrowed_amount: Coin::new(0, target_denom),
         swap_adjustment_strategy,
@@ -160,8 +160,9 @@ pub fn create_vault_handler(
     )?;
 
     let mut response = Response::new()
-        .add_attribute("owner", vault.owner.to_string())
-        .add_attribute("vault_id", vault.id);
+        .add_attribute("create_vault", "true")
+        .add_attribute("vault_id", vault.id)
+        .add_attribute("deposited_amount", vault.balance.to_string());
 
     if vault.is_inactive() {
         return Ok(response);

@@ -20,19 +20,16 @@
       "type": "object",
       "required": [
         "admin",
-        "dca_plus_escrow_level",
         "delegation_fee_percent",
         "fee_collectors",
         "page_limit",
         "paused",
+        "risk_weighted_average_escrow_level",
         "swap_fee_percent"
       ],
       "properties": {
         "admin": {
           "$ref": "#/definitions/Addr"
-        },
-        "dca_plus_escrow_level": {
-          "$ref": "#/definitions/Decimal"
         },
         "delegation_fee_percent": {
           "$ref": "#/definitions/Decimal"
@@ -50,6 +47,9 @@
         },
         "paused": {
           "type": "boolean"
+        },
+        "risk_weighted_average_escrow_level": {
+          "$ref": "#/definitions/Decimal"
         },
         "swap_fee_percent": {
           "$ref": "#/definitions/Decimal"

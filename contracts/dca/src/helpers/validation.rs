@@ -255,12 +255,12 @@ pub fn assert_fee_collector_allocations_add_up_to_one(
     Ok(())
 }
 
-pub fn assert_dca_plus_escrow_level_is_less_than_100_percent(
-    dca_plus_escrow_level: Decimal,
+pub fn assert_risk_weighted_average_escrow_level_is_less_than_100_percent(
+    risk_weighted_average_escrow_level: Decimal,
 ) -> Result<(), ContractError> {
-    if dca_plus_escrow_level > Decimal::percent(100) {
+    if risk_weighted_average_escrow_level > Decimal::percent(100) {
         return Err(ContractError::CustomError {
-            val: "dca_plus_escrow_level cannot be greater than 100%".to_string(),
+            val: "risk_weighted_average_escrow_level cannot be greater than 100%".to_string(),
         });
     }
     Ok(())

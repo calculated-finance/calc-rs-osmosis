@@ -2,8 +2,8 @@ use crate::{
     contract::{CONTRACT_NAME, CONTRACT_VERSION},
     error::ContractError,
     helpers::validation::{
-        assert_dca_plus_escrow_level_is_less_than_100_percent,
         assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
+        assert_risk_weighted_average_escrow_level_is_less_than_100_percent,
     },
     msg::MigrateMsg,
     state::config::{update_config, Config},
@@ -16,7 +16,9 @@ pub fn migrate_handler(deps: DepsMut, msg: MigrateMsg) -> Result<Response, Contr
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
-    assert_dca_plus_escrow_level_is_less_than_100_percent(msg.risk_weighted_average_escrow_level)?;
+    assert_risk_weighted_average_escrow_level_is_less_than_100_percent(
+        msg.risk_weighted_average_escrow_level,
+    )?;
 
     update_config(
         deps.storage,

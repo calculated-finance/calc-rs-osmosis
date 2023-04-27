@@ -7,7 +7,7 @@ use crate::state::events::create_event;
 use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::event::{EventBuilder, EventData};
-use crate::types::vault::VaultStatus;
+use crate::types::vault::{Vault, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
 use cosmwasm_std::{Coin, Env, MessageInfo, SubMsg};
@@ -18,7 +18,7 @@ pub fn cancel_vault_handler(
     info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    let mut vault = get_vault(deps.storage, vault_id)?;
+    let vault = get_vault(deps.storage, vault_id)?;
 
     assert_sender_is_admin_or_vault_owner(deps.storage, vault.owner.clone(), info.sender)?;
     assert_vault_is_not_cancelled(&vault)?;
@@ -36,7 +36,7 @@ pub fn cancel_vault_handler(
         )?;
     };
 
-    let mut submessages: Vec<SubMsg> = Vec::new();
+    let mut submessages = Vec::<SubMsg>::new();
 
     if vault.balance.amount > Uint128::zero() {
         submessages.push(SubMsg::new(BankMsg::Send {
@@ -45,17 +45,20 @@ pub fn cancel_vault_handler(
         }));
     }
 
-    vault.status = VaultStatus::Cancelled;
-    vault.balance = Coin::new(0, vault.get_swap_denom());
+    let updated_vault = Vault {
+        status: VaultStatus::Cancelled,
+        balance: Coin::new(0, vault.get_swap_denom()),
+        ..vault
+    };
 
-    update_vault(deps.storage, &vault)?;
+    update_vault(deps.storage, &updated_vault)?;
 
-    delete_trigger(deps.storage, vault.id)?;
+    delete_trigger(deps.storage, updated_vault.id)?;
 
     Ok(Response::new()
-        .add_attribute("method", "cancel_vault")
-        .add_attribute("owner", vault.owner.to_string())
+        .add_attribute("cancel_vault", "true")
         .add_attribute("vault_id", vault.id)
+        .add_attribute("refunded_amount", vault.balance.to_string())
         .add_submessages(submessages))
 }
 

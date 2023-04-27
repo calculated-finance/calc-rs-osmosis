@@ -113,7 +113,7 @@ pub fn execute(
             delegation_fee_percent,
             page_limit,
             paused,
-            dca_plus_escrow_level,
+            risk_weighted_average_escrow_level,
         } => update_config_handler(
             deps,
             info,
@@ -122,7 +122,7 @@ pub fn execute(
             delegation_fee_percent,
             page_limit,
             paused,
-            dca_plus_escrow_level,
+            risk_weighted_average_escrow_level,
         ),
         ExecuteMsg::CreateCustomSwapFee {
             denom,
