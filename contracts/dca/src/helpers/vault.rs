@@ -28,20 +28,12 @@ pub fn get_position_type(deps: &Deps, vault: &Vault) -> StdResult<PositionType> 
 }
 
 pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin> {
-    let swap_adjustment =
-        vault
-            .swap_adjustment_strategy
-            .clone()
-            .map_or(Decimal::one(), |strategy| {
-                get_swap_adjustment(deps.storage, strategy.clone(), env.block.time).unwrap_or_else(
-                    |_| {
-                        panic!(
-                            "failed to get swap adjustment value for strategy {:#?}",
-                            strategy
-                        )
-                    },
-                )
-            });
+    let swap_adjustment = vault
+        .swap_adjustment_strategy
+        .clone()
+        .map_or(Decimal::one(), |strategy| {
+            get_swap_adjustment(deps.storage, strategy, env.block.time)
+        });
 
     let adjusted_amount = vault.swap_amount * swap_adjustment;
 

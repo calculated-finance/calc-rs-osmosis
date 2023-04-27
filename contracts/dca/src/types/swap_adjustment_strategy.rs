@@ -28,6 +28,12 @@ impl SwapAdjustmentStrategy {
         calculate_hash(self)
     }
 
+    pub fn ttl(&self) -> u64 {
+        match self {
+            SwapAdjustmentStrategy::RiskWeightedAverage { .. } => 60 * 60 * 25,
+        }
+    }
+
     pub fn risk_weighted_average_model_id(&self) -> u8 {
         match self {
             SwapAdjustmentStrategy::RiskWeightedAverage { model_id, .. } => *model_id,
