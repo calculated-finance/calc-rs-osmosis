@@ -26,7 +26,8 @@ use crate::handlers::instantiate::instantiate_handler;
 use crate::handlers::migrate::migrate_handler;
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee_handler;
 use crate::handlers::update_config::update_config_handler;
-use crate::handlers::update_swap_adjustments_handler::update_swap_adjustment_handler;
+use crate::handlers::update_swap_adjustment_handler::update_swap_adjustment_handler;
+use crate::handlers::update_vault::update_vault_handler;
 use crate::handlers::z_delegate::{log_delegation_result, z_delegate_handler};
 use crate::handlers::z_provide_liquidity::{
     bond_lp_tokens, log_bond_lp_tokens_result, z_provide_liquidity_handler,
@@ -98,6 +99,9 @@ pub fn execute(
             performance_assessment_strategy,
             swap_adjustment_strategy,
         ),
+        ExecuteMsg::UpdateVault { vault_id, label } => {
+            update_vault_handler(deps, info, vault_id, label)
+        }
         ExecuteMsg::CancelVault { vault_id } => cancel_vault_handler(deps, env, info, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),
         ExecuteMsg::Deposit { address, vault_id } => {
