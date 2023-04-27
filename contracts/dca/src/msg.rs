@@ -142,8 +142,8 @@ pub enum QueryMsg {
     },
     #[returns(CustomFeesResponse)]
     GetCustomSwapFees {},
-    #[returns(DcaPlusPerformanceResponse)]
-    GetDcaPlusPerformance { vault_id: Uint128 },
+    #[returns(VaultPerformanceResponse)]
+    GetVaultPerformance { vault_id: Uint128 },
     #[returns(DisburseEscrowTasksResponse)]
     GetDisburseEscrowTasks { limit: Option<u16> },
 }
@@ -174,7 +174,7 @@ pub struct VaultResponse {
 }
 
 #[cw_serde]
-pub struct DcaPlusPerformanceResponse {
+pub struct VaultPerformanceResponse {
     pub fee: Coin,
     pub factor: Decimal,
 }

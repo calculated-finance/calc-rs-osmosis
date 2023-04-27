@@ -40,12 +40,12 @@ pub fn disburse_funds_handler(
             let coin_sent = subtract(&swap_cache.swap_denom_balance, swap_denom_balance)?;
             let coin_received = subtract(receive_denom_balance, &swap_cache.receive_denom_balance)?;
 
-            let swap_fee_rate = match vault.swap_adjustment_strategy {
+            let swap_fee_rate = match vault.performance_assessment_strategy {
                 Some(_) => Decimal::zero(),
                 None => get_swap_fee_rate(deps.storage, &vault)?,
             };
 
-            let automation_fee_rate = match vault.swap_adjustment_strategy {
+            let automation_fee_rate = match vault.performance_assessment_strategy {
                 Some(_) => Decimal::zero(),
                 None => get_delegation_fee_rate(deps.storage, &vault)?,
             };
@@ -559,7 +559,7 @@ mod disburse_funds_tests {
     }
 
     #[test]
-    fn with_succcesful_swap_with_dca_plus_escrows_funds() {
+    fn with_succcesful_swap_with_escrow_level_escrows_funds() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
@@ -569,7 +569,7 @@ mod disburse_funds_tests {
             env.clone(),
             Vault {
                 destinations: vec![Destination::default()],
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 escrow_level: Decimal::percent(5),
                 ..Vault::default()
             },
@@ -755,7 +755,7 @@ mod disburse_funds_tests {
     }
 
     #[test]
-    fn with_succcesful_swap_with_dca_plus_publishes_execution_completed_event() {
+    fn with_succcesful_swap_for_non_standard_dca_publishes_execution_completed_event() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
@@ -765,6 +765,7 @@ mod disburse_funds_tests {
             env.clone(),
             Vault {
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -1223,7 +1224,7 @@ mod disburse_funds_tests {
     }
 
     #[test]
-    fn for_dca_plus_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_event() {
+    fn for_non_standard_dca_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_event() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
@@ -1235,6 +1236,7 @@ mod disburse_funds_tests {
                 balance: Coin::new(ONE.into(), DENOM_UOSMO),
                 swap_amount: ONE,
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 ..Vault::default()
             },
         );
@@ -1280,7 +1282,7 @@ mod disburse_funds_tests {
     }
 
     #[test]
-    fn for_dca_plus_vault_with_insufficient_remaining_funds_sets_vault_to_inactive() {
+    fn for_non_standard_dca_vault_with_insufficient_remaining_funds_sets_vault_to_inactive() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
@@ -1292,6 +1294,7 @@ mod disburse_funds_tests {
                 balance: Coin::new(49999, DENOM_UOSMO),
                 swap_amount: ONE,
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 ..Vault::default()
             },
         );

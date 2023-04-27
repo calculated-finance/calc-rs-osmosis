@@ -428,7 +428,7 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn with_dca_plus_should_simulate_execution() {
+    fn for_non_standard_dca_should_simulate_execution() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -470,7 +470,8 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn with_finished_dca_plus_should_not_simulate_execution() {
+    fn with_finished_compare_to_standard_dca_performance_assessment_should_not_simulate_execution()
+    {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -505,7 +506,7 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn with_dca_plus_should_adjust_swap_amount() {
+    fn with_rwa_swap_adjustment_strategy_should_adjust_swap_amount() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -569,7 +570,8 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn with_dca_plus_and_exceeded_slippage_tolerance_should_simulate_skipped_execution() {
+    fn with_rwa_swap_adjustment_strategy_and_exceeded_slippage_tolerance_should_simulate_skipped_execution(
+    ) {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -606,7 +608,8 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn with_dca_plus_and_exceeded_price_threshold_should_publish_execution_skipped_event() {
+    fn with_rwa_swap_adjustment_strategy_and_exceeded_price_threshold_should_publish_execution_skipped_event(
+    ) {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -645,7 +648,8 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn with_dca_plus_and_exceeded_slippage_tolerance_should_publish_execution_skipped_event() {
+    fn with_rwa_swap_adjustment_strategy_and_exceeded_slippage_tolerance_should_publish_execution_skipped_event(
+    ) {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -690,7 +694,7 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn for_inactive_vault_with_active_dca_plus_should_simulate_execution() {
+    fn for_inactive_vault_with_active_performance_assessment_should_simulate_execution() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -735,7 +739,7 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn for_inactive_vault_with_finished_dca_plus_should_disburse_escrow() {
+    fn for_inactive_vault_with_finished_performance_assessment_should_disburse_escrow() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -781,7 +785,7 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn for_inactive_vault_with_unfinished_dca_plus_should_not_disburse_escrow() {
+    fn for_inactive_vault_with_unfinished_performance_assessment_should_not_disburse_escrow() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -904,7 +908,7 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn for_inactive_vault_with_active_dca_plus_should_create_a_new_trigger() {
+    fn for_inactive_vault_with_active_performance_asssessment_should_create_a_new_trigger() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -959,7 +963,7 @@ mod execute_trigger_tests {
     }
 
     #[test]
-    fn for_inactive_vault_with_finished_dca_plus_should_not_create_a_new_trigger() {
+    fn for_inactive_vault_with_finished_performance_assessment_should_not_create_a_new_trigger() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
