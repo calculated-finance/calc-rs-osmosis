@@ -60,6 +60,10 @@ pub enum ExecuteMsg {
         address: Addr,
         vault_id: Uint128,
     },
+    UpdateVault {
+        vault_id: Uint128,
+        label: Option<String>,
+    },
     CancelVault {
         vault_id: Uint128,
     },

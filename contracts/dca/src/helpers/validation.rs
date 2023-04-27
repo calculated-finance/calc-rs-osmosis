@@ -312,3 +312,16 @@ pub fn assert_denom_is_bond_denom(denom: String) -> Result<(), ContractError> {
     }
     Ok(())
 }
+
+pub fn assert_label_is_no_longer_than_100_characters(
+    label: &Option<String>,
+) -> Result<(), ContractError> {
+    if let Some(label) = label.clone() {
+        if label.len() > 100 {
+            return Err(ContractError::CustomError {
+                val: "Vault label cannot be longer than 100 characters".to_string(),
+            });
+        }
+    }
+    Ok(())
+}
