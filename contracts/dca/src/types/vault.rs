@@ -339,7 +339,7 @@ mod get_expected_execution_completed_date_tests {
     }
 
     #[test]
-    fn expected_execution_end_date_is_at_end_of_dca_plus_execution() {
+    fn expected_execution_end_date_is_at_end_of_performance_assessment() {
         let env = mock_env();
         let vault = Vault {
             balance: Coin::new((TEN - ONE).into(), DENOM_UOSMO),

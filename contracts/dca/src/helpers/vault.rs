@@ -51,7 +51,7 @@ pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin>
     ))
 }
 
-pub fn get_dca_plus_model_id(
+pub fn get_risk_weighted_average_model_id(
     block_time: &Timestamp,
     balance: &Coin,
     swap_amount: &Uint128,
@@ -81,31 +81,26 @@ pub fn get_dca_plus_model_id(
     }
 }
 
-pub fn get_dca_plus_performance_factor(
-    vault: &Vault,
-    current_price: Decimal,
-) -> StdResult<Decimal> {
-    let performance_assessment_strategy = vault
-        .performance_assessment_strategy
-        .clone()
-        .unwrap_or_else(|| panic!("vault {} has a performance strategy", vault.id));
+pub fn get_performance_factor(vault: &Vault, current_price: Decimal) -> StdResult<Decimal> {
+    match &vault.performance_assessment_strategy {
+        Some(PerformanceAssessmentStrategy::CompareToStandardDca {
+            swapped_amount,
+            received_amount,
+        }) => {
+            let vault_total_value = vault.deposited_amount.amount - vault.swapped_amount.amount
+                + vault.received_amount.amount * current_price;
 
-    let dca_plus_total_value = vault.deposited_amount.amount - vault.swapped_amount.amount
-        + vault.received_amount.amount * current_price;
+            let standard_dca_vault_total_value = vault.deposited_amount.amount
+                - swapped_amount.amount
+                + received_amount.amount * current_price;
 
-    let standard_dca_total_value = vault.deposited_amount.amount
-        - performance_assessment_strategy
-            .standard_dca_swapped_amount()
-            .amount
-        + performance_assessment_strategy
-            .standard_dca_received_amount()
-            .amount
-            * current_price;
-
-    Ok(Decimal::from_ratio(
-        dca_plus_total_value,
-        standard_dca_total_value,
-    ))
+            Ok(Decimal::from_ratio(
+                vault_total_value,
+                standard_dca_vault_total_value,
+            ))
+        }
+        None => panic!("vault {} has no performance strategy", vault.id),
+    }
 }
 
 pub fn price_threshold_exceeded(
@@ -303,7 +298,7 @@ mod get_swap_amount_tests {
     }
 
     #[test]
-    fn should_return_adjusted_swap_amount_for_dca_plus_vault() {
+    fn should_return_adjusted_swap_amount_for_rwa_strategy() {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
@@ -335,8 +330,8 @@ mod get_swap_amount_tests {
     }
 
     #[test]
-    fn should_return_adjusted_swap_amount_for_dca_plus_vault_with_low_funds_and_reduced_swap_amount(
-    ) {
+    fn should_return_adjusted_swap_amount_for_rwa_strategy_with_low_funds_and_reduced_swap_amount()
+    {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
@@ -370,7 +365,7 @@ mod get_swap_amount_tests {
     }
 
     #[test]
-    fn should_return_vault_balance_for_dca_plus_vault_with_low_funds_and_increased_swap_amount() {
+    fn should_return_vault_balance_for_rwa_strategy_with_low_funds_and_increased_swap_amount() {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
@@ -404,7 +399,7 @@ mod get_swap_amount_tests {
     }
 
     #[test]
-    fn should_return_vault_balance_for_dca_plus_vault_with_increased_swap_amount_above_balance() {
+    fn should_return_vault_balance_for_rwa_strategy_with_increased_swap_amount_above_balance() {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
@@ -515,10 +510,10 @@ mod price_threshold_exceeded_tests {
 }
 
 #[cfg(test)]
-mod get_dca_plus_model_id_tests {
+mod get_risk_weighted_average_strategy_model_id_tests {
     use crate::{
         constants::{ONE, TEN},
-        helpers::vault::get_dca_plus_model_id,
+        helpers::vault::get_risk_weighted_average_model_id,
         types::time_interval::TimeInterval,
     };
     use cosmwasm_std::{testing::mock_env, Coin, Uint128};
@@ -531,7 +526,7 @@ mod get_dca_plus_model_id_tests {
         let swap_amount = ONE;
 
         assert_eq!(
-            get_dca_plus_model_id(
+            get_risk_weighted_average_model_id(
                 &env.block.time,
                 &balance,
                 &swap_amount,
@@ -549,7 +544,7 @@ mod get_dca_plus_model_id_tests {
         let swap_amount = ONE;
 
         assert_eq!(
-            get_dca_plus_model_id(
+            get_risk_weighted_average_model_id(
                 &env.block.time,
                 &balance,
                 &swap_amount,
@@ -567,7 +562,7 @@ mod get_dca_plus_model_id_tests {
         let swap_amount = ONE;
 
         assert_eq!(
-            get_dca_plus_model_id(
+            get_risk_weighted_average_model_id(
                 &env.block.time,
                 &balance,
                 &swap_amount,
@@ -579,9 +574,9 @@ mod get_dca_plus_model_id_tests {
 }
 
 #[cfg(test)]
-mod get_dca_plus_performance_factor_tests {
+mod get_performance_factor_tests {
     use crate::{
-        helpers::vault::get_dca_plus_performance_factor,
+        helpers::vault::get_performance_factor,
         types::{performance_assessment_strategy::PerformanceAssessmentStrategy, vault::Vault},
     };
     use cosmwasm_std::{Coin, Decimal, Uint128};
@@ -646,7 +641,7 @@ mod get_dca_plus_performance_factor_tests {
             standard_dca_received_amount,
         );
 
-        let factor = get_dca_plus_performance_factor(&vault, current_price).unwrap();
+        let factor = get_performance_factor(&vault, current_price).unwrap();
         assert_eq!(factor, expected_performance_factor);
     }
 
@@ -780,7 +775,7 @@ mod simulate_standard_dca_execution_tests {
     use cosmwasm_std::{Coin, Response};
 
     #[test]
-    fn for_non_dca_plus_vault_succeeds() {
+    fn for_standard_dca_vault_succeeds() {
         let mut deps = mock_dependencies();
         let env = mock_env();
 

@@ -1,39 +1,41 @@
 use crate::{
     helpers::{
-        fees::get_performance_fee, price::query_belief_price,
-        vault::get_dca_plus_performance_factor,
+        fees::get_performance_fee, price::query_belief_price, vault::get_performance_factor,
     },
-    msg::DcaPlusPerformanceResponse,
+    msg::VaultPerformanceResponse,
     state::{pairs::find_pair, vaults::get_vault},
 };
 use cosmwasm_std::{Deps, StdError, StdResult, Uint128};
 
-pub fn get_dca_plus_performance_handler(
+pub fn get_vault_performance_handler(
     deps: Deps,
     vault_id: Uint128,
-) -> StdResult<DcaPlusPerformanceResponse> {
+) -> StdResult<VaultPerformanceResponse> {
     let vault = get_vault(deps.storage, vault_id)?;
 
     let pair = find_pair(deps.storage, &vault.denoms())?;
 
     let current_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
 
-    vault.swap_adjustment_strategy.clone().map_or(
+    vault.performance_assessment_strategy.clone().map_or(
         Err(StdError::GenericErr {
-            msg: format!("Vault {} is not a DCA Plus vault", vault_id),
+            msg: format!(
+                "Vault {} does not have a performance assessment strategy",
+                vault_id
+            ),
         }),
         |_| {
-            Ok(DcaPlusPerformanceResponse {
+            Ok(VaultPerformanceResponse {
                 fee: get_performance_fee(&vault, current_price)?,
-                factor: get_dca_plus_performance_factor(&vault, current_price)?,
+                factor: get_performance_factor(&vault, current_price)?,
             })
         },
     )
 }
 
 #[cfg(test)]
-mod get_dca_plus_performance_tests {
-    use super::get_dca_plus_performance_handler;
+mod get_vault_performance_tests {
+    use super::get_vault_performance_handler;
     use crate::{
         constants::{ONE, TEN},
         tests::{
@@ -48,17 +50,17 @@ mod get_dca_plus_performance_tests {
     use cosmwasm_std::{testing::mock_env, Coin, Decimal};
 
     #[test]
-    fn if_not_a_dca_plus_vault_fails() {
+    fn if_vault_has_no_performance_assessment_strategy_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
 
         let vault = setup_vault(deps.as_mut(), env, Vault::default());
 
-        let err = get_dca_plus_performance_handler(deps.as_ref(), vault.id).unwrap_err();
+        let err = get_vault_performance_handler(deps.as_ref(), vault.id).unwrap_err();
 
         assert_eq!(
             err.to_string(),
-            "Generic error: Vault 0 is not a DCA Plus vault"
+            "Generic error: Vault 0 does not have a performance assessment strategy"
         );
     }
 
@@ -88,7 +90,7 @@ mod get_dca_plus_performance_tests {
             },
         );
 
-        let response = get_dca_plus_performance_handler(deps.as_ref(), vault.id).unwrap();
+        let response = get_vault_performance_handler(deps.as_ref(), vault.id).unwrap();
 
         assert_eq!(
             response.fee,

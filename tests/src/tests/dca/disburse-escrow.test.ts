@@ -43,7 +43,7 @@ describe('when disbursing escrow', () => {
       performanceFee = Number(
         (
           await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-            get_dca_plus_performance: { vault_id },
+            get_vault_performance: { vault_id },
           })
         ).fee.amount,
       );

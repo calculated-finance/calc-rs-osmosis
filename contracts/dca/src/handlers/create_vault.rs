@@ -8,7 +8,7 @@ use crate::helpers::validation::{
     assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
     assert_time_interval_is_valid,
 };
-use crate::helpers::vault::get_dca_plus_model_id;
+use crate::helpers::vault::get_risk_weighted_average_model_id;
 use crate::msg::ExecuteMsg;
 use crate::state::cache::{VaultCache, VAULT_CACHE};
 use crate::state::config::get_config;
@@ -96,7 +96,7 @@ pub fn create_vault_handler(
             .map(|params| match params {
                 SwapAdjustmentStrategyParams::RiskWeightedAverage { base_denom } => {
                     SwapAdjustmentStrategy::RiskWeightedAverage {
-                        model_id: get_dca_plus_model_id(
+                        model_id: get_risk_weighted_average_model_id(
                             &env.block.time,
                             &info.funds[0],
                             &swap_amount,
@@ -966,7 +966,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_dca_plus_should_create_swap_adjustment_strategy() {
+    fn should_create_swap_adjustment_strategy() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let mut info = mock_info(ADMIN, &[]);
@@ -1016,7 +1016,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_dca_plus_should_create_performance_assessment_strategy() {
+    fn should_create_performance_assessment_strategy() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let mut info = mock_info(ADMIN, &[]);

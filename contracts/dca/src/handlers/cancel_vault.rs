@@ -28,7 +28,7 @@ pub fn cancel_vault_handler(
         EventBuilder::new(vault.id, env.block.clone(), EventData::DcaVaultCancelled {}),
     )?;
 
-    if vault.swap_adjustment_strategy.is_some() {
+    if vault.escrowed_amount.amount > Uint128::zero() {
         save_disburse_escrow_task(
             deps.storage,
             vault.id,
@@ -65,13 +65,13 @@ pub fn cancel_vault_handler(
 #[cfg(test)]
 mod cancel_vault_tests {
     use super::*;
+    use crate::constants::ONE;
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
     use crate::handlers::get_vault::get_vault_handler;
     use crate::state::disburse_escrow_tasks::get_disburse_escrow_tasks;
     use crate::tests::helpers::{instantiate_contract, setup_vault};
-    use crate::tests::mocks::ADMIN;
+    use crate::tests::mocks::{ADMIN, DENOM_UOSMO};
     use crate::types::event::{EventBuilder, EventData};
-    use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{BankMsg, SubMsg, Uint128};
@@ -213,7 +213,7 @@ mod cancel_vault_tests {
     }
 
     #[test]
-    fn with_dca_plus_should_save_disburse_escrow_task() {
+    fn with_escrowed_balance_should_save_disburse_escrow_task() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
@@ -224,7 +224,7 @@ mod cancel_vault_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                escrowed_amount: Coin::new(ONE.into(), DENOM_UOSMO.to_string()),
                 ..Vault::default()
             },
         );

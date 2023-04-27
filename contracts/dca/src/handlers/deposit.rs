@@ -3,7 +3,7 @@ use crate::helpers::validation::{
     assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
     assert_exactly_one_asset, assert_vault_is_not_cancelled,
 };
-use crate::helpers::vault::get_dca_plus_model_id;
+use crate::helpers::vault::get_risk_weighted_average_model_id;
 use crate::msg::ExecuteMsg;
 use crate::state::events::create_event;
 use crate::state::triggers::save_trigger;
@@ -62,7 +62,7 @@ pub fn deposit_handler(
                     position_type,
                     ..
                 } => SwapAdjustmentStrategy::RiskWeightedAverage {
-                    model_id: get_dca_plus_model_id(
+                    model_id: get_risk_weighted_average_model_id(
                         &env.block.time,
                         &vault.balance,
                         &vault.swap_amount,
@@ -127,7 +127,8 @@ mod dposit_tests {
     use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
     use crate::types::event::{EventBuilder, EventData};
-    use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
+    use crate::types::position_type::PositionType;
+    use crate::types::swap_adjustment_strategy::{BaseDenom, SwapAdjustmentStrategy};
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{to_binary, Addr, Coin, SubMsg, WasmMsg};
@@ -484,7 +485,7 @@ mod dposit_tests {
     }
 
     #[test]
-    fn with_dca_plus_should_update_model_id() {
+    fn with_risk_weighted_average_strategy_should_update_model_id() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let deposit_amount = Coin::new(ONE_HUNDRED.into(), DENOM_UOSMO);
@@ -496,7 +497,11 @@ mod dposit_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::RiskWeightedAverage {
+                    model_id: 30,
+                    base_denom: BaseDenom::Bitcoin,
+                    position_type: PositionType::Enter,
+                }),
                 ..Vault::default()
             },
         );
@@ -522,7 +527,7 @@ mod dposit_tests {
     }
 
     #[test]
-    fn with_dca_plus_should_update_total_deposit() {
+    fn should_update_total_deposit() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let deposit_amount = Coin::new(ONE_HUNDRED.into(), DENOM_UOSMO);
@@ -530,14 +535,7 @@ mod dposit_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let vault = setup_vault(
-            deps.as_mut(),
-            env.clone(),
-            Vault {
-                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
-                ..Vault::default()
-            },
-        );
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         deposit_handler(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
 
