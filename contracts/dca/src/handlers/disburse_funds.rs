@@ -22,8 +22,8 @@ pub fn disburse_funds_handler(
     let cache = VAULT_CACHE.load(deps.storage)?;
     let mut vault = get_vault(deps.storage, cache.vault_id)?;
 
-    let mut attributes: Vec<Attribute> = Vec::new();
-    let mut sub_msgs: Vec<SubMsg> = Vec::new();
+    let mut attributes = Vec::<Attribute>::new();
+    let mut sub_msgs = Vec::<SubMsg>::new();
 
     match reply.result {
         SubMsgResult::Ok(_) => {
@@ -86,14 +86,16 @@ pub fn disburse_funds_handler(
                     vault.id,
                     env.block.clone(),
                     EventData::DcaVaultExecutionCompleted {
-                        sent: coin_sent,
+                        sent: coin_sent.clone(),
                         received: coin_received.clone(),
-                        fee: Coin::new(total_fee.into(), coin_received.denom),
+                        fee: Coin::new(total_fee.into(), coin_received.denom.clone()),
                     },
                 ),
             )?;
 
-            attributes.push(Attribute::new("execution_result", "success"));
+            attributes.push(Attribute::new("swapped_amount", coin_sent.to_string()));
+            attributes.push(Attribute::new("received_amount", coin_received.to_string()));
+            attributes.push(Attribute::new("fee_amount", total_fee.to_string()));
         }
         SubMsgResult::Err(_) => {
             create_event(
@@ -107,7 +109,10 @@ pub fn disburse_funds_handler(
                 ),
             )?;
 
-            attributes.push(Attribute::new("status", "skipped"));
+            attributes.push(Attribute::new(
+                "execution_skipped",
+                "slippage_tolerance_exceeded",
+            ));
         }
     }
 
@@ -126,8 +131,7 @@ pub fn disburse_funds_handler(
     }
 
     Ok(Response::new()
-        .add_attribute("owner", vault.owner.to_string())
-        .add_attribute("vault_id", vault.id)
+        .add_attribute("funds_disbursed", vault.id)
         .add_attributes(attributes)
         .add_submessages(sub_msgs))
 }

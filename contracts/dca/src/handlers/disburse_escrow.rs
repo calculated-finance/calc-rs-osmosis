@@ -70,6 +70,8 @@ pub fn disburse_escrow_handler(
             vec![performance_fee.amount],
             vault.target_denom,
         )?)
+        .add_attribute("disburse_escrow", "true")
+        .add_attribute("vault_id", vault.id)
         .add_attribute("performance_fee", format!("{:?}", performance_fee))
         .add_attribute("escrow_disbursed", format!("{:?}", amount_to_disburse)))
 }

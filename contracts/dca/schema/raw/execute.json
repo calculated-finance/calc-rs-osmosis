@@ -178,6 +178,33 @@
     {
       "type": "object",
       "required": [
+        "update_vault"
+      ],
+      "properties": {
+        "update_vault": {
+          "type": "object",
+          "required": [
+            "vault_id"
+          ],
+          "properties": {
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "vault_id": {
+              "$ref": "#/definitions/Uint128"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "cancel_vault"
       ],
       "properties": {
@@ -226,16 +253,6 @@
         "update_config": {
           "type": "object",
           "properties": {
-            "dca_plus_escrow_level": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
             "delegation_fee_percent": {
               "anyOf": [
                 {
@@ -267,6 +284,16 @@
               "type": [
                 "boolean",
                 "null"
+              ]
+            },
+            "risk_weighted_average_escrow_level": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Decimal"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "swap_fee_percent": {

@@ -20,14 +20,15 @@ pub fn update_vault_handler(
 
     assert_vault_is_not_cancelled(&vault)?;
 
-    vault.label = label;
+    vault.label = label.clone();
     update_vault(deps.storage, &vault)?;
 
     asset_sender_is_vault_owner(vault.owner, info.sender)?;
 
     Ok(Response::default()
+        .add_attribute("update_vault", "true")
         .add_attribute("vault_id", vault.id)
-        .add_attribute("update_vault", "success"))
+        .add_attribute("label", label.unwrap_or_default()))
 }
 
 #[cfg(test)]

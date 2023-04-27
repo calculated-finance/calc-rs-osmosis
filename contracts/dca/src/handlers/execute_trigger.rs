@@ -28,8 +28,10 @@ pub fn execute_trigger_handler(
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
 
-    let mut response = Response::new().add_attribute("method", "execute_trigger");
     let mut vault = get_vault(deps.storage, trigger_id)?;
+    let mut response = Response::new()
+        .add_attribute("execute_vault", "true")
+        .add_attribute("vault_id", vault.id);
 
     delete_trigger(deps.storage, vault.id)?;
 
@@ -88,9 +90,12 @@ pub fn execute_trigger_handler(
         ),
     )?;
 
+    response = response.add_attribute("belief_price", belief_price.to_string());
+
     if let Some(SwapAdjustmentStrategy::RiskWeightedAverage { .. }) = vault.swap_adjustment_strategy
     {
-        vault = simulate_standard_dca_execution(
+        (vault, response) = simulate_standard_dca_execution(
+            response,
             &deps.querier,
             deps.storage,
             &env,
@@ -162,6 +167,8 @@ pub fn execute_trigger_handler(
                 },
             ),
         )?;
+
+        response = response.add_attribute("execution_skipped", "price_threshold_exceeded");
 
         return Ok(response);
     };

@@ -1,9 +1,8 @@
 use crate::{
     error::ContractError,
     helpers::validation::{
-        assert_dca_plus_escrow_level_is_less_than_100_percent,
         assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
-        assert_sender_is_admin,
+        assert_risk_weighted_average_escrow_level_is_less_than_100_percent, assert_sender_is_admin,
     },
     state::config::{get_config, update_config, Config, FeeCollector},
 };
@@ -17,7 +16,7 @@ pub fn update_config_handler(
     delegation_fee_percent: Option<Decimal>,
     page_limit: Option<u16>,
     paused: Option<bool>,
-    dca_plus_escrow_level: Option<Decimal>,
+    risk_weighted_average_escrow_level: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
     let existing_config = get_config(deps.storage)?;
@@ -30,13 +29,13 @@ pub fn update_config_handler(
             .unwrap_or(existing_config.delegation_fee_percent),
         page_limit: page_limit.unwrap_or(existing_config.page_limit),
         paused: paused.unwrap_or(existing_config.paused),
-        risk_weighted_average_escrow_level: dca_plus_escrow_level
+        risk_weighted_average_escrow_level: risk_weighted_average_escrow_level
             .unwrap_or(existing_config.risk_weighted_average_escrow_level),
     };
 
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &config.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&config.fee_collectors)?;
-    assert_dca_plus_escrow_level_is_less_than_100_percent(
+    assert_risk_weighted_average_escrow_level_is_less_than_100_percent(
         config.risk_weighted_average_escrow_level,
     )?;
 
@@ -253,7 +252,7 @@ mod update_config_tests {
     }
 
     #[test]
-    fn update_dca_plus_escrow_level_with_valid_value_should_succeed() {
+    fn update_risk_weighted_average_escrow_level_with_valid_value_should_succeed() {
         let mut deps = mock_dependencies();
         let info = mock_info(ADMIN, &[]);
 
@@ -280,7 +279,7 @@ mod update_config_tests {
     }
 
     #[test]
-    fn update_dca_plus_escrow_level_more_than_100_percent_should_fail() {
+    fn update_risk_weighted_average_escrow_level_more_than_100_percent_should_fail() {
         let mut deps = mock_dependencies();
         let info = mock_info(ADMIN, &[]);
 
@@ -300,7 +299,7 @@ mod update_config_tests {
 
         assert_eq!(
             err.to_string(),
-            "Error: dca_plus_escrow_level cannot be greater than 100%"
+            "Error: risk_weighted_average_escrow_level cannot be greater than 100%"
         )
     }
 }

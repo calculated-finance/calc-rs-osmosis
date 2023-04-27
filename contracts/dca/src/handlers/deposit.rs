@@ -86,7 +86,10 @@ pub fn deposit_handler(
         ),
     )?;
 
-    let mut response = Response::new().add_attribute("method", "deposit");
+    let mut response = Response::new()
+        .add_attribute("deposit", "true")
+        .add_attribute("vault_id", vault.id)
+        .add_attribute("deposited_amount", info.funds[0].amount);
 
     if vault.is_active() && vault_was_inactive && vault.trigger.is_none() {
         save_trigger(

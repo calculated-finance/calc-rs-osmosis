@@ -112,7 +112,7 @@ const instantiateDCAContract = async (
       page_limit: 1000,
       paused: false,
       swap_fee_percent: `${calcSwapFee}`,
-      dca_plus_escrow_level: '0.05',
+      risk_weighted_average_escrow_level: '0.05',
     },
     'dca',
   );

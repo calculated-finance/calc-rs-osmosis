@@ -18,7 +18,7 @@ use crate::{
     },
 };
 use cosmwasm_std::{
-    Coin, Decimal, Deps, Env, QuerierWrapper, StdResult, Storage, Timestamp, Uint128,
+    Coin, Decimal, Deps, Env, QuerierWrapper, Response, StdResult, Storage, Timestamp, Uint128,
 };
 use std::cmp::min;
 
@@ -128,14 +128,15 @@ pub fn price_threshold_exceeded(
 }
 
 pub fn simulate_standard_dca_execution(
+    mut response: Response,
     querier: &QuerierWrapper,
     storage: &mut dyn Storage,
     env: &Env,
     vault: Vault,
     belief_price: Decimal,
-) -> StdResult<Vault> {
+) -> StdResult<(Vault, Response)> {
     vault.performance_assessment_strategy.clone().map_or(
-        Ok(vault.clone()),
+        Ok((vault.clone(), response.clone())),
         |performance_assessment_strategy| {
             let swap_amount = min(
                 performance_assessment_strategy
@@ -145,7 +146,7 @@ pub fn simulate_standard_dca_execution(
             );
 
             if swap_amount.is_zero() {
-                return Ok(vault);
+                return Ok((vault, response));
             }
 
             let pair = find_pair(storage, &vault.denoms())?;
@@ -171,7 +172,10 @@ pub fn simulate_standard_dca_execution(
                     ),
                 )?;
 
-                return Ok(vault);
+                response = response
+                    .add_attribute("simulated_execution_skipped", "price_threshold_exceeded");
+
+                return Ok((vault, response));
             }
 
             if let Some(slippage_tolerance) = vault.slippage_tolerance {
@@ -189,7 +193,12 @@ pub fn simulate_standard_dca_execution(
                         ),
                     )?;
 
-                    return Ok(vault);
+                    response = response.add_attribute(
+                        "simulated_execution_skipped",
+                        "slippage_tolerance_exceeded",
+                    );
+
+                    return Ok((vault, response));
                 }
             }
 
@@ -217,23 +226,32 @@ pub fn simulate_standard_dca_execution(
 
             update_vault(storage, &vault)?;
 
+            let coin_sent = Coin::new(swap_amount.into(), vault.get_swap_denom());
+            let coin_received = Coin::new(
+                received_amount_before_fee.into(),
+                vault.target_denom.clone(),
+            );
+            let total_fee = Coin::new(fee_amount.into(), vault.target_denom.clone());
+
             create_event(
                 storage,
                 EventBuilder::new(
                     vault.id,
                     env.block.clone(),
                     EventData::SimulatedDcaVaultExecutionCompleted {
-                        sent: Coin::new(swap_amount.into(), vault.get_swap_denom()),
-                        received: Coin::new(
-                            received_amount_before_fee.into(),
-                            vault.target_denom.clone(),
-                        ),
-                        fee: Coin::new(fee_amount.into(), vault.target_denom.clone()),
+                        sent: coin_sent.clone(),
+                        received: coin_received.clone(),
+                        fee: total_fee.clone(),
                     },
                 ),
             )?;
 
-            Ok(vault)
+            response = response
+                .add_attribute("simulated_swapped_amount", coin_sent.to_string())
+                .add_attribute("simulated_received_amount", coin_received.to_string())
+                .add_attribute("simulated_total_fee", total_fee.to_string());
+
+            Ok((vault, response))
         },
     )
 }
@@ -755,11 +773,11 @@ mod simulate_standard_dca_execution_tests {
         },
         types::{swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault},
     };
-    use cosmwasm_std::Coin;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
         Decimal,
     };
+    use cosmwasm_std::{Coin, Response};
 
     #[test]
     fn for_non_dca_plus_vault_succeeds() {
@@ -770,7 +788,8 @@ mod simulate_standard_dca_execution_tests {
 
         let vault = Vault::default();
 
-        let updated_vault = simulate_standard_dca_execution(
+        let (updated_vault, _) = simulate_standard_dca_execution(
+            Response::new(),
             &deps.as_ref().querier,
             mock_dependencies().as_mut().storage,
             &env,
@@ -804,7 +823,8 @@ mod simulate_standard_dca_execution_tests {
             ..Vault::default()
         };
 
-        let updated_vault = simulate_standard_dca_execution(
+        let (updated_vault, _) = simulate_standard_dca_execution(
+            Response::new(),
             &deps.as_ref().querier,
             mock_dependencies().as_mut().storage,
             &env,
@@ -845,6 +865,7 @@ mod simulate_standard_dca_execution_tests {
         let belief_price = Decimal::one();
 
         simulate_standard_dca_execution(
+            Response::new(),
             &deps.as_ref().querier,
             storage_deps.as_mut().storage,
             &env,
@@ -893,6 +914,7 @@ mod simulate_standard_dca_execution_tests {
         );
 
         simulate_standard_dca_execution(
+            Response::new(),
             &deps.as_ref().querier,
             storage_deps.as_mut().storage,
             &env,
@@ -940,6 +962,7 @@ mod simulate_standard_dca_execution_tests {
         let belief_price = Decimal::one();
 
         simulate_standard_dca_execution(
+            Response::new(),
             &deps.as_ref().querier,
             storage_deps.as_mut().storage,
             &env,
@@ -994,7 +1017,8 @@ mod simulate_standard_dca_execution_tests {
             },
         );
 
-        let vault = simulate_standard_dca_execution(
+        let (vault, _) = simulate_standard_dca_execution(
+            Response::new(),
             &deps.as_ref().querier,
             storage_deps.as_mut().storage,
             &env,
