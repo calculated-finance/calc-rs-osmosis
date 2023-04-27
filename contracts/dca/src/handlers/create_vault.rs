@@ -164,10 +164,6 @@ pub fn create_vault_handler(
         .add_attribute("vault_id", vault.id)
         .add_attribute("deposited_amount", vault.balance.to_string());
 
-    if vault.is_inactive() {
-        return Ok(response);
-    }
-
     save_trigger(
         deps.storage,
         Trigger {

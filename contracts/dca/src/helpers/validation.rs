@@ -2,11 +2,14 @@ use crate::error::ContractError;
 use crate::state::config::{get_config, FeeCollector};
 use crate::state::pairs::find_pair;
 use crate::types::destination::Destination;
+use crate::types::pair::Pair;
 use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategyParams;
 use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategyParams;
 use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
-use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, Storage, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, QuerierWrapper, Storage, Timestamp, Uint128};
+
+use super::routes::calculate_route;
 
 pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {
     if funds.is_empty() || funds.len() > 1 {
@@ -322,6 +325,25 @@ pub fn assert_label_is_no_longer_than_100_characters(
                 val: "Vault label cannot be longer than 100 characters".to_string(),
             });
         }
+    }
+    Ok(())
+}
+
+pub fn assert_route_matches_denoms(
+    querier: &QuerierWrapper,
+    pair: &Pair,
+) -> Result<(), ContractError> {
+    for denom in pair.denoms() {
+        calculate_route(querier, pair, denom.clone())?;
+    }
+    Ok(())
+}
+
+pub fn assert_route_not_empty(route: Vec<u64>) -> Result<(), ContractError> {
+    if route.is_empty() {
+        return Err(ContractError::CustomError {
+            val: "Swap route must not be empty".to_string(),
+        });
     }
     Ok(())
 }

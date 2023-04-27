@@ -106,6 +106,28 @@ mod disburse_escrow_tests {
     use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 
     #[test]
+    fn when_escrowed_balance_is_empty_sends_no_messages() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                escrowed_amount: Coin::new(0, DENOM_STAKE),
+                ..Vault::default()
+            },
+        );
+
+        let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
+
+        assert!(response.messages.is_empty());
+    }
+
+    #[test]
     fn when_no_fee_is_owed_returns_entire_escrow_to_owner() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
