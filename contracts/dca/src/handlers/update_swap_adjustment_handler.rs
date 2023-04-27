@@ -48,7 +48,7 @@ mod update_swap_adjustments_tests {
             .unwrap();
 
         let stored_adjustment =
-            get_swap_adjustment(deps.as_ref().storage, strategy, mock_env().block.time).unwrap();
+            get_swap_adjustment(deps.as_ref().storage, strategy, mock_env().block.time);
 
         assert_ne!(stored_adjustment, old_value);
         assert_eq!(stored_adjustment, new_value);

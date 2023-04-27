@@ -9,5 +9,5 @@ pub fn get_swap_adjustment_handler(
     env: &Env,
     strategy: SwapAdjustmentStrategy,
 ) -> StdResult<Decimal> {
-    get_swap_adjustment(deps.storage, strategy, env.block.time)
+    Ok(get_swap_adjustment(deps.storage, strategy, env.block.time))
 }
