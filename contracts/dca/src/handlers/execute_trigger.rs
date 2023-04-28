@@ -201,7 +201,7 @@ pub fn execute_trigger_handler(
 #[cfg(test)]
 mod execute_trigger_tests {
     use super::*;
-    use crate::constants::{ONE, ONE_MICRON, OSMOSIS_SWAP_FEE_RATE, TEN, TWO_MICRONS};
+    use crate::constants::{ONE, ONE_MICRON, SWAP_FEE_RATE, TEN, TWO_MICRONS};
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
     use crate::helpers::fees::{get_delegation_fee_rate, get_swap_fee_rate};
     use crate::helpers::vault::get_swap_amount;
@@ -422,7 +422,7 @@ mod execute_trigger_tests {
             data: EventData::DcaVaultExecutionTriggered {
                 base_denom: pair.base_denom,
                 quote_denom: pair.quote_denom,
-                asset_price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
+                asset_price: Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap()
             }
         }));
     }
@@ -641,7 +641,7 @@ mod execute_trigger_tests {
             block_height: env.block.height,
             data: EventData::SimulatedDcaVaultExecutionSkipped {
                 reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                    price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
+                    price: Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap()
                 },
             }
         }));
@@ -1084,7 +1084,7 @@ mod execute_trigger_tests {
             },
         );
 
-        let belief_price = Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+        let belief_price = Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap();
 
         let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
@@ -1146,7 +1146,7 @@ mod execute_trigger_tests {
             block_height: env.block.height,
             data: EventData::DcaVaultExecutionSkipped {
                 reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                    price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
+                    price: Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap()
                 }
             }
         }));

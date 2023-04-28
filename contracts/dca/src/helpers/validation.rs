@@ -214,6 +214,17 @@ pub fn assert_swap_adjusment_and_performance_assessment_strategies_are_compatibl
                 }),
             }
         }
+        Some(SwapAdjustmentStrategyParams::WeightedScale { .. }) => {
+            match performance_assessment_strategy_params {
+                Some(PerformanceAssessmentStrategyParams::CompareToStandardDca) => {
+                    Err(ContractError::CustomError {
+                        val: "incompatible swap adjustment and performance assessment strategies"
+                            .to_string(),
+                    })
+                }
+                None => Ok(()),
+            }
+        }
         None => match performance_assessment_strategy_params {
             Some(_) => Err(ContractError::CustomError {
                 val: "incompatible swap adjustment and performance assessment strategies"

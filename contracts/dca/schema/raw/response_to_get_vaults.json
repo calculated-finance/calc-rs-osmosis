@@ -142,6 +142,35 @@
             }
           },
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "weighted_scale"
+          ],
+          "properties": {
+            "weighted_scale": {
+              "type": "object",
+              "required": [
+                "base_receive_amount",
+                "increase_only",
+                "multiplier"
+              ],
+              "properties": {
+                "base_receive_amount": {
+                  "$ref": "#/definitions/Uint128"
+                },
+                "increase_only": {
+                  "type": "boolean"
+                },
+                "multiplier": {
+                  "$ref": "#/definitions/Decimal"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
       ]
     },
