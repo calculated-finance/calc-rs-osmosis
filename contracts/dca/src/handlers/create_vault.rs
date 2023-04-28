@@ -106,6 +106,15 @@ pub fn create_vault_handler(
                         position_type: pair.position_type(swap_denom.clone()),
                     }
                 }
+                SwapAdjustmentStrategyParams::WeightedScale {
+                    base_receive_amount,
+                    multiplier,
+                    increase_only,
+                } => SwapAdjustmentStrategy::WeightedScale {
+                    base_receive_amount,
+                    multiplier,
+                    increase_only,
+                },
             });
 
     let performance_assessment_strategy = swap_adjustment_strategy_params.map(|_| {
@@ -1109,9 +1118,12 @@ mod create_vault_tests {
             .vault;
 
         assert_eq!(
-            vault.swap_adjustment_strategy.map(|s| match s {
-                SwapAdjustmentStrategy::RiskWeightedAverage { model_id, .. } => model_id,
-            }),
+            vault
+                .swap_adjustment_strategy
+                .map(|strategy| match strategy {
+                    SwapAdjustmentStrategy::RiskWeightedAverage { model_id, .. } => model_id,
+                    _ => panic!("unexpected swap adjustment strategy"),
+                }),
             Some(90)
         );
     }

@@ -15,7 +15,7 @@ use prost::Message;
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
 
-use crate::constants::{ONE, ONE_DECIMAL, OSMOSIS_SWAP_FEE_RATE, TEN};
+use crate::constants::{ONE, ONE_DECIMAL, SWAP_FEE_RATE, TEN};
 
 pub const USER: &str = "user";
 pub const ADMIN: &str = "admin";
@@ -92,7 +92,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                 },
                             ],
                             pool_params: Some(PoolParams {
-                                swap_fee: OSMOSIS_SWAP_FEE_RATE.to_string(),
+                                swap_fee: SWAP_FEE_RATE.to_string(),
                                 ..PoolParams::default()
                             }),
                             ..Pool::default()
@@ -116,7 +116,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                 },
                             ],
                             pool_params: Some(PoolParams {
-                                swap_fee: OSMOSIS_SWAP_FEE_RATE.to_string(),
+                                swap_fee: SWAP_FEE_RATE.to_string(),
                                 ..PoolParams::default()
                             }),
                             ..Pool::default()
@@ -140,7 +140,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                 },
                             ],
                             pool_params: Some(PoolParams {
-                                swap_fee: OSMOSIS_SWAP_FEE_RATE.to_string(),
+                                swap_fee: SWAP_FEE_RATE.to_string(),
                                 ..PoolParams::default()
                             }),
                             ..Pool::default()
@@ -164,7 +164,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                                 },
                             ],
                             pool_params: Some(PoolParams {
-                                swap_fee: OSMOSIS_SWAP_FEE_RATE.to_string(),
+                                swap_fee: SWAP_FEE_RATE.to_string(),
                                 ..PoolParams::default()
                             }),
                             ..Pool::default()

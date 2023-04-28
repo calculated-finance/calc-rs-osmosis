@@ -1,7 +1,7 @@
 use super::{
     coin::add_to,
     fees::{get_delegation_fee_rate, get_swap_fee_rate},
-    price::{calculate_slippage, query_price},
+    price::{calculate_slippage, query_belief_price, query_price},
     time::get_total_execution_duration,
 };
 use crate::{
@@ -13,6 +13,7 @@ use crate::{
         event::{EventBuilder, EventData, ExecutionSkippedReason},
         performance_assessment_strategy::PerformanceAssessmentStrategy,
         position_type::PositionType,
+        swap_adjustment_strategy::SwapAdjustmentStrategy,
         time_interval::TimeInterval,
         vault::Vault,
     },
@@ -28,12 +29,34 @@ pub fn get_position_type(deps: &Deps, vault: &Vault) -> StdResult<PositionType> 
 }
 
 pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin> {
-    let swap_adjustment = vault
-        .swap_adjustment_strategy
-        .clone()
-        .map_or(Decimal::one(), |strategy| {
-            get_swap_adjustment(deps.storage, strategy, env.block.time)
-        });
+    let swap_adjustment = match vault.swap_adjustment_strategy.clone() {
+        Some(SwapAdjustmentStrategy::WeightedScale {
+            base_receive_amount,
+            multiplier,
+            increase_only,
+        }) => {
+            let pair = find_pair(deps.storage, &vault.denoms())?;
+            let belief_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
+            let base_price = Decimal::from_ratio(vault.swap_amount, base_receive_amount);
+            let scaled_price_delta = base_price.abs_diff(belief_price) / base_price * multiplier;
+
+            if belief_price > base_price {
+                if increase_only {
+                    Decimal::one()
+                } else {
+                    Decimal::one()
+                        .checked_sub(scaled_price_delta)
+                        .unwrap_or_else(|_| Decimal::zero())
+                }
+            } else {
+                Decimal::one()
+                    .checked_add(scaled_price_delta)
+                    .unwrap_or_else(|_| Decimal::one())
+            }
+        }
+        Some(strategy) => get_swap_adjustment(deps.storage, strategy, env.block.time),
+        None => Decimal::one(),
+    };
 
     let adjusted_amount = vault.swap_amount * swap_adjustment;
 
@@ -245,17 +268,24 @@ pub fn simulate_standard_dca_execution(
 
 #[cfg(test)]
 mod get_swap_amount_tests {
+    use std::str::FromStr;
+
     use super::*;
     use crate::{
-        constants::{ONE, TWO_MICRONS},
+        constants::{ONE, SWAP_FEE_RATE, TWO_MICRONS},
         state::swap_adjustments::update_swap_adjustment,
-        tests::{helpers::setup_vault, mocks::DENOM_UOSMO},
+        tests::{
+            helpers::{instantiate_contract, setup_vault},
+            mocks::{calc_mock_dependencies, ADMIN, DENOM_UOSMO},
+        },
         types::swap_adjustment_strategy::SwapAdjustmentStrategy,
     };
     use cosmwasm_std::{
         coin,
-        testing::{mock_dependencies, mock_env},
+        testing::{mock_dependencies, mock_env, mock_info},
+        to_binary, StdError,
     };
+    use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 
     #[test]
     fn should_return_full_balance_when_vault_has_low_funds() {
@@ -290,7 +320,7 @@ mod get_swap_amount_tests {
     }
 
     #[test]
-    fn should_return_adjusted_swap_amount_for_rwa_strategy() {
+    fn rwa_should_return_adjusted_swap_amount() {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
@@ -322,8 +352,7 @@ mod get_swap_amount_tests {
     }
 
     #[test]
-    fn should_return_adjusted_swap_amount_for_rwa_strategy_with_low_funds_and_reduced_swap_amount()
-    {
+    fn rwa_should_return_adjusted_swap_amount_with_low_funds_and_reduced_swap_amount() {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
@@ -357,7 +386,7 @@ mod get_swap_amount_tests {
     }
 
     #[test]
-    fn should_return_vault_balance_for_rwa_strategy_with_low_funds_and_increased_swap_amount() {
+    fn rwa_should_return_vault_balance_with_low_funds_and_increased_swap_amount() {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
@@ -391,7 +420,7 @@ mod get_swap_amount_tests {
     }
 
     #[test]
-    fn should_return_vault_balance_for_rwa_strategy_with_increased_swap_amount_above_balance() {
+    fn raw_should_return_vault_balance_with_increased_swap_amount_above_balance() {
         let mut deps = mock_dependencies();
         let env = mock_env();
 
@@ -422,6 +451,162 @@ mod get_swap_amount_tests {
                 .amount,
             vault.balance.amount
         );
+    }
+
+    #[test]
+    fn ws_should_return_decreased_swap_amount_when_price_increased() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        let multiplier = Decimal::percent(300);
+        let base_receive_amount = ONE;
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::WeightedScale {
+                    base_receive_amount,
+                    multiplier,
+                    increase_only: false,
+                }),
+                ..Vault::default()
+            },
+        );
+
+        let base_price = Decimal::from_ratio(vault.swap_amount, base_receive_amount);
+        let current_price =
+            Decimal::percent(120) * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap());
+
+        deps.querier.update_stargate(|path, _| match path {
+            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
+                spot_price: "1.2".to_string(),
+            }),
+            _ => Err(StdError::generic_err("message not customised")),
+        });
+
+        let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault).unwrap();
+
+        assert_eq!(
+            swap_amount.amount,
+            vault.swap_amount
+                * (Decimal::one() - (current_price.abs_diff(base_price) / base_price) * multiplier)
+        );
+    }
+
+    #[test]
+    fn ws_should_not_return_decreased_swap_amount_when_price_increased_but_increase_only_is_true() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        let multiplier = Decimal::percent(300);
+        let base_receive_amount = ONE;
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::WeightedScale {
+                    base_receive_amount,
+                    multiplier,
+                    increase_only: true,
+                }),
+                ..Vault::default()
+            },
+        );
+
+        deps.querier.update_stargate(|path, _| match path {
+            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
+                spot_price: "1.2".to_string(),
+            }),
+            _ => Err(StdError::generic_err("message not customised")),
+        });
+
+        let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault).unwrap();
+
+        assert_eq!(swap_amount.amount, vault.swap_amount);
+    }
+
+    #[test]
+    fn ws_should_return_increased_swap_amount_when_price_decreased() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        let base_receive_amount = ONE;
+        let multiplier = Decimal::percent(150);
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::WeightedScale {
+                    base_receive_amount,
+                    multiplier,
+                    increase_only: false,
+                }),
+                ..Vault::default()
+            },
+        );
+
+        let base_price = Decimal::from_ratio(vault.swap_amount, base_receive_amount);
+        let current_price =
+            Decimal::percent(70) * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap());
+
+        deps.querier.update_stargate(|path, _| match path {
+            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
+                spot_price: "0.7".to_string(),
+            }),
+            _ => Err(StdError::generic_err("message not customised")),
+        });
+
+        let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault).unwrap();
+
+        assert_eq!(
+            swap_amount.amount,
+            vault.swap_amount
+                * (Decimal::one() + (current_price.abs_diff(base_price) / base_price) * multiplier)
+        );
+    }
+
+    #[test]
+    fn ws_should_return_swap_amount_zero_when_price_increased_enough() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
+
+        let base_receive_amount = ONE;
+        let multiplier = Decimal::percent(300);
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::WeightedScale {
+                    base_receive_amount,
+                    multiplier,
+                    increase_only: false,
+                }),
+                ..Vault::default()
+            },
+        );
+
+        deps.querier.update_stargate(|path, _| match path {
+            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
+                spot_price: "2.0".to_string(),
+            }),
+            _ => Err(StdError::generic_err("message not customised")),
+        });
+
+        let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault).unwrap();
+
+        assert_eq!(swap_amount.amount, Uint128::zero());
     }
 }
 

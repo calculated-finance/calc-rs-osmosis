@@ -150,6 +150,23 @@ pub fn execute_trigger_handler(
 
     let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault)?;
 
+    if swap_amount.amount.is_zero() {
+        create_event(
+            deps.storage,
+            EventBuilder::new(
+                vault.id,
+                env.block,
+                EventData::DcaVaultExecutionSkipped {
+                    reason: ExecutionSkippedReason::SwapAmountAdjustedToZero,
+                },
+            ),
+        )?;
+
+        response = response.add_attribute("execution_skipped", "swap_amount_adjusted_to_zero");
+
+        return Ok(response);
+    }
+
     if price_threshold_exceeded(
         swap_amount.amount,
         vault.minimum_receive_amount,
@@ -201,7 +218,7 @@ pub fn execute_trigger_handler(
 #[cfg(test)]
 mod execute_trigger_tests {
     use super::*;
-    use crate::constants::{ONE, ONE_MICRON, OSMOSIS_SWAP_FEE_RATE, TEN, TWO_MICRONS};
+    use crate::constants::{ONE, ONE_MICRON, SWAP_FEE_RATE, TEN, TWO_MICRONS};
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
     use crate::helpers::fees::{get_delegation_fee_rate, get_swap_fee_rate};
     use crate::helpers::vault::get_swap_amount;
@@ -220,6 +237,7 @@ mod execute_trigger_tests {
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_env, mock_info};
     use cosmwasm_std::{to_binary, Coin, Decimal, ReplyOn, StdError, SubMsg, Uint128, WasmMsg};
+    use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
     use osmosis_std::types::osmosis::poolmanager::v1beta1::{
         EstimateSwapExactAmountInResponse, MsgSwapExactAmountIn, SwapAmountInRoute,
     };
@@ -422,7 +440,7 @@ mod execute_trigger_tests {
             data: EventData::DcaVaultExecutionTriggered {
                 base_denom: pair.base_denom,
                 quote_denom: pair.quote_denom,
-                asset_price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
+                asset_price: Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap()
             }
         }));
     }
@@ -503,6 +521,84 @@ mod execute_trigger_tests {
             updated_vault.swap_adjustment_strategy.unwrap(),
             vault.swap_adjustment_strategy.unwrap()
         );
+    }
+
+    #[test]
+    fn with_swap_adjusted_to_zero_should_publish_execution_skipped_event() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::WeightedScale {
+                    base_receive_amount: ONE,
+                    multiplier: Decimal::percent(500),
+                    increase_only: false,
+                }),
+                ..Vault::default()
+            },
+        );
+
+        deps.querier.update_stargate(|path, _| match path {
+            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
+                spot_price: "3".to_string(),
+            }),
+            _ => Err(StdError::generic_err("message not customised")),
+        });
+
+        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+
+        let events = get_events_by_resource_id_handler(deps.as_ref(), vault.id, None, None, None)
+            .unwrap()
+            .events;
+
+        assert!(events.contains(&Event {
+            id: 2,
+            resource_id: vault.id,
+            timestamp: env.block.time,
+            block_height: env.block.height,
+            data: EventData::DcaVaultExecutionSkipped {
+                reason: ExecutionSkippedReason::SwapAmountAdjustedToZero
+            }
+        }));
+    }
+
+    #[test]
+    fn with_swap_adjusted_to_zero_should_not_send_swap_message() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                swap_adjustment_strategy: Some(SwapAdjustmentStrategy::WeightedScale {
+                    base_receive_amount: ONE,
+                    multiplier: Decimal::percent(500),
+                    increase_only: false,
+                }),
+                ..Vault::default()
+            },
+        );
+
+        deps.querier.update_stargate(|path, _| match path {
+            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
+                spot_price: "3".to_string(),
+            }),
+            _ => Err(StdError::generic_err("message not customised")),
+        });
+
+        let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+
+        assert!(response.messages.is_empty());
     }
 
     #[test]
@@ -641,7 +737,7 @@ mod execute_trigger_tests {
             block_height: env.block.height,
             data: EventData::SimulatedDcaVaultExecutionSkipped {
                 reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                    price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
+                    price: Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap()
                 },
             }
         }));
@@ -1084,7 +1180,7 @@ mod execute_trigger_tests {
             },
         );
 
-        let belief_price = Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap();
+        let belief_price = Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap();
 
         let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
@@ -1146,7 +1242,7 @@ mod execute_trigger_tests {
             block_height: env.block.height,
             data: EventData::DcaVaultExecutionSkipped {
                 reason: ExecutionSkippedReason::PriceThresholdExceeded {
-                    price: Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap()
+                    price: Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap()
                 }
             }
         }));

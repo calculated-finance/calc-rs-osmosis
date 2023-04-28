@@ -94,7 +94,7 @@ mod query_belief_price_tests {
 
     use super::*;
     use crate::{
-        constants::OSMOSIS_SWAP_FEE_RATE,
+        constants::SWAP_FEE_RATE,
         tests::{
             helpers::instantiate_contract,
             mocks::{calc_mock_dependencies, ADMIN},
@@ -139,8 +139,7 @@ mod query_belief_price_tests {
 
         assert_eq!(
             price,
-            Decimal::percent(80)
-                * (Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap())
+            Decimal::percent(80) * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap())
         );
     }
 
@@ -181,9 +180,9 @@ mod query_belief_price_tests {
         assert_eq!(
             price,
             Decimal::percent(20)
-                * (Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap())
+                * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap())
                 * Decimal::percent(120)
-                * (Decimal::one() + Decimal::from_str(OSMOSIS_SWAP_FEE_RATE).unwrap())
+                * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap())
         );
     }
 }

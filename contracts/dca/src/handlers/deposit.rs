@@ -71,6 +71,7 @@ pub fn deposit_handler(
                     base_denom,
                     position_type,
                 },
+                _ => swap_adjustment_strategy,
             });
 
     update_vault(deps.storage, &vault)?;
@@ -513,16 +514,20 @@ mod dposit_tests {
         assert_eq!(
             vault
                 .swap_adjustment_strategy
-                .unwrap()
-                .risk_weighted_average_model_id(),
-            30
+                .map(|strategy| match strategy {
+                    SwapAdjustmentStrategy::RiskWeightedAverage { model_id, .. } => model_id,
+                    _ => panic!("unexpected swap adjustment strategy"),
+                }),
+            Some(30)
         );
         assert_eq!(
             updated_vault
                 .swap_adjustment_strategy
-                .unwrap()
-                .risk_weighted_average_model_id(),
-            80
+                .map(|strategy| match strategy {
+                    SwapAdjustmentStrategy::RiskWeightedAverage { model_id, .. } => model_id,
+                    _ => panic!("unexpected swap adjustment strategy"),
+                }),
+            Some(80)
         );
     }
 
