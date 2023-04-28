@@ -71,15 +71,7 @@ pub fn deposit_handler(
                     base_denom,
                     position_type,
                 },
-                SwapAdjustmentStrategy::WeightedScale {
-                    base_receive_amount,
-                    multiplier,
-                    increase_only,
-                } => SwapAdjustmentStrategy::WeightedScale {
-                    base_receive_amount,
-                    multiplier,
-                    increase_only,
-                },
+                _ => swap_adjustment_strategy,
             });
 
     update_vault(deps.storage, &vault)?;
