@@ -57,6 +57,7 @@ pub enum ExecuteMsg {
     UpdateVault {
         vault_id: Uint128,
         label: Option<String>,
+        destinations: Option<Vec<Destination>>,
     },
     CancelVault {
         vault_id: Uint128,

@@ -267,6 +267,15 @@
               "vault_id"
             ],
             "properties": {
+              "destinations": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/definitions/Destination"
+                }
+              },
               "label": {
                 "type": [
                   "string",

@@ -99,9 +99,11 @@ pub fn execute(
             performance_assessment_strategy,
             swap_adjustment_strategy,
         ),
-        ExecuteMsg::UpdateVault { vault_id, label } => {
-            update_vault_handler(deps, info, vault_id, label)
-        }
+        ExecuteMsg::UpdateVault {
+            vault_id,
+            label,
+            destinations,
+        } => update_vault_handler(deps, info, vault_id, label, destinations),
         ExecuteMsg::CancelVault { vault_id } => cancel_vault_handler(deps, env, info, vault_id),
         ExecuteMsg::ExecuteTrigger { trigger_id } => execute_trigger_handler(deps, env, trigger_id),
         ExecuteMsg::Deposit { address, vault_id } => {
