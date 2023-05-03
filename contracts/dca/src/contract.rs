@@ -108,6 +108,7 @@ pub fn execute(
             deposit_handler(deps, env, info, address, vault_id)
         }
         ExecuteMsg::UpdateConfig {
+            executors,
             fee_collectors,
             swap_fee_percent,
             delegation_fee_percent,
@@ -117,6 +118,7 @@ pub fn execute(
         } => update_config_handler(
             deps,
             info,
+            executors,
             fee_collectors,
             swap_fee_percent,
             delegation_fee_percent,
@@ -132,7 +134,7 @@ pub fn execute(
             remove_custom_swap_fee_handler(deps, info, denom)
         }
         ExecuteMsg::UpdateSwapAdjustment { strategy, value } => {
-            update_swap_adjustment_handler(deps, env, strategy, value)
+            update_swap_adjustment_handler(deps, env, info, strategy, value)
         }
         ExecuteMsg::DisburseEscrow { vault_id } => {
             disburse_escrow_handler(deps, &env, info, vault_id)

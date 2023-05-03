@@ -264,7 +264,7 @@
           "type": "string",
           "enum": [
             "slippage_tolerance_exceeded",
-            "unknown_failure"
+            "swap_amount_adjusted_to_zero"
           ]
         },
         {
@@ -280,37 +280,6 @@
               ],
               "properties": {
                 "price": {
-                  "$ref": "#/definitions/Decimal"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "price_delta_limit_exceeded"
-          ],
-          "properties": {
-            "price_delta_limit_exceeded": {
-              "type": "object",
-              "required": [
-                "actual_price_delta",
-                "duration_in_seconds",
-                "max_price_delta"
-              ],
-              "properties": {
-                "actual_price_delta": {
-                  "$ref": "#/definitions/Decimal"
-                },
-                "duration_in_seconds": {
-                  "type": "integer",
-                  "format": "uint64",
-                  "minimum": 0.0
-                },
-                "max_price_delta": {
                   "$ref": "#/definitions/Decimal"
                 }
               },

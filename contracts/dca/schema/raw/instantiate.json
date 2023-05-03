@@ -5,6 +5,7 @@
   "required": [
     "admin",
     "delegation_fee_percent",
+    "executors",
     "fee_collectors",
     "page_limit",
     "paused",
@@ -17,6 +18,12 @@
     },
     "delegation_fee_percent": {
       "$ref": "#/definitions/Decimal"
+    },
+    "executors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Addr"
+      }
     },
     "fee_collectors": {
       "type": "array",

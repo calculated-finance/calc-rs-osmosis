@@ -2,11 +2,13 @@ use crate::{
     contract::{CONTRACT_NAME, CONTRACT_VERSION},
     error::ContractError,
     helpers::validation::{
-        assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
+        assert_addresses_are_valid, assert_fee_collector_addresses_are_valid,
+        assert_fee_collector_allocations_add_up_to_one,
         assert_risk_weighted_average_escrow_level_is_less_than_100_percent,
     },
     msg::InstantiateMsg,
-    state::config::{update_config, Config},
+    state::config::update_config,
+    types::config::Config,
 };
 use cosmwasm_std::{DepsMut, Response};
 use cw2::set_contract_version;
@@ -14,6 +16,7 @@ use cw2::set_contract_version;
 pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Response, ContractError> {
     deps.api.addr_validate(msg.admin.as_ref())?;
 
+    assert_addresses_are_valid(deps.as_ref(), &msg.executors, "executor")?;
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
     assert_risk_weighted_average_escrow_level_is_less_than_100_percent(
@@ -24,6 +27,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
         deps.storage,
         Config {
             admin: msg.admin.clone(),
+            executors: msg.executors,
             fee_collectors: msg.fee_collectors,
             swap_fee_percent: msg.swap_fee_percent,
             delegation_fee_percent: msg.delegation_fee_percent,
@@ -44,7 +48,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
 mod instantiate_tests {
     use crate::contract::instantiate;
     use crate::msg::InstantiateMsg;
-    use crate::state::config::FeeCollector;
+    use crate::types::fee_collector::FeeCollector;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{attr, Addr, Decimal};
     use std::str::FromStr;
@@ -60,6 +64,7 @@ mod instantiate_tests {
 
         let instantiate_message = InstantiateMsg {
             admin: Addr::unchecked(VALID_ADDRESS_ONE),
+            executors: vec![Addr::unchecked("executor")],
             fee_collectors: vec![FeeCollector {
                 address: VALID_ADDRESS_ONE.to_string(),
                 allocation: Decimal::from_str("1").unwrap(),
@@ -90,6 +95,7 @@ mod instantiate_tests {
 
         let instantiate_message = InstantiateMsg {
             admin: Addr::unchecked(INVALID_ADDRESS),
+            executors: vec![Addr::unchecked("executor")],
             fee_collectors: vec![FeeCollector {
                 address: VALID_ADDRESS_ONE.to_string(),
                 allocation: Decimal::from_str("1").unwrap(),
@@ -117,6 +123,7 @@ mod instantiate_tests {
 
         let instantiate_message = InstantiateMsg {
             admin: Addr::unchecked(VALID_ADDRESS_ONE),
+            executors: vec![Addr::unchecked("executor")],
             fee_collectors: vec![FeeCollector {
                 address: INVALID_ADDRESS.to_string(),
                 allocation: Decimal::from_str("1").unwrap(),
@@ -144,6 +151,7 @@ mod instantiate_tests {
 
         let instantiate_message = InstantiateMsg {
             admin: Addr::unchecked(VALID_ADDRESS_ONE),
+            executors: vec![Addr::unchecked("executor")],
             fee_collectors: vec![],
             swap_fee_percent: Decimal::from_str("0.015").unwrap(),
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),

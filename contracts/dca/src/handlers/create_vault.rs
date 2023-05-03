@@ -207,11 +207,12 @@ mod create_vault_tests {
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
     use crate::handlers::get_vault::get_vault_handler;
     use crate::msg::ExecuteMsg;
-    use crate::state::config::{get_config, update_config, Config};
+    use crate::state::config::{get_config, update_config};
     use crate::tests::helpers::instantiate_contract;
     use crate::tests::mocks::{
         calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO, USER, VALIDATOR,
     };
+    use crate::types::config::Config;
     use crate::types::destination::Destination;
     use crate::types::event::{EventBuilder, EventData};
     use crate::types::pair::Pair;

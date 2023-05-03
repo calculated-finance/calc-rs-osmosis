@@ -1,7 +1,8 @@
 use crate::error::ContractError;
-use crate::state::config::{get_config, FeeCollector};
+use crate::state::config::get_config;
 use crate::state::pairs::find_pair;
 use crate::types::destination::Destination;
+use crate::types::fee_collector::FeeCollector;
 use crate::types::pair::Pair;
 use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategyParams;
 use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategyParams;
@@ -41,6 +42,21 @@ pub fn assert_sender_is_admin(
     Ok(())
 }
 
+pub fn assert_sender_is_executor(
+    storage: &mut dyn Storage,
+    env: &Env,
+    sender: &Addr,
+) -> Result<(), ContractError> {
+    let config = get_config(storage)?;
+    if !config.executors.contains(sender)
+        && sender != config.admin
+        && sender != env.contract.address
+    {
+        return Err(ContractError::Unauthorized {});
+    }
+    Ok(())
+}
+
 pub fn asset_sender_is_vault_owner(vault_owner: Addr, sender: Addr) -> Result<(), ContractError> {
     if sender != vault_owner {
         return Err(ContractError::Unauthorized {});
@@ -66,7 +82,7 @@ pub fn assert_sender_is_contract_or_admin(
     env: &Env,
 ) -> Result<(), ContractError> {
     let config = get_config(storage)?;
-    if sender != &config.admin && sender != &env.contract.address {
+    if sender != config.admin && sender != env.contract.address {
         return Err(ContractError::Unauthorized {});
     }
     Ok(())
@@ -186,6 +202,16 @@ pub fn assert_address_is_valid(
         .map_err(|_| ContractError::CustomError {
             val: format!("{} address {} is invalid", label, address),
         })
+}
+
+pub fn assert_addresses_are_valid(
+    deps: Deps,
+    addresses: &[Addr],
+    label: &str,
+) -> Result<(), ContractError> {
+    addresses
+        .iter()
+        .try_for_each(|address| assert_address_is_valid(deps, address.clone(), label))
 }
 
 pub fn assert_pair_exists_for_denoms(

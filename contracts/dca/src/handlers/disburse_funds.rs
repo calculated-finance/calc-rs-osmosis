@@ -145,7 +145,7 @@ mod disburse_funds_tests {
         helpers::vault::get_swap_amount,
         state::{
             cache::{SwapCache, SWAP_CACHE},
-            config::{create_custom_fee, get_config, FeeCollector},
+            config::{create_custom_fee, get_config},
             swap_adjustments::update_swap_adjustment,
             vaults::get_vault,
         },
@@ -159,6 +159,7 @@ mod disburse_funds_tests {
         types::{
             destination::Destination,
             event::{Event, EventBuilder, EventData, ExecutionSkippedReason},
+            fee_collector::FeeCollector,
             performance_assessment_strategy::PerformanceAssessmentStrategy,
             position_type::PositionType,
             swap_adjustment_strategy::{BaseDenom, SwapAdjustmentStrategy},

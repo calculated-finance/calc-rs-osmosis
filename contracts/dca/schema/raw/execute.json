@@ -263,6 +263,15 @@
                 }
               ]
             },
+            "executors": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/Addr"
+              }
+            },
             "fee_collectors": {
               "type": [
                 "array",
