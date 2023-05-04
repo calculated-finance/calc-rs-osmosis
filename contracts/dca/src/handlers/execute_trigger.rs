@@ -223,12 +223,13 @@ mod execute_trigger_tests {
     use crate::helpers::fees::{get_delegation_fee_rate, get_swap_fee_rate};
     use crate::helpers::vault::get_swap_amount;
     use crate::msg::ExecuteMsg;
-    use crate::state::config::{update_config, Config};
+    use crate::state::config::update_config;
     use crate::state::swap_adjustments::update_swap_adjustment;
     use crate::state::triggers::delete_trigger;
     use crate::state::vaults::get_vault;
     use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO};
+    use crate::types::config::Config;
     use crate::types::event::{Event, EventData, ExecutionSkippedReason};
     use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategy;
     use crate::types::position_type::PositionType;

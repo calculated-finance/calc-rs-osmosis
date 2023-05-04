@@ -5,7 +5,7 @@ use crate::{
         disbursement::get_disbursement_messages,
         fees::{get_fee_messages, get_performance_fee},
         price::query_belief_price,
-        validation::assert_sender_is_contract_or_admin,
+        validation::assert_sender_is_executor,
     },
     state::{
         disburse_escrow_tasks::delete_disburse_escrow_task,
@@ -26,7 +26,7 @@ pub fn disburse_escrow_handler(
     info: MessageInfo,
     vault_id: Uint128,
 ) -> Result<Response, ContractError> {
-    assert_sender_is_contract_or_admin(deps.storage, &info.sender, env)?;
+    assert_sender_is_executor(deps.storage, env, &info.sender)?;
 
     let vault = get_vault(deps.storage, vault_id)?;
 

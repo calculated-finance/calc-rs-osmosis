@@ -124,9 +124,10 @@ mod dposit_tests {
     use crate::handlers::get_vault::get_vault_handler;
     use crate::helpers::coin::{add, subtract};
     use crate::msg::ExecuteMsg;
-    use crate::state::config::{get_config, update_config, Config};
+    use crate::state::config::{get_config, update_config};
     use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
+    use crate::types::config::Config;
     use crate::types::event::{EventBuilder, EventData};
     use crate::types::position_type::PositionType;
     use crate::types::swap_adjustment_strategy::{BaseDenom, SwapAdjustmentStrategy};

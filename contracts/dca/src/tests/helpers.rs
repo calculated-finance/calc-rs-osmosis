@@ -6,14 +6,15 @@ use crate::{
     msg::{ExecuteMsg, InstantiateMsg},
     state::{
         cache::{VaultCache, VAULT_CACHE},
-        config::{Config, FeeCollector},
         pairs::save_pair,
         triggers::save_trigger,
         vaults::update_vault,
     },
     types::{
+        config::Config,
         destination::Destination,
         event::{EventBuilder, EventData},
+        fee_collector::FeeCollector,
         pair::Pair,
         performance_assessment_strategy::PerformanceAssessmentStrategy,
         position_type::PositionType,
@@ -33,6 +34,7 @@ use std::{cmp::max, str::FromStr};
 pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
+        executors: vec![Addr::unchecked("executor")],
         fee_collectors: vec![FeeCollector {
             address: ADMIN.to_string(),
             allocation: Decimal::from_str("1").unwrap(),
@@ -55,6 +57,7 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
 ) {
     let instantiate_message = InstantiateMsg {
         admin: Addr::unchecked(ADMIN),
+        executors: vec![Addr::unchecked("executor")],
         fee_collectors,
         swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
         delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
@@ -70,6 +73,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             admin: Addr::unchecked(ADMIN),
+            executors: vec![Addr::unchecked("executor")],
             fee_collectors: vec![FeeCollector {
                 address: ADMIN.to_string(),
                 allocation: Decimal::from_str("1").unwrap(),
