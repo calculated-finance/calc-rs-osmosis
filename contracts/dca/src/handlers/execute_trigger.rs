@@ -123,10 +123,7 @@ pub fn execute_trigger_handler(
                 configuration: TriggerConfiguration::Time {
                     target_time: get_next_target_time(
                         env.block.time,
-                        match vault.trigger {
-                            Some(TriggerConfiguration::Time { target_time }) => target_time,
-                            _ => env.block.time,
-                        },
+                        vault.started_at.unwrap_or(env.block.time),
                         vault.time_interval.clone(),
                     ),
                 },

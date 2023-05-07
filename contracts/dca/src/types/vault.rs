@@ -20,6 +20,7 @@ pub enum VaultStatus {
 pub struct Vault {
     pub id: Uint128,
     pub created_at: Timestamp,
+    pub started_at: Option<Timestamp>,
     pub owner: Addr,
     pub label: Option<String>,
     pub destinations: Vec<Destination>,
@@ -30,7 +31,6 @@ pub struct Vault {
     pub slippage_tolerance: Option<Decimal>,
     pub minimum_receive_amount: Option<Uint128>,
     pub time_interval: TimeInterval,
-    pub started_at: Option<Timestamp>,
     pub escrow_level: Decimal,
     pub deposited_amount: Coin,
     pub swapped_amount: Coin,
@@ -182,6 +182,7 @@ impl VaultBuilder {
         Vault {
             id,
             created_at: self.created_at,
+            started_at: self.started_at,
             owner: self.owner,
             label: self.label,
             destinations: self.destinations,
@@ -192,7 +193,6 @@ impl VaultBuilder {
             slippage_tolerance: self.slippage_tolerance,
             minimum_receive_amount: self.minimum_receive_amount,
             time_interval: self.time_interval,
-            started_at: self.started_at,
             escrow_level: self.escrow_level,
             deposited_amount: self.deposited_amount,
             swapped_amount: self.swapped_amount,

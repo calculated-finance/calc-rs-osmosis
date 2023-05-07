@@ -9,18 +9,18 @@ pub fn target_time_elapsed(current_time: Timestamp, target_execution_time: Times
 
 pub fn get_next_target_time(
     current_timestamp: Timestamp,
-    last_execution_timestamp: Timestamp,
+    started_at: Timestamp,
     interval: TimeInterval,
 ) -> Timestamp {
     let current_time = Utc
         .timestamp_opt(current_timestamp.seconds().try_into().unwrap(), 0)
         .unwrap();
 
-    let last_execution_time = Utc
-        .timestamp_opt(last_execution_timestamp.seconds().try_into().unwrap(), 0)
+    let started_at_time = Utc
+        .timestamp_opt(started_at.seconds().try_into().unwrap(), 0)
         .unwrap();
 
-    let mut next_execution_time = get_next_time(last_execution_time, &interval);
+    let mut next_execution_time = get_next_time(started_at_time, &interval);
 
     match interval {
         TimeInterval::Monthly => {
@@ -29,18 +29,16 @@ pub fn get_next_target_time(
             }
         }
         _ => {
-            let interval_duration_in_seconds =
-                get_duration(last_execution_time, &interval).num_seconds();
+            let interval_duration = get_duration(started_at_time, &interval);
 
-            let increments_until_future_execution_date = (current_time - last_execution_time)
+            let increments_until_future_execution_date = (current_time - started_at_time)
                 .num_seconds()
-                .checked_div(interval_duration_in_seconds)
+                .checked_div(interval_duration.num_seconds())
                 .expect("should be a valid timestamp")
                 + 1;
 
-            next_execution_time = last_execution_time
-                + get_duration(last_execution_time, &interval)
-                    * increments_until_future_execution_date as i32;
+            next_execution_time =
+                started_at_time + interval_duration * increments_until_future_execution_date as i32;
         }
     }
 

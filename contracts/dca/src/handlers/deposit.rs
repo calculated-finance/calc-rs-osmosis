@@ -1,10 +1,10 @@
 use crate::error::ContractError;
+use crate::helpers::time::get_next_target_time;
 use crate::helpers::validation::{
     assert_contract_is_not_paused, assert_deposited_denom_matches_send_denom,
     assert_exactly_one_asset, assert_vault_is_not_cancelled,
 };
 use crate::helpers::vault::get_risk_weighted_average_model_id;
-use crate::msg::ExecuteMsg;
 use crate::state::events::create_event;
 use crate::state::triggers::save_trigger;
 use crate::state::vaults::{get_vault, update_vault};
@@ -12,7 +12,7 @@ use crate::types::event::{EventBuilder, EventData};
 use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::VaultStatus;
-use cosmwasm_std::{to_binary, Addr, Env, SubMsg, WasmMsg};
+use cosmwasm_std::{Addr, Env};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, MessageInfo, Response, Uint128};
 
@@ -87,33 +87,26 @@ pub fn deposit_handler(
         ),
     )?;
 
-    let mut response = Response::new()
-        .add_attribute("deposit", "true")
-        .add_attribute("vault_id", vault.id)
-        .add_attribute("deposited_amount", info.funds[0].amount);
-
     if vault.is_active() && vault_was_inactive && vault.trigger.is_none() {
         save_trigger(
             deps.storage,
             Trigger {
                 vault_id,
                 configuration: TriggerConfiguration::Time {
-                    target_time: env.block.time,
+                    target_time: get_next_target_time(
+                        env.block.time,
+                        vault.started_at.unwrap_or(env.block.time),
+                        vault.time_interval,
+                    ),
                 },
             },
         )?;
-
-        response = response.add_submessage(SubMsg::new(WasmMsg::Execute {
-            contract_addr: env.contract.address.to_string(),
-            msg: to_binary(&ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault.id,
-            })
-            .unwrap(),
-            funds: vec![],
-        }));
     };
 
-    Ok(response)
+    Ok(Response::new()
+        .add_attribute("deposit", "true")
+        .add_attribute("vault_id", vault.id)
+        .add_attribute("deposited_amount", info.funds[0].amount))
 }
 
 #[cfg(test)]
@@ -123,7 +116,6 @@ mod dposit_tests {
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
     use crate::handlers::get_vault::get_vault_handler;
     use crate::helpers::coin::{add, subtract};
-    use crate::msg::ExecuteMsg;
     use crate::state::config::{get_config, update_config};
     use crate::tests::helpers::{instantiate_contract, setup_vault};
     use crate::tests::mocks::{ADMIN, DENOM_STAKE, DENOM_UOSMO, USER};
@@ -133,7 +125,7 @@ mod dposit_tests {
     use crate::types::swap_adjustment_strategy::{BaseDenom, SwapAdjustmentStrategy};
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{to_binary, Addr, Coin, SubMsg, WasmMsg};
+    use cosmwasm_std::{Addr, Coin};
 
     #[test]
     fn updates_the_vault_balance() {
@@ -262,38 +254,6 @@ mod dposit_tests {
 
         assert_eq!(vault.status, VaultStatus::Active);
         assert_eq!(updated_vault.status, VaultStatus::Active);
-    }
-
-    #[test]
-    fn executes_trigger_for_reactivated_vault() {
-        let mut deps = mock_dependencies();
-        let env = mock_env();
-        let deposit_amount = Coin::new(TEN.into(), DENOM_UOSMO);
-        let info = mock_info(ADMIN, &[deposit_amount.clone()]);
-
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
-
-        let vault = setup_vault(
-            deps.as_mut(),
-            env.clone(),
-            Vault {
-                status: VaultStatus::Inactive,
-                trigger: None,
-                ..Vault::default()
-            },
-        );
-
-        let response =
-            deposit_handler(deps.as_mut(), env.clone(), info, vault.owner, vault.id).unwrap();
-
-        assert!(response.messages.contains(&SubMsg::new(WasmMsg::Execute {
-            contract_addr: env.contract.address.to_string(),
-            msg: to_binary(&ExecuteMsg::ExecuteTrigger {
-                trigger_id: vault.id,
-            })
-            .unwrap(),
-            funds: vec![],
-        })))
     }
 
     #[test]
