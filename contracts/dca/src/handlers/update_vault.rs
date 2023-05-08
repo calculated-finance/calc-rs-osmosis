@@ -22,6 +22,7 @@ pub fn update_vault_handler(
 
     let mut vault = get_vault(deps.storage, vault_id)?;
 
+    asset_sender_is_vault_owner(vault.owner.clone(), info.sender)?;
     assert_vault_is_not_cancelled(&vault)?;
 
     vault.label = label.clone();
@@ -44,8 +45,6 @@ pub fn update_vault_handler(
     }
 
     update_vault(deps.storage, &vault)?;
-
-    asset_sender_is_vault_owner(vault.owner, info.sender)?;
 
     Ok(Response::default()
         .add_attribute("update_vault", "true")
