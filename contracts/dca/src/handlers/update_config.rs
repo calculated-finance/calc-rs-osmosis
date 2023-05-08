@@ -1,10 +1,10 @@
 use crate::{
     error::ContractError,
     helpers::validation::{
-        assert_addresses_are_valid, assert_default_slippage_tolerance_is_less_than_or_equal_to_one,
-        assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
+        assert_addresses_are_valid, assert_fee_collector_addresses_are_valid,
+        assert_fee_collector_allocations_add_up_to_one,
         assert_risk_weighted_average_escrow_level_is_less_than_100_percent, assert_sender_is_admin,
-        assert_twap_period_is_valid,
+        assert_slippage_tolerance_is_less_than_or_equal_to_one, assert_twap_period_is_valid,
     },
     state::config::{get_config, update_config},
     types::{config::Config, fee_collector::FeeCollector},
@@ -43,9 +43,7 @@ pub fn update_config_handler(
             .unwrap_or(existing_config.default_slippage_tolerance),
     };
 
-    assert_default_slippage_tolerance_is_less_than_or_equal_to_one(
-        config.default_slippage_tolerance,
-    )?;
+    assert_slippage_tolerance_is_less_than_or_equal_to_one(config.default_slippage_tolerance)?;
     assert_twap_period_is_valid(config.twap_period)?;
     assert_addresses_are_valid(deps.as_ref(), &config.executors, "executor")?;
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &config.fee_collectors)?;

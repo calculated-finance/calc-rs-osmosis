@@ -226,7 +226,7 @@ pub fn assert_twap_period_is_valid(twap_period: u64) -> Result<(), ContractError
     Ok(())
 }
 
-pub fn assert_default_slippage_tolerance_is_less_than_or_equal_to_one(
+pub fn assert_slippage_tolerance_is_less_than_or_equal_to_one(
     slippage_tolerance: Decimal,
 ) -> Result<(), ContractError> {
     if slippage_tolerance > Decimal::percent(100) {
