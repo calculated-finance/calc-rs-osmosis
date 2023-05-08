@@ -1,8 +1,9 @@
 use crate::{
     error::ContractError,
     helpers::validation::{
-        assert_addresses_are_valid, assert_fee_collector_addresses_are_valid,
-        assert_fee_collector_allocations_add_up_to_one,
+        assert_addresses_are_valid, assert_default_page_limit_is_at_least_30,
+        assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
+        assert_no_more_than_10_fee_collectors,
         assert_risk_weighted_average_escrow_level_is_less_than_100_percent, assert_sender_is_admin,
         assert_slippage_tolerance_is_less_than_or_equal_to_one, assert_twap_period_is_valid,
     },
@@ -34,7 +35,7 @@ pub fn update_config_handler(
         swap_fee_percent: swap_fee_percent.unwrap_or(existing_config.swap_fee_percent),
         delegation_fee_percent: delegation_fee_percent
             .unwrap_or(existing_config.delegation_fee_percent),
-        page_limit: page_limit.unwrap_or(existing_config.page_limit),
+        default_page_limit: page_limit.unwrap_or(existing_config.default_page_limit),
         paused: paused.unwrap_or(existing_config.paused),
         risk_weighted_average_escrow_level: risk_weighted_average_escrow_level
             .unwrap_or(existing_config.risk_weighted_average_escrow_level),
@@ -43,9 +44,11 @@ pub fn update_config_handler(
             .unwrap_or(existing_config.default_slippage_tolerance),
     };
 
+    assert_default_page_limit_is_at_least_30(config.default_page_limit)?;
     assert_slippage_tolerance_is_less_than_or_equal_to_one(config.default_slippage_tolerance)?;
     assert_twap_period_is_valid(config.twap_period)?;
     assert_addresses_are_valid(deps.as_ref(), &config.executors, "executor")?;
+    assert_no_more_than_10_fee_collectors(&config.fee_collectors)?;
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &config.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&config.fee_collectors)?;
     assert_risk_weighted_average_escrow_level_is_less_than_100_percent(
@@ -442,6 +445,68 @@ mod update_config_tests {
         assert_eq!(
             err.to_string(),
             "Error: default slippage tolerance must be less than or equal to 1"
+        )
+    }
+
+    #[test]
+    fn with_more_than_10_fee_collectors_should_fail() {
+        let mut deps = mock_dependencies();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), mock_env(), info.clone());
+
+        let err = update_config_handler(
+            deps.as_mut(),
+            info,
+            None,
+            Some(vec![
+                FeeCollector {
+                    address: "fee-collector".to_string(),
+                    allocation: Decimal::percent(5),
+                };
+                20
+            ]),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: no more than 10 fee collectors are allowed"
+        )
+    }
+
+    #[test]
+    fn with_page_limit_less_than_30_should_fail() {
+        let mut deps = mock_dependencies();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), mock_env(), info.clone());
+
+        let err = update_config_handler(
+            deps.as_mut(),
+            info,
+            None,
+            None,
+            None,
+            None,
+            Some(10),
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: default page limit cannot be smaller than 30"
         )
     }
 }

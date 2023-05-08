@@ -84,7 +84,7 @@ impl Default for Config {
             }],
             swap_fee_percent: Decimal::from_str("0.0165").unwrap(),
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-            page_limit: 1000,
+            default_page_limit: 1000,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.0075").unwrap(),
             twap_period: 30,

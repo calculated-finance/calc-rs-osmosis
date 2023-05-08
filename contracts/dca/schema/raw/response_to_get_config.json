@@ -20,11 +20,11 @@
       "type": "object",
       "required": [
         "admin",
+        "default_page_limit",
         "default_slippage_tolerance",
         "delegation_fee_percent",
         "executors",
         "fee_collectors",
-        "page_limit",
         "paused",
         "risk_weighted_average_escrow_level",
         "swap_fee_percent",
@@ -33,6 +33,11 @@
       "properties": {
         "admin": {
           "$ref": "#/definitions/Addr"
+        },
+        "default_page_limit": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
         },
         "default_slippage_tolerance": {
           "$ref": "#/definitions/Decimal"
@@ -51,11 +56,6 @@
           "items": {
             "$ref": "#/definitions/FeeCollector"
           }
-        },
-        "page_limit": {
-          "type": "integer",
-          "format": "uint16",
-          "minimum": 0.0
         },
         "paused": {
           "type": "boolean"
