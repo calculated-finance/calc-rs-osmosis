@@ -246,7 +246,7 @@ describe('when creating a vault', () => {
     });
   });
 
-  describe('with dca plus & a time trigger', () => {
+  describe('with risk weight average strategy & a time trigger', () => {
     let vault: Vault;
 
     before(async function (this: Context) {
@@ -290,7 +290,7 @@ describe('when creating a vault', () => {
     });
   });
 
-  describe('with dca plus & no trigger', () => {
+  describe('with risk weight average strategy & no trigger', () => {
     const deposit = coin(1000000, 'stake');
     const swapAmount = '100000';
     let vault: Vault;
