@@ -34,6 +34,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
             page_limit: msg.page_limit,
             paused: msg.paused,
             risk_weighted_average_escrow_level: msg.risk_weighted_average_escrow_level,
+            twap_period: msg.twap_period,
         },
     )?;
 
@@ -74,6 +75,7 @@ mod instantiate_tests {
             page_limit: 1000,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
+            twap_period: 30,
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap();
@@ -105,6 +107,7 @@ mod instantiate_tests {
             page_limit: 1000,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
+            twap_period: 30,
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -133,6 +136,7 @@ mod instantiate_tests {
             page_limit: 1000,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
+            twap_period: 30,
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -158,6 +162,7 @@ mod instantiate_tests {
             page_limit: 1000,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
+            twap_period: 30,
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();

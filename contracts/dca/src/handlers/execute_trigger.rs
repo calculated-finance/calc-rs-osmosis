@@ -75,7 +75,7 @@ pub fn execute_trigger_handler(
 
     let pair = find_pair(deps.storage, &vault.denoms())?;
 
-    let belief_price = query_belief_price(&deps.querier, &env, &pair, vault.get_swap_denom())?;
+    let belief_price = query_belief_price(&deps.as_ref(), &env, &pair, vault.get_swap_denom())?;
 
     create_event(
         deps.storage,

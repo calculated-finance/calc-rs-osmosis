@@ -44,6 +44,7 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
         page_limit: 1000,
         paused: false,
         risk_weighted_average_escrow_level: Decimal::percent(5),
+        twap_period: 30,
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -64,6 +65,7 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
         page_limit: 1000,
         paused: false,
         risk_weighted_average_escrow_level: Decimal::from_str("0.0075").unwrap(),
+        twap_period: 30,
     };
 
     instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
@@ -83,6 +85,7 @@ impl Default for Config {
             page_limit: 1000,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.0075").unwrap(),
+            twap_period: 30,
         }
     }
 }
