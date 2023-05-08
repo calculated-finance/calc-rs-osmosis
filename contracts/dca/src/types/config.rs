@@ -9,7 +9,7 @@ pub struct Config {
     pub fee_collectors: Vec<FeeCollector>,
     pub swap_fee_percent: Decimal,
     pub delegation_fee_percent: Decimal,
-    pub page_limit: u16,
+    pub default_page_limit: u16,
     pub paused: bool,
     pub risk_weighted_average_escrow_level: Decimal,
     pub twap_period: u64,

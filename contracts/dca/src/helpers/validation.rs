@@ -237,6 +237,15 @@ pub fn assert_slippage_tolerance_is_less_than_or_equal_to_one(
     Ok(())
 }
 
+pub fn assert_default_page_limit_is_at_least_30(page_limit: u16) -> Result<(), ContractError> {
+    if page_limit < 30 {
+        return Err(ContractError::CustomError {
+            val: "default page limit cannot be smaller than 30".to_string(),
+        });
+    }
+    Ok(())
+}
+
 pub fn assert_pair_exists_for_denoms(
     deps: Deps,
     swap_denom: String,
@@ -340,6 +349,17 @@ pub fn assert_fee_collector_allocations_add_up_to_one(
     Ok(())
 }
 
+pub fn assert_no_more_than_10_fee_collectors(
+    fee_collectors: &[FeeCollector],
+) -> Result<(), ContractError> {
+    if fee_collectors.len() > 10 {
+        return Err(ContractError::CustomError {
+            val: String::from("no more than 10 fee collectors are allowed"),
+        });
+    }
+    Ok(())
+}
+
 pub fn assert_risk_weighted_average_escrow_level_is_less_than_100_percent(
     risk_weighted_average_escrow_level: Decimal,
 ) -> Result<(), ContractError> {
@@ -367,9 +387,12 @@ pub fn assert_page_limit_is_valid(
     limit: Option<u16>,
 ) -> Result<(), ContractError> {
     let config = get_config(storage)?;
-    if limit.unwrap_or(30) > config.page_limit {
+    if limit.unwrap_or(30) > config.default_page_limit {
         return Err(ContractError::CustomError {
-            val: format!("limit cannot be greater than {}.", config.page_limit),
+            val: format!(
+                "limit cannot be greater than {}.",
+                config.default_page_limit
+            ),
         });
     }
     Ok(())
