@@ -9,8 +9,8 @@ use osmosis_std::types::osmosis::gamm::v1beta1::{
     Pool, PoolAsset, PoolParams, QueryCalcJoinPoolSharesResponse, QueryPoolRequest,
     QueryPoolResponse,
 };
-use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
 use osmosis_std::types::osmosis::poolmanager::v1beta1::EstimateSwapExactAmountInResponse;
+use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
 use prost::Message;
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
@@ -38,9 +38,11 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
     pub fn new() -> Self {
         Self {
             default_stargate_handler: Box::new(|path, data| match path {
-                "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
-                    spot_price: ONE_DECIMAL.to_string(),
-                }),
+                "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => {
+                    to_binary(&ArithmeticTwapResponse {
+                        arithmetic_twap: ONE_DECIMAL.to_string(),
+                    })
+                }
                 "/osmosis.poolmanager.v1beta1.Query/EstimateSwapExactAmountIn" => {
                     to_binary(&EstimateSwapExactAmountInResponse {
                         token_out_amount: ONE.to_string(),

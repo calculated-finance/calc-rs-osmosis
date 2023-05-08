@@ -35,7 +35,7 @@ pub fn disburse_escrow_handler(
     }
 
     let pair = find_pair(deps.storage, &vault.denoms())?;
-    let current_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
+    let current_price = query_belief_price(&deps.querier, env, &pair, vault.get_swap_denom())?;
     let performance_fee = get_performance_fee(&vault, current_price)?;
     let amount_to_disburse = subtract(&vault.escrowed_amount, &performance_fee)?;
 
@@ -103,7 +103,7 @@ mod disburse_escrow_tests {
         testing::{mock_env, mock_info},
         to_binary, BankMsg, Coin, Decimal, StdError, SubMsg, Uint128,
     };
-    use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
+    use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
 
     #[test]
     fn when_escrowed_balance_is_empty_sends_no_messages() {
@@ -191,8 +191,8 @@ mod disburse_escrow_tests {
         );
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
-                spot_price: "10.0".to_string(),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
+                arithmetic_twap: "10.0".to_string(),
             }),
             _ => Err(StdError::generic_err("message not customised")),
         });
