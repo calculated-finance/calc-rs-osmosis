@@ -418,4 +418,32 @@ mod update_config_tests {
             "Error: risk_weighted_average_escrow_level cannot be greater than 100%"
         )
     }
+
+    #[test]
+    fn with_default_slippage_tolerance_more_than_100_percent_should_fail() {
+        let mut deps = mock_dependencies();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), mock_env(), info.clone());
+
+        let err = update_config_handler(
+            deps.as_mut(),
+            info,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(Decimal::percent(150)),
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: default slippage tolerance must be less than or equal to 1"
+        )
+    }
 }
