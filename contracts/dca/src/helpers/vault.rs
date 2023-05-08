@@ -188,28 +188,24 @@ pub fn simulate_standard_dca_execution(
                 return Ok((vault, response));
             }
 
-            if let Some(slippage_tolerance) = vault.slippage_tolerance {
-                let slippage = calculate_slippage(actual_price, belief_price);
+            let slippage = calculate_slippage(actual_price, belief_price);
 
-                if slippage > slippage_tolerance {
-                    create_event(
-                        storage,
-                        EventBuilder::new(
-                            vault.id,
-                            env.block.clone(),
-                            EventData::SimulatedDcaVaultExecutionSkipped {
-                                reason: ExecutionSkippedReason::SlippageToleranceExceeded,
-                            },
-                        ),
-                    )?;
+            if slippage > vault.slippage_tolerance {
+                create_event(
+                    storage,
+                    EventBuilder::new(
+                        vault.id,
+                        env.block.clone(),
+                        EventData::SimulatedDcaVaultExecutionSkipped {
+                            reason: ExecutionSkippedReason::SlippageToleranceExceeded,
+                        },
+                    ),
+                )?;
 
-                    response = response.add_attribute(
-                        "simulated_execution_skipped",
-                        "slippage_tolerance_exceeded",
-                    );
+                response = response
+                    .add_attribute("simulated_execution_skipped", "slippage_tolerance_exceeded");
 
-                    return Ok((vault, response));
-                }
+                return Ok((vault, response));
             }
 
             let fee_rate =
@@ -1077,7 +1073,6 @@ mod simulate_standard_dca_execution_tests {
             env.clone(),
             Vault {
                 swap_amount: TEN,
-                slippage_tolerance: Some(Decimal::percent(2)),
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 escrow_level: Decimal::percent(5),

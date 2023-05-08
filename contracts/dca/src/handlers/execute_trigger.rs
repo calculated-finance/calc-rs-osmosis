@@ -640,6 +640,11 @@ mod execute_trigger_tests {
 
         let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
+        let token_out_min_amount = vault.swap_amount
+            * swap_adjustment
+            * (Decimal::one() - vault.slippage_tolerance)
+            * (Decimal::one() - Decimal::from_str(SWAP_FEE_RATE).unwrap());
+
         assert!(response.messages.contains(&SubMsg {
             id: AFTER_SWAP_REPLY_ID,
             msg: MsgSwapExactAmountIn {
@@ -652,7 +657,7 @@ mod execute_trigger_tests {
                     .clone()
                     .into()
                 ),
-                token_out_min_amount: Uint128::one().to_string(),
+                token_out_min_amount: token_out_min_amount.to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
                     token_out_denom: vault.target_denom,
@@ -677,7 +682,7 @@ mod execute_trigger_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                slippage_tolerance: Some(Decimal::percent(1)),
+                slippage_tolerance: Decimal::percent(1),
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 ..Vault::default()
             },
@@ -755,7 +760,7 @@ mod execute_trigger_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                slippage_tolerance: Some(Decimal::percent(1)),
+                slippage_tolerance: Decimal::percent(1),
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
                 performance_assessment_strategy: Some(PerformanceAssessmentStrategy::default()),
                 ..Vault::default()
@@ -1104,6 +1109,10 @@ mod execute_trigger_tests {
 
         let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
+        let token_out_min_amount = vault.swap_amount
+            * (Decimal::one() - vault.slippage_tolerance)
+            * (Decimal::one() - Decimal::from_str(SWAP_FEE_RATE).unwrap());
+
         assert!(response.messages.contains(&SubMsg {
             id: AFTER_SWAP_REPLY_ID,
             msg: MsgSwapExactAmountIn {
@@ -1113,7 +1122,7 @@ mod execute_trigger_tests {
                         .clone()
                         .into()
                 ),
-                token_out_min_amount: Uint128::one().to_string(),
+                token_out_min_amount: token_out_min_amount.to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
                     token_out_denom: vault.target_denom,
@@ -1145,12 +1154,16 @@ mod execute_trigger_tests {
 
         let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
+        let token_out_min_amount = vault.balance.amount
+            * (Decimal::one() - vault.slippage_tolerance)
+            * (Decimal::one() - Decimal::from_str(SWAP_FEE_RATE).unwrap());
+
         assert!(response.messages.contains(&SubMsg {
             id: AFTER_SWAP_REPLY_ID,
             msg: MsgSwapExactAmountIn {
                 sender: env.contract.address.to_string(),
                 token_in: Some(vault.balance.clone().into()),
-                token_out_min_amount: Uint128::one().to_string(),
+                token_out_min_amount: token_out_min_amount.to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
                     token_out_denom: vault.target_denom,
@@ -1174,7 +1187,7 @@ mod execute_trigger_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                slippage_tolerance: Some(Decimal::percent(1)),
+                slippage_tolerance: Decimal::percent(1),
                 ..Vault::default()
             },
         );
@@ -1187,7 +1200,7 @@ mod execute_trigger_tests {
             .unwrap()
             .amount
             * (Decimal::one() / belief_price)
-            * (Decimal::one() - vault.slippage_tolerance.unwrap());
+            * (Decimal::one() - vault.slippage_tolerance);
 
         assert!(response.messages.contains(&SubMsg {
             id: AFTER_SWAP_REPLY_ID,
@@ -1304,6 +1317,10 @@ mod execute_trigger_tests {
 
         let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
 
+        let token_out_min_amount = vault.swap_amount
+            * (Decimal::one() - vault.slippage_tolerance)
+            * (Decimal::one() - Decimal::from_str(SWAP_FEE_RATE).unwrap());
+
         assert!(response.messages.contains(&SubMsg {
             id: AFTER_SWAP_REPLY_ID,
             msg: MsgSwapExactAmountIn {
@@ -1313,7 +1330,7 @@ mod execute_trigger_tests {
                         .clone()
                         .into()
                 ),
-                token_out_min_amount: Uint128::one().to_string(),
+                token_out_min_amount: token_out_min_amount.to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
                     token_out_denom: vault.target_denom,

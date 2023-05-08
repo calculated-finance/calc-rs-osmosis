@@ -135,7 +135,7 @@ impl Default for Vault {
             balance: Coin::new(TEN.into(), DENOM_UOSMO),
             target_denom: DENOM_STAKE.to_string(),
             swap_amount: ONE,
-            slippage_tolerance: None,
+            slippage_tolerance: Decimal::percent(2),
             minimum_receive_amount: None,
             time_interval: TimeInterval::Daily,
             started_at: None,
