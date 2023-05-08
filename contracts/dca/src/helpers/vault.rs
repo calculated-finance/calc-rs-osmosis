@@ -36,7 +36,8 @@ pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin>
             increase_only,
         }) => {
             let pair = find_pair(deps.storage, &vault.denoms())?;
-            let belief_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
+            let belief_price =
+                query_belief_price(&deps.querier, env, &pair, vault.get_swap_denom())?;
             let base_price = Decimal::from_ratio(vault.swap_amount, base_receive_amount);
             let scaled_price_delta = base_price.abs_diff(belief_price) / base_price * multiplier;
 
@@ -285,7 +286,7 @@ mod get_swap_amount_tests {
         testing::{mock_dependencies, mock_env, mock_info},
         to_binary, StdError,
     };
-    use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
+    use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
 
     #[test]
     fn should_return_full_balance_when_vault_has_low_funds() {
@@ -481,8 +482,8 @@ mod get_swap_amount_tests {
             Decimal::percent(120) * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap());
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
-                spot_price: "1.2".to_string(),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
+                arithmetic_twap: "1.2".to_string(),
             }),
             _ => Err(StdError::generic_err("message not customised")),
         });
@@ -520,8 +521,8 @@ mod get_swap_amount_tests {
         );
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
-                spot_price: "1.2".to_string(),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
+                arithmetic_twap: "1.2".to_string(),
             }),
             _ => Err(StdError::generic_err("message not customised")),
         });
@@ -559,8 +560,8 @@ mod get_swap_amount_tests {
             Decimal::percent(70) * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap());
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
-                spot_price: "0.7".to_string(),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
+                arithmetic_twap: "0.7".to_string(),
             }),
             _ => Err(StdError::generic_err("message not customised")),
         });
@@ -598,8 +599,8 @@ mod get_swap_amount_tests {
         );
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
-                spot_price: "2.0".to_string(),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
+                arithmetic_twap: "2.0".to_string(),
             }),
             _ => Err(StdError::generic_err("message not customised")),
         });

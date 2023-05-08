@@ -75,7 +75,7 @@ pub fn execute_trigger_handler(
 
     let pair = find_pair(deps.storage, &vault.denoms())?;
 
-    let belief_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
+    let belief_price = query_belief_price(&deps.querier, &env, &pair, vault.get_swap_denom())?;
 
     create_event(
         deps.storage,
@@ -207,6 +207,7 @@ pub fn execute_trigger_handler(
         &pair,
         swap_amount,
         vault.slippage_tolerance,
+        belief_price,
         Some(AFTER_SWAP_REPLY_ID),
         Some(ReplyOn::Always),
     )?))
@@ -235,10 +236,10 @@ mod execute_trigger_tests {
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_env, mock_info};
     use cosmwasm_std::{to_binary, Coin, Decimal, ReplyOn, StdError, SubMsg, Uint128, WasmMsg};
-    use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
     use osmosis_std::types::osmosis::poolmanager::v1beta1::{
         EstimateSwapExactAmountInResponse, MsgSwapExactAmountIn, SwapAmountInRoute,
     };
+    use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
     use std::str::FromStr;
 
     #[test]
@@ -543,8 +544,8 @@ mod execute_trigger_tests {
         );
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
-                spot_price: "3".to_string(),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
+                arithmetic_twap: "3".to_string(),
             }),
             _ => Err(StdError::generic_err("message not customised")),
         });
@@ -588,8 +589,8 @@ mod execute_trigger_tests {
         );
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.gamm.v2.Query/SpotPrice" => to_binary(&QuerySpotPriceResponse {
-                spot_price: "3".to_string(),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
+                arithmetic_twap: "3".to_string(),
             }),
             _ => Err(StdError::generic_err("message not customised")),
         });

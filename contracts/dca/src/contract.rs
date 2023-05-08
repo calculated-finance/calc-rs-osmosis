@@ -224,7 +224,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetCustomSwapFees {} => to_binary(&get_custom_swap_fees_handler(deps)?),
         QueryMsg::GetConfig {} => to_binary(&get_config_handler(deps)?),
         QueryMsg::GetVaultPerformance { vault_id } => {
-            to_binary(&get_vault_performance_handler(deps, vault_id)?)
+            to_binary(&get_vault_performance_handler(deps, &env, vault_id)?)
         }
         QueryMsg::GetDisburseEscrowTasks { limit } => {
             to_binary(&get_disburse_escrow_tasks_handler(deps, env, limit)?)

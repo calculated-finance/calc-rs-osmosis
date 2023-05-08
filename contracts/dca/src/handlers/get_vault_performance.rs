@@ -5,17 +5,18 @@ use crate::{
     msg::VaultPerformanceResponse,
     state::{pairs::find_pair, vaults::get_vault},
 };
-use cosmwasm_std::{Deps, StdError, StdResult, Uint128};
+use cosmwasm_std::{Deps, Env, StdError, StdResult, Uint128};
 
 pub fn get_vault_performance_handler(
     deps: Deps,
+    env: &Env,
     vault_id: Uint128,
 ) -> StdResult<VaultPerformanceResponse> {
     let vault = get_vault(deps.storage, vault_id)?;
 
     let pair = find_pair(deps.storage, &vault.denoms())?;
 
-    let current_price = query_belief_price(&deps.querier, &pair, vault.get_swap_denom())?;
+    let current_price = query_belief_price(&deps.querier, env, &pair, vault.get_swap_denom())?;
 
     vault.performance_assessment_strategy.clone().map_or(
         Err(StdError::GenericErr {
@@ -54,9 +55,9 @@ mod get_vault_performance_tests {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
 
-        let vault = setup_vault(deps.as_mut(), env, Vault::default());
+        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
-        let err = get_vault_performance_handler(deps.as_ref(), vault.id).unwrap_err();
+        let err = get_vault_performance_handler(deps.as_ref(), &env, vault.id).unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -78,7 +79,7 @@ mod get_vault_performance_tests {
 
         let vault = setup_vault(
             deps.as_mut(),
-            env,
+            env.clone(),
             Vault {
                 swapped_amount: Coin::new(TEN.into(), DENOM_STAKE),
                 received_amount: Coin::new(TEN.into(), DENOM_STAKE),
@@ -90,7 +91,7 @@ mod get_vault_performance_tests {
             },
         );
 
-        let response = get_vault_performance_handler(deps.as_ref(), vault.id).unwrap();
+        let response = get_vault_performance_handler(deps.as_ref(), &env, vault.id).unwrap();
 
         assert_eq!(
             response.fee,

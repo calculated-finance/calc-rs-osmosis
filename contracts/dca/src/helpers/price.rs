@@ -1,12 +1,16 @@
 use super::routes::{calculate_route, get_pool, get_token_out_denom};
 use crate::types::{pair::Pair, position_type::PositionType};
 use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, StdResult, Uint128};
-use osmosis_std::types::osmosis::{
-    gamm::v2::QuerySpotPriceRequest, poolmanager::v1beta1::PoolmanagerQuerier,
+use osmosis_std::{
+    shim::Timestamp,
+    types::osmosis::{
+        poolmanager::v1beta1::PoolmanagerQuerier, twap::v1beta1::ArithmeticTwapRequest,
+    },
 };
 
 pub fn query_belief_price(
     querier: &QuerierWrapper,
+    env: &Env,
     pair: &Pair,
     mut swap_denom: String,
 ) -> StdResult<Decimal> {
@@ -29,13 +33,18 @@ pub fn query_belief_price(
             .parse::<Decimal>()
             .unwrap();
 
-        let pool_price = QuerySpotPriceRequest {
+        let pool_price = ArithmeticTwapRequest {
             pool_id,
-            base_asset_denom: target_denom.clone(),
-            quote_asset_denom: swap_denom,
+            base_asset: target_denom.clone(),
+            quote_asset: swap_denom,
+            start_time: Some(Timestamp {
+                seconds: (env.block.time.seconds() - 30) as i64,
+                nanos: env.block.time.nanos() as i32,
+            }),
+            end_time: None,
         }
         .query(querier)?
-        .spot_price
+        .arithmetic_twap
         .parse::<Decimal>()?
             * (Decimal::one() + swap_fee);
 
@@ -104,7 +113,7 @@ mod query_belief_price_tests {
         testing::{mock_env, mock_info},
         to_binary, StdError,
     };
-    use osmosis_std::types::osmosis::gamm::v2::QuerySpotPriceResponse;
+    use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
     use prost::Message;
 
     #[test]
@@ -116,8 +125,8 @@ mod query_belief_price_tests {
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
         deps.querier.update_stargate(|path, data| {
-            if path == "/osmosis.gamm.v2.Query/SpotPrice" {
-                let price = match QuerySpotPriceRequest::decode(data.as_slice())
+            if path == "/osmosis.twap.v1beta1.Query/ArithmeticTwap" {
+                let price = match ArithmeticTwapRequest::decode(data.as_slice())
                     .unwrap()
                     .pool_id
                 {
@@ -125,8 +134,8 @@ mod query_belief_price_tests {
                     _ => "1.0",
                 };
 
-                return to_binary(&QuerySpotPriceResponse {
-                    spot_price: price.to_string(),
+                return to_binary(&ArithmeticTwapResponse {
+                    arithmetic_twap: price.to_string(),
                 });
             }
             Err(StdError::generic_err("invoke fallback"))
@@ -134,8 +143,13 @@ mod query_belief_price_tests {
 
         let pair = Pair::default();
 
-        let price =
-            query_belief_price(&deps.as_ref().querier, &pair.clone(), pair.quote_denom).unwrap();
+        let price = query_belief_price(
+            &deps.as_ref().querier,
+            &env,
+            &pair.clone(),
+            pair.quote_denom,
+        )
+        .unwrap();
 
         assert_eq!(
             price,
@@ -152,8 +166,8 @@ mod query_belief_price_tests {
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
         deps.querier.update_stargate(|path, data| {
-            if path == "/osmosis.gamm.v2.Query/SpotPrice" {
-                let price = match QuerySpotPriceRequest::decode(data.as_slice())
+            if path == "/osmosis.twap.v1beta1.Query/ArithmeticTwap" {
+                let price = match ArithmeticTwapRequest::decode(data.as_slice())
                     .unwrap()
                     .pool_id
                 {
@@ -162,8 +176,8 @@ mod query_belief_price_tests {
                     _ => "1.0",
                 };
 
-                return to_binary(&QuerySpotPriceResponse {
-                    spot_price: price.to_string(),
+                return to_binary(&ArithmeticTwapResponse {
+                    arithmetic_twap: price.to_string(),
                 });
             }
             Err(StdError::generic_err("invoke fallback"))
@@ -174,8 +188,13 @@ mod query_belief_price_tests {
             ..Pair::default()
         };
 
-        let price =
-            query_belief_price(&deps.as_ref().querier, &pair.clone(), pair.quote_denom).unwrap();
+        let price = query_belief_price(
+            &deps.as_ref().querier,
+            &env,
+            &pair.clone(),
+            pair.quote_denom,
+        )
+        .unwrap();
 
         assert_eq!(
             price,
