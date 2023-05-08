@@ -1,9 +1,10 @@
 use crate::error::ContractError;
 use crate::helpers::validation::{
-    assert_address_is_valid, assert_contract_is_not_paused,
-    assert_destination_allocations_add_up_to_one, assert_destination_callback_addresses_are_valid,
-    assert_destinations_limit_is_not_breached, assert_exactly_one_asset,
-    assert_no_destination_allocations_are_zero, assert_pair_exists_for_denoms,
+    assert_address_is_valid, assert_contract_destination_callbacks_are_valid,
+    assert_contract_is_not_paused, assert_destination_allocations_add_up_to_one,
+    assert_destination_callback_addresses_are_valid, assert_destinations_limit_is_not_breached,
+    assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
+    assert_pair_exists_for_denoms,
     assert_swap_adjusment_and_performance_assessment_strategies_are_compatible,
     assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
     assert_time_interval_is_valid,
@@ -81,6 +82,7 @@ pub fn create_vault_handler(
     }
 
     assert_destination_callback_addresses_are_valid(deps.as_ref(), &destinations)?;
+    assert_contract_destination_callbacks_are_valid(&destinations, &env.contract.address)?;
     assert_no_destination_allocations_are_zero(&destinations)?;
     assert_destination_allocations_add_up_to_one(&destinations)?;
 
@@ -1327,5 +1329,130 @@ mod create_vault_tests {
             .vault;
 
         assert_eq!(vault.escrow_level, Decimal::zero());
+    }
+
+    #[test]
+    fn invoking_contract_callback_with_unauthorised_msg_fails() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom,
+            pair.quote_denom,
+            pair.route,
+        )
+        .unwrap();
+
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        let err = create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![Destination {
+                address: env.contract.address,
+                allocation: Decimal::percent(100),
+                msg: Some(
+                    to_binary(&ExecuteMsg::DisburseEscrow {
+                        vault_id: Uint128::one(),
+                    })
+                    .unwrap(),
+                ),
+            }],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            Uint128::new(100000),
+            TimeInterval::Daily,
+            Some(env.block.time.plus_seconds(10).seconds().into()),
+            None,
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: Cannot invoke provided destination callback against the DCA contract"
+        );
+    }
+
+    #[test]
+    fn invoking_contract_callback_with_authorised_msg_succeeds() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom,
+            pair.quote_denom,
+            pair.route,
+        )
+        .unwrap();
+
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![Destination {
+                address: env.contract.address.clone(),
+                allocation: Decimal::percent(100),
+                msg: Some(
+                    to_binary(&ExecuteMsg::Deposit {
+                        address: Addr::unchecked(USER),
+                        vault_id: Uint128::one(),
+                    })
+                    .unwrap(),
+                ),
+            }],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            Uint128::new(100000),
+            TimeInterval::Daily,
+            Some(env.block.time.plus_seconds(10).seconds().into()),
+            None,
+            None,
+        )
+        .unwrap();
+
+        let vault = get_vault_handler(deps.as_ref(), Uint128::one())
+            .unwrap()
+            .vault;
+
+        assert_eq!(
+            vault.destinations,
+            vec![Destination {
+                address: env.contract.address,
+                allocation: Decimal::percent(100),
+                msg: Some(
+                    to_binary(&ExecuteMsg::Deposit {
+                        address: Addr::unchecked(USER),
+                        vault_id: Uint128::one(),
+                    })
+                    .unwrap(),
+                ),
+            }]
+        );
     }
 }
