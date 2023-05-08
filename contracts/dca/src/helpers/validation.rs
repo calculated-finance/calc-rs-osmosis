@@ -1,4 +1,5 @@
 use crate::error::ContractError;
+use crate::msg::ExecuteMsg;
 use crate::state::config::get_config;
 use crate::state::pairs::find_pair;
 use crate::types::destination::Destination;
@@ -8,7 +9,9 @@ use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategy
 use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategyParams;
 use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
-use cosmwasm_std::{Addr, Coin, Decimal, Deps, Env, QuerierWrapper, Storage, Timestamp, Uint128};
+use cosmwasm_std::{
+    from_binary, Addr, Coin, Decimal, Deps, Env, QuerierWrapper, Storage, Timestamp, Uint128,
+};
 
 use super::routes::calculate_route;
 
@@ -276,6 +279,28 @@ pub fn assert_destination_allocations_add_up_to_one(
         });
     }
     Ok(())
+}
+
+pub fn assert_contract_destination_callbacks_are_valid(
+    destinations: &[Destination],
+    contract_address: &Addr,
+) -> Result<(), ContractError> {
+    destinations
+        .iter()
+        .filter(|d| d.address == *contract_address)
+        .try_for_each(|d| {
+            d.msg
+                .clone()
+                .map_or(Ok(()), |msg| match from_binary(&msg).unwrap() {
+                    ExecuteMsg::ZDelegate { .. }
+                    | ExecuteMsg::Deposit { .. }
+                    | ExecuteMsg::ZProvideLiquidity { .. } => Ok(()),
+                    _ => Err(ContractError::CustomError {
+                        val: "Cannot invoke provided destination callback against the DCA contract"
+                            .to_string(),
+                    }),
+                })
+        })
 }
 
 pub fn assert_fee_collector_allocations_add_up_to_one(
