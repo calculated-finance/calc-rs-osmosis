@@ -36,8 +36,7 @@ pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin>
             increase_only,
         }) => {
             let pair = find_pair(deps.storage, &vault.denoms())?;
-            let belief_price =
-                query_belief_price(&deps.querier, env, &pair, vault.get_swap_denom())?;
+            let belief_price = query_belief_price(deps, env, &pair, vault.get_swap_denom())?;
             let base_price = Decimal::from_ratio(vault.swap_amount, base_receive_amount);
             let scaled_price_delta = base_price.abs_diff(belief_price) / base_price * multiplier;
 

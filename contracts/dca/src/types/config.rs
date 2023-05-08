@@ -12,4 +12,5 @@ pub struct Config {
     pub page_limit: u16,
     pub paused: bool,
     pub risk_weighted_average_escrow_level: Decimal,
+    pub twap_period: u64,
 }

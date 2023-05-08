@@ -217,6 +217,15 @@ pub fn assert_addresses_are_valid(
         .try_for_each(|address| assert_address_is_valid(deps, address.clone(), label))
 }
 
+pub fn assert_twap_period_is_valid(twap_period: u64) -> Result<(), ContractError> {
+    if !(30..=3600).contains(&twap_period) {
+        return Err(ContractError::CustomError {
+            val: "twap_period must be between 30 and 3600".to_string(),
+        });
+    }
+    Ok(())
+}
+
 pub fn assert_pair_exists_for_denoms(
     deps: Deps,
     swap_denom: String,

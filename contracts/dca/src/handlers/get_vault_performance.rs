@@ -16,7 +16,7 @@ pub fn get_vault_performance_handler(
 
     let pair = find_pair(deps.storage, &vault.denoms())?;
 
-    let current_price = query_belief_price(&deps.querier, env, &pair, vault.get_swap_denom())?;
+    let current_price = query_belief_price(&deps, env, &pair, vault.get_swap_denom())?;
 
     vault.performance_assessment_strategy.clone().map_or(
         Err(StdError::GenericErr {
@@ -40,20 +40,25 @@ mod get_vault_performance_tests {
     use crate::{
         constants::{ONE, TEN},
         tests::{
-            helpers::setup_vault,
-            mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO},
+            helpers::{instantiate_contract, setup_vault},
+            mocks::{calc_mock_dependencies, ADMIN, DENOM_STAKE, DENOM_UOSMO},
         },
         types::{
             performance_assessment_strategy::PerformanceAssessmentStrategy,
             swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault,
         },
     };
-    use cosmwasm_std::{testing::mock_env, Coin, Decimal};
+    use cosmwasm_std::{
+        testing::{mock_env, mock_info},
+        Coin, Decimal,
+    };
 
     #[test]
     fn if_vault_has_no_performance_assessment_strategy_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
+
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -69,6 +74,8 @@ mod get_vault_performance_tests {
     fn performance_fee_and_factor_match() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
+
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let standard_received_amount = TEN - ONE;
 

@@ -1,6 +1,9 @@
 use super::routes::{calculate_route, get_pool, get_token_out_denom};
-use crate::types::{pair::Pair, position_type::PositionType};
-use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, StdResult, Uint128};
+use crate::{
+    state::config::get_config,
+    types::{pair::Pair, position_type::PositionType},
+};
+use cosmwasm_std::{Coin, Decimal, Deps, Env, QuerierWrapper, StdResult, Uint128};
 use osmosis_std::{
     shim::Timestamp,
     types::osmosis::{
@@ -9,7 +12,7 @@ use osmosis_std::{
 };
 
 pub fn query_belief_price(
-    querier: &QuerierWrapper,
+    deps: &Deps,
     env: &Env,
     pair: &Pair,
     mut swap_denom: String,
@@ -21,10 +24,12 @@ pub fn query_belief_price(
 
     let mut price = Decimal::one();
 
-    for pool_id in pool_ids.into_iter() {
-        let target_denom = get_token_out_denom(querier, swap_denom.clone(), pool_id)?;
+    let config = get_config(deps.storage)?;
 
-        let pool = get_pool(querier, pool_id)?;
+    for pool_id in pool_ids.into_iter() {
+        let target_denom = get_token_out_denom(&deps.querier, swap_denom.clone(), pool_id)?;
+
+        let pool = get_pool(&deps.querier, pool_id)?;
 
         let swap_fee = pool
             .pool_params
@@ -38,12 +43,12 @@ pub fn query_belief_price(
             base_asset: target_denom.clone(),
             quote_asset: swap_denom,
             start_time: Some(Timestamp {
-                seconds: (env.block.time.seconds() - 30) as i64,
+                seconds: (env.block.time.seconds() - config.twap_period) as i64,
                 nanos: env.block.time.nanos() as i32,
             }),
             end_time: None,
         }
-        .query(querier)?
+        .query(&deps.querier)?
         .arithmetic_twap
         .parse::<Decimal>()?
             * (Decimal::one() + swap_fee);
@@ -143,13 +148,8 @@ mod query_belief_price_tests {
 
         let pair = Pair::default();
 
-        let price = query_belief_price(
-            &deps.as_ref().querier,
-            &env,
-            &pair.clone(),
-            pair.quote_denom,
-        )
-        .unwrap();
+        let price =
+            query_belief_price(&deps.as_ref(), &env, &pair.clone(), pair.quote_denom).unwrap();
 
         assert_eq!(
             price,
@@ -188,13 +188,8 @@ mod query_belief_price_tests {
             ..Pair::default()
         };
 
-        let price = query_belief_price(
-            &deps.as_ref().querier,
-            &env,
-            &pair.clone(),
-            pair.quote_denom,
-        )
-        .unwrap();
+        let price =
+            query_belief_price(&deps.as_ref(), &env, &pair.clone(), pair.quote_denom).unwrap();
 
         assert_eq!(
             price,

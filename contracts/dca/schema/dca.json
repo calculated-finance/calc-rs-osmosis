@@ -14,7 +14,8 @@
       "page_limit",
       "paused",
       "risk_weighted_average_escrow_level",
-      "swap_fee_percent"
+      "swap_fee_percent",
+      "twap_period"
     ],
     "properties": {
       "admin": {
@@ -48,6 +49,11 @@
       },
       "swap_fee_percent": {
         "$ref": "#/definitions/Decimal"
+      },
+      "twap_period": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0.0
       }
     },
     "additionalProperties": false,
@@ -403,6 +409,14 @@
                     "type": "null"
                   }
                 ]
+              },
+              "twap_period": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
               }
             },
             "additionalProperties": false
@@ -1161,7 +1175,8 @@
             "page_limit",
             "paused",
             "risk_weighted_average_escrow_level",
-            "swap_fee_percent"
+            "swap_fee_percent",
+            "twap_period"
           ],
           "properties": {
             "admin": {
@@ -1195,6 +1210,11 @@
             },
             "swap_fee_percent": {
               "$ref": "#/definitions/Decimal"
+            },
+            "twap_period": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             }
           },
           "additionalProperties": false

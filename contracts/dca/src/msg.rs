@@ -24,6 +24,7 @@ pub struct InstantiateMsg {
     pub page_limit: u16,
     pub paused: bool,
     pub risk_weighted_average_escrow_level: Decimal,
+    pub twap_period: u64,
 }
 
 #[cw_serde]
@@ -73,6 +74,7 @@ pub enum ExecuteMsg {
         page_limit: Option<u16>,
         paused: Option<bool>,
         risk_weighted_average_escrow_level: Option<Decimal>,
+        twap_period: Option<u64>,
     },
     CreateCustomSwapFee {
         denom: String,
