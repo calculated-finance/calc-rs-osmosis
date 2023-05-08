@@ -37,6 +37,15 @@ pub fn save_disburse_escrow_task(
     )
 }
 
+pub fn get_disburse_escrow_task_due_date(
+    store: &dyn Storage,
+    vault_id: Uint128,
+) -> StdResult<Option<Timestamp>> {
+    disburse_escrow_task_store()
+        .may_load(store, vault_id.into())
+        .map(|result| result.map(|(seconds, _)| Timestamp::from_seconds(seconds)))
+}
+
 pub fn get_disburse_escrow_tasks(
     store: &dyn Storage,
     due_before: Timestamp,
