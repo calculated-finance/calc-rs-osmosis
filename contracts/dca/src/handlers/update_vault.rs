@@ -18,14 +18,21 @@ pub fn update_vault_handler(
     label: Option<String>,
     destinations: Option<Vec<Destination>>,
 ) -> Result<Response, ContractError> {
-    assert_label_is_no_longer_than_100_characters(&label)?;
-
     let mut vault = get_vault(deps.storage, vault_id)?;
 
     asset_sender_is_vault_owner(vault.owner.clone(), info.sender)?;
     assert_vault_is_not_cancelled(&vault)?;
 
-    vault.label = label.clone();
+    let mut response = Response::default()
+        .add_attribute("update_vault", "true")
+        .add_attribute("vault_id", vault.id);
+
+    if let Some(label) = label {
+        assert_label_is_no_longer_than_100_characters(&label)?;
+
+        vault.label = Some(label.clone());
+        response = response.add_attribute("label", label);
+    }
 
     if let Some(mut destinations) = destinations {
         if destinations.is_empty() {
@@ -41,15 +48,13 @@ pub fn update_vault_handler(
         assert_no_destination_allocations_are_zero(&destinations)?;
         assert_destination_allocations_add_up_to_one(&destinations)?;
 
-        vault.destinations = destinations;
+        vault.destinations = destinations.clone();
+        response = response.add_attribute("destinations", format!("{:?}", destinations));
     }
 
     update_vault(deps.storage, &vault)?;
 
-    Ok(Response::default()
-        .add_attribute("update_vault", "true")
-        .add_attribute("vault_id", vault.id)
-        .add_attribute("label", label.unwrap_or_default()))
+    Ok(response)
 }
 
 #[cfg(test)]
