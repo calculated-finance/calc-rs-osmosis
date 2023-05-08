@@ -90,39 +90,39 @@ pub fn create_vault_handler(
 
     let pair = find_pair(deps.storage, &[swap_denom.clone(), target_denom.clone()])?;
 
-    let swap_adjustment_strategy =
-        swap_adjustment_strategy_params
-            .clone()
-            .map(|params| match params {
-                SwapAdjustmentStrategyParams::RiskWeightedAverage { base_denom } => {
-                    SwapAdjustmentStrategy::RiskWeightedAverage {
-                        model_id: get_risk_weighted_average_model_id(
-                            &env.block.time,
-                            &info.funds[0],
-                            &swap_amount,
-                            &time_interval,
-                        ),
-                        base_denom,
-                        position_type: pair.position_type(swap_denom.clone()),
-                    }
-                }
-                SwapAdjustmentStrategyParams::WeightedScale {
-                    base_receive_amount,
-                    multiplier,
-                    increase_only,
-                } => SwapAdjustmentStrategy::WeightedScale {
-                    base_receive_amount,
-                    multiplier,
-                    increase_only,
-                },
-            });
-
-    let performance_assessment_strategy = swap_adjustment_strategy_params.map(|_| {
-        PerformanceAssessmentStrategy::CompareToStandardDca {
-            swapped_amount: Coin::new(0, swap_denom.clone()),
-            received_amount: Coin::new(0, target_denom.clone()),
+    let swap_adjustment_strategy = swap_adjustment_strategy_params.map(|params| match params {
+        SwapAdjustmentStrategyParams::RiskWeightedAverage { base_denom } => {
+            SwapAdjustmentStrategy::RiskWeightedAverage {
+                model_id: get_risk_weighted_average_model_id(
+                    &env.block.time,
+                    &info.funds[0],
+                    &swap_amount,
+                    &time_interval,
+                ),
+                base_denom,
+                position_type: pair.position_type(swap_denom.clone()),
+            }
         }
+        SwapAdjustmentStrategyParams::WeightedScale {
+            base_receive_amount,
+            multiplier,
+            increase_only,
+        } => SwapAdjustmentStrategy::WeightedScale {
+            base_receive_amount,
+            multiplier,
+            increase_only,
+        },
     });
+
+    let performance_assessment_strategy = match performance_assessment_strategy_params {
+        Some(PerformanceAssessmentStrategyParams::CompareToStandardDca) => {
+            Some(PerformanceAssessmentStrategy::CompareToStandardDca {
+                swapped_amount: Coin::new(0, swap_denom.clone()),
+                received_amount: Coin::new(0, target_denom.clone()),
+            })
+        }
+        _ => None,
+    };
 
     let escrow_level = performance_assessment_strategy
         .clone()
@@ -1022,6 +1022,57 @@ mod create_vault_tests {
     }
 
     #[test]
+    fn should_save_no_performance_assessment_strategy_when_none_provided() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom,
+            pair.quote_denom,
+            pair.route,
+        )
+        .unwrap();
+
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            Uint128::new(100000),
+            TimeInterval::Daily,
+            Some(env.block.time.plus_seconds(10).seconds().into()),
+            None,
+            Some(SwapAdjustmentStrategyParams::WeightedScale {
+                base_receive_amount: Uint128::new(100000),
+                multiplier: Decimal::percent(200),
+                increase_only: false,
+            }),
+        )
+        .unwrap();
+
+        let vault = get_vault_handler(deps.as_ref(), Uint128::one())
+            .unwrap()
+            .vault;
+
+        assert_eq!(vault.performance_assessment_strategy, None);
+    }
+
+    #[test]
     fn should_create_performance_assessment_strategy() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
@@ -1177,5 +1228,104 @@ mod create_vault_tests {
             })
             .unwrap()
         })));
+    }
+
+    #[test]
+    fn should_set_appropriate_escrow_level_for_compare_dca_performance_assessment_strategy() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom,
+            pair.quote_denom,
+            pair.route,
+        )
+        .unwrap();
+
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            Uint128::new(100000),
+            TimeInterval::Daily,
+            Some(env.block.time.plus_seconds(10).seconds().into()),
+            Some(PerformanceAssessmentStrategyParams::CompareToStandardDca),
+            Some(SwapAdjustmentStrategyParams::default()),
+        )
+        .unwrap();
+
+        let vault = get_vault_handler(deps.as_ref(), Uint128::one())
+            .unwrap()
+            .vault;
+
+        let config = get_config(deps.as_ref().storage).unwrap();
+
+        assert_eq!(
+            vault.escrow_level,
+            config.risk_weighted_average_escrow_level
+        );
+    }
+
+    #[test]
+    fn should_set_appropriate_escrow_level_for_no_performance_assessment_strategy() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom,
+            pair.quote_denom,
+            pair.route,
+        )
+        .unwrap();
+
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            Uint128::new(100000),
+            TimeInterval::Daily,
+            Some(env.block.time.plus_seconds(10).seconds().into()),
+            None,
+            None,
+        )
+        .unwrap();
+
+        let vault = get_vault_handler(deps.as_ref(), Uint128::one())
+            .unwrap()
+            .vault;
+
+        assert_eq!(vault.escrow_level, Decimal::zero());
     }
 }
