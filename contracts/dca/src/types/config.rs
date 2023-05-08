@@ -13,4 +13,5 @@ pub struct Config {
     pub paused: bool,
     pub risk_weighted_average_escrow_level: Decimal,
     pub twap_period: u64,
+    pub default_slippage_tolerance: Decimal,
 }

@@ -35,6 +35,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
             paused: msg.paused,
             risk_weighted_average_escrow_level: msg.risk_weighted_average_escrow_level,
             twap_period: msg.twap_period,
+            default_slippage_tolerance: msg.default_slippage_tolerance,
         },
     )?;
 
@@ -76,6 +77,7 @@ mod instantiate_tests {
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
             twap_period: 30,
+            default_slippage_tolerance: Decimal::percent(2),
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap();
@@ -108,6 +110,7 @@ mod instantiate_tests {
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
             twap_period: 30,
+            default_slippage_tolerance: Decimal::percent(2),
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -137,6 +140,7 @@ mod instantiate_tests {
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
             twap_period: 30,
+            default_slippage_tolerance: Decimal::percent(2),
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();
@@ -163,6 +167,7 @@ mod instantiate_tests {
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
             twap_period: 30,
+            default_slippage_tolerance: Decimal::percent(2),
         };
 
         let result = instantiate(deps.as_mut(), env, info, instantiate_message).unwrap_err();

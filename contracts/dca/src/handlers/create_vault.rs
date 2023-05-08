@@ -141,7 +141,7 @@ pub fn create_vault_handler(
         target_denom: target_denom.clone(),
         swap_amount,
         position_type,
-        slippage_tolerance,
+        slippage_tolerance: Some(slippage_tolerance.unwrap_or(config.default_slippage_tolerance)),
         minimum_receive_amount,
         balance: info.funds[0].clone(),
         time_interval,
@@ -766,6 +766,8 @@ mod create_vault_tests {
             .unwrap()
             .vault;
 
+        let config = get_config(deps.as_ref().storage).unwrap();
+
         assert_eq!(
             vault,
             Vault {
@@ -778,7 +780,7 @@ mod create_vault_tests {
                 status: VaultStatus::Scheduled,
                 time_interval: TimeInterval::Daily,
                 balance: info.funds[0].clone(),
-                slippage_tolerance: None,
+                slippage_tolerance: Some(config.default_slippage_tolerance),
                 swap_amount,
                 target_denom: DENOM_UOSMO.to_string(),
                 started_at: None,
