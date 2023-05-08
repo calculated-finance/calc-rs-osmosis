@@ -8,7 +8,7 @@ use crate::{
         validation::assert_sender_is_executor,
     },
     state::{
-        disburse_escrow_tasks::delete_disburse_escrow_task,
+        disburse_escrow_tasks::{delete_disburse_escrow_task, get_disburse_escrow_task_due_date},
         events::create_event,
         pairs::find_pair,
         vaults::{get_vault, update_vault},
@@ -32,6 +32,16 @@ pub fn disburse_escrow_handler(
 
     if vault.escrowed_amount.amount.is_zero() {
         return Ok(Response::new());
+    }
+
+    let due_date = get_disburse_escrow_task_due_date(deps.storage, vault.id)?;
+
+    if let Some(due_date) = due_date {
+        if env.block.time < due_date {
+            return Err(ContractError::CustomError {
+                val: "Escrow is not available to be disbursed yet".to_string(),
+            });
+        }
     }
 
     let pair = find_pair(deps.storage, &vault.denoms())?;
@@ -104,6 +114,67 @@ mod disburse_escrow_tests {
         to_binary, BankMsg, Coin, Decimal, StdError, SubMsg, Uint128,
     };
     use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
+
+    #[test]
+    fn when_disburse_escrow_task_is_not_due_fails() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                escrowed_amount: Coin::new(ONE.into(), DENOM_STAKE),
+                ..Vault::default()
+            },
+        );
+
+        save_disburse_escrow_task(
+            deps.as_mut().storage,
+            vault.id,
+            env.block.time.plus_seconds(10),
+        )
+        .unwrap();
+
+        let err = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: Escrow is not available to be disbursed yet"
+        );
+    }
+
+    #[test]
+    fn when_disburse_escrow_task_is_due_succeeds() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let vault = setup_vault(
+            deps.as_mut(),
+            env.clone(),
+            Vault {
+                escrowed_amount: Coin::new(ONE.into(), DENOM_STAKE),
+                ..Vault::default()
+            },
+        );
+
+        save_disburse_escrow_task(
+            deps.as_mut().storage,
+            vault.id,
+            env.block.time.minus_seconds(10),
+        )
+        .unwrap();
+
+        let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
+
+        assert!(!response.messages.is_empty());
+    }
 
     #[test]
     fn when_escrowed_balance_is_empty_sends_no_messages() {
