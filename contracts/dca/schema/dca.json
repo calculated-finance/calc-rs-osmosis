@@ -8,6 +8,7 @@
     "type": "object",
     "required": [
       "admin",
+      "default_slippage_tolerance",
       "delegation_fee_percent",
       "executors",
       "fee_collectors",
@@ -20,6 +21,9 @@
     "properties": {
       "admin": {
         "$ref": "#/definitions/Addr"
+      },
+      "default_slippage_tolerance": {
+        "$ref": "#/definitions/Decimal"
       },
       "delegation_fee_percent": {
         "$ref": "#/definitions/Decimal"
@@ -348,6 +352,16 @@
           "update_config": {
             "type": "object",
             "properties": {
+              "default_slippage_tolerance": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "delegation_fee_percent": {
                 "anyOf": [
                   {
@@ -1169,6 +1183,7 @@
           "type": "object",
           "required": [
             "admin",
+            "default_slippage_tolerance",
             "delegation_fee_percent",
             "executors",
             "fee_collectors",
@@ -1181,6 +1196,9 @@
           "properties": {
             "admin": {
               "$ref": "#/definitions/Addr"
+            },
+            "default_slippage_tolerance": {
+              "$ref": "#/definitions/Decimal"
             },
             "delegation_fee_percent": {
               "$ref": "#/definitions/Decimal"
@@ -2251,6 +2269,7 @@
             "id",
             "owner",
             "received_amount",
+            "slippage_tolerance",
             "status",
             "swap_amount",
             "swapped_amount",
@@ -2315,14 +2334,7 @@
               "$ref": "#/definitions/Coin"
             },
             "slippage_tolerance": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/definitions/Decimal"
             },
             "started_at": {
               "anyOf": [
@@ -2696,6 +2708,7 @@
             "id",
             "owner",
             "received_amount",
+            "slippage_tolerance",
             "status",
             "swap_amount",
             "swapped_amount",
@@ -2760,14 +2773,7 @@
               "$ref": "#/definitions/Coin"
             },
             "slippage_tolerance": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/definitions/Decimal"
             },
             "started_at": {
               "anyOf": [
@@ -3098,6 +3104,7 @@
             "id",
             "owner",
             "received_amount",
+            "slippage_tolerance",
             "status",
             "swap_amount",
             "swapped_amount",
@@ -3162,14 +3169,7 @@
               "$ref": "#/definitions/Coin"
             },
             "slippage_tolerance": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/definitions/Decimal"
             },
             "started_at": {
               "anyOf": [

@@ -265,6 +265,7 @@
         "id",
         "owner",
         "received_amount",
+        "slippage_tolerance",
         "status",
         "swap_amount",
         "swapped_amount",
@@ -329,14 +330,7 @@
           "$ref": "#/definitions/Coin"
         },
         "slippage_tolerance": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Decimal"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Decimal"
         },
         "started_at": {
           "anyOf": [

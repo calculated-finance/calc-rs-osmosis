@@ -4,7 +4,7 @@ use crate::{
         assert_addresses_are_valid, assert_fee_collector_addresses_are_valid,
         assert_fee_collector_allocations_add_up_to_one,
         assert_risk_weighted_average_escrow_level_is_less_than_100_percent, assert_sender_is_admin,
-        assert_twap_period_is_valid,
+        assert_slippage_tolerance_is_less_than_or_equal_to_one, assert_twap_period_is_valid,
     },
     state::config::{get_config, update_config},
     types::{config::Config, fee_collector::FeeCollector},
@@ -22,6 +22,7 @@ pub fn update_config_handler(
     paused: Option<bool>,
     risk_weighted_average_escrow_level: Option<Decimal>,
     twap_period: Option<u64>,
+    default_slippage_tolerance: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
     let existing_config = get_config(deps.storage)?;
@@ -38,8 +39,11 @@ pub fn update_config_handler(
         risk_weighted_average_escrow_level: risk_weighted_average_escrow_level
             .unwrap_or(existing_config.risk_weighted_average_escrow_level),
         twap_period: twap_period.unwrap_or(existing_config.twap_period),
+        default_slippage_tolerance: default_slippage_tolerance
+            .unwrap_or(existing_config.default_slippage_tolerance),
     };
 
+    assert_slippage_tolerance_is_less_than_or_equal_to_one(config.default_slippage_tolerance)?;
     assert_twap_period_is_valid(config.twap_period)?;
     assert_addresses_are_valid(deps.as_ref(), &config.executors, "executor")?;
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &config.fee_collectors)?;
@@ -94,6 +98,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
@@ -128,6 +133,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
@@ -154,6 +160,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
@@ -175,6 +182,7 @@ mod update_config_tests {
             None,
             None,
             Some(Decimal::percent(150)),
+            None,
             None,
             None,
             None,
@@ -207,6 +215,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
@@ -233,6 +242,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -254,6 +264,7 @@ mod update_config_tests {
         update_config_handler(
             deps.as_mut(),
             info,
+            None,
             None,
             None,
             None,
@@ -302,6 +313,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
@@ -337,6 +349,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -363,6 +376,7 @@ mod update_config_tests {
             None,
             None,
             Some(Decimal::percent(19)),
+            None,
             None,
         )
         .unwrap();
@@ -393,12 +407,41 @@ mod update_config_tests {
             None,
             Some(Decimal::percent(150)),
             None,
+            None,
         )
         .unwrap_err();
 
         assert_eq!(
             err.to_string(),
             "Error: risk_weighted_average_escrow_level cannot be greater than 100%"
+        )
+    }
+
+    #[test]
+    fn with_default_slippage_tolerance_more_than_100_percent_should_fail() {
+        let mut deps = mock_dependencies();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), mock_env(), info.clone());
+
+        let err = update_config_handler(
+            deps.as_mut(),
+            info,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(Decimal::percent(150)),
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: default slippage tolerance must be less than or equal to 1"
         )
     }
 }

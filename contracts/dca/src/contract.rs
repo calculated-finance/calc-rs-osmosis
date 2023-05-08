@@ -118,6 +118,7 @@ pub fn execute(
             paused,
             risk_weighted_average_escrow_level,
             twap_period,
+            default_slippage_tolerance,
         } => update_config_handler(
             deps,
             info,
@@ -129,6 +130,7 @@ pub fn execute(
             paused,
             risk_weighted_average_escrow_level,
             twap_period,
+            default_slippage_tolerance,
         ),
         ExecuteMsg::CreateCustomSwapFee {
             denom,

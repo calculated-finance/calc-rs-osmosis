@@ -116,7 +116,7 @@ struct VaultData {
     balance: Coin,
     target_denom: String,
     swap_amount: Uint128,
-    slippage_tolerance: Option<Decimal>,
+    slippage_tolerance: Decimal,
     minimum_receive_amount: Option<Uint128>,
     time_interval: TimeInterval,
     started_at: Option<Timestamp>,

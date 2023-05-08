@@ -262,6 +262,16 @@
         "update_config": {
           "type": "object",
           "properties": {
+            "default_slippage_tolerance": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "delegation_fee_percent": {
               "anyOf": [
                 {

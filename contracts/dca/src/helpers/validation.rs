@@ -226,6 +226,17 @@ pub fn assert_twap_period_is_valid(twap_period: u64) -> Result<(), ContractError
     Ok(())
 }
 
+pub fn assert_slippage_tolerance_is_less_than_or_equal_to_one(
+    slippage_tolerance: Decimal,
+) -> Result<(), ContractError> {
+    if slippage_tolerance > Decimal::percent(100) {
+        return Err(ContractError::CustomError {
+            val: "default slippage tolerance must be less than or equal to 1".to_string(),
+        });
+    }
+    Ok(())
+}
+
 pub fn assert_pair_exists_for_denoms(
     deps: Deps,
     swap_denom: String,

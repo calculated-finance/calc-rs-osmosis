@@ -4,7 +4,7 @@ use crate::helpers::validation::{
     assert_contract_is_not_paused, assert_destination_allocations_add_up_to_one,
     assert_destination_callback_addresses_are_valid, assert_destinations_limit_is_not_breached,
     assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
-    assert_pair_exists_for_denoms,
+    assert_pair_exists_for_denoms, assert_slippage_tolerance_is_less_than_or_equal_to_one,
     assert_swap_adjusment_and_performance_assessment_strategies_are_compatible,
     assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
     assert_time_interval_is_valid,
@@ -65,6 +65,10 @@ pub fn create_vault_handler(
         &swap_adjustment_strategy_params,
         &performance_assessment_strategy_params,
     )?;
+
+    if let Some(slippage_tolerance) = slippage_tolerance {
+        assert_slippage_tolerance_is_less_than_or_equal_to_one(slippage_tolerance)?;
+    }
 
     if let Some(target_time) = target_start_time_utc_seconds {
         assert_target_start_time_is_in_future(
@@ -141,7 +145,7 @@ pub fn create_vault_handler(
         target_denom: target_denom.clone(),
         swap_amount,
         position_type,
-        slippage_tolerance,
+        slippage_tolerance: slippage_tolerance.unwrap_or(config.default_slippage_tolerance),
         minimum_receive_amount,
         balance: info.funds[0].clone(),
         time_interval,
@@ -722,6 +726,53 @@ mod create_vault_tests {
     }
 
     #[test]
+    fn with_slippage_tolerance_larger_than_one_fails() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let mut info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            info.clone(),
+            pair.base_denom.clone(),
+            pair.quote_denom.clone(),
+            pair.route.clone(),
+        )
+        .unwrap();
+
+        let swap_amount = Uint128::new(100000);
+        info = mock_info(USER, &[Coin::new(100000, DENOM_STAKE)]);
+
+        let err = create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &info,
+            info.sender.clone(),
+            None,
+            vec![],
+            DENOM_UOSMO.to_string(),
+            None,
+            Some(Decimal::percent(150)),
+            None,
+            swap_amount,
+            TimeInterval::Daily,
+            None,
+            None,
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: default slippage tolerance must be less than or equal to 1"
+        );
+    }
+
+    #[test]
     fn should_create_vault() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
@@ -766,6 +817,8 @@ mod create_vault_tests {
             .unwrap()
             .vault;
 
+        let config = get_config(deps.as_ref().storage).unwrap();
+
         assert_eq!(
             vault,
             Vault {
@@ -778,7 +831,7 @@ mod create_vault_tests {
                 status: VaultStatus::Scheduled,
                 time_interval: TimeInterval::Daily,
                 balance: info.funds[0].clone(),
-                slippage_tolerance: None,
+                slippage_tolerance: config.default_slippage_tolerance,
                 swap_amount,
                 target_denom: DENOM_UOSMO.to_string(),
                 started_at: None,
