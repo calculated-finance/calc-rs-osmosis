@@ -3,8 +3,9 @@ use crate::helpers::validation::{
     assert_address_is_valid, assert_contract_destination_callbacks_are_valid,
     assert_contract_is_not_paused, assert_destination_allocations_add_up_to_one,
     assert_destination_callback_addresses_are_valid, assert_destinations_limit_is_not_breached,
-    assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
-    assert_pair_exists_for_denoms, assert_slippage_tolerance_is_less_than_or_equal_to_one,
+    assert_exactly_one_asset, assert_label_is_no_longer_than_100_characters,
+    assert_no_destination_allocations_are_zero, assert_pair_exists_for_denoms,
+    assert_slippage_tolerance_is_less_than_or_equal_to_one,
     assert_swap_adjusment_and_performance_assessment_strategies_are_compatible,
     assert_swap_adjustment_strategy_params_are_valid, assert_swap_amount_is_greater_than_50000,
     assert_target_start_time_is_in_future, assert_time_interval_is_valid,
@@ -65,6 +66,10 @@ pub fn create_vault_handler(
         &swap_adjustment_strategy_params,
         &performance_assessment_strategy_params,
     )?;
+
+    if let Some(label) = label.clone() {
+        assert_label_is_no_longer_than_100_characters(&label)?;
+    }
 
     if let Some(swap_adjustment_strategy_params) = &swap_adjustment_strategy_params {
         assert_swap_adjustment_strategy_params_are_valid(swap_adjustment_strategy_params)?;
