@@ -1,4 +1,5 @@
 use crate::helpers::validation::assert_sender_is_admin;
+use crate::state::config::get_custom_fee;
 use crate::{error::ContractError, state::config::remove_custom_fee};
 use cosmwasm_std::DepsMut;
 #[cfg(not(feature = "library"))]
@@ -10,6 +11,14 @@ pub fn remove_custom_swap_fee_handler(
     denom: String,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
+
+    let fee = get_custom_fee(deps.storage, denom.clone())?;
+
+    if fee.is_none() {
+        return Err(ContractError::CustomError {
+            val: format!("Custom fee for {} does not exist", denom),
+        });
+    }
 
     remove_custom_fee(deps.storage, denom.clone());
 
@@ -39,7 +48,25 @@ mod remove_custom_swap_fee_tests {
     };
 
     #[test]
-    fn remove_custom_fee_should_succeed() {
+    fn without_custom_fee_fails() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &vec![]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let denom = DENOM_STAKE.to_string();
+
+        let err = remove_custom_swap_fee_handler(deps.as_mut(), info, denom).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: Custom fee for stake does not exist"
+        );
+    }
+
+    #[test]
+    fn with_custom_fee_succeeds() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &vec![]);

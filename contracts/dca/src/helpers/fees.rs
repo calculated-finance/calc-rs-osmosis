@@ -58,8 +58,8 @@ pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Deci
 
     Ok(
         match (
-            get_custom_fee(storage, vault.get_swap_denom()),
-            get_custom_fee(storage, vault.target_denom.clone()),
+            get_custom_fee(storage, vault.get_swap_denom())?,
+            get_custom_fee(storage, vault.target_denom.clone())?,
         ) {
             (Some(swap_denom_fee_percent), Some(receive_denom_fee_percent)) => {
                 min(swap_denom_fee_percent, receive_denom_fee_percent)
