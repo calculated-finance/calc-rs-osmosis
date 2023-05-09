@@ -251,7 +251,7 @@ pub fn assert_pair_exists_for_denoms(
     swap_denom: String,
     target_denom: String,
 ) -> Result<(), ContractError> {
-    find_pair(deps.storage, &[swap_denom.clone(), target_denom.clone()])
+    find_pair(deps.storage, [swap_denom.clone(), target_denom.clone()])
         .map(|_| ())
         .map_err(|_| ContractError::CustomError {
             val: format!("swapping {} to {} not supported", swap_denom, target_denom),

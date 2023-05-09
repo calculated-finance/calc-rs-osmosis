@@ -5,21 +5,16 @@ use cw_storage_plus::Map;
 const PAIRS: Map<String, Pair> = Map::new("pairs_v8");
 
 pub fn save_pair(storage: &mut dyn Storage, pair: &Pair) -> StdResult<()> {
-    PAIRS.save(storage, pair.key(), pair)
+    PAIRS.save(storage, key_from(pair.denoms()), pair)
 }
 
-fn key_from(denoms: &[String; 2]) -> String {
+fn key_from(mut denoms: [String; 2]) -> String {
+    denoms.sort();
     format!("{}-{}", denoms[0], denoms[1])
 }
 
-pub fn find_pair(storage: &dyn Storage, denoms: &[String; 2]) -> StdResult<Pair> {
-    let pair = PAIRS.may_load(storage, key_from(denoms))?;
-
-    if let Some(pair) = pair {
-        return Ok(pair);
-    }
-
-    PAIRS.load(storage, key_from(&[denoms[1].clone(), denoms[0].clone()]))
+pub fn find_pair(storage: &dyn Storage, denoms: [String; 2]) -> StdResult<Pair> {
+    PAIRS.load(storage, key_from(denoms))
 }
 
 pub fn get_pairs(storage: &dyn Storage) -> Vec<Pair> {
@@ -41,7 +36,7 @@ mod pairs_state_tests {
 
         save_pair(deps.as_mut().storage, &pair).unwrap();
 
-        let saved_pair = find_pair(&deps.storage, &pair.denoms()).unwrap();
+        let saved_pair = find_pair(&deps.storage, pair.denoms()).unwrap();
         assert_eq!(pair, saved_pair);
     }
 
@@ -54,7 +49,7 @@ mod pairs_state_tests {
 
         let denoms = [pair.denoms()[1].clone(), pair.denoms()[0].clone()];
 
-        let saved_pair = find_pair(&deps.storage, &denoms).unwrap();
+        let saved_pair = find_pair(&deps.storage, denoms).unwrap();
         assert_eq!(pair, saved_pair);
     }
 
@@ -62,7 +57,7 @@ mod pairs_state_tests {
     fn find_pair_that_does_not_exist_fails() {
         let deps = mock_dependencies();
 
-        let result = find_pair(&deps.storage, &Pair::default().denoms()).unwrap_err();
+        let result = find_pair(&deps.storage, Pair::default().denoms()).unwrap_err();
 
         assert_eq!(result.to_string(), "dca::types::pair::Pair not found");
     }

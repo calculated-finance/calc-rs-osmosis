@@ -73,7 +73,7 @@ pub fn execute_trigger_handler(
 
     update_vault(deps.storage, &vault)?;
 
-    let pair = find_pair(deps.storage, &vault.denoms())?;
+    let pair = find_pair(deps.storage, vault.denoms())?;
 
     let belief_price = query_belief_price(&deps.as_ref(), &env, &pair, vault.get_swap_denom())?;
 
@@ -429,7 +429,7 @@ mod execute_trigger_tests {
             .unwrap()
             .events;
 
-        let pair = find_pair(deps.as_ref().storage, &vault.denoms()).unwrap();
+        let pair = find_pair(deps.as_ref().storage, vault.denoms()).unwrap();
 
         assert!(events.contains(&Event {
             id: 1,

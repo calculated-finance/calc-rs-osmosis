@@ -24,7 +24,7 @@ use cosmwasm_std::{
 use std::cmp::min;
 
 pub fn get_position_type(deps: &Deps, vault: &Vault) -> StdResult<PositionType> {
-    let pair = find_pair(deps.storage, &vault.denoms())?;
+    let pair = find_pair(deps.storage, vault.denoms())?;
     Ok(pair.position_type(vault.get_swap_denom()))
 }
 
@@ -35,7 +35,7 @@ pub fn get_swap_amount(deps: &Deps, env: &Env, vault: &Vault) -> StdResult<Coin>
             multiplier,
             increase_only,
         }) => {
-            let pair = find_pair(deps.storage, &vault.denoms())?;
+            let pair = find_pair(deps.storage, vault.denoms())?;
             let belief_price = query_belief_price(deps, env, &pair, vault.get_swap_denom())?;
             let base_price = Decimal::from_ratio(vault.swap_amount, base_receive_amount);
             let scaled_price_delta = base_price.abs_diff(belief_price) / base_price * multiplier;
@@ -159,7 +159,7 @@ pub fn simulate_standard_dca_execution(
                 return Ok((vault, response));
             }
 
-            let pair = find_pair(storage, &vault.denoms())?;
+            let pair = find_pair(storage, vault.denoms())?;
 
             let actual_price = query_price(
                 querier,

@@ -91,29 +91,15 @@ mod create_pair_tests {
             route: vec![3],
         };
 
-        execute(
-            deps.as_mut(),
-            env.clone(),
-            info.clone(),
-            original_message.clone(),
-        )
-        .unwrap();
-
         execute(deps.as_mut(), env.clone(), info.clone(), original_message).unwrap();
 
-        let original_pair = find_pair(
-            deps.as_ref().storage,
-            &[DENOM_UOSMO.to_string(), DENOM_STAKE.to_string()],
-        )
-        .unwrap();
+        let denoms = [DENOM_UOSMO.to_string(), DENOM_STAKE.to_string()];
+
+        let original_pair = find_pair(deps.as_ref().storage, denoms.clone()).unwrap();
 
         execute(deps.as_mut(), env, info, message).unwrap();
 
-        let pair = find_pair(
-            deps.as_ref().storage,
-            &[DENOM_UOSMO.to_string(), DENOM_STAKE.to_string()],
-        )
-        .unwrap();
+        let pair = find_pair(deps.as_ref().storage, denoms).unwrap();
 
         assert_eq!(original_pair.route, vec![4, 1]);
         assert_eq!(pair.route, vec![3]);
@@ -193,5 +179,39 @@ mod create_pair_tests {
             result.to_string(),
             "Generic error: denom uosmo not found in pool id 2"
         )
+    }
+
+    #[test]
+    fn recreate_pair_with_switched_denoms_should_overwrite_it() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &vec![]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let original_message = ExecuteMsg::CreatePair {
+            quote_denom: DENOM_UOSMO.to_string(),
+            base_denom: DENOM_STAKE.to_string(),
+            route: vec![1, 4],
+        };
+
+        let message = ExecuteMsg::CreatePair {
+            base_denom: DENOM_UOSMO.to_string(),
+            quote_denom: DENOM_STAKE.to_string(),
+            route: vec![3],
+        };
+
+        execute(deps.as_mut(), env.clone(), info.clone(), original_message).unwrap();
+
+        let denoms = [DENOM_UOSMO.to_string(), DENOM_STAKE.to_string()];
+
+        let original_pair = find_pair(deps.as_ref().storage, denoms.clone()).unwrap();
+
+        execute(deps.as_mut(), env, info, message).unwrap();
+
+        let pair = find_pair(deps.as_ref().storage, denoms).unwrap();
+
+        assert_eq!(original_pair.route, vec![1, 4]);
+        assert_eq!(pair.route, vec![3]);
     }
 }

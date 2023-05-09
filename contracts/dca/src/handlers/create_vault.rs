@@ -94,7 +94,7 @@ pub fn create_vault_handler(
 
     let swap_denom = info.funds[0].denom.clone();
 
-    let pair = find_pair(deps.storage, &[swap_denom.clone(), target_denom.clone()])?;
+    let pair = find_pair(deps.storage, [swap_denom.clone(), target_denom.clone()])?;
 
     let swap_adjustment_strategy = swap_adjustment_strategy_params.map(|params| match params {
         SwapAdjustmentStrategyParams::RiskWeightedAverage { base_denom } => {
