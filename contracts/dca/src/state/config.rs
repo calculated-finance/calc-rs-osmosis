@@ -43,8 +43,8 @@ pub fn remove_custom_fee(storage: &mut dyn Storage, denom: String) {
     CUSTOM_FEES.remove(storage, denom);
 }
 
-pub fn get_custom_fee(storage: &dyn Storage, denom: String) -> Option<Decimal> {
-    CUSTOM_FEES.may_load(storage, denom).unwrap()
+pub fn get_custom_fee(storage: &dyn Storage, denom: String) -> StdResult<Option<Decimal>> {
+    CUSTOM_FEES.may_load(storage, denom)
 }
 
 pub fn get_custom_fees(storage: &dyn Storage) -> StdResult<Vec<(String, Decimal)>> {
