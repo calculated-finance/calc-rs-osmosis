@@ -208,6 +208,7 @@ pub fn execute_trigger_handler(
         swap_amount,
         vault.slippage_tolerance,
         belief_price,
+        vault.minimum_receive_amount,
         Some(AFTER_SWAP_REPLY_ID),
         Some(ReplyOn::Always),
     )?))
