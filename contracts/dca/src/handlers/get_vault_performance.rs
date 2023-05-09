@@ -14,7 +14,7 @@ pub fn get_vault_performance_handler(
 ) -> StdResult<VaultPerformanceResponse> {
     let vault = get_vault(deps.storage, vault_id)?;
 
-    let pair = find_pair(deps.storage, &vault.denoms())?;
+    let pair = find_pair(deps.storage, vault.denoms())?;
 
     let current_price = query_belief_price(&deps, env, &pair, vault.get_swap_denom())?;
 

@@ -9,10 +9,6 @@ pub struct Pair {
 }
 
 impl Pair {
-    pub fn key(&self) -> String {
-        format!("{}-{}", self.base_denom, self.quote_denom)
-    }
-
     pub fn position_type(&self, swap_denom: String) -> PositionType {
         if self.quote_denom == swap_denom {
             PositionType::Enter
