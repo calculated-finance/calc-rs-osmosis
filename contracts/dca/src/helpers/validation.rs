@@ -480,3 +480,12 @@ pub fn assert_swap_adjustment_strategy_params_are_valid(
     }
     Ok(())
 }
+
+pub fn assert_custom_fee_is_valid(swap_fee_percent: &Decimal) -> Result<(), ContractError> {
+    if swap_fee_percent > &Decimal::percent(5) {
+        return Err(ContractError::CustomError {
+            val: "custom swap fee cannot be larger than 5%".to_string(),
+        });
+    }
+    Ok(())
+}

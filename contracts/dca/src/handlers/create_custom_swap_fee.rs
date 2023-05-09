@@ -1,5 +1,6 @@
 use crate::{
-    error::ContractError, helpers::validation::assert_sender_is_admin,
+    error::ContractError,
+    helpers::validation::{assert_custom_fee_is_valid, assert_sender_is_admin},
     state::config::create_custom_fee,
 };
 #[cfg(not(feature = "library"))]
@@ -13,6 +14,7 @@ pub fn create_custom_swap_fee_handler(
     swap_fee_percent: Decimal,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
+    assert_custom_fee_is_valid(&swap_fee_percent)?;
 
     create_custom_fee(deps.storage, denom.clone(), swap_fee_percent)?;
 
@@ -84,7 +86,7 @@ mod create_custom_swap_fee_tests {
     }
 
     #[test]
-    fn create_custom_swap_fee_larger_than_100_percent_should_fail() {
+    fn create_custom_swap_fee_larger_than_5_percent_should_fail() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &vec![]);
@@ -98,6 +100,9 @@ mod create_custom_swap_fee_tests {
         )
         .unwrap_err();
 
-        assert_eq!(response.to_string(), "Generic error: swap_fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)");
+        assert_eq!(
+            response.to_string(),
+            "Error: custom swap fee cannot be larger than 5%"
+        );
     }
 }
