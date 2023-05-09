@@ -450,6 +450,18 @@ pub fn assert_route_not_empty(route: Vec<u64>) -> Result<(), ContractError> {
     Ok(())
 }
 
+pub fn assert_route_has_no_duplicate_entries(route: Vec<u64>) -> Result<(), ContractError> {
+    let mut deduped_route = route.clone();
+    deduped_route.sort();
+    deduped_route.dedup();
+    if route.len() != deduped_route.len() {
+        return Err(ContractError::CustomError {
+            val: "Swap route must not contain duplicate entries".to_string(),
+        });
+    }
+    Ok(())
+}
+
 pub fn assert_swap_adjustment_value_is_valid(
     strategy: &SwapAdjustmentStrategy,
     value: Decimal,

@@ -1,5 +1,6 @@
 use crate::helpers::validation::{
-    assert_route_matches_denoms, assert_route_not_empty, assert_sender_is_admin,
+    assert_route_has_no_duplicate_entries, assert_route_matches_denoms, assert_route_not_empty,
+    assert_sender_is_admin,
 };
 use crate::state::pairs::save_pair;
 use crate::{error::ContractError, types::pair::Pair};
@@ -16,6 +17,7 @@ pub fn create_pair_handler(
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
     assert_route_not_empty(route.clone())?;
+    assert_route_has_no_duplicate_entries(route.clone())?;
 
     let pair = Pair {
         base_denom: base_denom.clone(),
@@ -47,6 +49,28 @@ mod create_pair_tests {
         },
     };
     use cosmwasm_std::testing::{mock_env, mock_info};
+
+    #[test]
+    fn with_duplicate_route_entries_fails() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &vec![]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let create_pair_execute_message = ExecuteMsg::CreatePair {
+            base_denom: DENOM_UOSMO.to_string(),
+            quote_denom: DENOM_STAKE.to_string(),
+            route: vec![4, 1, 4, 1],
+        };
+
+        let err = execute(deps.as_mut(), env, info, create_pair_execute_message).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: Swap route must not contain duplicate entries"
+        )
+    }
 
     #[test]
     fn create_pair_with_valid_id_should_succeed() {
