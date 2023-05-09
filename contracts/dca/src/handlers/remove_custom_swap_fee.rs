@@ -26,10 +26,12 @@ mod remove_custom_swap_fee_tests {
             create_custom_swap_fee::create_custom_swap_fee_handler,
             get_custom_swap_fees::get_custom_swap_fees_handler,
         },
+        state::pairs::save_pair,
         tests::{
             helpers::instantiate_contract,
             mocks::{ADMIN, DENOM_STAKE},
         },
+        types::pair::Pair,
     };
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
@@ -45,6 +47,16 @@ mod remove_custom_swap_fee_tests {
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
         let denom = DENOM_STAKE.to_string();
+
+        save_pair(
+            deps.as_mut().storage,
+            &Pair {
+                base_denom: denom.to_string(),
+                quote_denom: DENOM_STAKE.to_string(),
+                route: vec![1],
+            },
+        )
+        .unwrap();
 
         create_custom_swap_fee_handler(
             deps.as_mut(),
