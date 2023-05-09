@@ -6,7 +6,9 @@ use crate::types::destination::Destination;
 use crate::types::fee_collector::FeeCollector;
 use crate::types::pair::Pair;
 use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategyParams;
-use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategyParams;
+use crate::types::swap_adjustment_strategy::{
+    SwapAdjustmentStrategy, SwapAdjustmentStrategyParams,
+};
 use crate::types::time_interval::TimeInterval;
 use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::{
@@ -445,6 +447,36 @@ pub fn assert_route_not_empty(route: Vec<u64>) -> Result<(), ContractError> {
         return Err(ContractError::CustomError {
             val: "Swap route must not be empty".to_string(),
         });
+    }
+    Ok(())
+}
+
+pub fn assert_swap_adjustment_value_is_valid(
+    strategy: &SwapAdjustmentStrategy,
+    value: Decimal,
+) -> Result<(), ContractError> {
+    if value < strategy.min_adjustment() || value > strategy.max_adjustment() {
+        return Err(ContractError::CustomError {
+            val: format!(
+                "swap adjustment value for strategy {:?} must be between {} and {}",
+                strategy,
+                strategy.min_adjustment(),
+                strategy.max_adjustment()
+            ),
+        });
+    }
+    Ok(())
+}
+
+pub fn assert_swap_adjustment_strategy_params_are_valid(
+    strategy: &SwapAdjustmentStrategyParams,
+) -> Result<(), ContractError> {
+    if let SwapAdjustmentStrategyParams::WeightedScale { multiplier, .. } = strategy {
+        if multiplier > &Decimal::percent(1000) {
+            return Err(ContractError::CustomError {
+                val: "Cannot set weighted scale multiplier to more than 10".to_string(),
+            });
+        }
     }
     Ok(())
 }

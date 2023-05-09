@@ -1,5 +1,6 @@
 use crate::{
-    error::ContractError, helpers::validation::assert_sender_is_executor,
+    error::ContractError,
+    helpers::validation::{assert_sender_is_executor, assert_swap_adjustment_value_is_valid},
     state::swap_adjustments::update_swap_adjustment,
     types::swap_adjustment_strategy::SwapAdjustmentStrategy,
 };
@@ -13,6 +14,7 @@ pub fn update_swap_adjustment_handler(
     value: Decimal,
 ) -> Result<Response, ContractError> {
     assert_sender_is_executor(deps.storage, &env, &info.sender)?;
+    assert_swap_adjustment_value_is_valid(&strategy, value)?;
     update_swap_adjustment(deps.storage, strategy, value, env.block.time)?;
     Ok(Response::new())
 }
@@ -59,6 +61,42 @@ mod update_swap_adjustments_tests {
         .unwrap_err();
 
         assert_eq!(err.to_string(), "Unauthorized");
+    }
+
+    #[test]
+    fn with_invalid_value_fails() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let strategy = SwapAdjustmentStrategy::RiskWeightedAverage {
+            model_id: 30,
+            base_denom: BaseDenom::Bitcoin,
+            position_type: PositionType::Enter,
+        };
+
+        let value = Decimal::percent(20);
+
+        let err = update_swap_adjustment_handler(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            strategy.clone(),
+            value,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            format!(
+                "Error: swap adjustment value for strategy {:?} must be between {} and {}",
+                strategy,
+                strategy.min_adjustment(),
+                strategy.max_adjustment()
+            )
+        );
     }
 
     #[test]

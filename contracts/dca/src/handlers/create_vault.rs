@@ -6,8 +6,8 @@ use crate::helpers::validation::{
     assert_exactly_one_asset, assert_no_destination_allocations_are_zero,
     assert_pair_exists_for_denoms, assert_slippage_tolerance_is_less_than_or_equal_to_one,
     assert_swap_adjusment_and_performance_assessment_strategies_are_compatible,
-    assert_swap_amount_is_greater_than_50000, assert_target_start_time_is_in_future,
-    assert_time_interval_is_valid,
+    assert_swap_adjustment_strategy_params_are_valid, assert_swap_amount_is_greater_than_50000,
+    assert_target_start_time_is_in_future, assert_time_interval_is_valid,
 };
 use crate::helpers::vault::get_risk_weighted_average_model_id;
 use crate::msg::ExecuteMsg;
@@ -65,6 +65,10 @@ pub fn create_vault_handler(
         &swap_adjustment_strategy_params,
         &performance_assessment_strategy_params,
     )?;
+
+    if let Some(swap_adjustment_strategy_params) = &swap_adjustment_strategy_params {
+        assert_swap_adjustment_strategy_params_are_valid(swap_adjustment_strategy_params)?;
+    }
 
     if let Some(slippage_tolerance) = slippage_tolerance {
         assert_slippage_tolerance_is_less_than_or_equal_to_one(slippage_tolerance)?;
@@ -230,7 +234,7 @@ mod create_vault_tests {
     use cosmwasm_std::{to_binary, Addr, Coin, Decimal, SubMsg, Timestamp, Uint128, WasmMsg};
 
     #[test]
-    fn with_no_assets_should_fail() {
+    fn with_no_assets_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(USER, &[]);
@@ -263,7 +267,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_multiple_assets_should_fail() {
+    fn with_multiple_assets_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(
@@ -299,7 +303,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_non_existent_pair_should_fail() {
+    fn with_non_existent_pair_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
@@ -332,7 +336,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_destination_allocations_less_than_100_percent_should_fail() {
+    fn with_destination_allocations_less_than_100_percent_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let admin_info = mock_info(ADMIN, &[]);
@@ -382,7 +386,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_destination_allocation_equal_to_zero_should_fail() {
+    fn with_destination_allocation_equal_to_zero_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let admin_info = mock_info(ADMIN, &[]);
@@ -439,7 +443,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_more_than_10_destination_allocations_should_fail() {
+    fn with_more_than_10_destination_allocations_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
@@ -479,7 +483,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_swap_amount_less_than_50000_should_fail() {
+    fn with_swap_amount_less_than_50000_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
@@ -512,7 +516,57 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn when_contract_is_paused_should_fail() {
+    fn with_too_high_weighted_scale_multiplier_fails() {
+        let mut deps = calc_mock_dependencies();
+        let env = mock_env();
+        let admin_info = mock_info(ADMIN, &[]);
+
+        instantiate_contract(deps.as_mut(), env.clone(), admin_info.clone());
+
+        let pair = Pair::default();
+
+        create_pair_handler(
+            deps.as_mut(),
+            admin_info.clone(),
+            pair.base_denom.clone(),
+            pair.quote_denom.clone(),
+            pair.route.clone(),
+        )
+        .unwrap();
+
+        let user_info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
+
+        let err = create_vault_handler(
+            deps.as_mut(),
+            env.clone(),
+            &user_info,
+            user_info.sender.clone(),
+            None,
+            vec![],
+            DENOM_UOSMO.to_string(),
+            None,
+            None,
+            None,
+            Uint128::new(100000),
+            TimeInterval::Daily,
+            None,
+            None,
+            Some(SwapAdjustmentStrategyParams::WeightedScale {
+                base_receive_amount: Uint128::new(100000),
+                multiplier: Decimal::percent(1100),
+                increase_only: false,
+            }),
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "Error: Cannot set weighted scale multiplier to more than 10"
+        );
+    }
+
+    #[test]
+    fn when_contract_is_paused_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
@@ -553,7 +607,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_time_trigger_with_target_time_in_the_past_should_fail() {
+    fn with_time_trigger_with_target_time_in_the_past_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let admin_info = mock_info(ADMIN, &[]);
@@ -599,7 +653,7 @@ mod create_vault_tests {
     }
 
     #[test]
-    fn with_invalid_custom_time_interval_should_fail() {
+    fn with_invalid_custom_time_interval_fails() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(USER, &[Coin::new(10000, DENOM_STAKE)]);
