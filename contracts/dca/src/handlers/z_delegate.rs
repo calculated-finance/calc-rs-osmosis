@@ -16,7 +16,7 @@ pub fn z_delegate_handler(
     validator_address: Addr,
 ) -> Result<Response, ContractError> {
     assert_exactly_one_asset(info.funds.clone())?;
-    assert_address_is_valid(deps, delegator_address.clone(), "delegator address")?;
+    assert_address_is_valid(deps, &delegator_address, "delegator address")?;
     assert_validator_is_valid(deps, validator_address.to_string())?;
 
     let amount_to_delegate = info.funds[0].clone();

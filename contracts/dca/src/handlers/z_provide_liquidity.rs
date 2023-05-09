@@ -1,7 +1,10 @@
 use crate::{
     constants::{AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_PROVIDE_LIQUIDITY_REPLY_ID},
     error::ContractError,
-    helpers::{authz::create_authz_exec_message, validation::assert_exactly_one_asset},
+    helpers::{
+        authz::create_authz_exec_message,
+        validation::{assert_address_is_valid, assert_exactly_one_asset},
+    },
     state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
     types::post_execution_action::LockableDuration,
 };
@@ -24,6 +27,7 @@ pub fn z_provide_liquidity_handler(
     slippage_tolerance: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     assert_exactly_one_asset(info.funds.clone())?;
+    assert_address_is_valid(deps.as_ref(), &provider_address, "provider address")?;
 
     PROVIDE_LIQUIDITY_CACHE.save(
         deps.storage,

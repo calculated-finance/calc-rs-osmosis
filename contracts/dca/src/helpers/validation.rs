@@ -177,7 +177,7 @@ pub fn assert_destination_callback_addresses_are_valid(
     destinations: &[Destination],
 ) -> Result<(), ContractError> {
     destinations.iter().for_each(|destination| {
-        assert_address_is_valid(deps, destination.address.clone(), "destination").unwrap();
+        assert_address_is_valid(deps, &destination.address, "destination").unwrap();
     });
     Ok(())
 }
@@ -189,7 +189,7 @@ pub fn assert_fee_collector_addresses_are_valid(
     for fee_collector in fee_collectors {
         assert_address_is_valid(
             deps,
-            Addr::unchecked(fee_collector.address.clone()),
+            &Addr::unchecked(fee_collector.address.clone()),
             "fee collector",
         )?;
     }
@@ -198,7 +198,7 @@ pub fn assert_fee_collector_addresses_are_valid(
 
 pub fn assert_address_is_valid(
     deps: Deps,
-    address: Addr,
+    address: &Addr,
     label: &str,
 ) -> Result<(), ContractError> {
     deps.api
@@ -216,7 +216,7 @@ pub fn assert_addresses_are_valid(
 ) -> Result<(), ContractError> {
     addresses
         .iter()
-        .try_for_each(|address| assert_address_is_valid(deps, address.clone(), label))
+        .try_for_each(|address| assert_address_is_valid(deps, address, label))
 }
 
 pub fn assert_twap_period_is_valid(twap_period: u64) -> Result<(), ContractError> {
