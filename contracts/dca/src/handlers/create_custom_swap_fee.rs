@@ -1,6 +1,8 @@
 use crate::{
     error::ContractError,
-    helpers::validation::{assert_custom_fee_is_valid, assert_sender_is_admin},
+    helpers::validation::{
+        assert_custom_fee_is_valid, assert_denom_exists, assert_sender_is_admin,
+    },
     state::config::create_custom_fee,
 };
 #[cfg(not(feature = "library"))]
@@ -14,6 +16,7 @@ pub fn create_custom_swap_fee_handler(
     swap_fee_percent: Decimal,
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
+    assert_denom_exists(deps.as_ref().storage, denom.clone())?;
     assert_custom_fee_is_valid(&swap_fee_percent)?;
 
     create_custom_fee(deps.storage, denom.clone(), swap_fee_percent)?;
@@ -29,7 +32,12 @@ mod create_custom_swap_fee_tests {
     use super::*;
     use crate::{
         handlers::get_custom_swap_fees::get_custom_swap_fees_handler,
-        tests::{helpers::instantiate_contract, mocks::ADMIN},
+        state::pairs::save_pair,
+        tests::{
+            helpers::instantiate_contract,
+            mocks::{ADMIN, DENOM_STAKE, DENOM_UATOM, DENOM_UOSMO},
+        },
+        types::pair::Pair,
     };
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
@@ -43,7 +51,17 @@ mod create_custom_swap_fee_tests {
         let info = mock_info(ADMIN, &vec![]);
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let denom = "uosmo".to_string();
+        let denom = DENOM_UOSMO.to_string();
+
+        save_pair(
+            deps.as_mut().storage,
+            &Pair {
+                base_denom: denom.clone(),
+                quote_denom: DENOM_STAKE.to_string(),
+                route: vec![1],
+            },
+        )
+        .unwrap();
 
         create_custom_swap_fee_handler(deps.as_mut(), info, denom.clone(), Decimal::percent(1))
             .unwrap();
@@ -61,7 +79,17 @@ mod create_custom_swap_fee_tests {
         let info = mock_info(ADMIN, &vec![]);
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let denom = "uosmo".to_string();
+        let denom = DENOM_UOSMO.to_string();
+
+        save_pair(
+            deps.as_mut().storage,
+            &Pair {
+                base_denom: denom.clone(),
+                quote_denom: DENOM_STAKE.to_string(),
+                route: vec![1],
+            },
+        )
+        .unwrap();
 
         create_custom_swap_fee_handler(
             deps.as_mut(),
@@ -86,23 +114,57 @@ mod create_custom_swap_fee_tests {
     }
 
     #[test]
-    fn create_custom_swap_fee_larger_than_5_percent_should_fail() {
+    fn create_custom_swap_fee_larger_than_5_percent_fails() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let info = mock_info(ADMIN, &vec![]);
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        let response = create_custom_swap_fee_handler(
-            deps.as_mut(),
-            info,
-            "uosmo".to_string(),
-            Decimal::percent(101),
+        let denom = DENOM_UOSMO.to_string();
+
+        save_pair(
+            deps.as_mut().storage,
+            &Pair {
+                base_denom: denom.to_string(),
+                quote_denom: DENOM_STAKE.to_string(),
+                route: vec![1],
+            },
         )
-        .unwrap_err();
+        .unwrap();
+
+        let response =
+            create_custom_swap_fee_handler(deps.as_mut(), info, denom, Decimal::percent(6))
+                .unwrap_err();
 
         assert_eq!(
             response.to_string(),
             "Error: custom swap fee cannot be larger than 5%"
         );
+    }
+
+    #[test]
+    fn crete_custom_swap_fee_for_unsupported_denom_fails() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info(ADMIN, &vec![]);
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
+        let denom = DENOM_UOSMO.to_string();
+
+        save_pair(
+            deps.as_mut().storage,
+            &Pair {
+                base_denom: DENOM_UATOM.to_string(),
+                quote_denom: DENOM_STAKE.to_string(),
+                route: vec![1],
+            },
+        )
+        .unwrap();
+
+        let response =
+            create_custom_swap_fee_handler(deps.as_mut(), info, denom, Decimal::percent(2))
+                .unwrap_err();
+
+        assert_eq!(response.to_string(), "Error: uosmo is not supported");
     }
 }

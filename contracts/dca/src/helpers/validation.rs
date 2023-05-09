@@ -1,7 +1,8 @@
+use super::routes::calculate_route;
 use crate::error::ContractError;
 use crate::msg::ExecuteMsg;
 use crate::state::config::get_config;
-use crate::state::pairs::find_pair;
+use crate::state::pairs::{find_pair, get_pairs};
 use crate::types::destination::Destination;
 use crate::types::fee_collector::FeeCollector;
 use crate::types::pair::Pair;
@@ -14,8 +15,6 @@ use crate::types::vault::{Vault, VaultStatus};
 use cosmwasm_std::{
     from_binary, Addr, Coin, Decimal, Deps, Env, QuerierWrapper, Storage, Timestamp, Uint128,
 };
-
-use super::routes::calculate_route;
 
 pub fn assert_exactly_one_asset(funds: Vec<Coin>) -> Result<(), ContractError> {
     if funds.is_empty() || funds.len() > 1 {
@@ -485,6 +484,16 @@ pub fn assert_custom_fee_is_valid(swap_fee_percent: &Decimal) -> Result<(), Cont
     if swap_fee_percent > &Decimal::percent(5) {
         return Err(ContractError::CustomError {
             val: "custom swap fee cannot be larger than 5%".to_string(),
+        });
+    }
+    Ok(())
+}
+
+pub fn assert_denom_exists(storage: &dyn Storage, denom: String) -> Result<(), ContractError> {
+    let pairs = get_pairs(storage);
+    if !pairs.iter().any(|p| p.denoms().contains(&denom)) {
+        return Err(ContractError::CustomError {
+            val: format!("{} is not supported", denom),
         });
     }
     Ok(())
