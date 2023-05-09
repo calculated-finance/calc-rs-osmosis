@@ -45,4 +45,20 @@ impl SwapAdjustmentStrategy {
             _ => 0,
         }
     }
+
+    pub fn max_adjustment(&self) -> Decimal {
+        match self {
+            SwapAdjustmentStrategy::RiskWeightedAverage { .. } => Decimal::percent(300),
+            SwapAdjustmentStrategy::WeightedScale { .. } => Decimal::MAX,
+        }
+    }
+
+    pub fn min_adjustment(&self) -> Decimal {
+        match self {
+            SwapAdjustmentStrategy::RiskWeightedAverage { .. } => Decimal::percent(50),
+            SwapAdjustmentStrategy::WeightedScale { increase_only, .. } => {
+                Decimal::percent(if *increase_only { 100 } else { 0 })
+            }
+        }
+    }
 }
