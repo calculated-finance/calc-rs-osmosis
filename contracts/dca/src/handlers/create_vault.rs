@@ -51,7 +51,7 @@ pub fn create_vault_handler(
     swap_adjustment_strategy_params: Option<SwapAdjustmentStrategyParams>,
 ) -> Result<Response, ContractError> {
     assert_contract_is_not_paused(deps.storage)?;
-    assert_address_is_valid(deps.as_ref(), owner.clone(), "owner")?;
+    assert_address_is_valid(deps.as_ref(), &owner, "owner")?;
     assert_exactly_one_asset(info.funds.clone())?;
     assert_swap_amount_is_greater_than_50000(swap_amount)?;
     assert_destinations_limit_is_not_breached(&destinations)?;
