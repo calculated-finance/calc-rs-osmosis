@@ -23,7 +23,8 @@ pub fn get_events_handler(
             }),
         )
         .take(limit.unwrap_or(30) as usize)
-        .map(|result| from_binary::<Event>(&result.unwrap().1).expect("deserialised event"))
+        .flat_map(|result| result.map(|(_, data)| from_binary(&data)))
+        .flatten()
         .collect::<Vec<Event>>();
 
     Ok(EventsResponse { events })

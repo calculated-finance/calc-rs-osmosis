@@ -3,7 +3,7 @@ use crate::{
     state::config::get_config,
     types::{pair::Pair, position_type::PositionType},
 };
-use cosmwasm_std::{Coin, Decimal, Deps, Env, QuerierWrapper, StdResult, Uint128};
+use cosmwasm_std::{Coin, Decimal, Deps, Env, QuerierWrapper, StdError, StdResult, Uint128};
 use osmosis_std::{
     shim::Timestamp,
     types::osmosis::{
@@ -76,14 +76,14 @@ pub fn query_price(
             swap_amount.to_string(),
             routes.clone(),
         )
-        .unwrap_or_else(|_| {
-            panic!(
+        .map_err(|_| {
+            StdError::generic_err(format!(
                 "amount of {} received for swapping {} via {:#?}",
                 routes.last().unwrap().token_out_denom,
                 swap_amount,
                 routes
-            )
-        })
+            ))
+        })?
         .token_out_amount
         .parse::<Uint128>()?;
 

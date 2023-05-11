@@ -35,15 +35,16 @@ pub fn get_token_out_denom(
 }
 
 pub fn get_pool(querier: &QuerierWrapper, pool_id: u64) -> Result<Pool, StdError> {
-    GammQuerier::new(querier)
-        .pool(pool_id)?
-        .pool
-        .unwrap_or_else(|| panic!("pool id {}", pool_id))
-        .try_into()
-        .map_err(|e: DecodeError| StdError::ParseErr {
-            target_type: Pool::TYPE_URL.to_string(),
-            msg: e.to_string(),
-        })
+    GammQuerier::new(querier).pool(pool_id)?.pool.map_or(
+        Err(StdError::generic_err("pool not found")),
+        |pool| {
+            pool.try_into()
+                .map_err(|e: DecodeError| StdError::ParseErr {
+                    target_type: Pool::TYPE_URL.to_string(),
+                    msg: e.to_string(),
+                })
+        },
+    )
 }
 
 pub fn calculate_route(
