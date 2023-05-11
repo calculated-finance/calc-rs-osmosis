@@ -1,12 +1,10 @@
-use std::cmp::min;
-
+use super::math::checked_mul;
 use crate::{
     state::config::{get_config, get_custom_fee},
     types::{performance_assessment_strategy::PerformanceAssessmentStrategy, vault::Vault},
 };
 use cosmwasm_std::{BankMsg, Coin, Decimal, Deps, StdResult, Storage, SubMsg, Uint128};
-
-use super::math::checked_mul;
+use std::cmp::min;
 
 pub fn get_fee_messages(
     deps: Deps,
@@ -72,34 +70,35 @@ pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Deci
 }
 
 pub fn get_performance_fee(vault: &Vault, current_price: Decimal) -> StdResult<Coin> {
-    let fee = match vault.performance_assessment_strategy.clone() {
-        Some(PerformanceAssessmentStrategy::CompareToStandardDca {
-            swapped_amount,
-            received_amount,
-        }) => {
-            let vault_total_value = vault.deposited_amount.amount - vault.swapped_amount.amount
-                + vault.received_amount.amount * current_price;
+    Ok(vault.performance_assessment_strategy.clone().map_or(
+        Coin::new(0, vault.target_denom.clone()),
+        |strategy| match strategy.clone() {
+            PerformanceAssessmentStrategy::CompareToStandardDca {
+                swapped_amount,
+                received_amount,
+            } => {
+                let vault_total_value = vault.deposited_amount.amount - vault.swapped_amount.amount
+                    + vault.received_amount.amount * current_price;
 
-            let standard_dca_total_value = vault.deposited_amount.amount - swapped_amount.amount
-                + received_amount.amount * current_price;
+                let standard_dca_total_value = vault.deposited_amount.amount
+                    - swapped_amount.amount
+                    + received_amount.amount * current_price;
 
-            if standard_dca_total_value > vault_total_value {
-                Uint128::zero()
-            } else {
-                let value_difference_in_terms_of_receive_denom = (vault_total_value
-                    - standard_dca_total_value)
+                let added_value_in_terms_of_receive_denom = vault_total_value
+                    .checked_sub(standard_dca_total_value)
+                    .unwrap_or(Uint128::zero())
                     * (Decimal::one() / current_price);
 
-                value_difference_in_terms_of_receive_denom * Decimal::percent(20)
+                Coin {
+                    denom: vault.target_denom.clone(),
+                    amount: min(
+                        vault.escrowed_amount.amount,
+                        added_value_in_terms_of_receive_denom * strategy.performance_fee_rate(),
+                    ),
+                }
             }
-        }
-        None => Uint128::zero(),
-    };
-
-    Ok(Coin {
-        denom: vault.target_denom.clone(),
-        amount: min(fee, vault.escrowed_amount.amount),
-    })
+        },
+    ))
 }
 
 #[cfg(test)]

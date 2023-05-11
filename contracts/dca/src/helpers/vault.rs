@@ -266,8 +266,6 @@ pub fn simulate_standard_dca_execution(
 
 #[cfg(test)]
 mod get_swap_amount_tests {
-    use std::str::FromStr;
-
     use super::*;
     use crate::{
         constants::{ONE, SWAP_FEE_RATE, TWO_MICRONS},
@@ -284,6 +282,7 @@ mod get_swap_amount_tests {
         to_binary, StdError,
     };
     use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
+    use std::str::FromStr;
 
     #[test]
     fn should_return_full_balance_when_vault_has_low_funds() {

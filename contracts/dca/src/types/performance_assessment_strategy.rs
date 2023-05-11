@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Coin;
+use cosmwasm_std::{Coin, Decimal};
 
 use super::vault::Vault;
 
@@ -22,6 +22,12 @@ impl PerformanceAssessmentStrategy {
             PerformanceAssessmentStrategy::CompareToStandardDca { swapped_amount, .. } => {
                 vault.deposited_amount.amount > swapped_amount.amount
             }
+        }
+    }
+
+    pub fn performance_fee_rate(&self) -> Decimal {
+        match self {
+            PerformanceAssessmentStrategy::CompareToStandardDca { .. } => Decimal::percent(20),
         }
     }
 }
