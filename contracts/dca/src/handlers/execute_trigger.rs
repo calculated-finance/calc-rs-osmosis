@@ -112,10 +112,7 @@ pub fn execute_trigger_handler(
         || vault.performance_assessment_strategy.clone().map_or(
             false,
             |performance_assessment_strategy| {
-                performance_assessment_strategy
-                    .standard_dca_balance(vault.deposited_amount.clone())
-                    .amount
-                    > Uint128::zero()
+                performance_assessment_strategy.should_continue(&vault)
             },
         );
 
@@ -482,11 +479,18 @@ mod execute_trigger_tests {
             updated_vault.performance_assessment_strategy.unwrap();
 
         assert_eq!(
-            performance_assessment_strategy.standard_dca_swapped_amount(),
+            match performance_assessment_strategy.clone() {
+                PerformanceAssessmentStrategy::CompareToStandardDca { swapped_amount, .. } =>
+                    swapped_amount,
+            },
             Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
         );
         assert_eq!(
-            performance_assessment_strategy.standard_dca_received_amount(),
+            match performance_assessment_strategy {
+                PerformanceAssessmentStrategy::CompareToStandardDca {
+                    received_amount, ..
+                } => received_amount,
+            },
             Coin::new(received_amount_after_fee.into(), vault.target_denom)
         );
     }
@@ -834,11 +838,18 @@ mod execute_trigger_tests {
             updated_vault.performance_assessment_strategy.unwrap();
 
         assert_eq!(
-            performance_assessment_strategy.standard_dca_swapped_amount(),
+            match performance_assessment_strategy.clone() {
+                PerformanceAssessmentStrategy::CompareToStandardDca { swapped_amount, .. } =>
+                    swapped_amount,
+            },
             Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
         );
         assert_eq!(
-            performance_assessment_strategy.standard_dca_received_amount(),
+            match performance_assessment_strategy {
+                PerformanceAssessmentStrategy::CompareToStandardDca {
+                    received_amount, ..
+                } => received_amount,
+            },
             Coin::new(received_amount_after_fee.into(), vault.target_denom)
         );
     }

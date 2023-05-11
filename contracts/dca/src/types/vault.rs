@@ -95,10 +95,7 @@ impl Vault {
             && self.performance_assessment_strategy.clone().map_or(
                 true,
                 |performance_assessment_strategy| {
-                    performance_assessment_strategy
-                        .standard_dca_balance(self.deposited_amount.clone())
-                        .amount
-                        == Uint128::zero()
+                    !performance_assessment_strategy.should_continue(self)
                 },
             )
     }

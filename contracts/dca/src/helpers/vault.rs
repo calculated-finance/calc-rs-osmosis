@@ -148,15 +148,19 @@ pub fn simulate_standard_dca_execution(
     vault: Vault,
     belief_price: Decimal,
 ) -> StdResult<(Vault, Response)> {
-    vault.performance_assessment_strategy.clone().map_or(
-        Ok((vault.clone(), response.clone())),
-        |performance_assessment_strategy| {
-            let swap_amount = min(
-                performance_assessment_strategy
-                    .standard_dca_balance(vault.deposited_amount.clone())
-                    .amount,
-                vault.swap_amount,
-            );
+    match vault.performance_assessment_strategy.clone() {
+        None => Ok((vault, response)),
+        Some(PerformanceAssessmentStrategy::CompareToStandardDca {
+            swapped_amount,
+            received_amount,
+        }) => {
+            let standard_dca_balance = if swapped_amount.amount >= vault.deposited_amount.amount {
+                Uint128::zero()
+            } else {
+                vault.deposited_amount.amount - swapped_amount.amount
+            };
+
+            let swap_amount = min(standard_dca_balance, vault.swap_amount);
 
             if swap_amount.is_zero() {
                 return Ok((vault, response));
@@ -219,15 +223,10 @@ pub fn simulate_standard_dca_execution(
             let received_amount_after_fee = received_amount_before_fee - fee_amount;
 
             let vault = Vault {
-                performance_assessment_strategy: vault.performance_assessment_strategy.map(
-                    |PerformanceAssessmentStrategy::CompareToStandardDca {
-                         swapped_amount,
-                         received_amount,
-                     }| {
-                        PerformanceAssessmentStrategy::CompareToStandardDca {
-                            swapped_amount: add_to(swapped_amount, swap_amount),
-                            received_amount: add_to(received_amount, received_amount_after_fee),
-                        }
+                performance_assessment_strategy: Some(
+                    PerformanceAssessmentStrategy::CompareToStandardDca {
+                        swapped_amount: add_to(swapped_amount, swap_amount),
+                        received_amount: add_to(received_amount, received_amount_after_fee),
                     },
                 ),
                 ..vault
@@ -261,8 +260,8 @@ pub fn simulate_standard_dca_execution(
                 .add_attribute("simulated_total_fee", total_fee.to_string());
 
             Ok((vault, response))
-        },
-    )
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1208,11 +1207,18 @@ mod simulate_standard_dca_execution_tests {
             vault.performance_assessment_strategy.clone().unwrap();
 
         assert_eq!(
-            performance_assessment_strategy.standard_dca_swapped_amount(),
+            match performance_assessment_strategy.clone() {
+                PerformanceAssessmentStrategy::CompareToStandardDca { swapped_amount, .. } =>
+                    swapped_amount,
+            },
             Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
         );
         assert_eq!(
-            performance_assessment_strategy.standard_dca_received_amount(),
+            match performance_assessment_strategy {
+                PerformanceAssessmentStrategy::CompareToStandardDca {
+                    received_amount, ..
+                } => received_amount,
+            },
             Coin::new(received_amount_after_fee.into(), vault.target_denom)
         );
     }
