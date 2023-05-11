@@ -8,7 +8,7 @@ use crate::helpers::validation::{
     assert_slippage_tolerance_is_less_than_or_equal_to_one,
     assert_swap_adjusment_and_performance_assessment_strategies_are_compatible,
     assert_swap_adjustment_strategy_params_are_valid, assert_swap_amount_is_greater_than_50000,
-    assert_target_start_time_is_in_future, assert_time_interval_is_valid,
+    assert_target_start_time_is_not_in_the_past, assert_time_interval_is_valid,
 };
 use crate::helpers::vault::get_risk_weighted_average_model_id;
 use crate::msg::ExecuteMsg;
@@ -80,7 +80,7 @@ pub fn create_vault_handler(
     }
 
     if let Some(target_time) = target_start_time_utc_seconds {
-        assert_target_start_time_is_in_future(
+        assert_target_start_time_is_not_in_the_past(
             env.block.time,
             Timestamp::from_seconds(target_time.u64()),
         )?;
