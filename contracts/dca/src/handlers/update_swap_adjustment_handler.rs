@@ -15,8 +15,11 @@ pub fn update_swap_adjustment_handler(
 ) -> Result<Response, ContractError> {
     assert_sender_is_executor(deps.storage, &env, &info.sender)?;
     assert_swap_adjustment_value_is_valid(&strategy, value)?;
-    update_swap_adjustment(deps.storage, strategy, value, env.block.time)?;
-    Ok(Response::new())
+    update_swap_adjustment(deps.storage, strategy.clone(), value, env.block.time)?;
+
+    Ok(Response::new()
+        .add_attribute("strategy", format!("{:?}", strategy))
+        .add_attribute("value", value.to_string()))
 }
 
 #[cfg(test)]

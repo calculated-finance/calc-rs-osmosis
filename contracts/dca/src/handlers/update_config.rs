@@ -60,13 +60,7 @@ pub fn update_config_handler(
 
     Ok(Response::default()
         .add_attribute("method", "update_config")
-        .add_attribute("swap_fee_percent", config.swap_fee_percent.to_string())
-        .add_attribute("fee_collector", format!("{:?}", config.fee_collectors))
-        .add_attribute(
-            "delegation_fee_percent",
-            config.delegation_fee_percent.to_string(),
-        )
-        .add_attribute("paused", config.paused.to_string()))
+        .add_attribute("config", format!("{:?}", config)))
 }
 
 #[cfg(test)]

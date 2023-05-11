@@ -18,7 +18,7 @@ use crate::{
         vault::Vault,
     },
 };
-use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128};
+use cosmwasm_std::{Coin, DepsMut, Env, MessageInfo, Response, Uint128};
 
 pub fn disburse_escrow_handler(
     deps: DepsMut,
@@ -30,8 +30,20 @@ pub fn disburse_escrow_handler(
 
     let vault = get_vault(deps.storage, vault_id)?;
 
+    let response = Response::new()
+        .add_attribute("disburse_escrow", "true")
+        .add_attribute("vault_id", vault.id);
+
     if vault.escrowed_amount.amount.is_zero() {
-        return Ok(Response::new());
+        return Ok(response
+            .add_attribute(
+                "performance_fee",
+                format!("{:?}", Coin::new(0, vault.target_denom.clone())),
+            )
+            .add_attribute(
+                "escrow_disbursed",
+                format!("{:?}", Coin::new(0, vault.target_denom)),
+            ));
     }
 
     let due_date = get_disburse_escrow_task_due_date(deps.storage, vault.id)?;
@@ -70,7 +82,7 @@ pub fn disburse_escrow_handler(
 
     delete_disburse_escrow_task(deps.storage, vault.id)?;
 
-    Ok(Response::new()
+    Ok(response
         .add_submessages(get_disbursement_messages(
             &vault,
             amount_to_disburse.amount,
@@ -80,8 +92,6 @@ pub fn disburse_escrow_handler(
             vec![performance_fee.amount],
             vault.target_denom,
         )?)
-        .add_attribute("disburse_escrow", "true")
-        .add_attribute("vault_id", vault.id)
         .add_attribute("performance_fee", format!("{:?}", performance_fee))
         .add_attribute("escrow_disbursed", format!("{:?}", amount_to_disburse)))
 }

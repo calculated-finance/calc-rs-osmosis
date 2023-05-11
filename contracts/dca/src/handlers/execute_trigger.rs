@@ -29,6 +29,7 @@ pub fn execute_trigger_handler(
     assert_contract_is_not_paused(deps.storage)?;
 
     let mut vault = get_vault(deps.storage, trigger_id)?;
+
     let mut response = Response::new()
         .add_attribute("execute_vault", "true")
         .add_attribute("vault_id", vault.id);
@@ -139,11 +140,11 @@ pub fn execute_trigger_handler(
             }));
         }
 
-        return Ok(response);
+        return Ok(response.add_attribute("execution_skipped", "vault_should_not_continue"));
     }
 
     if vault.is_inactive() {
-        return Ok(response);
+        return Ok(response.add_attribute("execution_skipped", "vault_is_inactive"));
     }
 
     let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault)?;
@@ -160,9 +161,7 @@ pub fn execute_trigger_handler(
             ),
         )?;
 
-        response = response.add_attribute("execution_skipped", "swap_amount_adjusted_to_zero");
-
-        return Ok(response);
+        return Ok(response.add_attribute("execution_skipped", "swap_amount_adjusted_to_zero"));
     }
 
     if price_threshold_exceeded(
@@ -183,9 +182,7 @@ pub fn execute_trigger_handler(
             ),
         )?;
 
-        response = response.add_attribute("execution_skipped", "price_threshold_exceeded");
-
-        return Ok(response);
+        return Ok(response.add_attribute("execution_skipped", "price_threshold_exceeded"));
     };
 
     VAULT_CACHE.save(deps.storage, &VaultCache { vault_id: vault.id })?;
