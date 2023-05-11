@@ -39,3 +39,6 @@ thiserror = { version = "1.0.31" }
 [dev-dependencies]
 cw-multi-test = "0.15.0"
 rand = "0.8.5"
+
+[profile.release]
+overflow-checks = true
