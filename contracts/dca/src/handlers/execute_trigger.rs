@@ -53,13 +53,17 @@ pub fn execute_trigger_handler(
         });
     }
 
-    match vault
-        .trigger
-        .clone()
-        .unwrap_or_else(|| panic!("trigger for vault id {}", vault.id))
-    {
-        TriggerConfiguration::Time { target_time } => {
+    match vault.trigger {
+        Some(TriggerConfiguration::Time { target_time }) => {
             assert_target_time_is_in_past(env.block.time, target_time)?;
+        }
+        _ => {
+            return Err(ContractError::CustomError {
+                val: format!(
+                    "vault with id {} has no time trigger attached, and is not available for execution",
+                    vault.id
+                ),
+            });
         }
     }
 

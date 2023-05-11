@@ -46,7 +46,7 @@ pub fn save_vault(store: &mut dyn Storage, vault_builder: VaultBuilder) -> StdRe
 
 pub fn get_vault(store: &dyn Storage, vault_id: Uint128) -> StdResult<Vault> {
     let vault_data = vault_store().load(store, vault_id.into())?;
-    Ok(vault_from(store, &vault_data))
+    vault_from(store, &vault_data)
 }
 
 pub fn get_vaults_by_address(
@@ -72,11 +72,8 @@ pub fn get_vaults_by_address(
             cosmwasm_std::Order::Ascending,
         )
         .take(limit.unwrap_or(30) as usize)
-        .map(|result| {
-            let (_, vault_data) =
-                result.unwrap_or_else(|_| panic!("vault after {:?}", start_after));
-            vault_from(store, &vault_data)
-        })
+        .flat_map(|result| result.map(|(_, vault_data)| vault_from(store, &vault_data)))
+        .flatten()
         .collect::<Vec<Vault>>())
 }
 
@@ -93,11 +90,8 @@ pub fn get_vaults(
             cosmwasm_std::Order::Ascending,
         )
         .take(limit.unwrap_or(30) as usize)
-        .map(|result| {
-            let (_, vault_data) =
-                result.unwrap_or_else(|_| panic!("vault after {:?}", start_after));
-            vault_from(store, &vault_data)
-        })
+        .flat_map(|result| result.map(|(_, vault_data)| vault_from(store, &vault_data)))
+        .flatten()
         .collect::<Vec<Vault>>())
 }
 
@@ -156,12 +150,10 @@ impl From<Vault> for VaultData {
     }
 }
 
-fn vault_from(store: &dyn Storage, data: &VaultData) -> Vault {
-    let trigger = get_trigger(store, data.id)
-        .unwrap_or_else(|_| panic!("trigger for vault id {}", data.id))
-        .map(|t| t.configuration);
+fn vault_from(store: &dyn Storage, data: &VaultData) -> StdResult<Vault> {
+    let trigger = get_trigger(store, data.id)?.map(|t| t.configuration);
 
-    Vault {
+    Ok(Vault {
         id: data.id,
         created_at: data.created_at,
         owner: data.owner.clone(),
@@ -183,5 +175,5 @@ fn vault_from(store: &dyn Storage, data: &VaultData) -> Vault {
         performance_assessment_strategy: data.performance_assessment_strategy.clone(),
         swap_adjustment_strategy: data.swap_adjustment_strategy.clone(),
         trigger,
-    }
+    })
 }

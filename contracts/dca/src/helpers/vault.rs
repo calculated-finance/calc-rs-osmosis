@@ -19,7 +19,8 @@ use crate::{
     },
 };
 use cosmwasm_std::{
-    Coin, Decimal, Deps, Env, QuerierWrapper, Response, StdResult, Storage, Timestamp, Uint128,
+    Coin, Decimal, Deps, Env, QuerierWrapper, Response, StdError, StdResult, Storage, Timestamp,
+    Uint128,
 };
 use std::cmp::min;
 
@@ -114,7 +115,9 @@ pub fn get_performance_factor(vault: &Vault, current_price: Decimal) -> StdResul
                 standard_dca_vault_total_value,
             ))
         }
-        None => panic!("vault {} has no performance strategy", vault.id),
+        None => Err(StdError::generic_err(
+            "performance assessment strategy not set",
+        )),
     }
 }
 
