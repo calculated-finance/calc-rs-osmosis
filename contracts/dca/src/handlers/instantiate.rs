@@ -5,7 +5,7 @@ use crate::{
         assert_addresses_are_valid, assert_default_page_limit_is_at_least_30,
         assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
         assert_no_more_than_10_fee_collectors,
-        assert_risk_weighted_average_escrow_level_is_less_than_100_percent,
+        assert_risk_weighted_average_escrow_level_is_no_greater_than_100_percent,
         assert_slippage_tolerance_is_less_than_or_equal_to_one, assert_twap_period_is_valid,
     },
     msg::InstantiateMsg,
@@ -25,7 +25,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
     assert_no_more_than_10_fee_collectors(&msg.fee_collectors)?;
     assert_fee_collector_addresses_are_valid(deps.as_ref(), &msg.fee_collectors)?;
     assert_fee_collector_allocations_add_up_to_one(&msg.fee_collectors)?;
-    assert_risk_weighted_average_escrow_level_is_less_than_100_percent(
+    assert_risk_weighted_average_escrow_level_is_no_greater_than_100_percent(
         msg.risk_weighted_average_escrow_level,
     )?;
 

@@ -125,7 +125,7 @@ pub fn assert_deposited_denom_matches_send_denom(
     Ok(())
 }
 
-pub fn assert_target_start_time_is_in_future(
+pub fn assert_target_start_time_is_not_in_the_past(
     current_time: Timestamp,
     target_start_time: Timestamp,
 ) -> Result<(), ContractError> {
@@ -361,7 +361,7 @@ pub fn assert_no_more_than_10_fee_collectors(
     Ok(())
 }
 
-pub fn assert_risk_weighted_average_escrow_level_is_less_than_100_percent(
+pub fn assert_risk_weighted_average_escrow_level_is_no_greater_than_100_percent(
     risk_weighted_average_escrow_level: Decimal,
 ) -> Result<(), ContractError> {
     if risk_weighted_average_escrow_level > Decimal::percent(100) {
