@@ -238,15 +238,6 @@ pub fn assert_slippage_tolerance_is_less_than_or_equal_to_one(
     Ok(())
 }
 
-pub fn assert_default_page_limit_is_at_least_30(page_limit: u16) -> Result<(), ContractError> {
-    if page_limit < 30 {
-        return Err(ContractError::CustomError {
-            val: "default page limit cannot be smaller than 30".to_string(),
-        });
-    }
-    Ok(())
-}
-
 pub fn assert_pair_exists_for_denoms(
     deps: Deps,
     swap_denom: String,
@@ -383,18 +374,17 @@ pub fn assert_no_destination_allocations_are_zero(
     Ok(())
 }
 
-pub fn assert_page_limit_is_valid(
-    storage: &dyn Storage,
-    limit: Option<u16>,
-) -> Result<(), ContractError> {
-    let config = get_config(storage)?;
-    if limit.unwrap_or(30) > config.default_page_limit {
-        return Err(ContractError::CustomError {
-            val: format!(
-                "limit cannot be greater than {}.",
-                config.default_page_limit
-            ),
-        });
+pub fn assert_page_limit_is_valid(limit: Option<u16>) -> Result<(), ContractError> {
+    if let Some(limit) = limit {
+        if limit < 30 {
+            return Err(ContractError::CustomError {
+                val: "limit cannot be less than 30.".to_string(),
+            });
+        } else if limit > 1000 {
+            return Err(ContractError::CustomError {
+                val: "limit cannot be greater than 1000.".to_string(),
+            });
+        }
     }
     Ok(())
 }

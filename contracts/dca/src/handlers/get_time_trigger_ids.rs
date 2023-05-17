@@ -9,7 +9,7 @@ pub fn get_time_trigger_ids_handler(
     env: Env,
     limit: Option<u16>,
 ) -> StdResult<TriggerIdsResponse> {
-    assert_page_limit_is_valid(deps.storage, limit)?;
+    assert_page_limit_is_valid(limit)?;
 
     Ok(TriggerIdsResponse {
         trigger_ids: get_time_triggers(deps.storage, env.block.time, limit)?,

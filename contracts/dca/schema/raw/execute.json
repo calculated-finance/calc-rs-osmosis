@@ -262,6 +262,14 @@
         "update_config": {
           "type": "object",
           "properties": {
+            "default_page_limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint16",
+              "minimum": 0.0
+            },
             "default_slippage_tolerance": {
               "anyOf": [
                 {
@@ -299,14 +307,6 @@
               "items": {
                 "$ref": "#/definitions/FeeCollector"
               }
-            },
-            "page_limit": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint16",
-              "minimum": 0.0
             },
             "paused": {
               "type": [

@@ -11,7 +11,7 @@ pub fn get_vaults_by_address_handler(
     limit: Option<u16>,
 ) -> StdResult<VaultsResponse> {
     deps.api.addr_validate(address.as_ref())?;
-    assert_page_limit_is_valid(deps.storage, limit)?;
+    assert_page_limit_is_valid(limit)?;
 
     let vaults = fetch_vaults_by_address(deps.storage, address, status, start_after, limit)?;
 
@@ -93,8 +93,9 @@ mod get_vaults_by_address_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        setup_vault(deps.as_mut(), env.clone(), Vault::default());
-        setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        for _ in 0..40 {
+            setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        }
 
         let vaults = from_binary::<VaultsResponse>(
             &query(
@@ -104,7 +105,7 @@ mod get_vaults_by_address_tests {
                     address: Vault::default().owner,
                     status: None,
                     start_after: None,
-                    limit: Some(1),
+                    limit: Some(30),
                 },
             )
             .unwrap(),
@@ -112,7 +113,7 @@ mod get_vaults_by_address_tests {
         .unwrap()
         .vaults;
 
-        assert_eq!(vaults.len(), 1);
+        assert_eq!(vaults.len(), 30);
         assert_eq!(vaults[0].id, Uint128::new(0));
     }
 
@@ -155,9 +156,9 @@ mod get_vaults_by_address_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
-        setup_vault(deps.as_mut(), env.clone(), Vault::default());
-        setup_vault(deps.as_mut(), env.clone(), Vault::default());
-        setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        for _ in 0..40 {
+            setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        }
 
         let vaults = from_binary::<VaultsResponse>(
             &query(
@@ -167,7 +168,7 @@ mod get_vaults_by_address_tests {
                     address: Vault::default().owner,
                     status: None,
                     start_after: Some(1),
-                    limit: Some(1),
+                    limit: Some(30),
                 },
             )
             .unwrap(),
@@ -175,7 +176,7 @@ mod get_vaults_by_address_tests {
         .unwrap()
         .vaults;
 
-        assert_eq!(vaults.len(), 1);
+        assert_eq!(vaults.len(), 30);
         assert_eq!(vaults[0].id, Uint128::new(2));
     }
 

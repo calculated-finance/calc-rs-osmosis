@@ -2,9 +2,9 @@ use crate::{
     contract::{CONTRACT_NAME, CONTRACT_VERSION},
     error::ContractError,
     helpers::validation::{
-        assert_addresses_are_valid, assert_default_page_limit_is_at_least_30,
-        assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
-        assert_no_more_than_10_fee_collectors,
+        assert_addresses_are_valid, assert_fee_collector_addresses_are_valid,
+        assert_fee_collector_allocations_add_up_to_one, assert_no_more_than_10_fee_collectors,
+        assert_page_limit_is_valid,
         assert_risk_weighted_average_escrow_level_is_no_greater_than_100_percent,
         assert_slippage_tolerance_is_less_than_or_equal_to_one, assert_twap_period_is_valid,
     },
@@ -18,7 +18,7 @@ use cw2::set_contract_version;
 pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Response, ContractError> {
     deps.api.addr_validate(msg.admin.as_ref())?;
 
-    assert_default_page_limit_is_at_least_30(msg.page_limit)?;
+    assert_page_limit_is_valid(Some(msg.default_page_limit))?;
     assert_slippage_tolerance_is_less_than_or_equal_to_one(msg.default_slippage_tolerance)?;
     assert_twap_period_is_valid(msg.twap_period)?;
     assert_addresses_are_valid(deps.as_ref(), &msg.executors, "executor")?;
@@ -37,7 +37,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
             fee_collectors: msg.fee_collectors,
             swap_fee_percent: msg.swap_fee_percent,
             delegation_fee_percent: msg.delegation_fee_percent,
-            default_page_limit: msg.page_limit,
+            default_page_limit: msg.default_page_limit,
             paused: msg.paused,
             risk_weighted_average_escrow_level: msg.risk_weighted_average_escrow_level,
             twap_period: msg.twap_period,
@@ -79,7 +79,7 @@ mod instantiate_tests {
             }],
             swap_fee_percent: Decimal::from_str("0.015").unwrap(),
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-            page_limit: 1000,
+            default_page_limit: 30,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
             twap_period: 30,
@@ -112,7 +112,7 @@ mod instantiate_tests {
             }],
             swap_fee_percent: Decimal::from_str("0.015").unwrap(),
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-            page_limit: 1000,
+            default_page_limit: 30,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
             twap_period: 30,
@@ -142,7 +142,7 @@ mod instantiate_tests {
             }],
             swap_fee_percent: Decimal::from_str("0.015").unwrap(),
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-            page_limit: 1000,
+            default_page_limit: 30,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
             twap_period: 30,
@@ -169,7 +169,7 @@ mod instantiate_tests {
             fee_collectors: vec![],
             swap_fee_percent: Decimal::from_str("0.015").unwrap(),
             delegation_fee_percent: Decimal::from_str("0.0075").unwrap(),
-            page_limit: 1000,
+            default_page_limit: 30,
             paused: false,
             risk_weighted_average_escrow_level: Decimal::from_str("0.05").unwrap(),
             twap_period: 30,

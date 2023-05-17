@@ -13,6 +13,13 @@ pub fn get_token_out_denom(
 ) -> StdResult<String> {
     let pool = get_pool(querier, pool_id)?;
 
+    if pool.pool_assets.len() != 2 {
+        return Err(StdError::generic_err(format!(
+            "pool id {} is not a 2 asset pool",
+            pool_id
+        )));
+    }
+
     if pool
         .pool_assets
         .iter()

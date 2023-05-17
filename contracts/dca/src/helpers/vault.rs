@@ -478,9 +478,11 @@ mod get_swap_amount_tests {
             Decimal::percent(120) * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap());
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
-                arithmetic_twap: "1.2".to_string(),
-            }),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" => {
+                to_binary(&ArithmeticTwapResponse {
+                    arithmetic_twap: "1.2".to_string(),
+                })
+            }
             _ => Err(StdError::generic_err("message not customised")),
         });
 
@@ -517,9 +519,11 @@ mod get_swap_amount_tests {
         );
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
-                arithmetic_twap: "1.2".to_string(),
-            }),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" => {
+                to_binary(&ArithmeticTwapResponse {
+                    arithmetic_twap: "1.2".to_string(),
+                })
+            }
             _ => Err(StdError::generic_err("message not customised")),
         });
 
@@ -556,9 +560,11 @@ mod get_swap_amount_tests {
             Decimal::percent(70) * (Decimal::one() + Decimal::from_str(SWAP_FEE_RATE).unwrap());
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
-                arithmetic_twap: "0.7".to_string(),
-            }),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" => {
+                to_binary(&ArithmeticTwapResponse {
+                    arithmetic_twap: "0.7".to_string(),
+                })
+            }
             _ => Err(StdError::generic_err("message not customised")),
         });
 
@@ -595,9 +601,11 @@ mod get_swap_amount_tests {
         );
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
-                arithmetic_twap: "2.0".to_string(),
-            }),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" => {
+                to_binary(&ArithmeticTwapResponse {
+                    arithmetic_twap: "2.0".to_string(),
+                })
+            }
             _ => Err(StdError::generic_err("message not customised")),
         });
 

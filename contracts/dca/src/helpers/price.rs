@@ -6,9 +6,7 @@ use crate::{
 use cosmwasm_std::{Coin, Decimal, Deps, Env, QuerierWrapper, StdError, StdResult, Uint128};
 use osmosis_std::{
     shim::Timestamp,
-    types::osmosis::{
-        poolmanager::v1beta1::PoolmanagerQuerier, twap::v1beta1::ArithmeticTwapRequest,
-    },
+    types::osmosis::{poolmanager::v1beta1::PoolmanagerQuerier, twap::v1beta1::TwapQuerier},
 };
 
 pub fn query_belief_price(
@@ -17,7 +15,7 @@ pub fn query_belief_price(
     pair: &Pair,
     mut swap_denom: String,
 ) -> StdResult<Decimal> {
-    let pool_ids = match pair.position_type(swap_denom.clone()) {
+    let route = match pair.position_type(swap_denom.clone()) {
         PositionType::Enter => pair.route.clone(),
         PositionType::Exit => pair.route.clone().into_iter().rev().collect(),
     };
@@ -26,7 +24,7 @@ pub fn query_belief_price(
 
     let config = get_config(deps.storage)?;
 
-    for pool_id in pool_ids.into_iter() {
+    for pool_id in route.into_iter() {
         let target_denom = get_token_out_denom(&deps.querier, swap_denom.clone(), pool_id)?;
 
         let pool = get_pool(&deps.querier, pool_id)?;
@@ -38,19 +36,19 @@ pub fn query_belief_price(
             .parse::<Decimal>()
             .unwrap();
 
-        let pool_price = ArithmeticTwapRequest {
-            pool_id,
-            base_asset: target_denom.clone(),
-            quote_asset: swap_denom,
-            start_time: Some(Timestamp {
-                seconds: (env.block.time.seconds() - config.twap_period) as i64,
-                nanos: env.block.time.nanos() as i32,
-            }),
-            end_time: None,
-        }
-        .query(&deps.querier)?
-        .arithmetic_twap
-        .parse::<Decimal>()?
+        let pool_price = TwapQuerier::new(&deps.querier)
+            .arithmetic_twap_to_now(
+                pool_id,
+                target_denom.clone(),
+                swap_denom.clone(),
+                Some(Timestamp {
+                    seconds: (env.block.time.seconds() - config.twap_period) as i64,
+                    nanos: 0,
+                }),
+            )
+            .unwrap()
+            .arithmetic_twap
+            .parse::<Decimal>()?
             * (Decimal::one() + swap_fee);
 
         price = pool_price * price;
@@ -104,8 +102,6 @@ pub fn calculate_slippage(actual_price: Decimal, belief_price: Decimal) -> Decim
 
 #[cfg(test)]
 mod query_belief_price_tests {
-    use std::str::FromStr;
-
     use super::*;
     use crate::{
         constants::SWAP_FEE_RATE,
@@ -118,8 +114,11 @@ mod query_belief_price_tests {
         testing::{mock_env, mock_info},
         to_binary, StdError,
     };
-    use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
+    use osmosis_std::types::osmosis::twap::v1beta1::{
+        ArithmeticTwapRequest, ArithmeticTwapResponse,
+    };
     use prost::Message;
+    use std::str::FromStr;
 
     #[test]
     fn query_belief_price_with_single_pool_id_should_succeed() {
@@ -130,7 +129,7 @@ mod query_belief_price_tests {
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
         deps.querier.update_stargate(|path, data| {
-            if path == "/osmosis.twap.v1beta1.Query/ArithmeticTwap" {
+            if path == "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" {
                 let price = match ArithmeticTwapRequest::decode(data.as_slice())
                     .unwrap()
                     .pool_id
@@ -166,7 +165,7 @@ mod query_belief_price_tests {
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
         deps.querier.update_stargate(|path, data| {
-            if path == "/osmosis.twap.v1beta1.Query/ArithmeticTwap" {
+            if path == "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" {
                 let price = match ArithmeticTwapRequest::decode(data.as_slice())
                     .unwrap()
                     .pool_id

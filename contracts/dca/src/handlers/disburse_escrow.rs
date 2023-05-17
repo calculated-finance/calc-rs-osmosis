@@ -272,9 +272,11 @@ mod disburse_escrow_tests {
         );
 
         deps.querier.update_stargate(|path, _| match path {
-            "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => to_binary(&ArithmeticTwapResponse {
-                arithmetic_twap: "10.0".to_string(),
-            }),
+            "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" => {
+                to_binary(&ArithmeticTwapResponse {
+                    arithmetic_twap: "10.0".to_string(),
+                })
+            }
             _ => Err(StdError::generic_err("message not customised")),
         });
 

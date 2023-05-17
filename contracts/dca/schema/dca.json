@@ -1,6 +1,6 @@
 {
   "contract_name": "dca",
-  "contract_version": "1.0.0",
+  "contract_version": "1.0.1",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8,11 +8,11 @@
     "type": "object",
     "required": [
       "admin",
+      "default_page_limit",
       "default_slippage_tolerance",
       "delegation_fee_percent",
       "executors",
       "fee_collectors",
-      "page_limit",
       "paused",
       "risk_weighted_average_escrow_level",
       "swap_fee_percent",
@@ -21,6 +21,11 @@
     "properties": {
       "admin": {
         "$ref": "#/definitions/Addr"
+      },
+      "default_page_limit": {
+        "type": "integer",
+        "format": "uint16",
+        "minimum": 0.0
       },
       "default_slippage_tolerance": {
         "$ref": "#/definitions/Decimal"
@@ -39,11 +44,6 @@
         "items": {
           "$ref": "#/definitions/FeeCollector"
         }
-      },
-      "page_limit": {
-        "type": "integer",
-        "format": "uint16",
-        "minimum": 0.0
       },
       "paused": {
         "type": "boolean"
@@ -352,6 +352,14 @@
           "update_config": {
             "type": "object",
             "properties": {
+              "default_page_limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint16",
+                "minimum": 0.0
+              },
               "default_slippage_tolerance": {
                 "anyOf": [
                   {
@@ -389,14 +397,6 @@
                 "items": {
                   "$ref": "#/definitions/FeeCollector"
                 }
-              },
-              "page_limit": {
-                "type": [
-                  "integer",
-                  "null"
-                ],
-                "format": "uint16",
-                "minimum": 0.0
               },
               "paused": {
                 "type": [

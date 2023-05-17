@@ -1,9 +1,9 @@
 use crate::{
     error::ContractError,
     helpers::validation::{
-        assert_addresses_are_valid, assert_default_page_limit_is_at_least_30,
-        assert_fee_collector_addresses_are_valid, assert_fee_collector_allocations_add_up_to_one,
-        assert_no_more_than_10_fee_collectors,
+        assert_addresses_are_valid, assert_fee_collector_addresses_are_valid,
+        assert_fee_collector_allocations_add_up_to_one, assert_no_more_than_10_fee_collectors,
+        assert_page_limit_is_valid,
         assert_risk_weighted_average_escrow_level_is_no_greater_than_100_percent,
         assert_sender_is_admin, assert_slippage_tolerance_is_less_than_or_equal_to_one,
         assert_twap_period_is_valid,
@@ -20,7 +20,7 @@ pub fn update_config_handler(
     fee_collectors: Option<Vec<FeeCollector>>,
     swap_fee_percent: Option<Decimal>,
     delegation_fee_percent: Option<Decimal>,
-    page_limit: Option<u16>,
+    default_page_limit: Option<u16>,
     paused: Option<bool>,
     risk_weighted_average_escrow_level: Option<Decimal>,
     twap_period: Option<u64>,
@@ -36,7 +36,7 @@ pub fn update_config_handler(
         swap_fee_percent: swap_fee_percent.unwrap_or(existing_config.swap_fee_percent),
         delegation_fee_percent: delegation_fee_percent
             .unwrap_or(existing_config.delegation_fee_percent),
-        default_page_limit: page_limit.unwrap_or(existing_config.default_page_limit),
+        default_page_limit: default_page_limit.unwrap_or(existing_config.default_page_limit),
         paused: paused.unwrap_or(existing_config.paused),
         risk_weighted_average_escrow_level: risk_weighted_average_escrow_level
             .unwrap_or(existing_config.risk_weighted_average_escrow_level),
@@ -45,7 +45,7 @@ pub fn update_config_handler(
             .unwrap_or(existing_config.default_slippage_tolerance),
     };
 
-    assert_default_page_limit_is_at_least_30(config.default_page_limit)?;
+    assert_page_limit_is_valid(Some(config.default_page_limit))?;
     assert_slippage_tolerance_is_less_than_or_equal_to_one(config.default_slippage_tolerance)?;
     assert_twap_period_is_valid(config.twap_period)?;
     assert_addresses_are_valid(deps.as_ref(), &config.executors, "executor")?;
@@ -499,9 +499,6 @@ mod update_config_tests {
         )
         .unwrap_err();
 
-        assert_eq!(
-            err.to_string(),
-            "Error: default page limit cannot be smaller than 30"
-        )
+        assert_eq!(err.to_string(), "Error: limit cannot be less than 30.")
     }
 }
