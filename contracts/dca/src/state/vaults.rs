@@ -1,4 +1,4 @@
-use super::triggers::get_trigger;
+use super::{config::get_config, triggers::get_trigger};
 use crate::{
     helpers::state::fetch_and_increment_counter,
     types::{
@@ -71,7 +71,7 @@ pub fn get_vaults_by_address(
             None,
             cosmwasm_std::Order::Ascending,
         )
-        .take(limit.unwrap_or(30) as usize)
+        .take(limit.unwrap_or_else(|| get_config(store).unwrap().default_page_limit) as usize)
         .flat_map(|result| result.map(|(_, vault_data)| vault_from(store, &vault_data)))
         .flatten()
         .collect::<Vec<Vault>>())
@@ -89,7 +89,7 @@ pub fn get_vaults(
             None,
             cosmwasm_std::Order::Ascending,
         )
-        .take(limit.unwrap_or(30) as usize)
+        .take(limit.unwrap_or_else(|| get_config(store).unwrap().default_page_limit) as usize)
         .flat_map(|result| result.map(|(_, vault_data)| vault_from(store, &vault_data)))
         .flatten()
         .collect::<Vec<Vault>>())

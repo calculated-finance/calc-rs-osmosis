@@ -1,3 +1,4 @@
+use crate::state::config::get_config;
 use crate::state::events::event_store;
 use crate::types::event::Event;
 use crate::{helpers::validation::assert_page_limit_is_valid, msg::EventsResponse};
@@ -11,7 +12,7 @@ pub fn get_events_by_resource_id_handler(
     limit: Option<u16>,
     reverse: Option<bool>,
 ) -> StdResult<EventsResponse> {
-    assert_page_limit_is_valid(deps.storage, limit)?;
+    assert_page_limit_is_valid(limit)?;
 
     let events = event_store()
         .idx
@@ -26,7 +27,9 @@ pub fn get_events_by_resource_id_handler(
                 false => Order::Ascending,
             }),
         )
-        .take(limit.unwrap_or(30) as usize)
+        .take(
+            limit.unwrap_or_else(|| get_config(deps.storage).unwrap().default_page_limit) as usize,
+        )
         .flat_map(|result| result.map(|(_, data)| from_binary(&data)))
         .flatten()
         .collect::<Vec<Event>>();
@@ -140,22 +143,14 @@ mod get_events_by_resource_id_tests {
         let mut deps = mock_dependencies();
         instantiate_contract(deps.as_mut(), mock_env(), mock_info(ADMIN, &[]));
 
-        create_events(
-            deps.as_mut().storage,
-            vec![
-                EventBuilder::default(),
-                EventBuilder::default(),
-                EventBuilder::default(),
-            ],
-        )
-        .unwrap();
+        create_events(deps.as_mut().storage, vec![EventBuilder::default(); 40]).unwrap();
 
         let events =
-            get_events_by_resource_id_handler(deps.as_ref(), Uint128::one(), None, Some(2), None)
+            get_events_by_resource_id_handler(deps.as_ref(), Uint128::one(), None, Some(30), None)
                 .unwrap()
                 .events;
 
-        assert_eq!(events.len(), 2);
+        assert_eq!(events.len(), 30);
     }
 
     #[test]
@@ -215,27 +210,19 @@ mod get_events_by_resource_id_tests {
         let mut deps = mock_dependencies();
         instantiate_contract(deps.as_mut(), mock_env(), mock_info(ADMIN, &[]));
 
-        create_events(
-            deps.as_mut().storage,
-            vec![
-                EventBuilder::default(),
-                EventBuilder::default(),
-                EventBuilder::default(),
-            ],
-        )
-        .unwrap();
+        create_events(deps.as_mut().storage, vec![EventBuilder::default(); 40]).unwrap();
 
         let events = get_events_by_resource_id_handler(
             deps.as_ref(),
             Uint128::one(),
             Some(1),
-            Some(1),
+            Some(30),
             None,
         )
         .unwrap()
         .events;
 
-        assert_eq!(events.len(), 1);
+        assert_eq!(events.len(), 30);
         assert_eq!(events.first().unwrap().id, 2);
     }
 
@@ -273,28 +260,19 @@ mod get_events_by_resource_id_tests {
         let mut deps = mock_dependencies();
         instantiate_contract(deps.as_mut(), mock_env(), mock_info(ADMIN, &[]));
 
-        create_events(
-            deps.as_mut().storage,
-            vec![
-                EventBuilder::default(),
-                EventBuilder::default(),
-                EventBuilder::default(),
-                EventBuilder::default(),
-            ],
-        )
-        .unwrap();
+        create_events(deps.as_mut().storage, vec![EventBuilder::default(); 40]).unwrap();
 
         let events = get_events_by_resource_id_handler(
             deps.as_ref(),
             Uint128::one(),
-            Some(4),
-            Some(1),
+            Some(36),
+            Some(30),
             Some(true),
         )
         .unwrap()
         .events;
 
-        assert_eq!(events.len(), 1);
-        assert_eq!(events.first().unwrap().id, 3);
+        assert_eq!(events.len(), 30);
+        assert_eq!(events.first().unwrap().id, 35);
     }
 }

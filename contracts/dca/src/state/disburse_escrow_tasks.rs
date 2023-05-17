@@ -2,6 +2,8 @@ use cosmwasm_std::{Order, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex};
 use std::marker::PhantomData;
 
+use super::config::get_config;
+
 struct DisburseEscrowTaskIndexes<'a> {
     pub due_date: MultiIndex<'a, u64, (u64, u128), u128>,
 }
@@ -63,7 +65,7 @@ pub fn get_disburse_escrow_tasks(
             ))),
             Order::Ascending,
         )
-        .take(limit.unwrap_or(30) as usize)
+        .take(limit.unwrap_or_else(|| get_config(store).unwrap().default_page_limit) as usize)
         .flat_map(|result| result.map(|(_, (_, vault_id))| vault_id.into()))
         .collect::<Vec<Uint128>>())
 }

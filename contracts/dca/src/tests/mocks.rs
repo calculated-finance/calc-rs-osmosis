@@ -38,7 +38,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
     pub fn new() -> Self {
         Self {
             default_stargate_handler: Box::new(|path, data| match path {
-                "/osmosis.twap.v1beta1.Query/ArithmeticTwap" => {
+                "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" => {
                     to_binary(&ArithmeticTwapResponse {
                         arithmetic_twap: ONE_DECIMAL.to_string(),
                     })

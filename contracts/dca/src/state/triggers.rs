@@ -3,6 +3,8 @@ use cosmwasm_std::{Order, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex};
 use std::marker::PhantomData;
 
+use super::config::get_config;
+
 struct TriggerIndexes<'a> {
     pub due_date: MultiIndex<'a, u64, Trigger, u128>,
 }
@@ -56,7 +58,7 @@ pub fn get_time_triggers(
             ))),
             Order::Ascending,
         )
-        .take(limit.unwrap_or(30) as usize)
+        .take(limit.unwrap_or_else(|| get_config(store).unwrap().default_page_limit) as usize)
         .flat_map(|result| result.map(|(_, trigger)| trigger.vault_id))
         .collect::<Vec<Uint128>>())
 }

@@ -2,7 +2,7 @@ use crate::types::pair::Pair;
 use cosmwasm_std::{Order, StdResult, Storage};
 use cw_storage_plus::Map;
 
-const PAIRS: Map<String, Pair> = Map::new("pairs_v8");
+const PAIRS: Map<String, Pair> = Map::new("pairs_v9");
 
 pub fn save_pair(storage: &mut dyn Storage, pair: &Pair) -> StdResult<()> {
     PAIRS.save(storage, key_from(pair.denoms()), pair)

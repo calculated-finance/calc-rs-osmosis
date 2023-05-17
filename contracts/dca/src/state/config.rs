@@ -2,7 +2,7 @@ use crate::types::config::Config;
 use cosmwasm_std::{Decimal, Order, StdError, StdResult, Storage};
 use cw_storage_plus::{Item, Map};
 
-const CONFIG: Item<Config> = Item::new("config_v6");
+const CONFIG: Item<Config> = Item::new("config_v8");
 
 pub fn get_config(store: &dyn Storage) -> StdResult<Config> {
     CONFIG.load(store)

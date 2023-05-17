@@ -7,7 +7,7 @@ pub fn get_vaults_handler(
     start_after: Option<u128>,
     limit: Option<u16>,
 ) -> StdResult<VaultsResponse> {
-    assert_page_limit_is_valid(deps.storage, limit)?;
+    assert_page_limit_is_valid(limit)?;
 
     let vaults = get_vaults(deps.storage, start_after, limit)?;
 
@@ -105,29 +105,22 @@ mod get_vaults_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        setup_vault(
-            deps.as_mut(),
-            env.clone(),
-            Vault {
-                id: Uint128::new(1),
-                ..Vault::default()
-            },
-        );
+        for i in 1..40 {
+            setup_vault(
+                deps.as_mut(),
+                env.clone(),
+                Vault {
+                    id: Uint128::new(i),
+                    ..Vault::default()
+                },
+            );
+        }
 
-        setup_vault(
-            deps.as_mut(),
-            env.clone(),
-            Vault {
-                id: Uint128::new(2),
-                ..Vault::default()
-            },
-        );
-
-        let vaults = get_vaults_handler(deps.as_ref(), None, Some(1))
+        let vaults = get_vaults_handler(deps.as_ref(), None, Some(30))
             .unwrap()
             .vaults;
 
-        assert_eq!(vaults.len(), 1);
+        assert_eq!(vaults.len(), 30);
         assert_eq!(vaults[0].id, Uint128::new(1));
     }
 
@@ -171,38 +164,22 @@ mod get_vaults_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        setup_vault(
-            deps.as_mut(),
-            env.clone(),
-            Vault {
-                id: Uint128::new(1),
-                ..Vault::default()
-            },
-        );
+        for i in 1..40 {
+            setup_vault(
+                deps.as_mut(),
+                env.clone(),
+                Vault {
+                    id: Uint128::new(i),
+                    ..Vault::default()
+                },
+            );
+        }
 
-        setup_vault(
-            deps.as_mut(),
-            env.clone(),
-            Vault {
-                id: Uint128::new(2),
-                ..Vault::default()
-            },
-        );
-
-        setup_vault(
-            deps.as_mut(),
-            env.clone(),
-            Vault {
-                id: Uint128::new(3),
-                ..Vault::default()
-            },
-        );
-
-        let vaults = get_vaults_handler(deps.as_ref(), Some(1), Some(1))
+        let vaults = get_vaults_handler(deps.as_ref(), Some(1), Some(30))
             .unwrap()
             .vaults;
 
-        assert_eq!(vaults.len(), 1);
+        assert_eq!(vaults.len(), 30);
         assert_eq!(vaults[0].id, Uint128::new(2));
     }
 }

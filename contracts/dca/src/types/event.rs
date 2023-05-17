@@ -50,6 +50,7 @@ pub struct Event {
     pub data: EventData,
 }
 
+#[derive(Clone)]
 pub struct EventBuilder {
     resource_id: Uint128,
     timestamp: Timestamp,
