@@ -48,6 +48,12 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                         token_out_amount: ONE.to_string(),
                     })
                 }
+                "/osmosis.gamm.v1beta1.Query/CalcJoinPoolShares" => {
+                    to_binary(&QueryCalcJoinPoolSharesResponse {
+                        share_out_amount: TEN.to_string(),
+                        tokens_out: vec![],
+                    })
+                }
                 "/osmosis.gamm.v1beta1.Query/Pool" => {
                     let pools = vec![
                         Pool {
@@ -180,15 +186,6 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                             type_url: Pool::TYPE_URL.to_string(),
                             value: pools[pool_id as usize].clone().encode_to_vec(),
                         }),
-                    })
-                }
-                "/osmosis.gamm.v1beta1.Query/CalcJoinPoolShares" => {
-                    to_binary(&QueryCalcJoinPoolSharesResponse {
-                        share_out_amount: ONE.to_string(),
-                        tokens_out: vec![Coin {
-                            amount: ONE.into(),
-                            denom: DENOM_UOSMO.to_string(),
-                        }],
                     })
                 }
                 _ => panic!("Unexpected path: {}", path),

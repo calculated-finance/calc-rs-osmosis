@@ -5,7 +5,10 @@ use crate::{
         authz::create_authz_exec_message,
         validation::{assert_address_is_valid, assert_exactly_one_asset},
     },
-    state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
+    state::{
+        cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
+        config::get_config,
+    },
     types::post_execution_action::LockableDuration,
 };
 use cosmwasm_std::{
@@ -38,21 +41,21 @@ pub fn z_provide_liquidity_handler(
         },
     )?;
 
-    let share_out_min_amount = String::from(slippage_tolerance.map_or(
-        Uint128::one(),
-        |slippage_tolerance| {
-            QueryCalcJoinPoolSharesRequest {
-                pool_id,
-                tokens_in: vec![info.funds[0].clone().into()],
-            }
-            .query(&deps.querier)
-            .expect("share amount out response")
-            .share_out_amount
-            .parse::<Uint128>()
-            .expect("share amount out value")
-                * (Decimal::one() - slippage_tolerance)
-        },
-    ));
+    let share_out_min_amount = String::from(
+        QueryCalcJoinPoolSharesRequest {
+            pool_id,
+            tokens_in: vec![info.funds[0].clone().into()],
+        }
+        .query(&deps.querier)
+        .expect("share amount out response")
+        .share_out_amount
+        .parse::<Uint128>()
+        .expect("share amount out value")
+            * (Decimal::one()
+                - slippage_tolerance.unwrap_or_else(|| {
+                    get_config(deps.storage).unwrap().default_slippage_tolerance
+                })),
+    );
 
     Ok(Response::new()
         .add_attributes(vec![
@@ -124,16 +127,19 @@ pub fn log_bond_lp_tokens_result(deps: DepsMut, reply: Reply) -> Result<Response
 mod z_provide_liquidity_tests {
     use super::*;
     use crate::{
-        constants::ONE,
+        constants::TEN,
         handlers::z_provide_liquidity::{bond_lp_tokens, log_bond_lp_tokens_result},
         helpers::authz::create_authz_exec_message,
         state::cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
-        tests::mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO, USER},
+        tests::{
+            helpers::instantiate_contract,
+            mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO, USER},
+        },
         types::post_execution_action::LockableDuration,
     };
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
-        Addr, Attribute, BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse, Uint128,
+        Addr, Attribute, BankMsg, Coin, Decimal, Reply, SubMsg, SubMsgResponse,
     };
     use osmosis_std::types::osmosis::{
         gamm::v1beta1::MsgJoinSwapExternAmountIn, lockup::MsgLockTokens,
@@ -197,6 +203,8 @@ mod z_provide_liquidity_tests {
             &[Coin::new(100, DENOM_STAKE)],
         );
 
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
         let pool_id = 1;
         let provider_address = Addr::unchecked(USER);
         let duration = LockableDuration::OneDay;
@@ -233,6 +241,8 @@ mod z_provide_liquidity_tests {
             &[Coin::new(100, DENOM_STAKE)],
         );
 
+        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+
         let pool_id = 1;
 
         let response = z_provide_liquidity_handler(
@@ -246,12 +256,17 @@ mod z_provide_liquidity_tests {
         )
         .unwrap();
 
+        println!("{:#?}", response.messages);
+
+        let config = get_config(deps.as_ref().storage).unwrap();
+
         assert!(response.messages.contains(&SubMsg::reply_on_success(
             MsgJoinSwapExternAmountIn {
                 sender: env.contract.address.to_string(),
                 pool_id,
                 token_in: Some(info.funds[0].clone().into()),
-                share_out_min_amount: Uint128::one().to_string(),
+                share_out_min_amount: (TEN * (Decimal::one() - config.default_slippage_tolerance))
+                    .to_string(),
             },
             AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
         )));
@@ -285,7 +300,7 @@ mod z_provide_liquidity_tests {
                 sender: env.contract.address.to_string(),
                 pool_id,
                 token_in: Some(info.funds[0].clone().into()),
-                share_out_min_amount: (ONE * (Decimal::one() - slippage_tolerance)).to_string(),
+                share_out_min_amount: (TEN * (Decimal::one() - slippage_tolerance)).to_string(),
             },
             AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
         )));
