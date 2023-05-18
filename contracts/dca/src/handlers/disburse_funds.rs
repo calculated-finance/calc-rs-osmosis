@@ -219,7 +219,7 @@ mod disburse_funds_tests {
 
         let fee = get_config(&deps.storage).unwrap().swap_fee_percent * receive_amount;
 
-        let automation_fee = get_config(&deps.storage).unwrap().delegation_fee_percent;
+        let automation_fee = get_config(&deps.storage).unwrap().automation_fee_percent;
 
         let automation_fees = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
             Coin::new(0, vault.target_denom.clone()),
@@ -288,7 +288,7 @@ mod disburse_funds_tests {
                 let allocation_amount =
                     checked_mul(total_after_swap_fee, destination.allocation).unwrap();
                 let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
+                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
                 acc.checked_add(allocation_automation_fee).unwrap()
             },
         );
@@ -366,7 +366,7 @@ mod disburse_funds_tests {
                 let allocation_amount =
                     checked_mul(total_after_swap_fee, destination.allocation).unwrap();
                 let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
+                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
                 acc.checked_add(allocation_automation_fee).unwrap()
             },
         );
@@ -552,7 +552,7 @@ mod disburse_funds_tests {
                 let allocation_amount =
                     checked_mul(receive_amount - fee, destination.allocation).unwrap();
                 let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
+                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
                 fee = fee.checked_add(allocation_automation_fee).unwrap();
             });
 
@@ -737,7 +737,7 @@ mod disburse_funds_tests {
         let config = get_config(deps.as_ref().storage).unwrap();
 
         let inverted_fee_rate =
-            Decimal::one() - (config.swap_fee_percent + config.delegation_fee_percent);
+            Decimal::one() - (config.swap_fee_percent + config.automation_fee_percent);
         let received_amount =
             updated_vault.received_amount.amount * (Decimal::one() / inverted_fee_rate);
         let fee = received_amount - updated_vault.received_amount.amount - Uint128::new(2); // rounding
@@ -1006,7 +1006,7 @@ mod disburse_funds_tests {
                 let allocation_amount =
                     checked_mul(total_after_swap_fee, destination.allocation).unwrap();
                 let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
+                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
                 acc.checked_add(allocation_automation_fee).unwrap()
             },
         );
@@ -1079,7 +1079,7 @@ mod disburse_funds_tests {
                 let allocation_amount =
                     checked_mul(total_after_swap_fee, destination.allocation).unwrap();
                 let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
+                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
                 acc.checked_add(allocation_automation_fee).unwrap()
             },
         );
@@ -1160,7 +1160,7 @@ mod disburse_funds_tests {
                 let allocation_amount =
                     checked_mul(total_after_swap_fee, destination.allocation).unwrap();
                 let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.delegation_fee_percent).unwrap();
+                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
                 acc.checked_add(allocation_automation_fee).unwrap()
             },
         );

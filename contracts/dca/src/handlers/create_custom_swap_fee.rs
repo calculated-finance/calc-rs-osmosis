@@ -1,8 +1,6 @@
 use crate::{
     error::ContractError,
-    helpers::validation::{
-        assert_custom_fee_is_valid, assert_denom_exists, assert_sender_is_admin,
-    },
+    helpers::validation::{assert_denom_exists, assert_fee_level_is_valid, assert_sender_is_admin},
     state::config::create_custom_fee,
 };
 #[cfg(not(feature = "library"))]
@@ -17,7 +15,7 @@ pub fn create_custom_swap_fee_handler(
 ) -> Result<Response, ContractError> {
     assert_sender_is_admin(deps.storage, info.sender)?;
     assert_denom_exists(deps.as_ref().storage, denom.clone())?;
-    assert_custom_fee_is_valid(&swap_fee_percent)?;
+    assert_fee_level_is_valid(&swap_fee_percent)?;
 
     create_custom_fee(deps.storage, denom.clone(), swap_fee_percent)?;
 
@@ -138,7 +136,7 @@ mod create_custom_swap_fee_tests {
 
         assert_eq!(
             response.to_string(),
-            "Error: custom swap fee cannot be larger than 5%"
+            "Error: fee level cannot be larger than 5%"
         );
     }
 

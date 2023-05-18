@@ -4,9 +4,9 @@
   "type": "object",
   "required": [
     "admin",
+    "automation_fee_percent",
     "default_page_limit",
     "default_slippage_tolerance",
-    "delegation_fee_percent",
     "executors",
     "fee_collectors",
     "paused",
@@ -18,15 +18,15 @@
     "admin": {
       "$ref": "#/definitions/Addr"
     },
+    "automation_fee_percent": {
+      "$ref": "#/definitions/Decimal"
+    },
     "default_page_limit": {
       "type": "integer",
       "format": "uint16",
       "minimum": 0.0
     },
     "default_slippage_tolerance": {
-      "$ref": "#/definitions/Decimal"
-    },
-    "delegation_fee_percent": {
       "$ref": "#/definitions/Decimal"
     },
     "executors": {

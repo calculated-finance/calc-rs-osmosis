@@ -262,15 +262,7 @@
         "update_config": {
           "type": "object",
           "properties": {
-            "default_page_limit": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint16",
-              "minimum": 0.0
-            },
-            "default_slippage_tolerance": {
+            "automation_fee_percent": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/Decimal"
@@ -280,7 +272,15 @@
                 }
               ]
             },
-            "delegation_fee_percent": {
+            "default_page_limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint16",
+              "minimum": 0.0
+            },
+            "default_slippage_tolerance": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/Decimal"

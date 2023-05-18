@@ -2,8 +2,8 @@ use crate::{
     error::ContractError,
     helpers::validation::{
         assert_addresses_are_valid, assert_fee_collector_addresses_are_valid,
-        assert_fee_collector_allocations_add_up_to_one, assert_no_more_than_10_fee_collectors,
-        assert_page_limit_is_valid,
+        assert_fee_collector_allocations_add_up_to_one, assert_fee_level_is_valid,
+        assert_no_more_than_10_fee_collectors, assert_page_limit_is_valid,
         assert_risk_weighted_average_escrow_level_is_no_greater_than_100_percent,
         assert_sender_is_admin, assert_slippage_tolerance_is_less_than_or_equal_to_one,
         assert_twap_period_is_valid,
@@ -19,7 +19,7 @@ pub fn update_config_handler(
     executors: Option<Vec<Addr>>,
     fee_collectors: Option<Vec<FeeCollector>>,
     swap_fee_percent: Option<Decimal>,
-    delegation_fee_percent: Option<Decimal>,
+    automation_fee_percent: Option<Decimal>,
     default_page_limit: Option<u16>,
     paused: Option<bool>,
     risk_weighted_average_escrow_level: Option<Decimal>,
@@ -34,8 +34,8 @@ pub fn update_config_handler(
         executors: executors.unwrap_or(existing_config.executors),
         fee_collectors: fee_collectors.unwrap_or(existing_config.fee_collectors),
         swap_fee_percent: swap_fee_percent.unwrap_or(existing_config.swap_fee_percent),
-        delegation_fee_percent: delegation_fee_percent
-            .unwrap_or(existing_config.delegation_fee_percent),
+        automation_fee_percent: automation_fee_percent
+            .unwrap_or(existing_config.automation_fee_percent),
         default_page_limit: default_page_limit.unwrap_or(existing_config.default_page_limit),
         paused: paused.unwrap_or(existing_config.paused),
         risk_weighted_average_escrow_level: risk_weighted_average_escrow_level
@@ -45,6 +45,8 @@ pub fn update_config_handler(
             .unwrap_or(existing_config.default_slippage_tolerance),
     };
 
+    assert_fee_level_is_valid(&config.swap_fee_percent)?;
+    assert_fee_level_is_valid(&config.automation_fee_percent)?;
     assert_page_limit_is_valid(Some(config.default_page_limit))?;
     assert_slippage_tolerance_is_less_than_or_equal_to_one(config.default_slippage_tolerance)?;
     assert_twap_period_is_valid(config.twap_period)?;
@@ -152,7 +154,7 @@ mod update_config_tests {
             info,
             None,
             None,
-            Some(Decimal::from_str("0.1").unwrap()),
+            Some(Decimal::percent(2)),
             None,
             None,
             None,
@@ -164,11 +166,11 @@ mod update_config_tests {
 
         let config = get_config(deps.as_ref().storage).unwrap();
 
-        assert_eq!(config.swap_fee_percent, Decimal::percent(10));
+        assert_eq!(config.swap_fee_percent, Decimal::percent(2));
     }
 
     #[test]
-    fn update_swap_fee_percent_more_than_100_percent_should_fail() {
+    fn update_swap_fee_percent_more_than_5_percent_should_fail() {
         let mut deps = mock_dependencies();
         let info = mock_info(ADMIN, &[]);
 
@@ -179,7 +181,7 @@ mod update_config_tests {
             info,
             None,
             None,
-            Some(Decimal::percent(150)),
+            Some(Decimal::percent(15)),
             None,
             None,
             None,
@@ -189,14 +191,11 @@ mod update_config_tests {
         )
         .unwrap_err();
 
-        assert_eq!(
-        err.to_string(),
-        "Generic error: swap_fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)"
-    )
+        assert_eq!(err.to_string(), "Error: fee level cannot be larger than 5%")
     }
 
     #[test]
-    fn update_delegation_fee_percent_with_valid_value_should_succeed() {
+    fn update_automation_fee_percent_with_valid_value_should_succeed() {
         let mut deps = mock_dependencies();
         let info = mock_info(ADMIN, &[]);
 
@@ -208,7 +207,7 @@ mod update_config_tests {
             None,
             None,
             None,
-            Some(Decimal::from_str("0.1").unwrap()),
+            Some(Decimal::percent(2)),
             None,
             None,
             None,
@@ -219,11 +218,11 @@ mod update_config_tests {
 
         let config = get_config(deps.as_ref().storage).unwrap();
 
-        assert_eq!(config.delegation_fee_percent, Decimal::percent(10));
+        assert_eq!(config.automation_fee_percent, Decimal::percent(2));
     }
 
     #[test]
-    fn update_delegation_fee_percent_more_than_100_percent_should_fail() {
+    fn update_automation_fee_percent_more_than_5_percent_should_fail() {
         let mut deps = mock_dependencies();
         let info = mock_info(ADMIN, &[]);
 
@@ -235,7 +234,7 @@ mod update_config_tests {
             None,
             None,
             None,
-            Some(Decimal::percent(150)),
+            Some(Decimal::percent(15)),
             None,
             None,
             None,
@@ -244,10 +243,7 @@ mod update_config_tests {
         )
         .unwrap_err();
 
-        assert_eq!(
-        err.to_string(),
-        "Generic error: delegation_fee_percent must be less than 100%, and expressed as a ratio out of 1 (i.e. use 0.015 to represent a fee of 1.5%)"
-    )
+        assert_eq!(err.to_string(), "Error: fee level cannot be larger than 5%")
     }
 
     #[test]
