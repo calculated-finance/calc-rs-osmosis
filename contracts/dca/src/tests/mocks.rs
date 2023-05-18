@@ -1,3 +1,4 @@
+use crate::constants::{ONE, ONE_DECIMAL, SWAP_FEE_RATE, TEN};
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
 use cosmwasm_std::{
     from_slice, to_binary, Binary, ContractResult, CustomQuery, Empty, OwnedDeps, Querier,
@@ -14,8 +15,6 @@ use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
 use prost::Message;
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
-
-use crate::constants::{ONE, ONE_DECIMAL, SWAP_FEE_RATE, TEN};
 
 pub const USER: &str = "user";
 pub const ADMIN: &str = "admin";
