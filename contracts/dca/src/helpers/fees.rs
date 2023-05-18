@@ -55,7 +55,7 @@ pub fn get_automation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResul
 }
 
 pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
-    let default_swap_fee_level = get_config(storage)?.default_swap_fee_percent;
+    let config = get_config(storage)?;
 
     Ok(
         match (
