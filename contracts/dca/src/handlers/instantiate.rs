@@ -18,7 +18,8 @@ use cw2::set_contract_version;
 pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Response, ContractError> {
     deps.api.addr_validate(msg.admin.as_ref())?;
 
-    assert_fee_level_is_valid(&msg.swap_fee_percent)?;
+    assert_fee_level_is_valid(&msg.default_swap_fee_percent)?;
+    assert_fee_level_is_valid(&msg.weighted_scale_swap_fee_percent)?;
     assert_fee_level_is_valid(&msg.automation_fee_percent)?;
     assert_page_limit_is_valid(Some(msg.default_page_limit))?;
     assert_slippage_tolerance_is_less_than_or_equal_to_one(msg.default_slippage_tolerance)?;
@@ -37,7 +38,8 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
             admin: msg.admin.clone(),
             executors: msg.executors,
             fee_collectors: msg.fee_collectors,
-            swap_fee_percent: msg.swap_fee_percent,
+            default_swap_fee_percent: msg.default_swap_fee_percent,
+            weighted_scale_swap_fee_percent: msg.weighted_scale_swap_fee_percent,
             automation_fee_percent: msg.automation_fee_percent,
             default_page_limit: msg.default_page_limit,
             paused: msg.paused,
@@ -79,7 +81,8 @@ mod instantiate_tests {
                 address: VALID_ADDRESS_ONE.to_string(),
                 allocation: Decimal::from_str("1").unwrap(),
             }],
-            swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+            default_swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+            weighted_scale_swap_fee_percent: Decimal::percent(1),
             automation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             default_page_limit: 30,
             paused: false,
@@ -112,7 +115,8 @@ mod instantiate_tests {
                 address: VALID_ADDRESS_ONE.to_string(),
                 allocation: Decimal::from_str("1").unwrap(),
             }],
-            swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+            default_swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+            weighted_scale_swap_fee_percent: Decimal::percent(1),
             automation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             default_page_limit: 30,
             paused: false,
@@ -142,7 +146,8 @@ mod instantiate_tests {
                 address: INVALID_ADDRESS.to_string(),
                 allocation: Decimal::from_str("1").unwrap(),
             }],
-            swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+            default_swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+            weighted_scale_swap_fee_percent: Decimal::percent(1),
             automation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             default_page_limit: 30,
             paused: false,
@@ -169,7 +174,8 @@ mod instantiate_tests {
             admin: Addr::unchecked(VALID_ADDRESS_ONE),
             executors: vec![Addr::unchecked("executor")],
             fee_collectors: vec![],
-            swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+            default_swap_fee_percent: Decimal::from_str("0.015").unwrap(),
+            weighted_scale_swap_fee_percent: Decimal::percent(1),
             automation_fee_percent: Decimal::from_str("0.0075").unwrap(),
             default_page_limit: 30,
             paused: false,

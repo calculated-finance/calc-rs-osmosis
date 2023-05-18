@@ -38,10 +38,10 @@ pub fn get_fee_messages(
         .collect::<Vec<SubMsg>>())
 }
 
-pub fn get_delegation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
-    let config = get_config(storage)?;
+pub fn get_automation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
+    let default_automation_fee_level = get_config(storage)?.automation_fee_percent;
 
-    Ok(config.automation_fee_percent.checked_mul(
+    Ok(default_automation_fee_level.checked_mul(
         vault
             .destinations
             .iter()
@@ -52,7 +52,7 @@ pub fn get_delegation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResul
 }
 
 pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
-    let default_swap_fee_level = get_config(storage)?.swap_fee_percent;
+    let default_swap_fee_level = get_config(storage)?.default_swap_fee_percent;
 
     Ok(
         match (
@@ -106,6 +106,7 @@ pub fn get_performance_fee(vault: &Vault, current_price: Decimal) -> StdResult<C
 
 #[cfg(test)]
 mod tests {
+    use super::get_swap_fee_rate;
     use crate::{
         constants::{ONE, TEN},
         helpers::fees::get_performance_fee,
@@ -120,8 +121,6 @@ mod tests {
         Coin, Decimal, Uint128,
     };
     use std::str::FromStr;
-
-    use super::get_swap_fee_rate;
 
     fn get_vault(
         total_deposit: Uint128,

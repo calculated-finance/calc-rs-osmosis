@@ -18,7 +18,8 @@ pub fn update_config_handler(
     info: MessageInfo,
     executors: Option<Vec<Addr>>,
     fee_collectors: Option<Vec<FeeCollector>>,
-    swap_fee_percent: Option<Decimal>,
+    default_swap_fee_percent: Option<Decimal>,
+    weighted_scale_swap_fee_percent: Option<Decimal>,
     automation_fee_percent: Option<Decimal>,
     default_page_limit: Option<u16>,
     paused: Option<bool>,
@@ -33,7 +34,10 @@ pub fn update_config_handler(
         admin: existing_config.admin,
         executors: executors.unwrap_or(existing_config.executors),
         fee_collectors: fee_collectors.unwrap_or(existing_config.fee_collectors),
-        swap_fee_percent: swap_fee_percent.unwrap_or(existing_config.swap_fee_percent),
+        default_swap_fee_percent: default_swap_fee_percent
+            .unwrap_or(existing_config.default_swap_fee_percent),
+        weighted_scale_swap_fee_percent: weighted_scale_swap_fee_percent
+            .unwrap_or(existing_config.weighted_scale_swap_fee_percent),
         automation_fee_percent: automation_fee_percent
             .unwrap_or(existing_config.automation_fee_percent),
         default_page_limit: default_page_limit.unwrap_or(existing_config.default_page_limit),
@@ -45,7 +49,8 @@ pub fn update_config_handler(
             .unwrap_or(existing_config.default_slippage_tolerance),
     };
 
-    assert_fee_level_is_valid(&config.swap_fee_percent)?;
+    assert_fee_level_is_valid(&config.default_swap_fee_percent)?;
+    assert_fee_level_is_valid(&config.weighted_scale_swap_fee_percent)?;
     assert_fee_level_is_valid(&config.automation_fee_percent)?;
     assert_page_limit_is_valid(Some(config.default_page_limit))?;
     assert_slippage_tolerance_is_less_than_or_equal_to_one(config.default_slippage_tolerance)?;
@@ -99,6 +104,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
@@ -134,6 +140,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
@@ -161,12 +168,13 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
         let config = get_config(deps.as_ref().storage).unwrap();
 
-        assert_eq!(config.swap_fee_percent, Decimal::percent(2));
+        assert_eq!(config.default_swap_fee_percent, Decimal::percent(2));
     }
 
     #[test]
@@ -182,6 +190,7 @@ mod update_config_tests {
             None,
             None,
             Some(Decimal::percent(15)),
+            None,
             None,
             None,
             None,
@@ -204,6 +213,7 @@ mod update_config_tests {
         update_config_handler(
             deps.as_mut(),
             info,
+            None,
             None,
             None,
             None,
@@ -234,6 +244,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
             Some(Decimal::percent(15)),
             None,
             None,
@@ -258,6 +269,7 @@ mod update_config_tests {
         update_config_handler(
             deps.as_mut(),
             info,
+            None,
             None,
             None,
             None,
@@ -308,6 +320,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap();
 
@@ -344,6 +357,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -363,6 +377,7 @@ mod update_config_tests {
         update_config_handler(
             deps.as_mut(),
             info,
+            None,
             None,
             None,
             None,
@@ -399,6 +414,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
             Some(Decimal::percent(150)),
             None,
             None,
@@ -421,6 +437,7 @@ mod update_config_tests {
         let err = update_config_handler(
             deps.as_mut(),
             info,
+            None,
             None,
             None,
             None,
@@ -464,6 +481,7 @@ mod update_config_tests {
             None,
             None,
             None,
+            None,
         )
         .unwrap_err();
 
@@ -483,6 +501,7 @@ mod update_config_tests {
         let err = update_config_handler(
             deps.as_mut(),
             info,
+            None,
             None,
             None,
             None,
