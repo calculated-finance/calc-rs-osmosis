@@ -55,7 +55,7 @@ pub fn get_automation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResul
 }
 
 pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
-    let config = get_config(storage)?;
+    let default_swap_fee_level = get_config(storage)?.swap_fee_percent;
 
     Ok(
         match (
@@ -128,6 +128,8 @@ mod tests {
         Coin, Decimal, Uint128,
     };
     use std::str::FromStr;
+
+    use super::get_swap_fee_rate;
 
     fn get_vault(
         total_deposit: Uint128,
