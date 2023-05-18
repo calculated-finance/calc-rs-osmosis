@@ -7,12 +7,13 @@
     "automation_fee_percent",
     "default_page_limit",
     "default_slippage_tolerance",
+    "default_swap_fee_percent",
     "executors",
     "fee_collectors",
     "paused",
     "risk_weighted_average_escrow_level",
-    "swap_fee_percent",
-    "twap_period"
+    "twap_period",
+    "weighted_scale_swap_fee_percent"
   ],
   "properties": {
     "admin": {
@@ -27,6 +28,9 @@
       "minimum": 0.0
     },
     "default_slippage_tolerance": {
+      "$ref": "#/definitions/Decimal"
+    },
+    "default_swap_fee_percent": {
       "$ref": "#/definitions/Decimal"
     },
     "executors": {
@@ -47,13 +51,13 @@
     "risk_weighted_average_escrow_level": {
       "$ref": "#/definitions/Decimal"
     },
-    "swap_fee_percent": {
-      "$ref": "#/definitions/Decimal"
-    },
     "twap_period": {
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
+    },
+    "weighted_scale_swap_fee_percent": {
+      "$ref": "#/definitions/Decimal"
     }
   },
   "additionalProperties": false,

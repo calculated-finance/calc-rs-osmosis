@@ -46,13 +46,6 @@ impl SwapAdjustmentStrategy {
         }
     }
 
-    pub fn swap_fee_level(&self) -> Decimal {
-        match self {
-            SwapAdjustmentStrategy::RiskWeightedAverage { .. } => Decimal::zero(),
-            SwapAdjustmentStrategy::WeightedScale { .. } => Decimal::percent(1),
-        }
-    }
-
     pub fn max_adjustment(&self) -> Decimal {
         match self {
             SwapAdjustmentStrategy::RiskWeightedAverage { .. } => Decimal::percent(300),
