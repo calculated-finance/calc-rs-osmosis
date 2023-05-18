@@ -1,4 +1,4 @@
-import { coin } from '@cosmjs/proto-signing';
+import { Coin, coin } from '@cosmjs/proto-signing';
 import { Context } from 'mocha';
 import { map } from 'ramda';
 import { execute } from '../../shared/cosmwasm';
@@ -8,37 +8,31 @@ import { createVault, getBalances } from '../helpers';
 import { expect } from '../shared.test';
 
 describe('when disbursing escrow', () => {
-  describe('with dca plus & no trigger', () => {
-    let deposit = coin(1000000, 'stake');
+  describe('with risk weighted average swap adjustment strategy & no trigger', () => {
     let vaultBeforeExecution: Vault;
     let vaultAfterExecution: Vault;
     let eventPayloads: EventData[];
-    let balancesBeforeExecution: Record<string, number>;
-    let balancesAfterExecution: Record<string, number>;
+    let balancesBeforeExecution: { [x: string]: { address: string } };
+    let balancesAfterExecution: { [x: string]: { address: string } };
     let performanceFee: number;
 
     before(async function (this: Context) {
-      const vault_id = await createVault(
-        this,
-        {
-          swap_amount: deposit.amount,
-          swap_adjustment_strategy: {
-            risk_weighted_average: {
-              base_denom: 'bitcoin',
-            },
+      const vault_id = await createVault(this, {
+        swap_adjustment_strategy: {
+          risk_weighted_average: {
+            base_denom: 'bitcoin',
           },
-          performance_assessment_strategy: 'compare_to_standard_dca',
         },
-        [deposit],
-      );
-
-      balancesBeforeExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
+        performance_assessment_strategy: 'compare_to_standard_dca',
+      });
 
       vaultBeforeExecution = (
         await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
           get_vault: { vault_id },
         })
       ).vault;
+
+      balancesBeforeExecution = await getBalances(this, [this.userWalletAddress], [vaultBeforeExecution.target_denom]);
 
       performanceFee = Number(
         (
@@ -52,7 +46,7 @@ describe('when disbursing escrow', () => {
         disburse_escrow: { vault_id },
       });
 
-      balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
+      balancesAfterExecution = await getBalances(this, [this.userWalletAddress], [vaultBeforeExecution.target_denom]);
 
       vaultAfterExecution = (
         await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
@@ -75,8 +69,8 @@ describe('when disbursing escrow', () => {
     });
 
     it('sends the funds back to the user', async function (this: Context) {
-      expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
-        balancesBeforeExecution[this.userWalletAddress]['uion'] +
+      expect(balancesAfterExecution[this.userWalletAddress][vaultAfterExecution.target_denom]).to.equal(
+        balancesBeforeExecution[this.userWalletAddress][vaultAfterExecution.target_denom] +
           Number(vaultBeforeExecution.escrowed_amount.amount) -
           performanceFee,
       );

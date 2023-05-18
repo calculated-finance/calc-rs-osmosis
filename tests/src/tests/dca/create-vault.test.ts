@@ -1,4 +1,4 @@
-import { coin } from '@cosmjs/proto-signing';
+import { Coin, coin } from '@cosmjs/proto-signing';
 import dayjs from 'dayjs';
 import { Context } from 'mocha';
 import { find, map, range } from 'ramda';
@@ -9,8 +9,8 @@ import { expect } from '../shared.test';
 
 describe('when creating a vault', () => {
   describe('with no trigger', async () => {
-    const deposit = coin('1000000', 'stake');
-    const swapAmount = '100000';
+    let deposit: Coin;
+    const swapAmount = 100000;
     let vault: Vault;
     let eventPayloads: EventData[];
     let executionTriggeredEvent: EventData;
@@ -18,12 +18,19 @@ describe('when creating a vault', () => {
     let receivedAmountAfterFee: number;
 
     before(async function (this: Context) {
-      const expectedPrice = await getExpectedPrice(this, this.pair, coin(swapAmount, 'stake'), 'uion');
+      deposit = coin(1000000, this.pair.quote_denom);
+
+      const expectedPrice = await getExpectedPrice(
+        this,
+        this.pair,
+        coin(swapAmount, deposit.denom),
+        this.pair.base_denom,
+      );
 
       const vaultId = await createVault(
         this,
         {
-          swap_amount: swapAmount,
+          swap_amount: `${swapAmount}`,
         },
         [deposit],
       );
@@ -73,8 +80,8 @@ describe('when creating a vault', () => {
             asset_price:
               'dca_vault_execution_triggered' in executionTriggeredEvent &&
               executionTriggeredEvent.dca_vault_execution_triggered?.asset_price,
-            quote_denom: vault.received_amount.denom,
-            base_denom: vault.balance.denom,
+            base_denom: vault.received_amount.denom,
+            quote_denom: vault.balance.denom,
           },
         },
       ]);
@@ -135,7 +142,9 @@ describe('when creating a vault', () => {
 
     it('has the correct swapped amount', () => expect(vault.swapped_amount).to.eql(coin(0, vault.balance.denom)));
 
-    it('has the correct received amount', () => expect(vault.received_amount).to.eql(coin(0, 'uion')));
+    it('has the correct received amount', function (this: Context) {
+      expect(vault.received_amount).to.eql(coin(0, vault.target_denom));
+    });
 
     it('has a funds deposited event', () =>
       expect(eventPayloads).to.include.deep.members([{ dca_vault_funds_deposited: { amount: vault.balance } }]));
@@ -234,9 +243,9 @@ describe('when creating a vault', () => {
 
   describe('with multiple assets sent', () => {
     it('fails with the correct error message', async function (this: Context) {
-      await expect(createVault(this, {}, [coin(1000000, 'uion'), coin(1000000, 'uosmo')])).to.be.rejectedWith(
-        /received 2 denoms but required exactly 1/,
-      );
+      await expect(
+        createVault(this, {}, [coin(1000000, this.pair.base_denom), coin(1000000, this.pair.quote_denom)]),
+      ).to.be.rejectedWith(/received 2 denoms but required exactly 1/);
     });
   });
 
@@ -246,7 +255,7 @@ describe('when creating a vault', () => {
     });
   });
 
-  describe('with risk weight average strategy & a time trigger', () => {
+  describe('with risk weight average swap adjustment strategy & a time trigger', () => {
     let vault: Vault;
 
     before(async function (this: Context) {
@@ -286,22 +295,31 @@ describe('when creating a vault', () => {
     });
 
     it('has a DCA+ model id', async function (this: Context) {
-      expect(vault.swap_adjustment_strategy.risk_weighted_average.model_id).to.equal(30);
+      expect(
+        'risk_weighted_average' in vault.swap_adjustment_strategy &&
+          vault.swap_adjustment_strategy.risk_weighted_average.model_id,
+      ).to.equal(30);
     });
   });
 
-  describe('with risk weight average strategy & no trigger', () => {
-    const deposit = coin(1000000, 'stake');
-    const swapAmount = '100000';
+  describe('with risk weight average swap adjustment strategy & no trigger', () => {
     let vault: Vault;
-    let balancesBeforeExecution: Record<string, number>;
-    let balancesAfterExecution: Record<string, number>;
+    let balancesBeforeExecution: { [x: string]: { address: string } };
+    let balancesAfterExecution: { [x: string]: { address: string } };
     let expectedPrice: number;
 
     before(async function (this: Context) {
-      balancesBeforeExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
+      const deposit = coin(1000000, this.pair.quote_denom);
+      const swapAmount = 100000;
 
-      expectedPrice = await getExpectedPrice(this, this.pair, coin(swapAmount, 'stake'), 'uion');
+      balancesBeforeExecution = await getBalances(this, [this.userWalletAddress], [this.pair.base_denom]);
+
+      expectedPrice = await getExpectedPrice(
+        this,
+        this.pair,
+        coin(swapAmount, this.pair.quote_denom),
+        this.pair.base_denom,
+      );
 
       const vault_id = await createVault(
         this,
@@ -312,7 +330,7 @@ describe('when creating a vault', () => {
               base_denom: 'bitcoin',
             },
           },
-          swap_amount: swapAmount,
+          swap_amount: `${swapAmount}`,
         },
         [deposit],
       );
@@ -325,13 +343,13 @@ describe('when creating a vault', () => {
         })
       ).vault;
 
-      balancesAfterExecution = await getBalances(this.cosmWasmClient, [this.userWalletAddress], ['uion']);
+      balancesAfterExecution = await getBalances(this, [this.userWalletAddress], [vault.target_denom]);
     });
 
     it('subtracts the escrowed balance from the disbursed amount', async function (this: Context) {
-      expect(balancesAfterExecution[this.userWalletAddress]['uion']).to.equal(
+      expect(balancesAfterExecution[this.userWalletAddress][vault.target_denom]).to.equal(
         Math.round(
-          balancesBeforeExecution[this.userWalletAddress]['uion'] +
+          balancesBeforeExecution[this.userWalletAddress][vault.target_denom] +
             Number(vault.received_amount.amount) -
             Number(vault.escrowed_amount.amount),
         ),

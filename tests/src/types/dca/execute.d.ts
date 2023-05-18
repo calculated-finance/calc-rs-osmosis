@@ -37,6 +37,7 @@ export type ExecuteMsg =
     }
   | {
       update_vault: {
+        destinations?: Destination[] | null;
         label?: string | null;
         vault_id: Uint128;
       };
@@ -53,12 +54,15 @@ export type ExecuteMsg =
     }
   | {
       update_config: {
+        default_slippage_tolerance?: Decimal | null;
         delegation_fee_percent?: Decimal | null;
+        executors?: Addr[] | null;
         fee_collectors?: FeeCollector[] | null;
         page_limit?: number | null;
         paused?: boolean | null;
         risk_weighted_average_escrow_level?: Decimal | null;
         swap_fee_percent?: Decimal | null;
+        twap_period?: number | null;
       };
     }
   | {
@@ -135,11 +139,19 @@ export type Binary = string;
 export type Uint128 = string;
 export type PerformanceAssessmentStrategyParams = "compare_to_standard_dca";
 export type PositionType = "enter" | "exit";
-export type SwapAdjustmentStrategyParams = {
-  risk_weighted_average: {
-    base_denom: BaseDenom;
-  };
-};
+export type SwapAdjustmentStrategyParams =
+  | {
+      risk_weighted_average: {
+        base_denom: BaseDenom;
+      };
+    }
+  | {
+      weighted_scale: {
+        base_receive_amount: Uint128;
+        increase_only: boolean;
+        multiplier: Decimal;
+      };
+    };
 export type BaseDenom = "bitcoin";
 /**
  * A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.
@@ -170,13 +182,21 @@ export type TimeInterval =
         seconds: number;
       };
     };
-export type SwapAdjustmentStrategy = {
-  risk_weighted_average: {
-    base_denom: BaseDenom;
-    model_id: number;
-    position_type: PositionType;
-  };
-};
+export type SwapAdjustmentStrategy =
+  | {
+      risk_weighted_average: {
+        base_denom: BaseDenom;
+        model_id: number;
+        position_type: PositionType;
+      };
+    }
+  | {
+      weighted_scale: {
+        base_receive_amount: Uint128;
+        increase_only: boolean;
+        multiplier: Decimal;
+      };
+    };
 export type LockableDuration = "one_day" | "one_week" | "two_weeks";
 
 export interface Destination {

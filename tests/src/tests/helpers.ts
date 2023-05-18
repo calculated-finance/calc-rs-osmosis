@@ -11,7 +11,8 @@ import { Addr } from '../types/dca/execute';
 import { EventsResponse } from '../types/dca/response/get_events';
 import { Pair } from '../types/dca/response/get_pairs';
 import Long from 'long';
-import { FEES } from 'osmojs';
+import { FEES, osmosis } from 'osmojs';
+import { Pool } from 'osmojs/types/codegen/osmosis/gamm/pool-models/balancer/balancerPool';
 
 export const createWallet = async (config: Config) =>
   await DirectSecp256k1HdWallet.generate(12, {
@@ -20,33 +21,26 @@ export const createWallet = async (config: Config) =>
 
 export const createCosmWasmClientForWallet = async (
   config: Config,
-  adminCosmWasmClient: SigningCosmWasmClient,
-  adminContractAddress: Addr,
   userWallet: DirectSecp256k1HdWallet,
-): Promise<SigningCosmWasmClient> => {
-  const userCosmWasmClient = await SigningCosmWasmClient.connectWithSigner(config.netUrl, userWallet, {
+): Promise<SigningCosmWasmClient> =>
+  await SigningCosmWasmClient.connectWithSigner(config.netUrl, userWallet, {
     prefix: config.bech32AddressPrefix,
     gasPrice: GasPrice.fromString(`${config.gasPrice}${config.feeDenom}`),
   });
 
-  const [userAccount] = await userWallet.getAccounts();
-  await adminCosmWasmClient.sendTokens(
-    adminContractAddress,
-    userAccount.address,
-    [coin(1000000, 'uion'), coin(1000000, 'uosmo')],
-    'auto',
-  );
-
-  return userCosmWasmClient;
-};
-
 export const createVault = async (
   context: Context,
   overrides: Record<string, unknown> = {},
-  deposit: Coin[] = [coin('1000000', 'stake')],
+  deposit: Coin[] = [coin(1000000, context.pair.quote_denom)],
 ) => {
-  if (deposit.length > 0)
-    await context.cosmWasmClient.sendTokens(context.adminContractAddress, context.userWalletAddress, deposit, 'auto');
+  if (deposit.length > 0) {
+    await context.cosmWasmClient.sendTokens(
+      context.adminContractAddress,
+      context.userWalletAddress,
+      deposit,
+      FEES.osmosis.swapExactAmountIn('medium'),
+    );
+  }
 
   const response = await execute(
     context.userCosmWasmClient,
@@ -56,7 +50,7 @@ export const createVault = async (
       create_vault: {
         label: 'test',
         swap_amount: '100000',
-        target_denom: 'uion',
+        target_denom: context.pair.base_denom,
         time_interval: 'hourly',
         ...overrides,
       },
@@ -68,9 +62,9 @@ export const createVault = async (
 };
 
 export const getBalances = async (
-  cosmWasmClient: SigningCosmWasmClient,
+  context: Context,
   addresses: Addr[],
-  denoms: string[] = ['uion', 'uosmo', 'stake'],
+  denoms: string[] = [context.pair.base_denom, context.pair.quote_denom],
 ) => {
   return indexBy(
     prop('address'),
@@ -82,7 +76,7 @@ export const getBalances = async (
             await Promise.all(
               map(
                 async (denom) => ({
-                  [denom]: Number((await cosmWasmClient.getBalance(address, denom)).amount),
+                  [denom]: Number((await context.cosmWasmClient.getBalance(address, denom)).amount),
                 }),
                 denoms,
               ),
@@ -153,6 +147,49 @@ export const sendTokens = async (
 
 export const isWithinPercent = (total: number, actual: number, expected: number, percent: number) =>
   Math.abs(actual / total - expected / total) * 100 <= percent;
+
+export const getPool = async (context: Context, poolId: number): Promise<Pool> => {
+  const { pool } = await context.queryClient.osmosis.gamm.v1beta1.pool({ poolId: Long.fromNumber(poolId, true) });
+  return osmosis.gamm.v1beta1.Pool.decode(pool.value) as Pool;
+};
+
+export const getTwapToNow = async (context: Context, pair: Pair, swapDenom: string, period: number) => {
+  const pool = await getPool(context, pair.route[0]);
+  const fee = Number(pool.poolParams.swapFee) / 10e17;
+
+  const block = await context.cosmWasmClient.getBlock();
+  const blockTime = dayjs(block.header.time);
+
+  const twapAtomics = Number(
+    (
+      await context.queryClient.osmosis.twap.v1beta1.arithmeticTwapToNow({
+        poolId: Long.fromNumber(pair.route[0], true),
+        baseAsset: pair.base_denom == swapDenom ? pair.quote_denom : pair.base_denom,
+        quoteAsset: swapDenom,
+        startTime: blockTime.subtract(period, 'seconds').toDate(),
+      })
+    ).arithmeticTwap,
+  );
+
+  return (twapAtomics / 10e17) * (1 + fee);
+};
+
+export const getSpotPrice = async (context: Context, pair: Pair, swapDenom: string) => {
+  const pool = await getPool(context, pair.route[0]);
+  const fee = Number(pool.poolParams.swapFee) / 10e17;
+
+  const spotPrice = Number(
+    (
+      await context.queryClient.osmosis.gamm.v2.spotPrice({
+        poolId: Long.fromNumber(pair.route[0], true),
+        baseAssetDenom: pair.base_denom == swapDenom ? pair.quote_denom : pair.base_denom,
+        quoteAssetDenom: swapDenom,
+      })
+    ).spotPrice,
+  );
+
+  return spotPrice * (1 + fee);
+};
 
 export const getExpectedPrice = async (
   context: Context,
