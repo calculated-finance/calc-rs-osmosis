@@ -72,17 +72,10 @@ export type Uint128 = string;
  */
 export type Decimal = string;
 export type ExecutionSkippedReason =
-  | ("slippage_tolerance_exceeded" | "unknown_failure")
+  | ("slippage_tolerance_exceeded" | "swap_amount_adjusted_to_zero")
   | {
       price_threshold_exceeded: {
         price: Decimal;
-      };
-    }
-  | {
-      price_delta_limit_exceeded: {
-        actual_price_delta: Decimal;
-        duration_in_seconds: number;
-        max_price_delta: Decimal;
       };
     };
 /**

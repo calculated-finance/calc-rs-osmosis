@@ -20,5 +20,6 @@ declare module 'mocha' {
     pair: Pair;
     validatorAddress: string;
     swapAdjustment: number;
+    twapPeriod: number;
   }
 }

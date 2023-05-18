@@ -2,6 +2,8 @@
 
 ## Running the tests
 
+Start by running `npm run localnet:clone` to clone the osmosis repo, then get a local chain runnign by following the instructions in the osmosis/test/localosmosis/README.md file.
+
 If you use vscode, you can run the tests by pressing `F5` or by clicking the `Run` button in the debug tab. Ensure that you have a launch.config in the .vscode folder at the root of the project. It should look something like
 
 ```json

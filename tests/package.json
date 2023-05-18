@@ -4,7 +4,7 @@
     "generate-types:dca": "ts-node ./src/scripts/generate-types.ts ../contracts/dca/schema/dca.json ./src/types/dca",
     "generate-types": "npm run generate-types:swap && npm run generate-types:dca",
     "localnet:clone": "git clone https://github.com/osmosis-labs/osmosis.git",
-    "localnet:run": "cd localosmosis && docker compose down && docker compose up -d",
+    "localnet:run": "cd osmosis && docker-compose -f tests/localosmosis/docker-compose.yml down && docker-compose -f tests/localosmosis/docker-compose.yml up -d",
     "test": "mocha --recursive '**/*.test.ts' --timeout 20000 --exit && cd ../../.."
   },
   "devDependencies": {

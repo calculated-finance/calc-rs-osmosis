@@ -55,7 +55,7 @@ export type QueryMsg =
       get_custom_swap_fees: {};
     }
   | {
-      get_get_vault_performancerformance: {
+      get_vault_performance: {
         vault_id: Uint128;
       };
     }
@@ -88,4 +88,4 @@ export type Uint128 = string;
  * This type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.
  */
 export type Addr = string;
-export type VaultStatus = 'scheduled' | 'active' | 'inactive' | 'cancelled';
+export type VaultStatus = "scheduled" | "active" | "inactive" | "cancelled";

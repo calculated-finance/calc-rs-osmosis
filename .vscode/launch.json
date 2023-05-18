@@ -5,7 +5,7 @@
         "type": "node",
         "request": "launch",
         "name": "Run Tests",
-        "preLaunchTask": "npm: localnet",
+        // "preLaunchTask": "npm: localnet",
         "program": "${workspaceFolder}/tests/node_modules/mocha/bin/_mocha",
         "args": ["-r", "dotenv/config", "--recursive", "**/*.test.ts", "--timeout", "600000", "--exit"],
         "console": "integratedTerminal",
