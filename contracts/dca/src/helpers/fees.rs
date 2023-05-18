@@ -1,7 +1,10 @@
 use super::math::checked_mul;
 use crate::{
     state::config::{get_config, get_custom_fee},
-    types::{performance_assessment_strategy::PerformanceAssessmentStrategy, vault::Vault},
+    types::{
+        performance_assessment_strategy::PerformanceAssessmentStrategy,
+        swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault,
+    },
 };
 use cosmwasm_std::{BankMsg, Coin, Decimal, Deps, StdResult, Storage, SubMsg, Uint128};
 use std::cmp::min;
@@ -38,10 +41,10 @@ pub fn get_fee_messages(
         .collect::<Vec<SubMsg>>())
 }
 
-pub fn get_delegation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
-    let config = get_config(storage)?;
+pub fn get_automation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
+    let default_automation_fee_level = get_config(storage)?.automation_fee_percent;
 
-    Ok(config.automation_fee_percent.checked_mul(
+    Ok(default_automation_fee_level.checked_mul(
         vault
             .destinations
             .iter()
@@ -64,7 +67,13 @@ pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Deci
             }
             (Some(swap_denom_fee_percent), None) => swap_denom_fee_percent,
             (None, Some(receive_denom_fee_percent)) => receive_denom_fee_percent,
-            (None, None) => config.swap_fee_percent,
+            (None, None) => match vault.swap_adjustment_strategy {
+                Some(SwapAdjustmentStrategy::WeightedScale { .. }) => {
+                    config.weighted_scale_swap_fee_percent
+                }
+                Some(_) => Decimal::zero(),
+                None => config.default_swap_fee_percent,
+            },
         },
     )
 }
@@ -103,15 +112,21 @@ pub fn get_performance_fee(vault: &Vault, current_price: Decimal) -> StdResult<C
 
 #[cfg(test)]
 mod tests {
+    use super::get_swap_fee_rate;
     use crate::{
-        constants::TEN,
+        constants::{ONE, TEN},
         helpers::fees::get_performance_fee,
+        state::config::get_config,
+        tests::{helpers::instantiate_contract, mocks::ADMIN},
         types::{
             performance_assessment_strategy::PerformanceAssessmentStrategy,
             swap_adjustment_strategy::SwapAdjustmentStrategy, vault::Vault,
         },
     };
-    use cosmwasm_std::{Coin, Decimal, Uint128};
+    use cosmwasm_std::{
+        testing::{mock_dependencies, mock_env, mock_info},
+        Coin, Decimal, Uint128,
+    };
     use std::str::FromStr;
 
     fn get_vault(
@@ -335,5 +350,29 @@ mod tests {
             current_price,
             expected_fee,
         );
+    }
+
+    #[test]
+    fn swap_adjustment_specific_fee_level_is_used() {
+        let mut deps = mock_dependencies();
+
+        instantiate_contract(deps.as_mut(), mock_env().clone(), mock_info(ADMIN, &[]));
+
+        let swap_adjustment_strategy = SwapAdjustmentStrategy::WeightedScale {
+            base_receive_amount: ONE,
+            multiplier: Decimal::one(),
+            increase_only: false,
+        };
+
+        let vault = Vault {
+            swap_adjustment_strategy: Some(swap_adjustment_strategy.clone()),
+            ..Default::default()
+        };
+
+        let fee_rate = get_swap_fee_rate(deps.as_ref().storage, &vault).unwrap();
+
+        let config = get_config(deps.as_ref().storage).unwrap();
+
+        assert_eq!(config.weighted_scale_swap_fee_percent, fee_rate);
     }
 }

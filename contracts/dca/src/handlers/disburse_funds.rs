@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::helpers::coin::{add_to, subtract};
 use crate::helpers::disbursement::get_disbursement_messages;
-use crate::helpers::fees::{get_delegation_fee_rate, get_fee_messages, get_swap_fee_rate};
+use crate::helpers::fees::{get_automation_fee_rate, get_fee_messages, get_swap_fee_rate};
 use crate::helpers::math::checked_mul;
 use crate::msg::ExecuteMsg;
 use crate::state::cache::{SWAP_CACHE, VAULT_CACHE};
@@ -10,7 +10,7 @@ use crate::state::triggers::delete_trigger;
 use crate::state::vaults::{get_vault, update_vault};
 use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use crate::types::vault::VaultStatus;
-use cosmwasm_std::{to_binary, Decimal, SubMsg, SubMsgResult, Uint128, WasmMsg};
+use cosmwasm_std::{to_binary, SubMsg, SubMsgResult, Uint128, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Attribute, Coin, DepsMut, Env, Reply, Response};
 
@@ -40,15 +40,8 @@ pub fn disburse_funds_handler(
             let coin_sent = subtract(&swap_cache.swap_denom_balance, swap_denom_balance)?;
             let coin_received = subtract(receive_denom_balance, &swap_cache.receive_denom_balance)?;
 
-            let swap_fee_rate = match vault.performance_assessment_strategy {
-                Some(_) => Decimal::zero(),
-                None => get_swap_fee_rate(deps.storage, &vault)?,
-            };
-
-            let automation_fee_rate = match vault.performance_assessment_strategy {
-                Some(_) => Decimal::zero(),
-                None => get_delegation_fee_rate(deps.storage, &vault)?,
-            };
+            let swap_fee_rate = get_swap_fee_rate(deps.storage, &vault)?;
+            let automation_fee_rate = get_automation_fee_rate(deps.storage, &vault)?;
 
             let swap_fee = checked_mul(coin_received.amount, swap_fee_rate)?;
             let total_after_swap_fee = coin_received.amount - swap_fee;
@@ -217,7 +210,7 @@ mod disburse_funds_tests {
         )
         .unwrap();
 
-        let fee = get_config(&deps.storage).unwrap().swap_fee_percent * receive_amount;
+        let fee = get_config(&deps.storage).unwrap().default_swap_fee_percent * receive_amount;
 
         let automation_fee = get_config(&deps.storage).unwrap().automation_fee_percent;
 
@@ -279,28 +272,11 @@ mod disburse_funds_tests {
         .unwrap();
 
         let config = get_config(&deps.storage).unwrap();
-        let swap_fee = config.swap_fee_percent * receive_amount;
-        let total_after_swap_fee = receive_amount - swap_fee;
-
-        let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
-            Uint128::zero(),
-            |acc, destination| {
-                let allocation_amount =
-                    checked_mul(total_after_swap_fee, destination.allocation).unwrap();
-                let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
-                acc.checked_add(allocation_automation_fee).unwrap()
-            },
-        );
+        let swap_fee = config.default_swap_fee_percent * receive_amount;
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
             amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
-        })));
-
-        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-            to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(automation_fee.into(), vault.target_denom.clone())]
         })));
     }
 
@@ -357,7 +333,7 @@ mod disburse_funds_tests {
         .unwrap();
 
         let config = get_config(&deps.storage).unwrap();
-        let swap_fee = config.swap_fee_percent * receive_amount;
+        let swap_fee = config.default_swap_fee_percent * receive_amount;
         let total_after_swap_fee = receive_amount - swap_fee;
 
         let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
@@ -542,7 +518,7 @@ mod disburse_funds_tests {
         let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
         let config = get_config(&deps.storage).unwrap();
 
-        let mut fee = config.swap_fee_percent * receive_amount;
+        let mut fee = config.default_swap_fee_percent * receive_amount;
 
         vault
             .destinations
@@ -639,8 +615,12 @@ mod disburse_funds_tests {
 
         let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
 
+        let config = get_config(&deps.storage).unwrap();
+
         let escrow_level = updated_vault.escrow_level;
-        let escrow_amount = escrow_level * receive_amount;
+        let receive_amount_after_fee =
+            receive_amount * (Decimal::one() - config.default_swap_fee_percent);
+        let escrow_amount = escrow_level * receive_amount_after_fee;
 
         assert_eq!(escrow_amount, updated_vault.escrowed_amount.amount);
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
@@ -651,7 +631,7 @@ mod disburse_funds_tests {
                 .address
                 .to_string(),
             amount: vec![Coin::new(
-                (receive_amount - escrow_amount).into(),
+                (receive_amount_after_fee - escrow_amount).into(),
                 updated_vault.target_denom,
             )],
         },)));
@@ -737,10 +717,10 @@ mod disburse_funds_tests {
         let config = get_config(deps.as_ref().storage).unwrap();
 
         let inverted_fee_rate =
-            Decimal::one() - (config.swap_fee_percent + config.automation_fee_percent);
+            Decimal::one() - (config.default_swap_fee_percent + config.automation_fee_percent);
         let received_amount =
             updated_vault.received_amount.amount * (Decimal::one() / inverted_fee_rate);
-        let fee = received_amount - updated_vault.received_amount.amount - Uint128::new(2); // rounding
+        let fee = received_amount - updated_vault.received_amount.amount + Uint128::one(); // rounding
 
         assert!(events.contains(&Event {
             id: 1,
@@ -998,27 +978,10 @@ mod disburse_funds_tests {
 
         let config = get_config(&deps.storage).unwrap();
         let swap_fee = custom_fee_percent * receive_amount;
-        let total_after_swap_fee = receive_amount - swap_fee;
-
-        let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
-            Uint128::zero(),
-            |acc, destination| {
-                let allocation_amount =
-                    checked_mul(total_after_swap_fee, destination.allocation).unwrap();
-                let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
-                acc.checked_add(allocation_automation_fee).unwrap()
-            },
-        );
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
             amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
-        })));
-
-        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-            to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(automation_fee.into(), vault.target_denom.clone())]
         })));
     }
 
@@ -1071,27 +1034,10 @@ mod disburse_funds_tests {
 
         let config = get_config(&deps.storage).unwrap();
         let swap_fee = custom_fee_percent * receive_amount;
-        let total_after_swap_fee = receive_amount - swap_fee;
-
-        let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
-            Uint128::zero(),
-            |acc, destination| {
-                let allocation_amount =
-                    checked_mul(total_after_swap_fee, destination.allocation).unwrap();
-                let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
-                acc.checked_add(allocation_automation_fee).unwrap()
-            },
-        );
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
             amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
-        })));
-
-        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-            to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(automation_fee.into(), vault.target_denom.clone())]
         })));
     }
 
@@ -1152,27 +1098,10 @@ mod disburse_funds_tests {
 
         let config = get_config(&deps.storage).unwrap();
         let swap_fee = min(swap_denom_fee_percent, receive_denom_fee_percent) * receive_amount;
-        let total_after_swap_fee = receive_amount - swap_fee;
-
-        let automation_fee = vault.destinations.iter().filter(|d| d.msg.is_some()).fold(
-            Uint128::zero(),
-            |acc, destination| {
-                let allocation_amount =
-                    checked_mul(total_after_swap_fee, destination.allocation).unwrap();
-                let allocation_automation_fee =
-                    checked_mul(allocation_amount, config.automation_fee_percent).unwrap();
-                acc.checked_add(allocation_automation_fee).unwrap()
-            },
-        );
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
             amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
-        })));
-
-        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-            to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(automation_fee.into(), vault.target_denom.clone())]
         })));
     }
 

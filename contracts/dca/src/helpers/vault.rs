@@ -1,6 +1,6 @@
 use super::{
     coin::add_to,
-    fees::{get_delegation_fee_rate, get_swap_fee_rate},
+    fees::{get_automation_fee_rate, get_swap_fee_rate},
     price::{calculate_slippage, query_belief_price, query_price},
     time::get_total_execution_duration,
 };
@@ -216,7 +216,7 @@ pub fn simulate_standard_dca_execution(
             }
 
             let fee_rate =
-                get_swap_fee_rate(storage, &vault)? + get_delegation_fee_rate(storage, &vault)?;
+                get_swap_fee_rate(storage, &vault)? + get_automation_fee_rate(storage, &vault)?;
 
             let received_amount_before_fee = swap_amount * (Decimal::one() / actual_price);
             let fee_amount = received_amount_before_fee * fee_rate;
@@ -943,7 +943,7 @@ mod simulate_standard_dca_execution_tests {
     use crate::{
         constants::{ONE, TEN},
         handlers::get_events_by_resource_id::get_events_by_resource_id_handler,
-        helpers::fees::{get_delegation_fee_rate, get_swap_fee_rate},
+        helpers::fees::{get_automation_fee_rate, get_swap_fee_rate},
         tests::{
             helpers::instantiate_contract,
             mocks::{calc_mock_dependencies, ADMIN, DENOM_UOSMO},
@@ -1153,7 +1153,7 @@ mod simulate_standard_dca_execution_tests {
                 .events;
 
         let fee_rate = get_swap_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
-            + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap();
+            + get_automation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap();
 
         let received_amount = vault.swap_amount * Decimal::one();
         let fee_amount = received_amount * fee_rate;
@@ -1204,7 +1204,7 @@ mod simulate_standard_dca_execution_tests {
         .unwrap();
 
         let fee_rate = get_swap_fee_rate(storage_deps.as_ref().storage, &vault).unwrap()
-            + get_delegation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap();
+            + get_automation_fee_rate(storage_deps.as_ref().storage, &vault).unwrap();
 
         let received_amount_before_fee = vault.swap_amount * Decimal::one();
         let fee_amount = received_amount_before_fee * fee_rate;

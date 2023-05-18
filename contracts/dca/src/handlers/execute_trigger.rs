@@ -217,7 +217,7 @@ mod execute_trigger_tests {
     use super::*;
     use crate::constants::{ONE, ONE_MICRON, SWAP_FEE_RATE, TEN, TWO_MICRONS};
     use crate::handlers::get_events_by_resource_id::get_events_by_resource_id_handler;
-    use crate::helpers::fees::{get_delegation_fee_rate, get_swap_fee_rate};
+    use crate::helpers::fees::{get_automation_fee_rate, get_swap_fee_rate};
     use crate::helpers::vault::get_swap_amount;
     use crate::msg::ExecuteMsg;
     use crate::state::config::update_config;
@@ -466,7 +466,7 @@ mod execute_trigger_tests {
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
         let fee_rate = get_swap_fee_rate(deps.as_mut().storage, &vault).unwrap()
-            + get_delegation_fee_rate(deps.as_mut().storage, &vault).unwrap();
+            + get_automation_fee_rate(deps.as_mut().storage, &vault).unwrap();
 
         let received_amount_before_fee = vault.swap_amount * Decimal::one();
         let fee_amount = received_amount_before_fee * fee_rate;
@@ -829,7 +829,7 @@ mod execute_trigger_tests {
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
         let fee_rate = get_swap_fee_rate(deps.as_ref().storage, &vault).unwrap()
-            + get_delegation_fee_rate(deps.as_ref().storage, &vault).unwrap();
+            + get_automation_fee_rate(deps.as_ref().storage, &vault).unwrap();
 
         let received_amount_before_fee = vault.swap_amount;
         let fee_amount = received_amount_before_fee * fee_rate;

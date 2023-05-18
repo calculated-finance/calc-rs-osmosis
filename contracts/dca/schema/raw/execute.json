@@ -290,6 +290,16 @@
                 }
               ]
             },
+            "default_swap_fee_percent": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "executors": {
               "type": [
                 "array",
@@ -324,7 +334,15 @@
                 }
               ]
             },
-            "swap_fee_percent": {
+            "twap_period": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "weighted_scale_swap_fee_percent": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/Decimal"
@@ -333,14 +351,6 @@
                   "type": "null"
                 }
               ]
-            },
-            "twap_period": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint64",
-              "minimum": 0.0
             }
           },
           "additionalProperties": false
