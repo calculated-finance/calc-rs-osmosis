@@ -29,7 +29,7 @@ export interface Config {
   admin: Addr;
   default_page_limit: number;
   default_slippage_tolerance: Decimal;
-  delegation_fee_percent: Decimal;
+  automation_fee_percent: Decimal;
   executors: Addr[];
   fee_collectors: FeeCollector[];
   paused: boolean;

@@ -8,7 +8,7 @@ pub struct Config {
     pub executors: Vec<Addr>,
     pub fee_collectors: Vec<FeeCollector>,
     pub swap_fee_percent: Decimal,
-    pub delegation_fee_percent: Decimal,
+    pub automation_fee_percent: Decimal,
     pub default_page_limit: u16,
     pub paused: bool,
     pub risk_weighted_average_escrow_level: Decimal,

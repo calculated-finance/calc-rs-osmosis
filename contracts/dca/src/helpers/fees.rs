@@ -41,7 +41,7 @@ pub fn get_fee_messages(
 pub fn get_delegation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
     let config = get_config(storage)?;
 
-    Ok(config.delegation_fee_percent.checked_mul(
+    Ok(config.automation_fee_percent.checked_mul(
         vault
             .destinations
             .iter()
