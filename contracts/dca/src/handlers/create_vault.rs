@@ -12,7 +12,7 @@ use crate::helpers::validation::{
 };
 use crate::helpers::vault::get_risk_weighted_average_model_id;
 use crate::msg::ExecuteMsg;
-use crate::state::cache::{VaultCache, VAULT_CACHE};
+use crate::state::cache::VAULT_CACHE;
 use crate::state::config::get_config;
 use crate::state::events::create_event;
 use crate::state::pairs::find_pair;
@@ -170,7 +170,7 @@ pub fn create_vault_handler(
 
     let vault = save_vault(deps.storage, vault_builder)?;
 
-    VAULT_CACHE.save(deps.storage, &VaultCache { vault_id: vault.id })?;
+    VAULT_CACHE.save(deps.storage, &vault.id)?;
 
     create_event(
         deps.storage,

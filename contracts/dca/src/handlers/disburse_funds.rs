@@ -19,8 +19,8 @@ pub fn disburse_funds_handler(
     env: &Env,
     reply: Reply,
 ) -> Result<Response, ContractError> {
-    let cache = VAULT_CACHE.load(deps.storage)?;
-    let mut vault = get_vault(deps.storage, cache.vault_id)?;
+    let vault_id = VAULT_CACHE.load(deps.storage)?;
+    let mut vault = get_vault(deps.storage, vault_id)?;
 
     let mut attributes = Vec::<Attribute>::new();
     let mut sub_msgs = Vec::<SubMsg>::new();
@@ -68,10 +68,9 @@ pub fn disburse_funds_handler(
                 vault.status = VaultStatus::Inactive;
             }
 
-            sub_msgs.append(&mut get_disbursement_messages(
-                &vault,
-                total_after_total_fee,
-            )?);
+            sub_msgs.append(
+                &mut get_disbursement_messages(deps.storage, &vault, total_after_total_fee)?.into(),
+            );
 
             create_event(
                 deps.storage,
@@ -133,7 +132,7 @@ pub fn disburse_funds_handler(
 mod disburse_funds_tests {
     use super::*;
     use crate::{
-        constants::{AFTER_SWAP_REPLY_ID, ONE, TEN, TWO_MICRONS},
+        constants::{AFTER_FAILED_AUTOMATION_REPLY_ID, AFTER_SWAP_REPLY_ID, ONE, TEN, TWO_MICRONS},
         handlers::get_events_by_resource_id::get_events_by_resource_id_handler,
         helpers::vault::get_swap_amount,
         state::{
@@ -228,10 +227,13 @@ mod disburse_funds_tests {
 
         let disbursal_amount = receive_amount - fee - automation_fees.amount;
 
-        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-            to_address: vault.destinations.first().unwrap().address.to_string(),
-            amount: vec![Coin::new(disbursal_amount.into(), vault.target_denom,)],
-        },)));
+        assert!(response.messages.contains(&SubMsg::reply_always(
+            BankMsg::Send {
+                to_address: vault.destinations.first().unwrap().address.to_string(),
+                amount: vec![Coin::new(disbursal_amount.into(), vault.target_denom,)],
+            },
+            AFTER_FAILED_AUTOMATION_REPLY_ID
+        )));
     }
 
     #[test]
@@ -623,18 +625,21 @@ mod disburse_funds_tests {
         let escrow_amount = escrow_level * receive_amount_after_fee;
 
         assert_eq!(escrow_amount, updated_vault.escrowed_amount.amount);
-        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-            to_address: updated_vault
-                .destinations
-                .first()
-                .unwrap()
-                .address
-                .to_string(),
-            amount: vec![Coin::new(
-                (receive_amount_after_fee - escrow_amount).into(),
-                updated_vault.target_denom,
-            )],
-        },)));
+        assert!(response.messages.contains(&SubMsg::reply_always(
+            BankMsg::Send {
+                to_address: updated_vault
+                    .destinations
+                    .first()
+                    .unwrap()
+                    .address
+                    .to_string(),
+                amount: vec![Coin::new(
+                    (receive_amount_after_fee - escrow_amount).into(),
+                    updated_vault.target_denom,
+                )],
+            },
+            AFTER_FAILED_AUTOMATION_REPLY_ID
+        )));
         assert_ne!(escrow_level, Decimal::zero());
         assert_ne!(escrow_amount, Uint128::zero());
     }

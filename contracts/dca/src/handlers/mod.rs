@@ -18,6 +18,7 @@ pub mod get_vault;
 pub mod get_vault_performance;
 pub mod get_vaults;
 pub mod get_vaults_by_address;
+pub mod handle_failed_automation;
 pub mod instantiate;
 pub mod migrate;
 pub mod remove_custom_swap_fee;

@@ -4,12 +4,7 @@ use crate::{
     contract::instantiate,
     handlers::get_vault::get_vault_handler,
     msg::{ExecuteMsg, InstantiateMsg},
-    state::{
-        cache::{VaultCache, VAULT_CACHE},
-        pairs::save_pair,
-        triggers::save_trigger,
-        vaults::update_vault,
-    },
+    state::{cache::VAULT_CACHE, pairs::save_pair, triggers::save_trigger, vaults::update_vault},
     types::{
         config::Config,
         destination::Destination,
@@ -243,9 +238,7 @@ pub fn setup_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
         .unwrap();
     }
 
-    VAULT_CACHE
-        .save(deps.storage, &VaultCache { vault_id: vault.id })
-        .unwrap();
+    VAULT_CACHE.save(deps.storage, &vault.id).unwrap();
 
     get_vault_handler(deps.as_ref(), vault.id).unwrap().vault
 }

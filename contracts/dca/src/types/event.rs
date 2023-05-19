@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{BlockInfo, Coin, Decimal, Timestamp, Uint128};
+use cosmwasm_std::{BlockInfo, Coin, Decimal, SubMsg, Timestamp, Uint128};
 
 #[cw_serde]
 pub enum ExecutionSkippedReason {
@@ -38,6 +38,10 @@ pub enum EventData {
     DcaVaultEscrowDisbursed {
         amount_disbursed: Coin,
         performance_fee: Coin,
+    },
+    DcaVaultPostExecutionActionFailed {
+        msg: SubMsg,
+        funds: Vec<Coin>,
     },
 }
 

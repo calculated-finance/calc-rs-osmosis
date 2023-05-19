@@ -1,15 +1,11 @@
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Uint128};
-use cw_storage_plus::Item;
+use std::collections::VecDeque;
 
 use crate::types::post_execution_action::LockableDuration;
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::{Addr, Coin, SubMsg, Uint128};
+use cw_storage_plus::{Item, Map};
 
-#[cw_serde]
-pub struct VaultCache {
-    pub vault_id: Uint128,
-}
-
-pub const VAULT_CACHE: Item<VaultCache> = Item::new("vault_cache_v8");
+pub const VAULT_CACHE: Item<Uint128> = Item::new("vault_cache_v8");
 
 #[cw_serde]
 pub struct SwapCache {
@@ -18,6 +14,15 @@ pub struct SwapCache {
 }
 
 pub const SWAP_CACHE: Item<SwapCache> = Item::new("swap_cache_v8");
+
+#[cw_serde]
+pub struct PostExecutionActionCacheEntry {
+    pub msg: SubMsg,
+    pub funds: Vec<Coin>,
+}
+
+pub const POST_EXECUTION_ACTION_CACHE: Map<u128, VecDeque<PostExecutionActionCacheEntry>> =
+    Map::new("post_execution_action_cache_v8");
 
 #[cw_serde]
 pub struct ProvideLiquidityCache {
