@@ -80,7 +80,7 @@ mod update_swap_adjustments_tests {
             position_type: PositionType::Enter,
         };
 
-        let value = Decimal::percent(20);
+        let value = Decimal::percent(10);
 
         let err = update_swap_adjustment_handler(
             deps.as_mut(),

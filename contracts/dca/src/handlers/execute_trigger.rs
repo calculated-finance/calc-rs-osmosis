@@ -8,7 +8,7 @@ use crate::helpers::vault::{
     get_swap_amount, price_threshold_exceeded, simulate_standard_dca_execution,
 };
 use crate::msg::ExecuteMsg;
-use crate::state::cache::{SwapCache, VaultCache, SWAP_CACHE, VAULT_CACHE};
+use crate::state::cache::{SwapCache, SWAP_CACHE, VAULT_CACHE};
 use crate::state::events::create_event;
 use crate::state::pairs::find_pair;
 use crate::state::triggers::{delete_trigger, save_trigger};
@@ -185,7 +185,7 @@ pub fn execute_trigger_handler(
         return Ok(response.add_attribute("execution_skipped", "price_threshold_exceeded"));
     };
 
-    VAULT_CACHE.save(deps.storage, &VaultCache { vault_id: vault.id })?;
+    VAULT_CACHE.save(deps.storage, &vault.id)?;
 
     SWAP_CACHE.save(
         deps.storage,

@@ -1,6 +1,6 @@
 use crate::constants::{
-    AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_DELEGATION_REPLY_ID, AFTER_PROVIDE_LIQUIDITY_REPLY_ID,
-    AFTER_SWAP_REPLY_ID,
+    AFTER_BOND_LP_TOKENS_REPLY_ID, AFTER_DELEGATION_REPLY_ID, AFTER_FAILED_AUTOMATION_REPLY_ID,
+    AFTER_PROVIDE_LIQUIDITY_REPLY_ID, AFTER_SWAP_REPLY_ID,
 };
 use crate::error::ContractError;
 use crate::handlers::cancel_vault::cancel_vault_handler;
@@ -22,6 +22,7 @@ use crate::handlers::get_vault::get_vault_handler;
 use crate::handlers::get_vault_performance::get_vault_performance_handler;
 use crate::handlers::get_vaults::get_vaults_handler;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address_handler;
+use crate::handlers::handle_failed_callback::handle_failed_automation_handler;
 use crate::handlers::instantiate::instantiate_handler;
 use crate::handlers::migrate::migrate_handler;
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee_handler;
@@ -178,6 +179,7 @@ pub fn execute(
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
         AFTER_SWAP_REPLY_ID => disburse_funds_handler(deps, &env, reply),
+        AFTER_FAILED_AUTOMATION_REPLY_ID => handle_failed_automation_handler(deps, env, reply),
         AFTER_DELEGATION_REPLY_ID => log_delegation_result(reply),
         AFTER_PROVIDE_LIQUIDITY_REPLY_ID => bond_lp_tokens(deps.as_ref(), env),
         AFTER_BOND_LP_TOKENS_REPLY_ID => log_bond_lp_tokens_result(deps, reply),

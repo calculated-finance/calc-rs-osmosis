@@ -84,6 +84,7 @@ pub fn disburse_escrow_handler(
 
     Ok(response
         .add_submessages(get_disbursement_messages(
+            deps.storage,
             &vault,
             amount_to_disburse.amount,
         )?)
@@ -100,7 +101,7 @@ pub fn disburse_escrow_handler(
 mod disburse_escrow_tests {
     use super::*;
     use crate::{
-        constants::{ONE, TEN},
+        constants::{AFTER_FAILED_AUTOMATION_REPLY_ID, ONE, TEN},
         handlers::get_events_by_resource_id::get_events_by_resource_id_handler,
         state::{
             config::get_config,
@@ -237,10 +238,13 @@ mod disburse_escrow_tests {
 
         let response = disburse_escrow_handler(deps.as_mut(), &env, info, vault.id).unwrap();
 
-        assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
-            to_address: vault.destinations[0].address.to_string(),
-            amount: vec![vault.escrowed_amount]
-        })));
+        assert!(response.messages.contains(&SubMsg::reply_always(
+            BankMsg::Send {
+                to_address: vault.destinations[0].address.to_string(),
+                amount: vec![vault.escrowed_amount]
+            },
+            AFTER_FAILED_AUTOMATION_REPLY_ID
+        )));
     }
 
     #[test]
