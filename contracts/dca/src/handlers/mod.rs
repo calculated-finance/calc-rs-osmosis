@@ -27,3 +27,4 @@ pub mod update_swap_adjustment_handler;
 pub mod update_vault;
 pub mod z_delegate;
 pub mod z_provide_liquidity;
+pub mod handle_failed_callback;
