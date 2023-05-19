@@ -22,7 +22,7 @@ use crate::handlers::get_vault::get_vault_handler;
 use crate::handlers::get_vault_performance::get_vault_performance_handler;
 use crate::handlers::get_vaults::get_vaults_handler;
 use crate::handlers::get_vaults_by_address::get_vaults_by_address_handler;
-use crate::handlers::handle_failed_callback::handle_failed_automation_handler;
+use crate::handlers::handle_failed_automation::handle_failed_automation_handler;
 use crate::handlers::instantiate::instantiate_handler;
 use crate::handlers::migrate::migrate_handler;
 use crate::handlers::remove_custom_swap_fee::remove_custom_swap_fee_handler;

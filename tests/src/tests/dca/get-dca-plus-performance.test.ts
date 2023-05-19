@@ -4,6 +4,7 @@ import { Context } from 'mocha';
 import { createVault } from '../helpers';
 import { expect } from '../shared.test';
 import { Vault } from '../../types/dca/response/get_vault';
+import { max } from 'ramda';
 
 describe('when fetching risk weighted average swap adjustment strategy performance', () => {
   describe('for a vault with no executions', () => {
@@ -54,18 +55,23 @@ describe('when fetching risk weighted average swap adjustment strategy performan
         performance_assessment_strategy: 'compare_to_standard_dca',
       });
 
-      vault = await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
-        get_vault: { vault_id },
-      });
+      vault = (
+        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+          get_vault: { vault_id },
+        })
+      ).vault;
 
       performance = await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
         get_vault_performance: { vault_id },
       });
     });
 
-    it('has a performance fee', () => expect(Number(performance.fee.amount)).to.be.approximately(10, 2));
+    it('has a performance fee', () =>
+      expect(Number(performance.fee.amount)).to.be.approximately(
+        Number(vault.escrowed_amount.amount) * max(0, 1 - performance.factor) * 0.2,
+        1,
+      ));
 
-    it('has slightly positive performance factor', () =>
-      expect(Number(performance.factor)).to.be.approximately(1.000042002184113573, 0.0001));
+    it('has a performance factor', () => expect(Number(performance.factor)).to.be.approximately(1, 0.00001));
   });
 });

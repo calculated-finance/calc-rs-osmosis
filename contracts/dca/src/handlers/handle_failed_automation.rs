@@ -24,10 +24,8 @@ pub fn handle_failed_automation_handler(
     let destination_num = vault.destinations.len() - cache.len();
 
     Ok(match reply.result {
-        SubMsgResult::Ok(_) => Response::new().add_attribute(
-            format!("destination_action_{}", destination_num),
-            "succeeded",
-        ),
+        SubMsgResult::Ok(_) => Response::new()
+            .add_attribute(format!("destination_msg_{}", destination_num), "succeeded"),
         SubMsgResult::Err(_) => {
             create_event(
                 deps.storage,
@@ -42,7 +40,7 @@ pub fn handle_failed_automation_handler(
             )?;
 
             Response::new()
-                .add_attribute(format!("destination_action_{}", destination_num), "failed")
+                .add_attribute(format!("destination_msg_{}", destination_num), "failed")
                 .add_submessage(SubMsg::new(BankMsg::Send {
                     to_address: vault.owner.to_string(),
                     amount: entry.funds,

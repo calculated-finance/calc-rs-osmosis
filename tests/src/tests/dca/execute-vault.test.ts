@@ -4,20 +4,11 @@ import dayjs, { Dayjs } from 'dayjs';
 import { Context } from 'mocha';
 import { execute } from '../../shared/cosmwasm';
 import { Vault } from '../../types/dca/response/get_vaults';
-import {
-  createVault,
-  getBalances,
-  getExpectedPrice,
-  getPool,
-  getSpotPrice,
-  getTwapToNow,
-  provideAuthGrant,
-} from '../helpers';
+import { createVault, getBalances, getExpectedPrice, getPool } from '../helpers';
 import { setTimeout } from 'timers/promises';
 import { EventData } from '../../types/dca/response/get_events';
 import { find, map } from 'ramda';
 import { PositionType } from '../../types/dca/execute';
-import Long from 'long';
 
 describe('when executing a vault', () => {
   describe('with a ready time trigger', () => {
@@ -190,6 +181,72 @@ describe('when executing a vault', () => {
 
     it('makes the vault active', () =>
       expect(vaultBeforeExecution.status).to.eql('scheduled') && expect(vaultAfterExecution.status).to.eql('active'));
+  });
+
+  describe('with a failing destination callback', () => {
+    let vault: Vault;
+    let balancesBeforeExecution: { [x: string]: { address: string } };
+    let balancesAfterExecution: { [x: string]: { address: string } };
+
+    before(async function (this: Context) {
+      const targetTime = dayjs().add(5, 'second');
+
+      const vaultId = await createVault(this, {
+        target_start_time_utc_seconds: `${targetTime.unix()}`,
+        destinations: [
+          {
+            address: this.userWalletAddress,
+            allocation: '0.3',
+            msg: null,
+          },
+          {
+            address: this.adminContractAddress,
+            allocation: '0.7',
+            msg: Buffer.from(
+              JSON.stringify({
+                deposit: {},
+              }),
+            ).toString('base64'),
+          },
+        ],
+      });
+
+      vault = (
+        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+          get_vault: {
+            vault_id: vaultId,
+          },
+        })
+      ).vault;
+
+      balancesBeforeExecution = await getBalances(this, [vault.owner]);
+
+      while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(targetTime.add(2, 'seconds'))) {
+        await setTimeout(3000);
+      }
+
+      await execute(this.cosmWasmClient, this.adminContractAddress, this.dcaContractAddress, {
+        execute_trigger: {
+          trigger_id: vaultId,
+        },
+      });
+
+      vault = (
+        await this.cosmWasmClient.queryContractSmart(this.dcaContractAddress, {
+          get_vault: {
+            vault_id: vaultId,
+          },
+        })
+      ).vault;
+
+      balancesAfterExecution = await getBalances(this, [vault.owner]);
+    });
+
+    it('sends funds to the vault owner instead', function (this: Context) {
+      expect(
+        balancesBeforeExecution[vault.owner][vault.target_denom] + Number(vault.received_amount.amount),
+      ).to.be.approximately(balancesAfterExecution[vault.owner][vault.target_denom], 1);
+    });
   });
 
   describe('until the vault balance is empty', () => {
@@ -621,8 +678,8 @@ describe('when executing a vault', () => {
       expectedPrice = await getExpectedPrice(
         this,
         this.pair,
-        coin(vault.swap_amount, this.pair.base_denom),
-        this.pair.quote_denom,
+        coin(vault.swap_amount, vault.balance.denom),
+        vault.target_denom,
       );
 
       while (dayjs((await this.cosmWasmClient.getBlock()).header.time).isBefore(targetTime)) {
@@ -673,16 +730,13 @@ describe('when executing a vault', () => {
     });
 
     it('calculates the standard dca received amount', async function (this: Context) {
-      let pool = await getPool(this, this.pair.route[0]);
       expect(
         Number(vault.performance_assessment_strategy.compare_to_standard_dca.received_amount.amount),
       ).to.be.approximately(
         Math.round(
           Number(vault.performance_assessment_strategy.compare_to_standard_dca.swapped_amount.amount) / expectedPrice,
-        ) *
-          (1 - this.calcSwapFee) *
-          (1 - Number(pool.poolParams.swapFee) / 10e18),
-        20,
+        ),
+        2,
       );
     });
   });

@@ -24,7 +24,7 @@ describe('when creating a vault', () => {
         this,
         this.pair,
         coin(swapAmount, deposit.denom),
-        this.pair.base_denom,
+        this.pair.base_denom == deposit.denom ? this.pair.quote_denom : this.pair.base_denom,
       );
 
       const vaultId = await createVault(
@@ -371,7 +371,7 @@ describe('when creating a vault', () => {
     it('calculates the standard dca received amount', async function (this: Context) {
       expect(
         Number(vault.performance_assessment_strategy.compare_to_standard_dca.received_amount.amount),
-      ).to.be.approximately(Math.round((Number(vault.swap_amount) / expectedPrice) * (1 - this.calcSwapFee)), 2);
+      ).to.be.approximately(Math.round(Number(vault.swap_amount) / expectedPrice), 2);
     });
   });
 });
