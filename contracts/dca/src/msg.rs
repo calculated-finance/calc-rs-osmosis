@@ -2,10 +2,10 @@ use crate::types::config::Config;
 use crate::types::destination::Destination;
 use crate::types::event::Event;
 use crate::types::fee_collector::FeeCollector;
+use crate::types::lockable_duration::LockableDuration;
 use crate::types::pair::Pair;
 use crate::types::performance_assessment_strategy::PerformanceAssessmentStrategyParams;
 use crate::types::position_type::PositionType;
-use crate::types::post_execution_action::LockableDuration;
 use crate::types::swap_adjustment_strategy::{
     SwapAdjustmentStrategy, SwapAdjustmentStrategyParams,
 };
@@ -30,7 +30,18 @@ pub struct InstantiateMsg {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {}
+pub struct MigrateMsg {
+    pub executors: Vec<Addr>,
+    pub fee_collectors: Vec<FeeCollector>,
+    pub default_swap_fee_percent: Decimal,
+    pub weighted_scale_swap_fee_percent: Decimal,
+    pub automation_fee_percent: Decimal,
+    pub default_page_limit: u16,
+    pub paused: bool,
+    pub risk_weighted_average_escrow_level: Decimal,
+    pub twap_period: u64,
+    pub default_slippage_tolerance: Decimal,
+}
 
 #[cw_serde]
 pub enum ExecuteMsg {

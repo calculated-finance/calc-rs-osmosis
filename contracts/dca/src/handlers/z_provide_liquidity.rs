@@ -9,7 +9,7 @@ use crate::{
         cache::{ProvideLiquidityCache, PROVIDE_LIQUIDITY_CACHE},
         config::get_config,
     },
-    types::post_execution_action::LockableDuration,
+    types::lockable_duration::LockableDuration,
 };
 use cosmwasm_std::{
     Addr, BankMsg, Decimal, Deps, DepsMut, Env, MessageInfo, Reply, Response, SubMsg, SubMsgResult,
@@ -135,7 +135,7 @@ mod z_provide_liquidity_tests {
             helpers::instantiate_contract,
             mocks::{calc_mock_dependencies, DENOM_STAKE, DENOM_UOSMO, USER},
         },
-        types::post_execution_action::LockableDuration,
+        types::lockable_duration::LockableDuration,
     };
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
