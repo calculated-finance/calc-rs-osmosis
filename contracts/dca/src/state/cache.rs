@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::types::post_execution_action::LockableDuration;
+use crate::types::lockable_duration::LockableDuration;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, SubMsg, Uint128};
 use cw_storage_plus::{Item, Map};

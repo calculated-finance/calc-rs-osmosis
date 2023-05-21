@@ -3,16 +3,6 @@ use osmosis_std::shim::Duration;
 use std::fmt::Display;
 
 #[cw_serde]
-pub enum PostExecutionAction {
-    Send,
-    ZDelegate,
-    ZProvideLiquidity {
-        pool_id: u64,
-        duration: LockableDuration,
-    },
-}
-
-#[cw_serde]
 pub enum LockableDuration {
     OneDay,
     OneWeek,
