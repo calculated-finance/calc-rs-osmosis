@@ -5,7 +5,7 @@ use super::{
 };
 use crate::helpers::time::get_total_execution_duration;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, StdResult, Timestamp, Uint128};
 use std::cmp::max;
 
 #[cw_serde]
@@ -76,6 +76,22 @@ impl Vault {
                 .try_into()
                 .expect("exected duration should be >= 0 seconds"),
         )
+    }
+
+    pub fn price_threshold_exceeded(&self, belief_price: Decimal) -> StdResult<bool> {
+        self.minimum_receive_amount
+            .map_or(Ok(false), |minimum_receive_amount| {
+                let swap_amount_as_decimal = Decimal::from_ratio(self.swap_amount, Uint128::one());
+
+                let receive_amount_at_price = swap_amount_as_decimal
+                    .checked_div(belief_price)
+                    .expect("belief price should be larger than 0");
+
+                let minimum_receive_amount_as_decimal =
+                    Decimal::from_ratio(minimum_receive_amount, Uint128::one());
+
+                Ok(receive_amount_at_price < minimum_receive_amount_as_decimal)
+            })
     }
 
     pub fn is_active(&self) -> bool {
@@ -353,6 +369,54 @@ mod get_expected_execution_completed_date_tests {
         assert_eq!(
             vault.get_expected_execution_completed_date(env.block.time),
             env.block.time.plus_seconds(9 * 24 * 60 * 60)
+        );
+    }
+}
+
+#[cfg(test)]
+mod price_threshold_exceeded_tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn should_not_be_exceeded_when_price_is_below_threshold() {
+        let vault = Vault {
+            swap_amount: Uint128::new(100),
+            minimum_receive_amount: Some(Uint128::new(50)),
+            ..Vault::default()
+        };
+
+        assert_eq!(
+            vault.price_threshold_exceeded(Decimal::from_str("1.9").unwrap()),
+            Ok(false)
+        );
+    }
+
+    #[test]
+    fn should_not_be_exceeded_when_price_equals_threshold() {
+        let vault = Vault {
+            swap_amount: Uint128::new(100),
+            minimum_receive_amount: Some(Uint128::new(50)),
+            ..Vault::default()
+        };
+
+        assert_eq!(
+            vault.price_threshold_exceeded(Decimal::from_str("2.0").unwrap()),
+            Ok(false)
+        );
+    }
+
+    #[test]
+    fn should_be_exceeded_when_price_is_above_threshold() {
+        let vault = Vault {
+            swap_amount: Uint128::new(100),
+            minimum_receive_amount: Some(Uint128::new(50)),
+            ..Vault::default()
+        };
+
+        assert_eq!(
+            vault.price_threshold_exceeded(Decimal::from_str("2.1").unwrap()),
+            Ok(true)
         );
     }
 }

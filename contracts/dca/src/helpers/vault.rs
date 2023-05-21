@@ -121,25 +121,6 @@ pub fn get_performance_factor(vault: &Vault, current_price: Decimal) -> StdResul
     }
 }
 
-pub fn price_threshold_exceeded(
-    swap_amount: Uint128,
-    minimum_receive_amount: Option<Uint128>,
-    belief_price: Decimal,
-) -> StdResult<bool> {
-    minimum_receive_amount.map_or(Ok(false), |minimum_receive_amount| {
-        let swap_amount_as_decimal = Decimal::from_ratio(swap_amount, Uint128::one());
-
-        let receive_amount_at_price = swap_amount_as_decimal
-            .checked_div(belief_price)
-            .expect("belief price should be larger than 0");
-
-        let minimum_receive_amount_as_decimal =
-            Decimal::from_ratio(minimum_receive_amount, Uint128::one());
-
-        Ok(receive_amount_at_price < minimum_receive_amount_as_decimal)
-    })
-}
-
 pub fn simulate_standard_dca_execution(
     mut response: Response,
     querier: &QuerierWrapper,
@@ -175,7 +156,7 @@ pub fn simulate_standard_dca_execution(
                 &Coin::new(swap_amount.into(), vault.get_swap_denom()),
             )?;
 
-            if price_threshold_exceeded(swap_amount, vault.minimum_receive_amount, belief_price)? {
+            if vault.price_threshold_exceeded(belief_price)? {
                 create_event(
                     storage,
                     EventBuilder::new(
@@ -612,82 +593,6 @@ mod get_swap_amount_tests {
         let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault).unwrap();
 
         assert_eq!(swap_amount.amount, Uint128::zero());
-    }
-}
-
-#[cfg(test)]
-mod price_threshold_exceeded_tests {
-    use super::*;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use std::str::FromStr;
-
-    #[test]
-    fn should_not_be_exceeded_when_price_is_below_threshold() {
-        let deps = mock_dependencies();
-        let env = mock_env();
-
-        let vault = Vault {
-            swap_amount: Uint128::new(100),
-            minimum_receive_amount: Some(Uint128::new(50)),
-            ..Vault::default()
-        };
-
-        assert_eq!(
-            price_threshold_exceeded(
-                get_swap_amount(&deps.as_ref(), &env, &vault)
-                    .unwrap()
-                    .amount,
-                vault.minimum_receive_amount,
-                Decimal::from_str("1.9").unwrap()
-            ),
-            Ok(false)
-        );
-    }
-
-    #[test]
-    fn should_not_be_exceeded_when_price_equals_threshold() {
-        let deps = mock_dependencies();
-        let env = mock_env();
-
-        let vault = Vault {
-            swap_amount: Uint128::new(100),
-            minimum_receive_amount: Some(Uint128::new(50)),
-            ..Vault::default()
-        };
-
-        assert_eq!(
-            price_threshold_exceeded(
-                get_swap_amount(&deps.as_ref(), &env, &vault)
-                    .unwrap()
-                    .amount,
-                vault.minimum_receive_amount,
-                Decimal::from_str("2.0").unwrap()
-            ),
-            Ok(false)
-        );
-    }
-
-    #[test]
-    fn should_be_exceeded_when_price_is_above_threshold() {
-        let deps = mock_dependencies();
-        let env = mock_env();
-
-        let vault = Vault {
-            swap_amount: Uint128::new(100),
-            minimum_receive_amount: Some(Uint128::new(50)),
-            ..Vault::default()
-        };
-
-        assert_eq!(
-            price_threshold_exceeded(
-                get_swap_amount(&deps.as_ref(), &env, &vault)
-                    .unwrap()
-                    .amount,
-                vault.minimum_receive_amount,
-                Decimal::from_str("2.1").unwrap()
-            ),
-            Ok(true)
-        );
     }
 }
 

@@ -4,7 +4,7 @@ use cosmwasm_std::{Coin, Decimal, Env, QuerierWrapper, ReplyOn, StdResult, SubMs
 use osmosis_std::types::osmosis::poolmanager::v1beta1::MsgSwapExactAmountIn;
 use std::cmp::max;
 
-pub fn create_osmosis_swap_message(
+pub fn create_swap_message(
     querier: &QuerierWrapper,
     env: &Env,
     pair: &Pair,
@@ -42,7 +42,7 @@ pub fn create_osmosis_swap_message(
 
 #[cfg(test)]
 mod create_osmosis_swap_message_tests {
-    use super::create_osmosis_swap_message;
+    use super::create_swap_message;
     use crate::{
         constants::{ONE, TWO_MICRONS},
         helpers::routes::calculate_route,
@@ -63,7 +63,7 @@ mod create_osmosis_swap_message_tests {
         let pair = Pair::default();
         let slippage_tolerance = Decimal::percent(100);
 
-        let msg = create_osmosis_swap_message(
+        let msg = create_swap_message(
             &deps.as_ref().querier,
             &env,
             &pair,
@@ -105,7 +105,7 @@ mod create_osmosis_swap_message_tests {
         let pair = Pair::default();
         let slippage_tolerance = Decimal::percent(1);
 
-        let msg = create_osmosis_swap_message(
+        let msg = create_swap_message(
             &deps.as_ref().querier,
             &env,
             &pair,

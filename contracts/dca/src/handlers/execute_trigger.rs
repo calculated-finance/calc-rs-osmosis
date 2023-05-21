@@ -1,12 +1,10 @@
 use crate::constants::AFTER_SWAP_REPLY_ID;
 use crate::error::ContractError;
 use crate::helpers::price::query_belief_price;
-use crate::helpers::swaps::create_osmosis_swap_message;
+use crate::helpers::swaps::create_swap_message;
 use crate::helpers::time::get_next_target_time;
 use crate::helpers::validation::{assert_contract_is_not_paused, assert_target_time_is_in_past};
-use crate::helpers::vault::{
-    get_swap_amount, price_threshold_exceeded, simulate_standard_dca_execution,
-};
+use crate::helpers::vault::{get_swap_amount, simulate_standard_dca_execution};
 use crate::msg::ExecuteMsg;
 use crate::state::cache::{SwapCache, SWAP_CACHE, VAULT_CACHE};
 use crate::state::events::create_event;
@@ -147,9 +145,9 @@ pub fn execute_trigger_handler(
         return Ok(response.add_attribute("execution_skipped", "vault_is_inactive"));
     }
 
-    let swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault)?;
+    let adjusted_swap_amount = get_swap_amount(&deps.as_ref(), &env, &vault)?;
 
-    if swap_amount.amount.is_zero() {
+    if adjusted_swap_amount.amount.is_zero() {
         create_event(
             deps.storage,
             EventBuilder::new(
@@ -164,11 +162,7 @@ pub fn execute_trigger_handler(
         return Ok(response.add_attribute("execution_skipped", "swap_amount_adjusted_to_zero"));
     }
 
-    if price_threshold_exceeded(
-        swap_amount.amount,
-        vault.minimum_receive_amount,
-        belief_price,
-    )? {
+    if vault.price_threshold_exceeded(belief_price)? {
         create_event(
             deps.storage,
             EventBuilder::new(
@@ -199,11 +193,11 @@ pub fn execute_trigger_handler(
         },
     )?;
 
-    Ok(response.add_submessage(create_osmosis_swap_message(
+    Ok(response.add_submessage(create_swap_message(
         &deps.querier,
         &env,
         &pair,
-        swap_amount,
+        adjusted_swap_amount,
         vault.slippage_tolerance,
         belief_price,
         vault.minimum_receive_amount,
