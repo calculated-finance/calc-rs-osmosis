@@ -20,7 +20,7 @@ pub fn create_custom_swap_fee_handler(
     create_custom_fee(deps.storage, denom.clone(), swap_fee_percent)?;
 
     Ok(Response::new()
-        .add_attribute("method", "create_custom_swap_fee")
+        .add_attribute("create_custom_swap_fee", "true")
         .add_attribute("denom", denom)
         .add_attribute("swap_fee_percent", swap_fee_percent.to_string()))
 }

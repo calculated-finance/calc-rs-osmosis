@@ -23,7 +23,7 @@ pub fn remove_custom_swap_fee_handler(
     remove_custom_fee(deps.storage, denom.clone());
 
     Ok(Response::new()
-        .add_attribute("method", "remove_custom_swap_fee")
+        .add_attribute("remove_custom_swap_fee", "true")
         .add_attribute("denom", denom))
 }
 

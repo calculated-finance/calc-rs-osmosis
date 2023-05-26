@@ -66,7 +66,7 @@ pub fn update_config_handler(
     let config = update_config(deps.storage, config)?;
 
     Ok(Response::default()
-        .add_attribute("method", "update_config")
+        .add_attribute("update_config", "true")
         .add_attribute("config", format!("{:?}", config)))
 }
 

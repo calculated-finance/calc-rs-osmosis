@@ -30,7 +30,7 @@ pub fn create_pair_handler(
     save_pair(deps.storage, &pair)?;
 
     Ok(Response::new()
-        .add_attribute("method", "create_pair")
+        .add_attribute("create_pair", "true")
         .add_attribute("base_denom", base_denom)
         .add_attribute("quote_denom", quote_denom)
         .add_attribute("route", format!("{:#?}", route)))

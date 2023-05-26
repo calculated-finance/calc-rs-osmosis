@@ -52,7 +52,7 @@ pub fn instantiate_handler(deps: DepsMut, msg: InstantiateMsg) -> Result<Respons
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     Ok(Response::new()
-        .add_attribute("method", "instantiate")
+        .add_attribute("instantiate", "true")
         .add_attribute("admin", msg.admin))
 }
 
@@ -96,7 +96,7 @@ mod instantiate_tests {
         assert_eq!(
             result.attributes,
             vec![
-                attr("method", "instantiate"),
+                attr("instantiate", "true"),
                 attr("admin", "osmo16q6jpx7ns0ugwghqay73uxd5aq30du3uqgxf0d")
             ]
         )

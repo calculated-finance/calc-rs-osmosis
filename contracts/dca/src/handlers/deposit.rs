@@ -42,7 +42,7 @@ pub fn deposit_handler(
     assert_vault_is_not_cancelled(&vault)?;
     assert_deposited_denom_matches_send_denom(
         info.funds[0].denom.clone(),
-        vault.clone().balance.denom,
+        vault.balance.denom.clone(),
     )?;
 
     vault.balance.amount += info.funds[0].amount;
@@ -106,6 +106,7 @@ pub fn deposit_handler(
     Ok(Response::new()
         .add_attribute("deposit", "true")
         .add_attribute("vault_id", vault.id)
+        .add_attribute("owner", vault.owner)
         .add_attribute("deposited_amount", info.funds[0].amount))
 }
 

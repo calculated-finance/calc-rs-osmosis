@@ -32,7 +32,8 @@ pub fn disburse_escrow_handler(
 
     let response = Response::new()
         .add_attribute("disburse_escrow", "true")
-        .add_attribute("vault_id", vault.id);
+        .add_attribute("vault_id", vault.id)
+        .add_attribute("owner", vault.owner.clone());
 
     if vault.escrowed_amount.amount.is_zero() {
         return Ok(response

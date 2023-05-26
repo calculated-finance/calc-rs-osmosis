@@ -48,7 +48,7 @@ pub fn cancel_vault_handler(
     let updated_vault = Vault {
         status: VaultStatus::Cancelled,
         balance: Coin::new(0, vault.get_swap_denom()),
-        ..vault
+        ..vault.clone()
     };
 
     update_vault(deps.storage, &updated_vault)?;
@@ -58,6 +58,7 @@ pub fn cancel_vault_handler(
     Ok(Response::new()
         .add_attribute("cancel_vault", "true")
         .add_attribute("vault_id", vault.id)
+        .add_attribute("owner", vault.owner)
         .add_attribute("refunded_amount", vault.balance.to_string())
         .add_submessages(submessages))
 }
