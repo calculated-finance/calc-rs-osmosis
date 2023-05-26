@@ -63,7 +63,7 @@ pub fn get_total_execution_duration(
 
 fn get_duration(previous: DateTime<Utc>, interval: &TimeInterval) -> Duration {
     match interval {
-        TimeInterval::EverySecond => Duration::seconds(1),
+        TimeInterval::EveryBlock => Duration::seconds(1),
         TimeInterval::EveryMinute => Duration::minutes(1),
         TimeInterval::HalfHourly => Duration::minutes(30),
         TimeInterval::Hourly => Duration::hours(1),
@@ -477,7 +477,7 @@ mod tests {
         ];
 
         assert_expected_next_execution_times(
-            &TimeInterval::EverySecond,
+            &TimeInterval::EveryBlock,
             last_execution_time,
             scenarios,
         );

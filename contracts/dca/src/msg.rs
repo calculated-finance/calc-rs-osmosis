@@ -72,6 +72,10 @@ pub enum ExecuteMsg {
         vault_id: Uint128,
         label: Option<String>,
         destinations: Option<Vec<Destination>>,
+        slippage_tolerance: Option<Decimal>,
+        minimum_receive_amount: Option<Uint128>,
+        time_interval: Option<TimeInterval>,
+        swap_adjustment_strategy: Option<SwapAdjustmentStrategyParams>,
     },
     CancelVault {
         vault_id: Uint128,

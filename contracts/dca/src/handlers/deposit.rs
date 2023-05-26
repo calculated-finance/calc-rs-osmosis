@@ -74,7 +74,7 @@ pub fn deposit_handler(
                 _ => swap_adjustment_strategy,
             });
 
-    update_vault(deps.storage, &vault)?;
+    update_vault(deps.storage, vault.clone())?;
 
     create_event(
         deps.storage,
@@ -268,14 +268,8 @@ mod dposit_tests {
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
-        let response = deposit_handler(
-            deps.as_mut(),
-            env,
-            info,
-            Addr::unchecked(USER),
-            vault.id,
-        )
-        .unwrap();
+        let response =
+            deposit_handler(deps.as_mut(), env, info, Addr::unchecked(USER), vault.id).unwrap();
 
         assert!(response.messages.is_empty())
     }
@@ -298,14 +292,8 @@ mod dposit_tests {
             },
         );
 
-        let response = deposit_handler(
-            deps.as_mut(),
-            env,
-            info,
-            Addr::unchecked(USER),
-            vault.id,
-        )
-        .unwrap();
+        let response =
+            deposit_handler(deps.as_mut(), env, info, Addr::unchecked(USER), vault.id).unwrap();
 
         assert!(response.messages.is_empty())
     }
@@ -328,8 +316,7 @@ mod dposit_tests {
             },
         );
 
-        let err =
-            deposit_handler(deps.as_mut(), env, info, vault.owner, vault.id).unwrap_err();
+        let err = deposit_handler(deps.as_mut(), env, info, vault.owner, vault.id).unwrap_err();
 
         assert_eq!(err.to_string(), "Error: vault is already cancelled");
     }
@@ -398,17 +385,13 @@ mod dposit_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let deposit_amount = Coin::new(TEN.into(), DENOM_STAKE);
-        let info = mock_info(
-            ADMIN,
-            &[deposit_amount, Coin::new(TEN.into(), DENOM_UOSMO)],
-        );
+        let info = mock_info(ADMIN, &[deposit_amount, Coin::new(TEN.into(), DENOM_UOSMO)]);
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
-        let err =
-            deposit_handler(deps.as_mut(), env, info, vault.owner, vault.id).unwrap_err();
+        let err = deposit_handler(deps.as_mut(), env, info, vault.owner, vault.id).unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -421,10 +404,7 @@ mod dposit_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let deposit_amount = Coin::new(TEN.into(), DENOM_STAKE);
-        let info = mock_info(
-            ADMIN,
-            &[deposit_amount, Coin::new(TEN.into(), DENOM_UOSMO)],
-        );
+        let info = mock_info(ADMIN, &[deposit_amount, Coin::new(TEN.into(), DENOM_UOSMO)]);
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
@@ -441,8 +421,7 @@ mod dposit_tests {
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
-        let err =
-            deposit_handler(deps.as_mut(), env, info, vault.owner, vault.id).unwrap_err();
+        let err = deposit_handler(deps.as_mut(), env, info, vault.owner, vault.id).unwrap_err();
 
         assert_eq!(err.to_string(), "Error: contract is paused");
     }

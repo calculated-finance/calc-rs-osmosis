@@ -68,6 +68,8 @@ pub fn disburse_funds_handler(
                 vault.status = VaultStatus::Inactive;
             }
 
+            update_vault(deps.storage, vault.clone())?;
+
             sub_msgs.append(
                 &mut get_disbursement_messages(deps.storage, &vault, total_after_total_fee)?.into(),
             );
@@ -107,8 +109,6 @@ pub fn disburse_funds_handler(
             ));
         }
     }
-
-    update_vault(deps.storage, &vault)?;
 
     if vault.should_not_continue() {
         if vault.escrowed_amount.amount > Uint128::zero() {

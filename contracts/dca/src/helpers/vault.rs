@@ -213,7 +213,7 @@ pub fn simulate_standard_dca_execution(
                 ..vault
             };
 
-            update_vault(storage, &vault)?;
+            update_vault(storage, vault.clone())?;
 
             let coin_sent = Coin::new(swap_amount.into(), vault.get_swap_denom());
             let coin_received = Coin::new(

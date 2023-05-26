@@ -67,7 +67,7 @@ pub fn disburse_escrow_handler(
         ..vault
     };
 
-    update_vault(deps.storage, &vault)?;
+    update_vault(deps.storage, vault.clone())?;
 
     create_event(
         deps.storage,

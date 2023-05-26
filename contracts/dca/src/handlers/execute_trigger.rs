@@ -74,7 +74,7 @@ pub fn execute_trigger_handler(
         };
     }
 
-    update_vault(deps.storage, &vault)?;
+    update_vault(deps.storage, vault.clone())?;
 
     let pair = find_pair(deps.storage, vault.denoms())?;
 
@@ -658,7 +658,6 @@ mod execute_trigger_tests {
                         (vault.swap_amount * swap_adjustment).into(),
                         vault.get_swap_denom()
                     )
-                    
                     .into()
                 ),
                 token_out_min_amount: token_out_min_amount.to_string(),
@@ -1128,11 +1127,7 @@ mod execute_trigger_tests {
             id: AFTER_SWAP_REPLY_ID,
             msg: MsgSwapExactAmountIn {
                 sender: env.contract.address.to_string(),
-                token_in: Some(
-                    Coin::new(vault.swap_amount.into(), vault.get_swap_denom())
-                        
-                        .into()
-                ),
+                token_in: Some(Coin::new(vault.swap_amount.into(), vault.get_swap_denom()).into()),
                 token_out_min_amount: token_out_min_amount.to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
@@ -1336,11 +1331,7 @@ mod execute_trigger_tests {
             id: AFTER_SWAP_REPLY_ID,
             msg: MsgSwapExactAmountIn {
                 sender: env.contract.address.to_string(),
-                token_in: Some(
-                    Coin::new(vault.swap_amount.into(), vault.get_swap_denom())
-                        
-                        .into()
-                ),
+                token_in: Some(Coin::new(vault.swap_amount.into(), vault.get_swap_denom()).into()),
                 token_out_min_amount: token_out_min_amount.to_string(),
                 routes: vec![SwapAmountInRoute {
                     pool_id: 3,
