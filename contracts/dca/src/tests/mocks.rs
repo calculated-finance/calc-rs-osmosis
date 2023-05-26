@@ -27,9 +27,11 @@ pub const DENOM_UATOM: &str = "uatom";
 pub const DENOM_UION: &str = "uion";
 pub const DENOM_USDC: &str = "uaxlusdc";
 
+pub type StargateHandler = dyn Fn(&str, &Binary) -> StdResult<Binary>;
+
 pub struct CalcMockQuerier<C: DeserializeOwned = Empty> {
-    default_stargate_handler: Box<dyn for<'a> Fn(&'a str, &Binary) -> StdResult<Binary>>,
-    stargate_handler: Box<dyn for<'a> Fn(&'a str, &Binary) -> StdResult<Binary>>,
+    default_stargate_handler: Box<StargateHandler>,
+    stargate_handler: Box<StargateHandler>,
     mock_querier: MockQuerier<C>,
 }
 
@@ -237,6 +239,12 @@ impl<C: CustomQuery + DeserializeOwned> CalcMockQuerier<C> {
             )),
             _ => self.mock_querier.handle_query(request),
         }
+    }
+}
+
+impl<C: DeserializeOwned> Default for CalcMockQuerier<C> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

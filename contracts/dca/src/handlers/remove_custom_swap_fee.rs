@@ -23,7 +23,7 @@ pub fn remove_custom_swap_fee_handler(
     remove_custom_fee(deps.storage, denom.clone());
 
     Ok(Response::new()
-        .add_attribute("method", "remove_custom_swap_fee")
+        .add_attribute("remove_custom_swap_fee", "true")
         .add_attribute("denom", denom))
 }
 
@@ -51,9 +51,9 @@ mod remove_custom_swap_fee_tests {
     fn without_custom_fee_fails() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env, info.clone());
 
         let denom = DENOM_STAKE.to_string();
 
@@ -69,9 +69,9 @@ mod remove_custom_swap_fee_tests {
     fn with_custom_fee_succeeds() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env, info.clone());
 
         let denom = DENOM_STAKE.to_string();
 

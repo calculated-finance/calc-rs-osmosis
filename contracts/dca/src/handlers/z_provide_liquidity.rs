@@ -149,12 +149,12 @@ mod z_provide_liquidity_tests {
     fn with_no_asset_fails() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(&env.contract.address.to_string(), &[]);
+        let info = mock_info(env.contract.address.as_ref(), &[]);
 
         let response = z_provide_liquidity_handler(
             deps.as_mut(),
             env,
-            info.clone(),
+            info,
             Addr::unchecked(USER),
             1,
             LockableDuration::OneDay,
@@ -173,14 +173,14 @@ mod z_provide_liquidity_tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let info = mock_info(
-            &env.contract.address.to_string(),
+            env.contract.address.as_ref(),
             &[Coin::new(100, DENOM_STAKE), Coin::new(100, DENOM_UOSMO)],
         );
 
         let response = z_provide_liquidity_handler(
             deps.as_mut(),
             env,
-            info.clone(),
+            info,
             Addr::unchecked(USER),
             1,
             LockableDuration::OneDay,
@@ -199,7 +199,7 @@ mod z_provide_liquidity_tests {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(
-            &env.contract.address.to_string(),
+            env.contract.address.as_ref(),
             &[Coin::new(100, DENOM_STAKE)],
         );
 
@@ -211,8 +211,8 @@ mod z_provide_liquidity_tests {
 
         z_provide_liquidity_handler(
             deps.as_mut(),
-            env.clone(),
-            info.clone(),
+            env,
+            info,
             provider_address.clone(),
             pool_id,
             duration.clone(),
@@ -237,7 +237,7 @@ mod z_provide_liquidity_tests {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(
-            &env.contract.address.to_string(),
+            env.contract.address.as_ref(),
             &[Coin::new(100, DENOM_STAKE)],
         );
 
@@ -277,7 +277,7 @@ mod z_provide_liquidity_tests {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
         let info = mock_info(
-            &env.contract.address.to_string(),
+            env.contract.address.as_ref(),
             &[Coin::new(100, DENOM_STAKE)],
         );
 
@@ -330,7 +330,7 @@ mod z_provide_liquidity_tests {
             )
             .unwrap();
 
-        let response = bond_lp_tokens(deps.as_ref(), env.clone()).unwrap();
+        let response = bond_lp_tokens(deps.as_ref(), env).unwrap();
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: provider_address.to_string(),

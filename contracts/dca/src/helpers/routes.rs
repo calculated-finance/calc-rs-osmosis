@@ -113,7 +113,6 @@ mod get_token_out_denom_tests {
             route: vec![0],
             quote_denom: DENOM_UATOM.to_string(),
             base_denom: DENOM_UOSMO.to_string(),
-            ..Pair::default()
         };
 
         let swap_denom = "not_in_pair".to_string();
@@ -148,7 +147,6 @@ mod calculate_route_tests {
             route: vec![0],
             quote_denom: DENOM_UATOM.to_string(),
             base_denom: DENOM_UOSMO.to_string(),
-            ..Pair::default()
         };
 
         let swap_denom = "not_in_pair".to_string();
@@ -173,15 +171,10 @@ mod calculate_route_tests {
             route: vec![2],
             quote_denom: DENOM_UATOM.to_string(),
             base_denom: DENOM_UOSMO.to_string(),
-            ..Pair::default()
         };
 
-        let err = calculate_route(
-            &deps.as_ref().querier,
-            &pair.clone(),
-            pair.quote_denom.clone(),
-        )
-        .unwrap_err();
+        let err =
+            calculate_route(&deps.as_ref().querier, &pair, pair.quote_denom.clone()).unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -200,15 +193,10 @@ mod calculate_route_tests {
             route: vec![0, 2],
             quote_denom: DENOM_UATOM.to_string(),
             base_denom: DENOM_UOSMO.to_string(),
-            ..Pair::default()
         };
 
-        let err = calculate_route(
-            &deps.as_ref().querier,
-            &pair.clone(),
-            pair.quote_denom.clone(),
-        )
-        .unwrap_err();
+        let err =
+            calculate_route(&deps.as_ref().querier, &pair, pair.quote_denom.clone()).unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -227,15 +215,10 @@ mod calculate_route_tests {
             route: vec![0, 1],
             quote_denom: DENOM_UATOM.to_string(),
             base_denom: DENOM_UOSMO.to_string(),
-            ..Pair::default()
         };
 
-        let err = calculate_route(
-            &deps.as_ref().querier,
-            &pair.clone(),
-            pair.quote_denom.clone(),
-        )
-        .unwrap_err();
+        let err =
+            calculate_route(&deps.as_ref().querier, &pair, pair.quote_denom.clone()).unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -254,7 +237,6 @@ mod calculate_route_tests {
             route: vec![0],
             quote_denom: DENOM_UATOM.to_string(),
             base_denom: DENOM_UOSMO.to_string(),
-            ..Pair::default()
         };
 
         assert_eq!(
@@ -282,7 +264,6 @@ mod calculate_route_tests {
             route: vec![0, 1],
             quote_denom: DENOM_UATOM.to_string(),
             base_denom: DENOM_UION.to_string(),
-            ..Pair::default()
         };
 
         assert_eq!(
@@ -322,7 +303,6 @@ mod calculate_route_tests {
             route: vec![2, 1, 0],
             quote_denom: DENOM_USDC.to_string(),
             base_denom: DENOM_UATOM.to_string(),
-            ..Pair::default()
         };
 
         assert_eq!(

@@ -84,13 +84,13 @@ mod update_vault_tests {
 
         let vault = setup_vault(deps.as_mut(), mock_env(), Vault::default());
 
-        let label = Some("12345678910".repeat(10).to_string());
+        let label = Some("12345678910".repeat(10));
 
         let err = update_vault_handler(
             deps.as_mut(),
             mock_info(USER, &[]),
             vault.id,
-            label.clone(),
+            label,
             None,
         )
         .unwrap_err();
@@ -122,7 +122,7 @@ mod update_vault_tests {
             deps.as_mut(),
             mock_info(USER, &[]),
             vault.id,
-            label.clone(),
+            label,
             None,
         )
         .unwrap_err();
@@ -149,7 +149,7 @@ mod update_vault_tests {
             deps.as_mut(),
             mock_info(USER, &[]),
             vault.id,
-            label.clone(),
+            label,
             None,
         )
         .unwrap_err();
@@ -295,7 +295,7 @@ mod update_vault_tests {
 
         let vault = setup_vault(deps.as_mut(), mock_env(), Vault::default());
 
-        let label = Some("123456789".repeat(10).to_string());
+        let label = Some("123456789".repeat(10));
 
         update_vault_handler(
             deps.as_mut(),

@@ -28,7 +28,7 @@ mod get_pairs_tests {
     fn get_all_pairs_with_one_whitelisted_pair_should_succeed() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
         instantiate_contract(deps.as_mut(), env.clone(), info.clone());
 
@@ -36,7 +36,7 @@ mod get_pairs_tests {
 
         create_pair_handler(
             deps.as_mut(),
-            info.clone(),
+            info,
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
             pair.route.clone(),
@@ -54,7 +54,7 @@ mod get_pairs_tests {
     fn get_all_pairs_with_no_whitelisted_pairs_should_succeed() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
         instantiate_contract(deps.as_mut(), env.clone(), info);
 

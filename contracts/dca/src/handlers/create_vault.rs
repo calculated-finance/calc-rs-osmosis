@@ -352,10 +352,10 @@ mod create_vault_tests {
 
         create_pair_handler(
             deps.as_mut(),
-            admin_info.clone(),
+            admin_info,
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
-            pair.route.clone(),
+            pair.route,
         )
         .unwrap();
 
@@ -402,10 +402,10 @@ mod create_vault_tests {
 
         create_pair_handler(
             deps.as_mut(),
-            admin_info.clone(),
+            admin_info,
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
-            pair.route.clone(),
+            pair.route,
         )
         .unwrap();
 
@@ -532,10 +532,10 @@ mod create_vault_tests {
 
         create_pair_handler(
             deps.as_mut(),
-            admin_info.clone(),
+            admin_info,
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
-            pair.route.clone(),
+            pair.route,
         )
         .unwrap();
 
@@ -543,7 +543,7 @@ mod create_vault_tests {
 
         let err = create_vault_handler(
             deps.as_mut(),
-            env.clone(),
+            env,
             &user_info,
             user_info.sender.clone(),
             None,
@@ -623,10 +623,10 @@ mod create_vault_tests {
 
         create_pair_handler(
             deps.as_mut(),
-            admin_info.clone(),
+            admin_info,
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
-            pair.route.clone(),
+            pair.route,
         )
         .unwrap();
 
@@ -705,7 +705,7 @@ mod create_vault_tests {
             info.clone(),
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
-            pair.route.clone(),
+            pair.route,
         )
         .unwrap();
 
@@ -752,7 +752,7 @@ mod create_vault_tests {
             info.clone(),
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
-            pair.route.clone(),
+            pair.route,
         )
         .unwrap();
 
@@ -799,7 +799,7 @@ mod create_vault_tests {
             info.clone(),
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
-            pair.route.clone(),
+            pair.route,
         )
         .unwrap();
 
@@ -808,7 +808,7 @@ mod create_vault_tests {
 
         let err = create_vault_handler(
             deps.as_mut(),
-            env.clone(),
+            env,
             &info,
             info.sender.clone(),
             None,
@@ -846,7 +846,7 @@ mod create_vault_tests {
             info.clone(),
             pair.base_denom.clone(),
             pair.quote_denom.clone(),
-            pair.route.clone(),
+            pair.route,
         )
         .unwrap();
 

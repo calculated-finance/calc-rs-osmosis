@@ -124,9 +124,9 @@ mod query_belief_price_tests {
     fn query_belief_price_with_single_pool_id_should_succeed() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         deps.querier.update_stargate(|path, data| {
             if path == "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" {
@@ -160,9 +160,9 @@ mod query_belief_price_tests {
     fn query_belief_price_with_multiple_pool_ids_id_should_succeed() {
         let mut deps = calc_mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         deps.querier.update_stargate(|path, data| {
             if path == "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow" {

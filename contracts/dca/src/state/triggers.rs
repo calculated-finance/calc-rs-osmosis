@@ -102,7 +102,7 @@ mod tests {
             },
         };
 
-        save_trigger(&mut deps.storage, trigger.clone()).unwrap();
+        save_trigger(&mut deps.storage, trigger).unwrap();
 
         let trigger_ids = get_time_triggers(&deps.storage, env.block.time, Some(100)).unwrap();
 

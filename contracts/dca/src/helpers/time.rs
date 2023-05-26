@@ -144,11 +144,8 @@ mod tests {
         let last_execution_timestamp =
             Timestamp::from_seconds(last_execution_time.timestamp().try_into().unwrap());
 
-        let next_execution_time = get_next_target_time(
-            current_timestamp,
-            last_execution_timestamp,
-            interval.try_into().unwrap(),
-        );
+        let next_execution_time =
+            get_next_target_time(current_timestamp, last_execution_timestamp, interval);
 
         assert_eq!(
             next_execution_time.seconds(),
@@ -530,7 +527,7 @@ mod tests {
 
         let result = target_time_elapsed(current_time, time_in_the_past);
 
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[test]
@@ -541,7 +538,7 @@ mod tests {
 
         let result = target_time_elapsed(current_time, time_in_the_future);
 
-        assert_eq!(result, false);
+        assert!(!result);
     }
 
     #[test]
@@ -552,7 +549,7 @@ mod tests {
 
         let result = target_time_elapsed(current_time, time_in_the_future);
 
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[test]
