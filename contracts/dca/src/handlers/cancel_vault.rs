@@ -1,4 +1,5 @@
 use crate::error::ContractError;
+use crate::helpers::coin::empty_of;
 use crate::helpers::validation::{
     assert_sender_is_admin_or_vault_owner, assert_vault_is_not_cancelled,
 };
@@ -10,7 +11,7 @@ use crate::types::event::{EventBuilder, EventData};
 use crate::types::vault::{Vault, VaultStatus};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{BankMsg, DepsMut, Response, Uint128};
-use cosmwasm_std::{Coin, Env, MessageInfo, SubMsg};
+use cosmwasm_std::{Env, MessageInfo, SubMsg};
 
 pub fn cancel_vault_handler(
     deps: DepsMut,
@@ -45,13 +46,14 @@ pub fn cancel_vault_handler(
         }));
     }
 
-    let updated_vault = Vault {
-        status: VaultStatus::Cancelled,
-        balance: Coin::new(0, vault.get_swap_denom()),
-        ..vault.clone()
-    };
-
-    update_vault(deps.storage, &updated_vault)?;
+    let updated_vault = update_vault(
+        deps.storage,
+        Vault {
+            status: VaultStatus::Cancelled,
+            balance: empty_of(vault.balance.clone()),
+            ..vault.clone()
+        },
+    )?;
 
     delete_trigger(deps.storage, updated_vault.id)?;
 
@@ -75,7 +77,7 @@ mod cancel_vault_tests {
     use crate::types::event::{EventBuilder, EventData};
     use crate::types::vault::{Vault, VaultStatus};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{BankMsg, SubMsg, Uint128};
+    use cosmwasm_std::{BankMsg, Coin, SubMsg, Uint128};
 
     #[test]
     fn should_return_balance_to_owner() {

@@ -232,7 +232,7 @@ pub fn assert_slippage_tolerance_is_less_than_or_equal_to_one(
 ) -> Result<(), ContractError> {
     if slippage_tolerance > Decimal::percent(100) {
         return Err(ContractError::CustomError {
-            val: "default slippage tolerance must be less than or equal to 1".to_string(),
+            val: "slippage tolerance must be less than or equal to 1".to_string(),
         });
     }
     Ok(())
@@ -496,6 +496,17 @@ pub fn assert_denom_exists(storage: &dyn Storage, denom: String) -> Result<(), C
     if !pairs.iter().any(|p| p.denoms().contains(&denom)) {
         return Err(ContractError::CustomError {
             val: format!("{} is not supported", denom),
+        });
+    }
+    Ok(())
+}
+
+pub fn assert_weighted_scale_multiplier_is_no_more_than_10(
+    multiplier: Decimal,
+) -> Result<(), ContractError> {
+    if multiplier > Decimal::percent(1000) {
+        return Err(ContractError::CustomError {
+            val: "Cannot set weighted scale multiplier to more than 10".to_string(),
         });
     }
     Ok(())

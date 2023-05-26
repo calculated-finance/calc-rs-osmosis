@@ -452,7 +452,7 @@ mod update_config_tests {
 
         assert_eq!(
             err.to_string(),
-            "Error: default slippage tolerance must be less than or equal to 1"
+            "Error: slippage tolerance must be less than or equal to 1"
         )
     }
 

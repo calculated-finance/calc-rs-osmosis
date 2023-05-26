@@ -202,6 +202,46 @@
                 "null"
               ]
             },
+            "minimum_receive_amount": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "slippage_tolerance": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "swap_adjustment_strategy": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SwapAdjustmentStrategyParams"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "time_interval": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TimeInterval"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "vault_id": {
               "$ref": "#/definitions/Uint128"
             }
@@ -722,7 +762,7 @@
         {
           "type": "string",
           "enum": [
-            "every_second",
+            "every_block",
             "every_minute",
             "half_hourly",
             "hourly",

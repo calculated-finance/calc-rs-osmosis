@@ -220,7 +220,7 @@ pub fn setup_vault(deps: DepsMut, env: Env, mut vault: Vault) -> Vault {
         existing_vault = get_vault_handler(deps.as_ref(), vault.id);
     }
 
-    update_vault(deps.storage, &vault).unwrap();
+    update_vault(deps.storage, vault.clone()).unwrap();
 
     if let Some(TriggerConfiguration::Time { target_time }) = vault.trigger {
         let trigger_time =

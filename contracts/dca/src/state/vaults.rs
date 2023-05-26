@@ -95,8 +95,9 @@ pub fn get_vaults(
         .collect::<Vec<Vault>>())
 }
 
-pub fn update_vault(store: &mut dyn Storage, vault: &Vault) -> StdResult<()> {
-    vault_store().save(store, vault.id.into(), &vault.clone().into())
+pub fn update_vault(store: &mut dyn Storage, vault: Vault) -> StdResult<Vault> {
+    vault_store().save(store, vault.id.into(), &vault.clone().into())?;
+    Ok(vault)
 }
 
 #[cw_serde]

@@ -179,7 +179,7 @@
         {
           "type": "string",
           "enum": [
-            "every_second",
+            "every_block",
             "every_minute",
             "half_hourly",
             "hourly",
