@@ -241,7 +241,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -254,7 +254,7 @@ mod execute_trigger_tests {
         )
         .unwrap();
 
-        let err = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap_err();
+        let err = execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap_err();
 
         assert_eq!(err.to_string(), "Error: contract is paused");
     }
@@ -265,7 +265,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -276,7 +276,7 @@ mod execute_trigger_tests {
             },
         );
 
-        let err = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap_err();
+        let err = execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -290,7 +290,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -301,7 +301,7 @@ mod execute_trigger_tests {
             },
         );
 
-        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap_err();
+        execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap_err();
 
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
@@ -315,7 +315,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -328,7 +328,7 @@ mod execute_trigger_tests {
 
         delete_trigger(deps.as_mut().storage, vault.id).unwrap();
 
-        let err = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap_err();
+        let err = execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -342,13 +342,13 @@ mod execute_trigger_tests {
         let mut env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
         env.block.time = env.block.time.minus_seconds(10);
 
-        let err = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap_err();
+        let err = execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -362,7 +362,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -373,7 +373,7 @@ mod execute_trigger_tests {
             },
         );
 
-        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
@@ -387,7 +387,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -412,7 +412,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -443,7 +443,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -455,7 +455,7 @@ mod execute_trigger_tests {
             },
         );
 
-        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
@@ -493,7 +493,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -512,7 +512,7 @@ mod execute_trigger_tests {
             },
         );
 
-        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
@@ -528,7 +528,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -575,7 +575,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -599,7 +599,7 @@ mod execute_trigger_tests {
             _ => Err(StdError::generic_err("message not customised")),
         });
 
-        let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        let response = execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         assert!(response.messages.is_empty());
     }
@@ -610,7 +610,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -658,7 +658,7 @@ mod execute_trigger_tests {
                         (vault.swap_amount * swap_adjustment).into(),
                         vault.get_swap_denom()
                     )
-                    .clone()
+                    
                     .into()
                 ),
                 token_out_min_amount: token_out_min_amount.to_string(),
@@ -680,7 +680,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -701,7 +701,7 @@ mod execute_trigger_tests {
             _ => Err(StdError::generic_err("message not supported")),
         });
 
-        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
@@ -718,7 +718,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -758,7 +758,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -803,7 +803,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -818,7 +818,7 @@ mod execute_trigger_tests {
             },
         );
 
-        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
@@ -855,7 +855,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -901,7 +901,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -923,7 +923,7 @@ mod execute_trigger_tests {
             },
         );
 
-        let response = execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        let response = execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         assert!(response.messages.is_empty());
     }
@@ -934,7 +934,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -963,7 +963,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -999,7 +999,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1010,7 +1010,7 @@ mod execute_trigger_tests {
             },
         );
 
-        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
@@ -1024,7 +1024,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1079,7 +1079,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1100,7 +1100,7 @@ mod execute_trigger_tests {
             },
         );
 
-        execute_trigger_handler(deps.as_mut(), env.clone(), vault.id).unwrap();
+        execute_trigger_handler(deps.as_mut(), env, vault.id).unwrap();
 
         let updated_vault = get_vault(deps.as_ref().storage, vault.id).unwrap();
 
@@ -1114,7 +1114,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -1130,7 +1130,7 @@ mod execute_trigger_tests {
                 sender: env.contract.address.to_string(),
                 token_in: Some(
                     Coin::new(vault.swap_amount.into(), vault.get_swap_denom())
-                        .clone()
+                        
                         .into()
                 ),
                 token_out_min_amount: token_out_min_amount.to_string(),
@@ -1151,7 +1151,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1192,7 +1192,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1240,7 +1240,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1277,7 +1277,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1314,7 +1314,7 @@ mod execute_trigger_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1338,7 +1338,7 @@ mod execute_trigger_tests {
                 sender: env.contract.address.to_string(),
                 token_in: Some(
                     Coin::new(vault.swap_amount.into(), vault.get_swap_denom())
-                        .clone()
+                        
                         .into()
                 ),
                 token_out_min_amount: token_out_min_amount.to_string(),

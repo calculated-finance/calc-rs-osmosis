@@ -1071,7 +1071,7 @@ mod simulate_standard_dca_execution_tests {
             data: EventData::SimulatedDcaVaultExecutionCompleted {
                 sent: Coin::new(vault.swap_amount.into(), vault.get_swap_denom()),
                 received: Coin::new(received_amount.into(), vault.target_denom.clone()),
-                fee: Coin::new(fee_amount.into(), vault.target_denom.clone())
+                fee: Coin::new(fee_amount.into(), vault.target_denom)
             }
         }));
     }

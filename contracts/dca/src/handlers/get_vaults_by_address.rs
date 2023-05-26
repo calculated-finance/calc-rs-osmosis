@@ -32,9 +32,9 @@ mod get_vaults_by_address_tests {
     fn with_no_vaults_should_return_all_vaults() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let vaults = from_binary::<VaultsResponse>(
             &query(
@@ -59,9 +59,9 @@ mod get_vaults_by_address_tests {
     fn with_multiple_vaults_should_return_all_vaults() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         setup_vault(deps.as_mut(), env.clone(), Vault::default());
         setup_vault(deps.as_mut(), env.clone(), Vault::default());
@@ -89,9 +89,9 @@ mod get_vaults_by_address_tests {
     fn with_limit_should_return_limited_vaults() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         for _ in 0..40 {
             setup_vault(deps.as_mut(), env.clone(), Vault::default());
@@ -121,9 +121,9 @@ mod get_vaults_by_address_tests {
     fn with_start_after_should_return_vaults_after_start_after() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         setup_vault(deps.as_mut(), env.clone(), Vault::default());
         setup_vault(deps.as_mut(), env.clone(), Vault::default());
@@ -152,9 +152,9 @@ mod get_vaults_by_address_tests {
     fn with_limit_and_start_after_should_return_limited_vaults_after_start_after() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         for _ in 0..40 {
             setup_vault(deps.as_mut(), env.clone(), Vault::default());
@@ -184,9 +184,9 @@ mod get_vaults_by_address_tests {
     fn with_limit_too_large_should_fail() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let err = query(
             deps.as_ref(),
@@ -210,9 +210,9 @@ mod get_vaults_by_address_tests {
     fn with_status_filter_should_return_all_vaults_with_status() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        let info = mock_info(ADMIN, &vec![]);
+        let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         setup_vault(
             deps.as_mut(),

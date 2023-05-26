@@ -92,7 +92,7 @@ mod get_vault_performance_tests {
                 received_amount: Coin::new(TEN.into(), DENOM_STAKE),
                 escrowed_amount: Coin::new(TEN.into(), DENOM_STAKE),
                 swap_adjustment_strategy: Some(SwapAdjustmentStrategy::default()),
-                performance_assessment_strategy: Some(performance_assessment_strategy.clone()),
+                performance_assessment_strategy: Some(performance_assessment_strategy),
                 escrow_level: Decimal::percent(5),
                 ..Vault::default()
             },

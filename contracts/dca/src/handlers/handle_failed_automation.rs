@@ -178,7 +178,7 @@ mod handle_failed_automation_handler_tests {
             deps.as_mut(),
             env.clone(),
             Vault {
-                destinations: destinations.clone(),
+                destinations,
                 ..Vault::default()
             },
         );
@@ -351,7 +351,7 @@ mod handle_failed_automation_handler_tests {
                     ),
                     funds: vec![Coin::new(
                         (vault.swap_amount * destinations[0].allocation).into(),
-                        vault.target_denom.clone()
+                        vault.target_denom
                     )],
                 },
             )
@@ -406,7 +406,7 @@ mod handle_failed_automation_handler_tests {
 
         let response = handle_failed_automation_handler(
             deps.as_mut(),
-            env.clone(),
+            env,
             Reply {
                 id: AFTER_FAILED_AUTOMATION_REPLY_ID,
                 result: SubMsgResult::Err("error".to_string()),
@@ -420,7 +420,7 @@ mod handle_failed_automation_handler_tests {
                 to_address: vault.owner.to_string(),
                 amount: vec![Coin::new(
                     (vault.swap_amount * destinations[0].allocation).into(),
-                    vault.target_denom.clone()
+                    vault.target_denom
                 )],
             })]
         );

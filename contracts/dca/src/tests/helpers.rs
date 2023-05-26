@@ -44,7 +44,7 @@ pub fn instantiate_contract(deps: DepsMut, env: Env, info: MessageInfo) {
         default_slippage_tolerance: Decimal::percent(2),
     };
 
-    instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
+    instantiate(deps, env, info, instantiate_message).unwrap();
 }
 
 pub fn instantiate_contract_with_multiple_fee_collectors(
@@ -67,7 +67,7 @@ pub fn instantiate_contract_with_multiple_fee_collectors(
         default_slippage_tolerance: Decimal::percent(2),
     };
 
-    instantiate(deps, env.clone(), info.clone(), instantiate_message).unwrap();
+    instantiate(deps, env, info, instantiate_message).unwrap();
 }
 
 impl Default for Config {

@@ -168,7 +168,7 @@ mod disburse_funds_tests {
     fn with_succcesful_swap_returns_funds_to_destination() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -240,7 +240,7 @@ mod disburse_funds_tests {
     fn with_succcesful_swap_returns_fee_to_fee_collector() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
@@ -278,7 +278,7 @@ mod disburse_funds_tests {
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
+            amount: vec![Coin::new(swap_fee.into(), vault.target_denom)]
         })));
     }
 
@@ -290,7 +290,7 @@ mod disburse_funds_tests {
         instantiate_contract_with_multiple_fee_collectors(
             deps.as_mut(),
             env.clone(),
-            mock_info(ADMIN, &vec![]),
+            mock_info(ADMIN, &[]),
             vec![
                 FeeCollector {
                     address: "fee_collector_1".to_string(),
@@ -376,7 +376,7 @@ mod disburse_funds_tests {
     fn with_succcesful_swap_adjusts_vault_balance() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
@@ -427,7 +427,7 @@ mod disburse_funds_tests {
     fn with_succcesful_swap_adjusts_swapped_amount_stat() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
@@ -484,7 +484,7 @@ mod disburse_funds_tests {
     fn with_succcesful_swap_adjusts_received_amount_stat() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
         let receive_amount = Uint128::new(234312312);
@@ -541,7 +541,7 @@ mod disburse_funds_tests {
     fn with_succcesful_swap_with_escrow_level_escrows_funds() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -648,7 +648,7 @@ mod disburse_funds_tests {
     fn with_succcesful_swap_publishes_dca_execution_completed_event() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -735,7 +735,7 @@ mod disburse_funds_tests {
             data: EventData::DcaVaultExecutionCompleted {
                 sent: updated_vault.swapped_amount,
                 received: add_to(updated_vault.received_amount, fee),
-                fee: Coin::new(fee.into(), vault.target_denom.clone())
+                fee: Coin::new(fee.into(), vault.target_denom)
             }
         }))
     }
@@ -744,7 +744,7 @@ mod disburse_funds_tests {
     fn with_succcesful_swap_for_non_standard_dca_publishes_execution_completed_event() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -831,7 +831,7 @@ mod disburse_funds_tests {
             data: EventData::DcaVaultExecutionCompleted {
                 sent: updated_vault.swapped_amount,
                 received: updated_vault.received_amount,
-                fee: Coin::new(0, vault.target_denom.clone())
+                fee: Coin::new(0, vault.target_denom)
             }
         }))
     }
@@ -859,7 +859,7 @@ mod disburse_funds_tests {
 
         disburse_funds_handler(deps.as_mut(), &env, reply).unwrap();
 
-        let updated_vault = get_vault(&mut deps.storage, vault.id).unwrap();
+        let updated_vault = get_vault(&deps.storage, vault.id).unwrap();
 
         assert_eq!(vault.balance, balance);
         assert_eq!(updated_vault.balance, balance);
@@ -869,7 +869,7 @@ mod disburse_funds_tests {
     fn with_failed_swap_publishes_skipped_event_with_slippage_failure() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -887,7 +887,7 @@ mod disburse_funds_tests {
         assert!(events.contains(
             &EventBuilder::new(
                 vault.id,
-                env.block.clone(),
+                env.block,
                 EventData::DcaVaultExecutionSkipped {
                     reason: ExecutionSkippedReason::SlippageToleranceExceeded
                 }
@@ -910,7 +910,7 @@ mod disburse_funds_tests {
 
         disburse_funds_handler(deps.as_mut(), &env, reply).unwrap();
 
-        let vault = get_vault(&mut deps.storage, vault.id).unwrap();
+        let vault = get_vault(&deps.storage, vault.id).unwrap();
 
         assert_eq!(vault.status, VaultStatus::Active);
     }
@@ -929,7 +929,7 @@ mod disburse_funds_tests {
 
         disburse_funds_handler(deps.as_mut(), &env, reply).unwrap();
 
-        let vault = get_vault(&mut deps.storage, vault.id).unwrap();
+        let vault = get_vault(&deps.storage, vault.id).unwrap();
 
         assert_eq!(vault.balance, Coin::new(TEN.into(), vault.get_swap_denom()));
     }
@@ -938,7 +938,7 @@ mod disburse_funds_tests {
     fn with_custom_fee_for_base_denom_takes_custom_fee() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -986,7 +986,7 @@ mod disburse_funds_tests {
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
+            amount: vec![Coin::new(swap_fee.into(), vault.target_denom)]
         })));
     }
 
@@ -994,7 +994,7 @@ mod disburse_funds_tests {
     fn with_custom_fee_for_quote_denom_takes_custom_fee() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -1042,7 +1042,7 @@ mod disburse_funds_tests {
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
+            amount: vec![Coin::new(swap_fee.into(), vault.target_denom)]
         })));
     }
 
@@ -1050,7 +1050,7 @@ mod disburse_funds_tests {
     fn with_custom_fee_for_both_denoms_takes_lower_fee() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
 
@@ -1106,7 +1106,7 @@ mod disburse_funds_tests {
 
         assert!(response.messages.contains(&SubMsg::new(BankMsg::Send {
             to_address: config.fee_collectors[0].address.to_string(),
-            amount: vec![Coin::new(swap_fee.into(), vault.target_denom.clone())]
+            amount: vec![Coin::new(swap_fee.into(), vault.target_denom)]
         })));
     }
 
@@ -1114,7 +1114,7 @@ mod disburse_funds_tests {
     fn with_insufficient_remaining_funds_sets_vault_to_inactive() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1162,7 +1162,7 @@ mod disburse_funds_tests {
     fn for_non_standard_dca_vault_with_failed_swap_publishes_slippage_tolerance_exceeded_event() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1220,7 +1220,7 @@ mod disburse_funds_tests {
     fn for_non_standard_dca_vault_with_insufficient_remaining_funds_sets_vault_to_inactive() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1270,7 +1270,7 @@ mod disburse_funds_tests {
     fn for_finished_standard_and_plus_disburses_escrow() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1330,7 +1330,7 @@ mod disburse_funds_tests {
     fn for_finished_standard_and_plus_deletes_trigger() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),
@@ -1387,7 +1387,7 @@ mod disburse_funds_tests {
     fn for_unfinished_standard_and_finished_plus_keeps_trigger() {
         let mut deps = mock_dependencies();
         let env = mock_env();
-        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &vec![]));
+        instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
         let vault = setup_vault(
             deps.as_mut(),

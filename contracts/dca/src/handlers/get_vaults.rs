@@ -68,7 +68,7 @@ mod get_vaults_tests {
 
         setup_vault(
             deps.as_mut(),
-            env.clone(),
+            env,
             Vault {
                 id: Uint128::new(2),
                 ..Vault::default()
@@ -89,7 +89,7 @@ mod get_vaults_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), mock_info(ADMIN, &[]));
 
-        let vault = setup_vault(deps.as_mut(), env.clone(), Vault::default());
+        let vault = setup_vault(deps.as_mut(), env, Vault::default());
 
         let vaults = get_vaults_handler(deps.as_ref(), None, None)
             .unwrap()
@@ -142,7 +142,7 @@ mod get_vaults_tests {
 
         setup_vault(
             deps.as_mut(),
-            env.clone(),
+            env,
             Vault {
                 id: Uint128::new(2),
                 ..Vault::default()

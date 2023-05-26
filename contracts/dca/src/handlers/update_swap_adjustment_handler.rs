@@ -44,7 +44,7 @@ mod update_swap_adjustments_tests {
         let env = mock_env();
         let info = mock_info(ADMIN, &[]);
 
-        instantiate_contract(deps.as_mut(), env.clone(), info.clone());
+        instantiate_contract(deps.as_mut(), env.clone(), info);
 
         let strategy = SwapAdjustmentStrategy::RiskWeightedAverage {
             model_id: 30,
@@ -56,9 +56,9 @@ mod update_swap_adjustments_tests {
 
         let err = update_swap_adjustment_handler(
             deps.as_mut(),
-            env.clone(),
+            env,
             mock_info("not-an-executor", &[]),
-            strategy.clone(),
+            strategy,
             value,
         )
         .unwrap_err();
@@ -84,8 +84,8 @@ mod update_swap_adjustments_tests {
 
         let err = update_swap_adjustment_handler(
             deps.as_mut(),
-            env.clone(),
-            info.clone(),
+            env,
+            info,
             strategy.clone(),
             value,
         )
@@ -132,7 +132,7 @@ mod update_swap_adjustments_tests {
         update_swap_adjustment_handler(
             deps.as_mut(),
             env.clone(),
-            info.clone(),
+            info,
             strategy.clone(),
             new_value,
         )
