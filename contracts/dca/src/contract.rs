@@ -6,6 +6,7 @@ use crate::error::ContractError;
 use crate::handlers::cancel_vault::cancel_vault_handler;
 use crate::handlers::create_custom_swap_fee::create_custom_swap_fee_handler;
 use crate::handlers::create_pair::create_pair_handler;
+use crate::handlers::create_pairs::create_pairs_handler;
 use crate::handlers::create_vault::create_vault_handler;
 use crate::handlers::deposit::deposit_handler;
 use crate::handlers::disburse_escrow::disburse_escrow_handler;
@@ -186,6 +187,7 @@ pub fn execute(
             duration,
             slippage_tolerance,
         ),
+        ExecuteMsg::CreatePairs { pairs } => create_pairs_handler(deps, info, pairs),
     }
 }
 
@@ -206,7 +208,9 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::GetPairs {} => to_binary(&get_pairs_handler(deps)?),
+        QueryMsg::GetPairs { limit, start_after } => {
+            to_binary(&get_pairs_handler(deps, start_after, limit)?)
+        }
         QueryMsg::GetTimeTriggerIds { limit } => {
             to_binary(&get_time_trigger_ids_handler(deps, env, limit)?)
         }

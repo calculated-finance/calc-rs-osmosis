@@ -45,7 +45,7 @@ export const execute = async (
   cosmWasmClient: SigningCosmWasmClient,
   senderAddress: string,
   contractAddress: string,
-  message: ExecuteMsg,
+  message: ExecuteMsg | any,
   funds: Coin[] = [],
 ): Promise<Record<string, unknown>> => {
   const response = await cosmWasmClient.execute(senderAddress, contractAddress, message, FEE, 'memo', funds);
@@ -90,5 +90,6 @@ export const uploadAndMigrate = async (
   migrateMsg: Record<string, unknown>,
 ): Promise<void> => {
   const { codeId } = await cosmWasmClient.upload(adminAddress, fs.readFileSync(binaryFilePath), FEE);
+  console.log('Uploaded code id: ', codeId);
   await cosmWasmClient.migrate(adminAddress, contractAddress, codeId, migrateMsg, FEE);
 };

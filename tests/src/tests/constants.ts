@@ -4,7 +4,7 @@ export const FEE: StdFee = {
   amount: [
     {
       denom: 'uosmo',
-      amount: '70000',
+      amount: '62500',
     },
   ],
   gas: '25000000',

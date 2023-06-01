@@ -54,20 +54,25 @@ pub fn get_automation_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResul
     )?)
 }
 
-pub fn get_swap_fee_rate(storage: &dyn Storage, vault: &Vault) -> StdResult<Decimal> {
+pub fn get_swap_fee_rate(
+    storage: &dyn Storage,
+    swap_denom: String,
+    target_denom: String,
+    swap_adjustment_strategy: &Option<SwapAdjustmentStrategy>,
+) -> StdResult<Decimal> {
     let config = get_config(storage)?;
 
     Ok(
         match (
-            get_custom_fee(storage, vault.get_swap_denom())?,
-            get_custom_fee(storage, vault.target_denom.clone())?,
+            get_custom_fee(storage, swap_denom)?,
+            get_custom_fee(storage, target_denom)?,
         ) {
             (Some(swap_denom_fee_percent), Some(receive_denom_fee_percent)) => {
                 min(swap_denom_fee_percent, receive_denom_fee_percent)
             }
             (Some(swap_denom_fee_percent), None) => swap_denom_fee_percent,
             (None, Some(receive_denom_fee_percent)) => receive_denom_fee_percent,
-            (None, None) => match vault.swap_adjustment_strategy {
+            (None, None) => match swap_adjustment_strategy {
                 Some(SwapAdjustmentStrategy::WeightedScale { .. }) => {
                     config.weighted_scale_swap_fee_percent
                 }
@@ -369,7 +374,13 @@ mod tests {
             ..Default::default()
         };
 
-        let fee_rate = get_swap_fee_rate(deps.as_ref().storage, &vault).unwrap();
+        let fee_rate = get_swap_fee_rate(
+            deps.as_ref().storage,
+            vault.get_swap_denom(),
+            vault.target_denom,
+            &vault.swap_adjustment_strategy,
+        )
+        .unwrap();
 
         let config = get_config(deps.as_ref().storage).unwrap();
 

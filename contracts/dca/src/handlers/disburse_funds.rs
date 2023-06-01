@@ -40,7 +40,12 @@ pub fn disburse_funds_handler(
             let coin_sent = subtract(&swap_cache.swap_denom_balance, swap_denom_balance)?;
             let coin_received = subtract(receive_denom_balance, &swap_cache.receive_denom_balance)?;
 
-            let swap_fee_rate = get_swap_fee_rate(deps.storage, &vault)?;
+            let swap_fee_rate = get_swap_fee_rate(
+                deps.storage,
+                vault.get_swap_denom(),
+                vault.target_denom.clone(),
+                &vault.swap_adjustment_strategy,
+            )?;
             let automation_fee_rate = get_automation_fee_rate(deps.storage, &vault)?;
 
             let swap_fee = checked_mul(coin_received.amount, swap_fee_rate)?;

@@ -88,7 +88,7 @@ mod create_pair_tests {
 
         execute(deps.as_mut(), env, info, create_pair_execute_message).unwrap();
 
-        let pair = &get_pairs_handler(deps.as_ref()).unwrap().pairs[0];
+        let pair = &get_pairs_handler(deps.as_ref(), None, None).unwrap().pairs[0];
 
         assert_eq!(pair.base_denom, DENOM_UOSMO.to_string());
         assert_eq!(pair.quote_denom, DENOM_STAKE.to_string());

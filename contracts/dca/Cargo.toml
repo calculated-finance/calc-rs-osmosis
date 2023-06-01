@@ -1,35 +1,26 @@
 [package]
 name = "dca"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["aidan <aidan@calculated.fi>"]
 edition = "2021"
-
-exclude = [
-  # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
-  "contract.wasm",
-  "hash.txt",
-]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+exclude = ["contract.wasm", "hash.txt"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [features]
-# for more explicit tests, cargo test --features=backtraces
 backtraces = ["cosmwasm-std/backtraces"]
-# use library feature to disable all instantiate/execute/query exports
 library = []
 
 [dependencies]
 chrono = { version = "0.4.22", default-features = false }
 cosmwasm-schema = "1.1.1"
-cosmos-sdk-proto = { version = "0.14.0", default-features = false }
+cosmos-sdk-proto = { version = "0.19.0", default-features = false }
 cosmwasm-std = "1.0.0"
 cosmwasm-storage = "1.1.1"
-cw-storage-plus = "0.15.0"
-cw2 = "0.15.0"
-cw20 = "0.13.4"
+cw-storage-plus = "1.0.1"
+cw2 = "1.0.1"
+cw20 = "1.0.1"
 osmosis-std = "=0.15.0"
 prost = "0.11.8"
 schemars = "0.8.10"
@@ -37,7 +28,7 @@ serde = { version = "1.0.144", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
 
 [dev-dependencies]
-cw-multi-test = "0.15.0"
+cw-multi-test = "0.16.4"
 rand = "0.8.5"
 
 [profile.release]

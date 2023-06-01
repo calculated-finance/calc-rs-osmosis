@@ -555,6 +555,30 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "create_pairs"
+      ],
+      "properties": {
+        "create_pairs": {
+          "type": "object",
+          "required": [
+            "pairs"
+          ],
+          "properties": {
+            "pairs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pair"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {
@@ -625,6 +649,31 @@
         "one_week",
         "two_weeks"
       ]
+    },
+    "Pair": {
+      "type": "object",
+      "required": [
+        "base_denom",
+        "quote_denom",
+        "route"
+      ],
+      "properties": {
+        "base_denom": {
+          "type": "string"
+        },
+        "quote_denom": {
+          "type": "string"
+        },
+        "route": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "PerformanceAssessmentStrategyParams": {
       "type": "string",

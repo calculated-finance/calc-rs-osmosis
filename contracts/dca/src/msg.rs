@@ -30,18 +30,7 @@ pub struct InstantiateMsg {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {
-    pub executors: Vec<Addr>,
-    pub fee_collectors: Vec<FeeCollector>,
-    pub default_swap_fee_percent: Decimal,
-    pub weighted_scale_swap_fee_percent: Decimal,
-    pub automation_fee_percent: Decimal,
-    pub default_page_limit: u16,
-    pub paused: bool,
-    pub risk_weighted_average_escrow_level: Decimal,
-    pub twap_period: u64,
-    pub default_slippage_tolerance: Decimal,
-}
+pub struct MigrateMsg {}
 
 #[cw_serde]
 pub enum ExecuteMsg {
@@ -119,6 +108,9 @@ pub enum ExecuteMsg {
         duration: LockableDuration,
         slippage_tolerance: Option<Decimal>,
     },
+    CreatePairs {
+        pairs: Vec<Pair>,
+    },
 }
 
 #[cw_serde]
@@ -127,7 +119,10 @@ pub enum QueryMsg {
     #[returns(ConfigResponse)]
     GetConfig {},
     #[returns(PairsResponse)]
-    GetPairs {},
+    GetPairs {
+        start_after: Option<Pair>,
+        limit: Option<u16>,
+    },
     #[returns(TriggerIdsResponse)]
     GetTimeTriggerIds { limit: Option<u16> },
     #[returns(VaultResponse)]

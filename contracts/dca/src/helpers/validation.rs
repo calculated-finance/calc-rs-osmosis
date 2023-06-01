@@ -492,7 +492,7 @@ pub fn assert_fee_level_is_valid(swap_fee_percent: &Decimal) -> Result<(), Contr
 }
 
 pub fn assert_denom_exists(storage: &dyn Storage, denom: String) -> Result<(), ContractError> {
-    let pairs = get_pairs(storage);
+    let pairs = get_pairs(storage, None, None);
     if !pairs.iter().any(|p| p.denoms().contains(&denom)) {
         return Err(ContractError::CustomError {
             val: format!("{} is not supported", denom),
