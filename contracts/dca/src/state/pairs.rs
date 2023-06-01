@@ -1,8 +1,10 @@
 use crate::types::pair::Pair;
 use cosmwasm_std::{Order, StdResult, Storage};
-use cw_storage_plus::Map;
+use cw_storage_plus::{Bound, Map};
 
-const PAIRS: Map<String, Pair> = Map::new("pairs_v9");
+use super::config::get_config;
+
+pub const PAIRS: Map<String, Pair> = Map::new("pairs_v9");
 
 pub fn save_pair(storage: &mut dyn Storage, pair: &Pair) -> StdResult<()> {
     PAIRS.save(storage, key_from(pair.denoms()), pair)
@@ -17,9 +19,19 @@ pub fn find_pair(storage: &dyn Storage, denoms: [String; 2]) -> StdResult<Pair> 
     PAIRS.load(storage, key_from(denoms))
 }
 
-pub fn get_pairs(storage: &dyn Storage) -> Vec<Pair> {
+pub fn get_pairs(
+    storage: &dyn Storage,
+    start_after: Option<Pair>,
+    limit: Option<u16>,
+) -> Vec<Pair> {
     PAIRS
-        .range(storage, None, None, Order::Ascending)
+        .range(
+            storage,
+            start_after.map(|pair| Bound::exclusive(key_from(pair.denoms()))),
+            None,
+            Order::Ascending,
+        )
+        .take(limit.unwrap_or_else(|| get_config(storage).unwrap().default_page_limit) as usize)
         .flat_map(|result| result.map(|(_, pair)| pair))
         .collect::<Vec<Pair>>()
 }

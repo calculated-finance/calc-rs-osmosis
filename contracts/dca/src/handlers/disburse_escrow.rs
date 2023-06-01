@@ -8,6 +8,7 @@ use crate::{
         validation::assert_sender_is_executor,
     },
     state::{
+        cache::VAULT_CACHE,
         disburse_escrow_tasks::{delete_disburse_escrow_task, get_disburse_escrow_task_due_date},
         events::create_event,
         pairs::find_pair,
@@ -82,6 +83,8 @@ pub fn disburse_escrow_handler(
     )?;
 
     delete_disburse_escrow_task(deps.storage, vault.id)?;
+
+    VAULT_CACHE.save(deps.storage, &vault.id)?;
 
     Ok(response
         .add_submessages(get_disbursement_messages(

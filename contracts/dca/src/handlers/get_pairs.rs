@@ -1,9 +1,13 @@
-use crate::{msg::PairsResponse, state::pairs::get_pairs};
+use crate::{msg::PairsResponse, state::pairs::get_pairs, types::pair::Pair};
 use cosmwasm_std::{Deps, StdResult};
 
-pub fn get_pairs_handler(deps: Deps) -> StdResult<PairsResponse> {
+pub fn get_pairs_handler(
+    deps: Deps,
+    start_after: Option<Pair>,
+    limit: Option<u16>,
+) -> StdResult<PairsResponse> {
     Ok(PairsResponse {
-        pairs: get_pairs(deps.storage),
+        pairs: get_pairs(deps.storage, start_after, limit),
     })
 }
 
@@ -43,7 +47,15 @@ mod get_pairs_tests {
         )
         .unwrap();
 
-        let binary = query(deps.as_ref(), env, QueryMsg::GetPairs {}).unwrap();
+        let binary = query(
+            deps.as_ref(),
+            env,
+            QueryMsg::GetPairs {
+                start_after: None,
+                limit: None,
+            },
+        )
+        .unwrap();
         let response = from_binary::<PairsResponse>(&binary).unwrap();
 
         assert_eq!(response.pairs.len(), 1);
@@ -58,7 +70,15 @@ mod get_pairs_tests {
 
         instantiate_contract(deps.as_mut(), env.clone(), info);
 
-        let binary = query(deps.as_ref(), env, QueryMsg::GetPairs {}).unwrap();
+        let binary = query(
+            deps.as_ref(),
+            env,
+            QueryMsg::GetPairs {
+                start_after: None,
+                limit: None,
+            },
+        )
+        .unwrap();
         let response = from_binary::<PairsResponse>(&binary).unwrap();
 
         assert_eq!(response.pairs.len(), 0);
