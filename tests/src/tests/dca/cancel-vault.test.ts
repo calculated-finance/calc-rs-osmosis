@@ -190,7 +190,7 @@ describe('when cancelling a vault', () => {
               base_denom: 'bitcoin',
             },
           },
-          time_interval: 'every_second',
+          time_interval: 'every_block',
         },
         [coin(200000, this.pair.quote_denom)],
       );

@@ -7,6 +7,7 @@ pub mod deposit;
 pub mod disburse_escrow;
 pub mod disburse_funds;
 pub mod execute_trigger;
+pub mod fix_position_type;
 pub mod get_config;
 pub mod get_custom_swap_fees;
 pub mod get_disburse_escrow_tasks;

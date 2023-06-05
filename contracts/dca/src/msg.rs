@@ -111,6 +111,9 @@ pub enum ExecuteMsg {
     CreatePairs {
         pairs: Vec<Pair>,
     },
+    FixPositionType {
+        vault_id: Uint128,
+    },
 }
 
 #[cw_serde]

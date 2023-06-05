@@ -1,8 +1,8 @@
 use crate::types::{pair::Pair, position_type::PositionType};
 use cosmwasm_std::{QuerierWrapper, StdError, StdResult};
 use osmosis_std::types::osmosis::{
-    gamm::v1beta1::{GammQuerier, Pool},
-    poolmanager::v1beta1::SwapAmountInRoute,
+    gamm::v1beta1::Pool,
+    poolmanager::v1beta1::{PoolmanagerQuerier, SwapAmountInRoute},
 };
 use prost::DecodeError;
 
@@ -42,7 +42,7 @@ pub fn get_token_out_denom(
 }
 
 pub fn get_pool(querier: &QuerierWrapper, pool_id: u64) -> Result<Pool, StdError> {
-    GammQuerier::new(querier).pool(pool_id)?.pool.map_or(
+    PoolmanagerQuerier::new(querier).pool(pool_id)?.pool.map_or(
         Err(StdError::generic_err("pool not found")),
         |pool| {
             pool.try_into()

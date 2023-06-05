@@ -1,5 +1,5 @@
-use cosmos_sdk_proto::{cosmos::authz::v1beta1::MsgExec, Any};
 use cosmwasm_std::{Addr, Binary, CosmosMsg};
+use osmosis_std::{shim::Any, types::cosmos::authz::v1beta1::MsgExec};
 use prost::Message;
 
 pub fn create_authz_exec_message<T: Message>(grantee: Addr, type_url: String, msg: T) -> CosmosMsg {

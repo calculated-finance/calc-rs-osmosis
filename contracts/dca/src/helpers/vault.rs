@@ -151,7 +151,6 @@ pub fn simulate_standard_dca_execution(
 
             let actual_price = query_price(
                 querier,
-                env,
                 &pair,
                 &Coin::new(swap_amount.into(), vault.get_swap_denom()),
             )?;

@@ -48,7 +48,7 @@ export const execute = async (
   message: ExecuteMsg | any,
   funds: Coin[] = [],
 ): Promise<Record<string, unknown>> => {
-  const response = await cosmWasmClient.execute(senderAddress, contractAddress, message, FEE, 'memo', funds);
+  const response = await cosmWasmClient.execute(senderAddress, contractAddress, message, 'auto', 'memo', funds);
   return parseEventAttributes(response.logs[0].events);
 };
 

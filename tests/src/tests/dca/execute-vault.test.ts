@@ -260,7 +260,7 @@ describe('when executing a vault', () => {
         this,
         {
           swap_amount,
-          time_interval: 'every_second',
+          time_interval: 'every_block',
         },
         [deposit],
       );
@@ -658,7 +658,7 @@ describe('when executing a vault', () => {
 
       const vault_id = await createVault(this, {
         target_start_time_utc_seconds: `${targetTime.unix()}`,
-        time_interval: 'every_second',
+        time_interval: 'every_block',
         swap_adjustment_strategy: {
           risk_weighted_average: {
             base_denom: 'bitcoin',
@@ -779,7 +779,7 @@ describe('when executing a vault', () => {
         {
           target_start_time_utc_seconds: `${targetTime.unix()}`,
           swap_amount: `${Math.round(Number(deposit.amount) * (2 / 3))}`,
-          time_interval: 'every_second',
+          time_interval: 'every_block',
           swap_adjustment_strategy: {
             risk_weighted_average: {
               base_denom: 'bitcoin',
@@ -954,7 +954,7 @@ describe('when executing a vault', () => {
         {
           target_start_time_utc_seconds: `${targetTime.unix()}`,
           swap_amount: deposit.amount,
-          time_interval: 'every_second',
+          time_interval: 'every_block',
           swap_adjustment_strategy: {
             risk_weighted_average: {
               base_denom: 'bitcoin',
