@@ -7,11 +7,10 @@ use cosmwasm_std::{
 use osmosis_std::shim::Any;
 use osmosis_std::types::cosmos::base::v1beta1::Coin;
 use osmosis_std::types::osmosis::gamm::v1beta1::{
-    Pool, PoolAsset, PoolParams, QueryCalcJoinPoolSharesResponse,
+    Pool, PoolAsset, PoolParams, QueryCalcJoinPoolSharesResponse, QueryPoolRequest,
+    QueryPoolResponse,
 };
-use osmosis_std::types::osmosis::poolmanager::v1beta1::{
-    EstimateSwapExactAmountInResponse, PoolRequest, PoolResponse,
-};
+use osmosis_std::types::osmosis::poolmanager::v1beta1::EstimateSwapExactAmountInResponse;
 use osmosis_std::types::osmosis::twap::v1beta1::ArithmeticTwapResponse;
 use prost::Message;
 use serde::de::DeserializeOwned;
@@ -56,7 +55,7 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                         tokens_out: vec![],
                     })
                 }
-                "/osmosis.poolmanager.v1beta1.Query/Pool" => {
+                "/osmosis.gamm.v1beta1.Query/Pool" => {
                     let pools = vec![
                         Pool {
                             id: 0,
@@ -181,9 +180,9 @@ impl<C: DeserializeOwned> CalcMockQuerier<C> {
                         },
                     ];
 
-                    let pool_id = PoolRequest::decode(data.as_slice()).unwrap().pool_id;
+                    let pool_id = QueryPoolRequest::decode(data.as_slice()).unwrap().pool_id;
 
-                    to_binary(&PoolResponse {
+                    to_binary(&QueryPoolResponse {
                         pool: Some(Any {
                             type_url: Pool::TYPE_URL.to_string(),
                             value: pools[pool_id as usize].clone().encode_to_vec(),
