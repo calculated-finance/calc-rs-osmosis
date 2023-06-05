@@ -12,6 +12,7 @@ use crate::handlers::deposit::deposit_handler;
 use crate::handlers::disburse_escrow::disburse_escrow_handler;
 use crate::handlers::disburse_funds::disburse_funds_handler;
 use crate::handlers::execute_trigger::execute_trigger_handler;
+use crate::handlers::fix_position_type::fix_position_type;
 use crate::handlers::get_config::get_config_handler;
 use crate::handlers::get_custom_swap_fees::get_custom_swap_fees_handler;
 use crate::handlers::get_disburse_escrow_tasks::get_disburse_escrow_tasks_handler;
@@ -188,6 +189,7 @@ pub fn execute(
             slippage_tolerance,
         ),
         ExecuteMsg::CreatePairs { pairs } => create_pairs_handler(deps, info, pairs),
+        ExecuteMsg::FixPositionType { vault_id } => fix_position_type(deps, vault_id),
     }
 }
 

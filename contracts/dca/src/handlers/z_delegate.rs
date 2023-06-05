@@ -4,9 +4,9 @@ use crate::helpers::validation::{
     assert_address_is_valid, assert_denom_is_bond_denom, assert_validator_is_valid,
 };
 use crate::{error::ContractError, helpers::validation::assert_exactly_one_asset};
-use cosmos_sdk_proto::cosmos::base::v1beta1::Coin as ProtoCoin;
-use cosmos_sdk_proto::cosmos::staking::v1beta1::MsgDelegate;
 use cosmwasm_std::{Addr, BankMsg, Deps, Env, MessageInfo, Reply, Response, SubMsg, SubMsgResult};
+use osmosis_std::types::cosmos::base::v1beta1::Coin;
+use osmosis_std::types::cosmos::staking::v1beta1::MsgDelegate;
 
 pub fn z_delegate_handler(
     deps: Deps,
@@ -41,7 +41,7 @@ pub fn z_delegate_handler(
                     MsgDelegate {
                         delegator_address: delegator_address.to_string(),
                         validator_address: validator_address.to_string(),
-                        amount: Some(ProtoCoin {
+                        amount: Some(Coin {
                             denom: amount_to_delegate.denom,
                             amount: amount_to_delegate.amount.to_string(),
                         }),
@@ -68,12 +68,12 @@ mod z_delegate_tests {
         helpers::authz::create_authz_exec_message,
         tests::mocks::{DENOM_STAKE, DENOM_UOSMO, USER, VALIDATOR},
     };
-    use cosmos_sdk_proto::cosmos::base::v1beta1::Coin as ProtoCoin;
-    use cosmos_sdk_proto::cosmos::staking::v1beta1::MsgDelegate;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info},
         Addr, Attribute, BankMsg, Coin, SubMsg, SubMsgResponse,
     };
+    use osmosis_std::types::cosmos::base::v1beta1::Coin as ProtoCoin;
+    use osmosis_std::types::cosmos::staking::v1beta1::MsgDelegate;
 
     #[test]
     fn with_no_asset_fails() {

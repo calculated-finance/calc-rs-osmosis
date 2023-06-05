@@ -167,7 +167,7 @@ export type BaseDenom = 'bitcoin';
 export type Uint64 = string;
 export type TimeInterval =
   | (
-      | 'every_second'
+      | 'every_block'
       | 'every_minute'
       | 'half_hourly'
       | 'hourly'

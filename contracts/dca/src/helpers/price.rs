@@ -61,19 +61,13 @@ pub fn query_belief_price(
 
 pub fn query_price(
     querier: &QuerierWrapper,
-    env: &Env,
     pair: &Pair,
     swap_amount: &Coin,
 ) -> StdResult<Decimal> {
     let routes = calculate_route(querier, pair, swap_amount.denom.clone())?;
 
     let token_out_amount = PoolmanagerQuerier::new(querier)
-        .estimate_swap_exact_amount_in(
-            env.contract.address.to_string(),
-            0,
-            swap_amount.to_string(),
-            routes.clone(),
-        )
+        .estimate_swap_exact_amount_in(0, swap_amount.to_string(), routes.clone())
         .map_err(|_| {
             StdError::generic_err(format!(
                 "amount of {} received for swapping {} via {:#?}",

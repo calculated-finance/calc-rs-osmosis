@@ -88,7 +88,7 @@ describe('when depositing into a vault', () => {
         this,
         {
           swap_amount: `${swapAmount}`,
-          time_interval: 'every_second',
+          time_interval: 'every_block',
         },
         [initialDeposit],
       );
