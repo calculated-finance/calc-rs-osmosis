@@ -15,7 +15,7 @@ use crate::types::event::{EventBuilder, EventData, ExecutionSkippedReason};
 use crate::types::swap_adjustment_strategy::SwapAdjustmentStrategy;
 use crate::types::trigger::{Trigger, TriggerConfiguration};
 use crate::types::vault::{Vault, VaultStatus};
-use cosmwasm_std::{to_binary, ReplyOn, SubMsg, WasmMsg};
+use cosmwasm_std::{to_binary, Decimal, ReplyOn, SubMsg, WasmMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, Response, Uint128};
 
@@ -193,6 +193,12 @@ pub fn execute_trigger_handler(
         },
     )?;
 
+    let adjusted_minimum_receive_amount =
+        vault.minimum_receive_amount.map(|minimum_receive_amount| {
+            Decimal::from_ratio(adjusted_swap_amount.amount, vault.swap_amount)
+                * minimum_receive_amount
+        });
+
     Ok(response.add_submessage(create_swap_message(
         &deps.querier,
         &env,
@@ -200,7 +206,7 @@ pub fn execute_trigger_handler(
         adjusted_swap_amount,
         vault.slippage_tolerance,
         belief_price,
-        vault.minimum_receive_amount,
+        adjusted_minimum_receive_amount,
         Some(AFTER_SWAP_REPLY_ID),
         Some(ReplyOn::Always),
     )?))

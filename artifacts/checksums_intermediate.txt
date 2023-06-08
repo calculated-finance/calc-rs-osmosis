@@ -1,1 +1,1 @@
-adad2f78dcedba182d96442e7ffec3f90a60e5be54ba2df0bb16118f54a94aac  target/wasm32-unknown-unknown/release/dca.wasm
+a6f0a8fc2d6eabeef95a48564a090a8c51423db03b5ea835d49a0f0037b69c80  target/wasm32-unknown-unknown/release/dca.wasm
