@@ -1,5 +1,7 @@
 # DCA
 
+
+
 ## Cache life-cycle
 
 Because cosmos chains implement the actor pattern, we can be certain that anything read from the cache will be relevant to the current transaction. Cache is never read from at the start of a brand new transaction, only ever written to.
